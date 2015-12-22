@@ -1,0 +1,13 @@
+# this container should be prepared for golang
+language: go
+
+# install all third party go packages that we use
+install:
+ - go get github.com/gorilla/mux
+ - go get github.com/stretchr/testify
+ - go get github.com/Shopify/sarama
+ - go get github.com/spf13/viper
+
+# Run all unittests sequentally 
+script:
+ - go test -v -p=1 ./...
