@@ -1,0 +1,10 @@
+# this container should be prepared for golang
+language: go
+
+install:
+ - go get github.com/tools/godep
+
+script:
+ - godep restore
+ - godep update ...
+ - go test -v -p=1 ./...

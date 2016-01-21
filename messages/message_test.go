@@ -3,22 +3,23 @@ package messages
 import (
 	b64 "encoding/base64"
 	"errors"
-	"github.com/stretchr/testify/suite"
 	"testing"
+
+	"github.com/ARGOeu/argo-messaging/Godeps/_workspace/src/github.com/stretchr/testify/suite"
 )
 
-type ConfigTestSuite struct {
+type MsgTestSuite struct {
 	suite.Suite
 }
 
-func (suite *ConfigTestSuite) TestNewMessage() {
+func (suite *MsgTestSuite) TestNewMessage() {
 
 	testMsg := New("this is a test")
 	suite.Equal("this is a test", testMsg.Data)
 
 }
 
-func (suite *ConfigTestSuite) TestAttributes() {
+func (suite *MsgTestSuite) TestAttributes() {
 
 	testMsg := New("this is a test")
 	suite.Equal("this is a test", testMsg.Data)
@@ -50,7 +51,7 @@ func (suite *ConfigTestSuite) TestAttributes() {
 	suite.Equal(errors.New("Attribute doesn't exist"), err1)
 }
 
-func (suite *ConfigTestSuite) TestLoadJson() {
+func (suite *MsgTestSuite) TestLoadJson() {
 	txtJSON := `{
    "messageId": 35,
    "attributes": [
@@ -68,28 +69,28 @@ func (suite *ConfigTestSuite) TestLoadJson() {
 
 	testMsg, err := LoadJSON(txtJSON)
 	suite.Equal(nil, err)
-	suite.Equal(int64(35), testMsg.Id)
+	suite.Equal(int64(35), testMsg.ID)
 	expAttr := []Attribute{{Key: "tick", Value: "tock"}, {Key: "flip", Value: "flop"}}
 	suite.Equal(expAttr, testMsg.Attr)
 	suite.Equal("aGVsbG8gd29ybGQh", testMsg.Data)
 
 }
 
-func (suite *ConfigTestSuite) TestExportJson() {
+func (suite *MsgTestSuite) TestExportJson() {
 	expJSON := `{
    "messageId": 0,
    "attributes": [
-     {
-       "key": "foo",
-       "value": "bar"
-     },
-     {
-       "key": "color",
-       "value": "blue"
-     }
+      {
+         "key": "foo",
+         "value": "bar"
+      },
+      {
+         "key": "color",
+         "value": "blue"
+      }
    ],
    "data": "aGVsbG8gd29ybGQh"
- }`
+}`
 
 	origData := "hello world!"
 	b64Data := b64.StdEncoding.EncodeToString([]byte(origData))
@@ -99,9 +100,10 @@ func (suite *ConfigTestSuite) TestExportJson() {
 	outJSON, err := testMsg.ExportJSON()
 	suite.Equal(nil, err)
 	suite.Equal(expJSON, outJSON)
+
 }
 
-func (suite *ConfigTestSuite) TestGetDecodedData() {
+func (suite *MsgTestSuite) TestGetDecodedData() {
 
 	origData := "hello world!"
 	b64Data := b64.StdEncoding.EncodeToString([]byte(origData))
@@ -111,6 +113,6 @@ func (suite *ConfigTestSuite) TestGetDecodedData() {
 
 }
 
-func TestFactorsTestSuite(t *testing.T) {
-	suite.Run(t, new(ConfigTestSuite))
+func TestMsgTestSuite(t *testing.T) {
+	suite.Run(t, new(MsgTestSuite))
 }

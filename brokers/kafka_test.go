@@ -3,19 +3,18 @@ package brokers
 import (
 	"testing"
 
-	"github.com/Shopify/sarama"
-	"github.com/Shopify/sarama/mocks"
-	"github.com/stretchr/testify/suite"
+	"github.com/ARGOeu/argo-messaging/Godeps/_workspace/src/github.com/Shopify/sarama/mocks"
+	"github.com/ARGOeu/argo-messaging/Godeps/_workspace/src/github.com/stretchr/testify/suite"
 )
 
-type ConfigTestSuite struct {
+type BrokerTestSuite struct {
 	suite.Suite
 }
 
-func (suite *ConfigTestSuite) TestPublish() {
+func (suite *BrokerTestSuite) TestPublish() {
 
 	var broker KafkaBroker
-	broker.Config = sarama.NewConfig()
+	broker.InitConfig()
 	pr := mocks.NewSyncProducer(suite.T(), broker.Config)
 	pr.ExpectSendMessageAndSucceed()
 	broker.Producer = pr
@@ -23,6 +22,6 @@ func (suite *ConfigTestSuite) TestPublish() {
 
 }
 
-func TestFactorsTestSuite(t *testing.T) {
-	suite.Run(t, new(ConfigTestSuite))
+func TestBrokersTestSuite(t *testing.T) {
+	suite.Run(t, new(BrokerTestSuite))
 }

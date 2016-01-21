@@ -8,7 +8,7 @@ import (
 
 // Message struct used to hold message information
 type Message struct {
-	Id   int64       `json:"messageId"`
+	ID   int64       `json:"messageId"`
 	Attr []Attribute `json:"attributes"` // used to hold attribute key/value store
 	Data string      `json:"data"`       // base64 encoded data payload
 }
@@ -24,12 +24,12 @@ type Attribute struct {
 
 // New creates a new Message based on data string provided
 func New(data string) Message {
-	msg := Message{Id: 0, Attr: []Attribute{}, Data: data}
+	msg := Message{ID: 0, Attr: []Attribute{}, Data: data}
 
 	return msg
 }
 
-// LoadJson creates a new Message from a json string represenatation
+// LoadJSON creates a new Message from a json string represenatation
 func LoadJSON(input string) (Message, error) {
 	m := Message{}
 	err := json.Unmarshal([]byte(input), &m)
@@ -105,6 +105,6 @@ func (msg *Message) GetAttribute(key string) (string, error) {
 
 // ExportJSON exports whole Message Structure as a json string
 func (msg *Message) ExportJSON() (string, error) {
-	output, err := json.MarshalIndent(msg, " ", "  ")
+	output, err := json.MarshalIndent(msg, "", "   ")
 	return string(output[:]), err
 }
