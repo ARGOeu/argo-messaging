@@ -25,7 +25,7 @@ func (suite *TopicTestSuite) TestCreate() {
 	myTopic := New("test-topic")
 	suite.Equal("test-topic", myTopic.Name)
 	suite.Equal("ARGO", myTopic.Project)
-	suite.Equal("/project/ARGO/topics/test-topic", myTopic.FullName)
+	suite.Equal("/projects/ARGO/topics/test-topic", myTopic.FullName)
 }
 
 func (suite *TopicTestSuite) TestGetTopicByName() {
@@ -71,17 +71,17 @@ func (suite *TopicTestSuite) TestExportJson() {
 
 	outJSON, _ := myTopics.List[0].ExportJSON()
 	expJSON := `{
-   "name": "/project/ARGO/topics/topic1"
+   "name": "/projects/ARGO/topics/topic1"
 }`
 	suite.Equal(expJSON, outJSON)
 
 	expJSON2 := `{
    "topics": [
       {
-         "name": "/project/ARGO/topics/topic1"
+         "name": "/projects/ARGO/topics/topic1"
       },
       {
-         "name": "/project/ARGO/topics/topic2"
+         "name": "/projects/ARGO/topics/topic2"
       }
    ]
 }`

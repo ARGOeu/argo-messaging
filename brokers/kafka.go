@@ -30,7 +30,14 @@ func (b *KafkaBroker) CloseConnections() {
 
 }
 
-// InitConfig
+// NewKafkaBroker creates a new kafka broker object
+func NewKafkaBroker(peer string) *KafkaBroker {
+	brk := KafkaBroker{}
+	brk.Initialize(peer)
+	return &brk
+}
+
+// InitConfig creates a new configuration for kafka broker
 func (b *KafkaBroker) InitConfig() {
 	b.Config = sarama.NewConfig()
 }
@@ -61,10 +68,12 @@ func (b *KafkaBroker) Initialize(peer string) {
 		panic(err)
 	}
 
+	log.Printf("%s\t%s\t%s:%s", "INFO", "BROKER", "Kafka Backend Initialized! Kafka server", peer)
+
 }
 
 // Publish function publish a message to the broker
-func (b *KafkaBroker) Publish(topic string, payload string) (string, int, int) {
+func (b *KafkaBroker) Publish(topic string, payload string) (string, int, int64) {
 
 	msg := &sarama.ProducerMessage{
 		Topic: topic,
@@ -76,7 +85,17 @@ func (b *KafkaBroker) Publish(topic string, payload string) (string, int, int) {
 		panic(err)
 	}
 
-	return topic, int(partition), int(offset)
+	return topic, int(partition), offset
+}
+
+// GetOffset returns a current topic's offset
+func (b *KafkaBroker) GetOffset(topic string) int64 {
+	// Fetch offset
+	loff, err := b.Client.GetOffset(topic, 0, sarama.OffsetNewest)
+	if err != nil {
+		panic(err)
+	}
+	return loff
 }
 
 // Consume function to consume a message from the broker

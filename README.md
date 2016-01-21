@@ -10,6 +10,7 @@
       `export GOPATH=~/go-workspace`
       `export PATH=$PATH:$GOPATH/bin`
 
+
   You may add the last `export` line into the `~/.bashrc` or the `~/.bash_profile` file to have `GOPATH` environment variable properly setup upon every login.
 
 3. Get the latest version

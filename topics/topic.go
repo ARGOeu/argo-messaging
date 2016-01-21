@@ -21,13 +21,13 @@ type Topics struct {
 // New creates a new topic based on name
 func New(name string) Topic {
 	pr := "ARGO" // Projects as entities will be handled later.
-	ftn := "/project/" + pr + "/topics/" + name
+	ftn := "/projects/" + pr + "/topics/" + name
 	t := Topic{Project: pr, Name: name, FullName: ftn}
 	return t
 }
 
 // LoadFromCfg returns all topics defined in configuration
-func (tl *Topics) LoadFromCfg(cfg config.KafkaCfg) {
+func (tl *Topics) LoadFromCfg(cfg *config.KafkaCfg) {
 	for _, value := range cfg.Topics {
 		nTopic := New(value)
 		tl.List = append(tl.List, nTopic)

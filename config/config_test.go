@@ -22,10 +22,16 @@ func (suite *ConfigTestSuite) SetupTest() {
 
 func (suite *ConfigTestSuite) TestLoadConfiguration() {
 	kafkaCfg := NewKafkaCfg()
+	suite.Equal("", kafkaCfg.Server)
 	kafkaCfg.Load()
 	suite.Equal("localhost:9092", kafkaCfg.Server)
 	suite.Equal("topic1", kafkaCfg.Topics[0])
 	suite.Equal("topic2", kafkaCfg.Topics[1])
+	// test "LOAD" param
+	kafkaCfg2 := NewKafkaCfg("LOAD")
+	suite.Equal("localhost:9092", kafkaCfg2.Server)
+	suite.Equal("topic1", kafkaCfg2.Topics[0])
+	suite.Equal("topic2", kafkaCfg2.Topics[1])
 }
 
 func (suite *ConfigTestSuite) TestLoadStringJSON() {

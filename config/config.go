@@ -3,6 +3,7 @@ package config
 import (
 	"bytes"
 	"fmt"
+	"log"
 
 	"github.com/ARGOeu/argo-messaging/Godeps/_workspace/src/github.com/spf13/viper"
 )
@@ -14,9 +15,18 @@ type KafkaCfg struct {
 }
 
 // NewKafkaCfg creates a new kafka configuration object
-func NewKafkaCfg() KafkaCfg {
+func NewKafkaCfg(params ...string) *KafkaCfg {
 	kcfg := KafkaCfg{}
-	return kcfg
+
+	// If NewKafkaCfg is called with argument "LOAD" automatically load config
+	for _, param := range params {
+		if param == "LOAD" {
+			kcfg.Load()
+			return &kcfg
+		}
+	}
+
+	return &kcfg
 }
 
 // Load the configuration
@@ -35,6 +45,8 @@ func (kcfg *KafkaCfg) Load() {
 	// Load Kafka configuration
 	kcfg.Server = viper.GetString("server")
 	kcfg.Topics = viper.GetStringSlice("topics")
+	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - server", kcfg.Server)
+	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - topics", kcfg.Topics)
 }
 
 // LoadStrJSON Loads configuration from a JSON string

@@ -57,6 +57,35 @@ paths:
           description: An array of topics
           schema:
             $ref: '#/definitions/Topic'
+  /projects/{PROJECT}/topics/{TOPIC}:publish:
+    get:
+      summary: List topics in a project
+      description: |
+        The topic:publish endpoint publish a message to a specific topic
+      parameters:
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: TOPIC
+          in: path
+          description: Name of the topic
+          required: true
+          type: string
+        - name: Message
+          in: body
+          description: Message JSON representation
+          required: true
+          schema:
+           $ref: '#/definitions/Message'
+      tags:
+        - Topics
+      responses:
+        200:
+          description: An array of messageIDs
+          schema:
+            $ref: '#/definitions/MessageIDs'
 
 definitions:
   Topic:
@@ -65,3 +94,27 @@ definitions:
       name:
         type: string
         description: Name of the topic
+  Attribute:
+    type: object
+    properties:
+      key:
+        type: string
+      value:
+        type: string
+  Message:
+    type: object
+    properties:
+      attributes:
+        type: array
+        items:
+          $ref: '#/definitions/Attribute'
+      data:
+        type: string
+        description: Message payload in Base64 encoding"
+  MessageIDs:
+     type: object
+     properties:
+       messageIDs:
+         type: array
+         items:
+           type: string
