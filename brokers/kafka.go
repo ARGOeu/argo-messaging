@@ -2,7 +2,7 @@ package brokers
 
 import "log"
 
-import "github.com/Shopify/sarama"
+import "github.com/ARGOeu/argo-messaging/Godeps/_workspace/src/github.com/Shopify/sarama"
 
 // KafkaBroker struct
 type KafkaBroker struct {
@@ -28,6 +28,11 @@ func (b *KafkaBroker) CloseConnections() {
 		log.Fatalln(err)
 	}
 
+}
+
+// InitConfig
+func (b *KafkaBroker) InitConfig() {
+	b.Config = sarama.NewConfig()
 }
 
 // Initialize the broker struct

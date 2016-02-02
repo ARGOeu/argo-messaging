@@ -1,0 +1,67 @@
+# ARGO Messaging API expressed in swagger
+swagger: '2.0'
+info:
+  title: argo-messaging-api
+  description:  ARGO Messaging API for broker network
+  version: "0.9.1-1"
+
+host: localhost
+schemes:
+  - http
+
+basePath: /v1
+produces:
+  - application/json
+paths:
+  /projects/{PROJECT}/topics:
+    get:
+      summary: List topics in a project
+      description: |
+        The Topics endpoint returns a list of available topics for a given project
+      parameters:
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+      tags:
+        - Topics
+      responses:
+        200:
+          description: An array of topics
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Topic'
+
+  /projects/{PROJECT}/topics/{TOPIC}:
+    get:
+      summary: List topics in a project
+      description: |
+        The Topics endpoint returns a list of available topics for a given project
+      parameters:
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: TOPIC
+          in: path
+          description: Name of the topic
+          required: true
+          type: string
+      tags:
+        - Topics
+      responses:
+        200:
+          description: An array of topics
+          schema:
+            $ref: '#/definitions/Topic'
+
+definitions:
+  Topic:
+    type: object
+    properties:
+      name:
+        type: string
+        description: Name of the topic

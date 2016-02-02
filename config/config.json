@@ -1,0 +1,4 @@
+{
+  "server":"localhost:9092",
+  "topics":["topic1","topic2"]
+}

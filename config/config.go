@@ -1,22 +1,26 @@
 package config
 
 import (
+	"bytes"
 	"fmt"
 
-	"github.com/spf13/viper"
+	"github.com/ARGOeu/argo-messaging/Godeps/_workspace/src/github.com/spf13/viper"
 )
 
-// kafka Configuration
-type configKafka struct {
+// KafkaCfg holds kafka configuration
+type KafkaCfg struct {
 	Server string
 	Topics []string
 }
 
-// Global Kafka configuration
-var Kafka configKafka
+// NewKafkaCfg creates a new kafka configuration object
+func NewKafkaCfg() KafkaCfg {
+	kcfg := KafkaCfg{}
+	return kcfg
+}
 
 // Load the configuration
-func Load() {
+func (kcfg *KafkaCfg) Load() {
 
 	viper.SetConfigName("config")
 	viper.AddConfigPath("/etc/argo-messaging")
@@ -29,6 +33,15 @@ func Load() {
 	}
 
 	// Load Kafka configuration
-	Kafka.Server = viper.GetString("server")
-	Kafka.Topics = viper.GetStringSlice("topics")
+	kcfg.Server = viper.GetString("server")
+	kcfg.Topics = viper.GetStringSlice("topics")
+}
+
+// LoadStrJSON Loads configuration from a JSON string
+func (kcfg *KafkaCfg) LoadStrJSON(input string) {
+	viper.SetConfigType("json")
+	viper.ReadConfig(bytes.NewBuffer([]byte(input)))
+	// Load Kafka configuration
+	kcfg.Server = viper.GetString("server")
+	kcfg.Topics = viper.GetStringSlice("topics")
 }

@@ -6,8 +6,9 @@ import (
 )
 
 // Globals
+var kafkaCfg = config.NewKafkaCfg()
 var broker brokers.KafkaBroker
 
 func init() {
-	config.Load()
+	kafkaCfg.Load()
 }

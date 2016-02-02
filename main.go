@@ -8,18 +8,19 @@ import (
 
 	"strconv"
 
-	"github.com/ARGOeu/argo-messaging/config"
-	"github.com/gorilla/mux"
+	"github.com/ARGOeu/argo-messaging/Godeps/_workspace/src/github.com/gorilla/mux"
 )
 
 func main() {
 	defer broker.CloseConnections()
-	broker.Initialize(config.Kafka.Server)
+	broker.Initialize(kafkaCfg.Server)
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/", ReflectRoute)
 	router.HandleFunc("/v1/", ReflectRoute)
 	router.HandleFunc("/v1/pub/{topic}", RawPublish)
 	router.HandleFunc("/v1/sub/{topic}", RawConsume)
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}", TopicListOne)
+	router.HandleFunc("/v1/projects/{project}", TopicListAll)
 	log.Fatal(http.ListenAndServe(":8080", router))
 }
 
@@ -34,7 +35,7 @@ func RawPublish(w http.ResponseWriter, r *http.Request) {
 	urlVars := mux.Vars(r)
 	m, p, o := broker.Publish(urlVars["topic"], urlValues.Get("message"))
 	fmt.Fprintf(w, "Message Published!")
-	fmt.Fprintf(w, "\nkafka endpoint: "+config.Kafka.Server)
+	fmt.Fprintf(w, "\nkafka endpoint: "+kafkaCfg.Server)
 	fmt.Fprintf(w, "\nTopic:"+m)
 	fmt.Fprintf(w, "\nPartition: "+strconv.Itoa(p))
 	fmt.Fprintf(w, "\nOffset: "+strconv.Itoa(o))
@@ -46,7 +47,7 @@ func RawConsume(w http.ResponseWriter, r *http.Request) {
 	urlValues := r.URL.Query()
 	urlVars := mux.Vars(r)
 	offset, _ := strconv.ParseInt(urlValues.Get("offset"), 10, 64)
-	fmt.Fprintf(w, "\nkafka endpoint: "+config.Kafka.Server+"\n")
+	fmt.Fprintf(w, "\nkafka endpoint: "+kafkaCfg.Server+"\n")
 	m := broker.Consume(urlVars["topic"], offset)
 	for index, value := range m {
 		fmt.Fprintf(w, "message "+strconv.Itoa(index)+" : "+value+"\n")
