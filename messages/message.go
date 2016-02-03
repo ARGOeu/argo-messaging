@@ -6,11 +6,22 @@ import (
 	"errors"
 )
 
+// MsgList is used to hold a list of messages
+type MsgList struct {
+	Msgs []Message `json:"messages"`
+}
+
 // Message struct used to hold message information
 type Message struct {
-	ID   int64       `json:"messageId"`
-	Attr []Attribute `json:"attributes"` // used to hold attribute key/value store
-	Data string      `json:"data"`       // base64 encoded data payload
+	ID      string      `json:"messageId,omitempty"`
+	Attr    []Attribute `json:"attributes"`            // used to hold attribute key/value store
+	Data    string      `json:"data"`                  // base64 encoded data payload
+	PubTime string      `json:"publishTime,omitempty"` // publish timedate of message
+}
+
+// MsgIDs utility struct
+type MsgIDs struct {
+	IDs []string `json:"messageIDs"`
 }
 
 // Attribute representation as key/value
@@ -24,13 +35,20 @@ type Attribute struct {
 
 // New creates a new Message based on data string provided
 func New(data string) Message {
-	msg := Message{ID: 0, Attr: []Attribute{}, Data: data}
+	msg := Message{ID: "0", Attr: []Attribute{}, Data: data}
 
 	return msg
 }
 
-// LoadJSON creates a new Message from a json string represenatation
-func LoadJSON(input string) (Message, error) {
+// LoadMsgListJSON creates a MsgList from a json definition
+func LoadMsgListJSON(input []byte) (MsgList, error) {
+	m := MsgList{}
+	err := json.Unmarshal([]byte(input), &m)
+	return m, err
+}
+
+// LoadMsgJSON creates a new Message from a json string represenatation
+func LoadMsgJSON(input []byte) (Message, error) {
 	m := Message{}
 	err := json.Unmarshal([]byte(input), &m)
 	return m, err
@@ -106,5 +124,17 @@ func (msg *Message) GetAttribute(key string) (string, error) {
 // ExportJSON exports whole Message Structure as a json string
 func (msg *Message) ExportJSON() (string, error) {
 	output, err := json.MarshalIndent(msg, "", "   ")
+	return string(output[:]), err
+}
+
+// ExportJSON exports whole msgId  Structure as a json string
+func (msgIDs *MsgIDs) ExportJSON() (string, error) {
+	output, err := json.MarshalIndent(msgIDs, "", "   ")
+	return string(output[:]), err
+}
+
+// ExportJSON exports whole MsgList as a json string
+func (msgList *MsgList) ExportJSON() (string, error) {
+	output, err := json.MarshalIndent(msgList, "", "   ")
 	return string(output[:]), err
 }

@@ -51,9 +51,9 @@ func (suite *MsgTestSuite) TestAttributes() {
 	suite.Equal(errors.New("Attribute doesn't exist"), err1)
 }
 
-func (suite *MsgTestSuite) TestLoadJson() {
+func (suite *MsgTestSuite) TestLoadMsgJson() {
 	txtJSON := `{
-   "messageId": 35,
+   "messageId": "35",
    "attributes": [
      {
        "key": "tick",
@@ -67,9 +67,9 @@ func (suite *MsgTestSuite) TestLoadJson() {
    "data": "aGVsbG8gd29ybGQh"
  }`
 
-	testMsg, err := LoadJSON(txtJSON)
+	testMsg, err := LoadMsgJSON([]byte(txtJSON))
 	suite.Equal(nil, err)
-	suite.Equal(int64(35), testMsg.ID)
+	suite.Equal("35", testMsg.ID)
 	expAttr := []Attribute{{Key: "tick", Value: "tock"}, {Key: "flip", Value: "flop"}}
 	suite.Equal(expAttr, testMsg.Attr)
 	suite.Equal("aGVsbG8gd29ybGQh", testMsg.Data)
@@ -78,7 +78,7 @@ func (suite *MsgTestSuite) TestLoadJson() {
 
 func (suite *MsgTestSuite) TestExportJson() {
 	expJSON := `{
-   "messageId": 0,
+   "messageId": "0",
    "attributes": [
       {
          "key": "foo",
