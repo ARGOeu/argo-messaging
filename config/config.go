@@ -12,6 +12,7 @@ import (
 type KafkaCfg struct {
 	Server string
 	Topics []string
+	Subs   map[string]string
 }
 
 // NewKafkaCfg creates a new kafka configuration object
@@ -44,9 +45,12 @@ func (kcfg *KafkaCfg) Load() {
 
 	// Load Kafka configuration
 	kcfg.Server = viper.GetString("server")
-	kcfg.Topics = viper.GetStringSlice("topics")
 	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - server", kcfg.Server)
+	kcfg.Topics = viper.GetStringSlice("topics")
 	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - topics", kcfg.Topics)
+	kcfg.Subs = viper.GetStringMapString("subscriptions")
+	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - subscriptions", kcfg.Subs)
+
 }
 
 // LoadStrJSON Loads configuration from a JSON string
@@ -56,4 +60,5 @@ func (kcfg *KafkaCfg) LoadStrJSON(input string) {
 	// Load Kafka configuration
 	kcfg.Server = viper.GetString("server")
 	kcfg.Topics = viper.GetStringSlice("topics")
+	kcfg.Subs = viper.GetStringMapString("subscriptions")
 }

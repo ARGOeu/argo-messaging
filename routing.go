@@ -55,6 +55,8 @@ func NewRouting(cfg *config.KafkaCfg, brk brokers.Broker, routes []APIRoute) *AP
 
 // Global list populated with default routes
 var defaultRoutes = []APIRoute{
+	{"Subscriptions List All", "GET", "/projects/{project}/subscriptions", TopicListAll},
+	{"Subscriptions List One", "GET", "/projects/{project}/subscriptions/{subscription}", TopicListOne},
 	{"Topics List All", "GET", "/projects/{project}/topics", TopicListAll},
 	{"Topics List One", "GET", "/projects/{project}/topics/{topic}", TopicListOne},
 	{"Topics Publish", "POST", "/projects/{project}/topics/{topic}:publish", TopicPublish},

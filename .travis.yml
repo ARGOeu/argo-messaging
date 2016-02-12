@@ -3,8 +3,10 @@ language: go
 
 install:
  - go get github.com/tools/godep
+ - go get github.com/axw/gocov/...
+ - go get github.com/AlekSi/gocov-xml
 
 script:
  - godep restore
  - godep update ...
- - go test -v -p=1 ./...
+ - gocov test ./... | gocov-xml > coverage.xml
