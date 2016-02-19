@@ -22,9 +22,76 @@ func (suite *HandlerTestSuite) SetupTest() {
 	suite.cfgStr = `
 	{
 	  "server":"localhost:9092",
-	  "topics":["topic1","topic2"]
+	  "topics":["topic1","topic2"],
+		"subscriptions":{"sub1":"topic1","sub2":"topic2"}
 	}
 	`
+}
+
+func (suite *HandlerTestSuite) TestSubListOne() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/subscriptions/sub1", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "name": "/projects/ARGO/subscriptions/sub1",
+   "topic": "/projects/ARGO/topics/topic1",
+   "pushConfig": {
+      "pushEndpoint": ""
+   },
+   "ackDeadlineSeconds": 10
+}`
+
+	cfgKafka := config.NewKafkaCfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapConfig(SubListOne, cfgKafka, &brk))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+}
+
+func (suite *HandlerTestSuite) TestSubListAll() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/subscriptions", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "subscriptions": [
+      {
+         "name": "/projects/ARGO/subscriptions/sub1",
+         "topic": "/projects/ARGO/topics/topic1",
+         "pushConfig": {
+            "pushEndpoint": ""
+         },
+         "ackDeadlineSeconds": 10
+      },
+      {
+         "name": "/projects/ARGO/subscriptions/sub2",
+         "topic": "/projects/ARGO/topics/topic2",
+         "pushConfig": {
+            "pushEndpoint": ""
+         },
+         "ackDeadlineSeconds": 10
+      }
+   ]
+}`
+
+	cfgKafka := config.NewKafkaCfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions", WrapConfig(SubListAll, cfgKafka, &brk))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
 }
 
 func (suite *HandlerTestSuite) TestTopicListOne() {

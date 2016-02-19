@@ -14,6 +14,7 @@ import (
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
 	"github.com/ARGOeu/argo-messaging/messages"
+	"github.com/ARGOeu/argo-messaging/subscriptions"
 	"github.com/ARGOeu/argo-messaging/topics"
 )
 
@@ -50,6 +51,44 @@ func WrapLog(hfn http.Handler, name string) http.HandlerFunc {
 // HandlerFunctions
 ///////////////////
 
+// SubListOne (GET) one subscription
+func SubListOne(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+
+	// Grab context references
+	refCfg := context.Get(r, "cfg").(*config.KafkaCfg)
+
+	// Initialize Subscription
+	sub := subscriptions.Subscriptions{}
+	sub.LoadFromCfg(refCfg)
+
+	// Get Result Object
+	res := subscriptions.Subscription{}
+	res = sub.GetSubByName(urlVars["project"], urlVars["subscription"])
+
+	// Output result to JSON
+	resJSON, err := res.ExportJSON()
+	if err != nil {
+		respondErr(w, 500, "Error Exporting Retrieved Data to JSON")
+		return
+	}
+
+	// Write response
+	output = []byte(resJSON)
+	respondOK(w, output)
+
+}
+
 // TopicListOne (GET) one topic
 func TopicListOne(w http.ResponseWriter, r *http.Request) {
 
@@ -83,6 +122,44 @@ func TopicListOne(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Write response
+	output = []byte(resJSON)
+	respondOK(w, output)
+
+}
+
+//SubListAll (GET) all subscriptions
+func SubListAll(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+
+	// Grab context references
+	refCfg := context.Get(r, "cfg").(*config.KafkaCfg)
+
+	// Initialize Subscriptions
+	sb := subscriptions.Subscriptions{}
+	sb.LoadFromCfg(refCfg)
+
+	// Get result object
+	res := subscriptions.Subscriptions{}
+	res = sb.GetSubsByProject(urlVars["project"])
+
+	// Output result to JSON
+	resJSON, err := res.ExportJSON()
+	if err != nil {
+		respondErr(w, 500, "RESPONSE: Error Exporting Retrieved Data to JSON")
+		return
+	}
+
+	// Write Response
 	output = []byte(resJSON)
 	respondOK(w, output)
 
