@@ -107,7 +107,13 @@ func (b *KafkaBroker) Consume(topic string, offset int64) []string {
 		panic(err)
 	}
 
+	// If tracked offset is equal or bigger than topic offset means no new messages
+	if offset >= loff {
+		return []string{}
+	}
+
 	partitionConsumer, err := b.Consumer.ConsumePartition(topic, 0, offset)
+
 	if err != nil {
 		panic(err)
 	}

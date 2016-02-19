@@ -2,7 +2,69 @@ package brokers
 
 // MockBroker struct
 type MockBroker struct {
-	fakeOffset int64
+	MsgList []string
+}
+
+// PopulateOne Adds three messages to the mock broker
+func (b *MockBroker) PopulateOne() {
+	msg1 := `{
+  "messageId": "0",
+  "attributes": [
+    {
+      "key": "foo",
+      "value": "bar"
+    }
+  ],
+  "data": "YmFzZTY0ZW5jb2RlZA==",
+  "publishTime": "2016-02-24T11:55:09.786127994Z"
+}`
+
+	b.MsgList = make([]string, 0)
+	b.MsgList = append(b.MsgList, msg1)
+
+}
+
+// PopulateThree Adds three messages to the mock broker
+func (b *MockBroker) PopulateThree() {
+	msg1 := `{
+  "messageId": "0",
+  "attributes": [
+    {
+      "key": "foo",
+      "value": "bar"
+    }
+  ],
+  "data": "YmFzZTY0ZW5jb2RlZA==",
+  "publishTime": "2016-02-24T11:55:09.786127994Z"
+}`
+
+	msg2 := `{
+  "messageId": "1",
+  "attributes": [
+    {
+      "key": "foo2",
+      "value": "bar2"
+    }
+  ],
+  "data": "YmFzZTY0ZW5jb2RlZA==",
+  "publishTime": "2016-02-24T11:55:09.827678754Z"
+}`
+
+	msg3 := `{
+  "messageId": "2",
+  "attributes": [
+    {
+      "key": "foo2",
+      "value": "bar2"
+    }
+  ],
+  "data": "YmFzZTY0ZW5jb2RlZA==",
+  "publishTime": "2016-02-24T11:55:09.830417467Z"
+}`
+	b.MsgList = make([]string, 0)
+	b.MsgList = append(b.MsgList, msg1)
+	b.MsgList = append(b.MsgList, msg2)
+	b.MsgList = append(b.MsgList, msg3)
 }
 
 // CloseConnections closes open producer, consumer and client
@@ -17,22 +79,21 @@ func (b *MockBroker) InitConfig() {
 
 // Initialize the broker struct
 func (b *MockBroker) Initialize(peer string) {
-	b.fakeOffset = 0
+	b.MsgList = make([]string, 0)
 }
 
 // Publish function publish a message to the broker
 func (b *MockBroker) Publish(topic string, payload string) (string, int, int64) {
-	b.fakeOffset = b.fakeOffset + 1
-	return "mocktopic", 0, b.fakeOffset
+	b.MsgList = append(b.MsgList, payload)
+	return "ARGO.mocktopic", 0, int64(len(b.MsgList))
 }
 
 // GetOffset returns a current topic's offset
 func (b *MockBroker) GetOffset(topic string) int64 {
-	return b.fakeOffset + 1
+	return int64(len(b.MsgList) + 1)
 }
 
 // Consume function to consume a message from the broker
 func (b *MockBroker) Consume(topic string, offset int64) []string {
-
-	return []string{"This is a test mock message"}
+	return b.MsgList
 }

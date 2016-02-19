@@ -1,10 +1,13 @@
 package topics
 
 import (
+	"io/ioutil"
+	"log"
 	"testing"
 
 	"github.com/ARGOeu/argo-messaging/Godeps/_workspace/src/github.com/stretchr/testify/suite"
 	"github.com/ARGOeu/argo-messaging/config"
+	"github.com/ARGOeu/argo-messaging/stores"
 )
 
 type TopicTestSuite struct {
@@ -13,61 +16,50 @@ type TopicTestSuite struct {
 }
 
 func (suite *TopicTestSuite) SetupTest() {
-	suite.cfgStr = `
-	{
-	  "server":"localhost:9092",
-	  "topics":["topic1","topic2"]
-	}
-	`
+	suite.cfgStr = `{
+		"broker_host":"localhost:9092",
+		"store_host":"localhost",
+		"store_db":"argo_msg"
+	}`
+	log.SetOutput(ioutil.Discard)
 }
 
 func (suite *TopicTestSuite) TestCreate() {
-	myTopic := New("test-topic")
+	myTopic := New("ARGO", "test-topic")
 	suite.Equal("test-topic", myTopic.Name)
 	suite.Equal("ARGO", myTopic.Project)
 	suite.Equal("/projects/ARGO/topics/test-topic", myTopic.FullName)
 }
 
 func (suite *TopicTestSuite) TestGetTopicByName() {
-	cfgKafka := config.NewKafkaCfg()
-	cfgKafka.LoadStrJSON(suite.cfgStr)
+	APIcfg := config.NewAPICfg()
+	APIcfg.LoadStrJSON(suite.cfgStr)
 	myTopics := Topics{}
-	myTopics.LoadFromCfg(cfgKafka)
+	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
+	myTopics.LoadFromStore(store)
 	result := myTopics.GetTopicByName("ARGO", "topic1")
-	expTopic := New("topic1")
+	expTopic := New("ARGO", "topic1")
 	suite.Equal(expTopic, result)
 }
 
 func (suite *TopicTestSuite) TestGetTopicsByProject() {
-	cfgKafka := config.NewKafkaCfg()
-	cfgKafka.LoadStrJSON(suite.cfgStr)
+	APIcfg := config.NewAPICfg()
+	APIcfg.LoadStrJSON(suite.cfgStr)
 	myTopics := Topics{}
-	myTopics.LoadFromCfg(cfgKafka)
+	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
+	myTopics.LoadFromStore(store)
 	expTopics := Topics{}
-	expTopics.LoadFromCfg(cfgKafka)
+	expTopics.LoadFromStore(store)
 	result := myTopics.GetTopicsByProject("ARGO")
 	suite.Equal(expTopics, result)
 }
 
-func (suite *TopicTestSuite) TestLoadFromCfg() {
-	cfgKafka := config.NewKafkaCfg()
-	cfgKafka.LoadStrJSON(suite.cfgStr)
-	myTopics := Topics{}
-	myTopics.LoadFromCfg(cfgKafka)
-	expTopics := Topics{}
-	expTopic1 := New("topic1")
-	expTopic2 := New("topic2")
-	expTopics.List = append(expTopics.List, expTopic1)
-	expTopics.List = append(expTopics.List, expTopic2)
-	suite.Equal(expTopics, myTopics)
-
-}
-
 func (suite *TopicTestSuite) TestExportJson() {
-	cfgKafka := config.NewKafkaCfg()
-	cfgKafka.LoadStrJSON(suite.cfgStr)
+	APIcfg := config.NewAPICfg()
+	APIcfg.LoadStrJSON(suite.cfgStr)
 	myTopics := Topics{}
-	myTopics.LoadFromCfg(cfgKafka)
+	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
+	myTopics.LoadFromStore(store)
 
 	outJSON, _ := myTopics.List[0].ExportJSON()
 	expJSON := `{
@@ -82,6 +74,9 @@ func (suite *TopicTestSuite) TestExportJson() {
       },
       {
          "name": "/projects/ARGO/topics/topic2"
+      },
+      {
+         "name": "/projects/ARGO/topics/topic3"
       }
    ]
 }`

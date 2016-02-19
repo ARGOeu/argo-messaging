@@ -9,23 +9,26 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ARGOeu/argo-messaging/Godeps/_workspace/src/github.com/gorilla/context"
-	"github.com/ARGOeu/argo-messaging/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
 	"github.com/ARGOeu/argo-messaging/messages"
+	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/ARGOeu/argo-messaging/subscriptions"
 	"github.com/ARGOeu/argo-messaging/topics"
+	"github.com/gorilla/context"
+	"github.com/gorilla/mux"
 )
 
 // HandlerWrappers
 //////////////////
 
 // WrapConfig handle wrapper to retrieve kafka configuration
-func WrapConfig(hfn http.HandlerFunc, cfg *config.KafkaCfg, brk brokers.Broker) http.HandlerFunc {
+func WrapConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Broker, str stores.Store) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
 		context.Set(r, "cfg", cfg)
 		context.Set(r, "brk", brk)
+		context.Set(r, "str", str)
 		hfn.ServeHTTP(w, r)
 
 	})
@@ -66,11 +69,11 @@ func SubListOne(w http.ResponseWriter, r *http.Request) {
 	urlVars := mux.Vars(r)
 
 	// Grab context references
-	refCfg := context.Get(r, "cfg").(*config.KafkaCfg)
+	refStr := context.Get(r, "str").(stores.Store)
 
 	// Initialize Subscription
 	sub := subscriptions.Subscriptions{}
-	sub.LoadFromCfg(refCfg)
+	sub.LoadFromStore(refStr)
 
 	// Get Result Object
 	res := subscriptions.Subscription{}
@@ -104,11 +107,10 @@ func TopicListOne(w http.ResponseWriter, r *http.Request) {
 	urlVars := mux.Vars(r)
 
 	// Grab context references
-	refCfg := context.Get(r, "cfg").(*config.KafkaCfg)
-
+	refStr := context.Get(r, "str").(stores.Store)
 	// Initialize Topics
 	tp := topics.Topics{}
-	tp.LoadFromCfg(refCfg)
+	tp.LoadFromStore(refStr)
 
 	// Get Result Object
 	res := topics.Topic{}
@@ -142,11 +144,11 @@ func SubListAll(w http.ResponseWriter, r *http.Request) {
 	urlVars := mux.Vars(r)
 
 	// Grab context references
-	refCfg := context.Get(r, "cfg").(*config.KafkaCfg)
+	refStr := context.Get(r, "str").(stores.Store)
 
 	// Initialize Subscriptions
 	sb := subscriptions.Subscriptions{}
-	sb.LoadFromCfg(refCfg)
+	sb.LoadFromStore(refStr)
 
 	// Get result object
 	res := subscriptions.Subscriptions{}
@@ -180,11 +182,11 @@ func TopicListAll(w http.ResponseWriter, r *http.Request) {
 	urlVars := mux.Vars(r)
 
 	// Grab context references
-	refCfg := context.Get(r, "cfg").(*config.KafkaCfg)
+	refStr := context.Get(r, "str").(stores.Store)
 
 	// Initialize Topics
 	tp := topics.Topics{}
-	tp.LoadFromCfg(refCfg)
+	tp.LoadFromStore(refStr)
 
 	// Get result object
 	res := topics.Topics{}
@@ -217,12 +219,12 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 	urlVars := mux.Vars(r)
 
 	// Grab context references
-	refCfg := context.Get(r, "cfg").(*config.KafkaCfg)
 	refBrk := context.Get(r, "brk").(brokers.Broker)
+	refStr := context.Get(r, "str").(stores.Store)
 
 	// Create Topics Object
 	tp := topics.Topics{}
-	tp.LoadFromCfg(refCfg)
+	tp.LoadFromStore(refStr)
 
 	// Read POST JSON body
 	body, err := ioutil.ReadAll(r.Body)
@@ -244,7 +246,8 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 	// For each message in message list
 	for _, msg := range msgList.Msgs {
 		// Get offset and set it as msg
-		off := refBrk.GetOffset(urlVars["topic"])
+		fullTopic := urlVars["project"] + "." + urlVars["topic"]
+		off := refBrk.GetOffset(fullTopic)
 		msg.ID = strconv.FormatInt(off, 10)
 		// Stamp time to UTC Z to nanoseconds
 		zNano := "2006-01-02T15:04:05.999999999Z"
@@ -257,10 +260,11 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 			respondErr(w, 500, "PUBLISH: Error during exporting message to JSON")
 			return
 		}
-		rTop, rPart, rOff := refBrk.Publish(urlVars["topic"], payload)
+
+		rTop, rPart, rOff := refBrk.Publish(fullTopic, payload)
 
 		// Assertions for Succesfull Publish
-		if rTop != urlVars["topic"] {
+		if rTop != fullTopic {
 			respondErr(w, 500, "PUBLISH: Broker reports wrong topic")
 			return
 		}
@@ -287,6 +291,84 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Write response
+	output = []byte(resJSON)
+	respondOK(w, output)
+}
+
+// SubPull (POST) publish a new topic
+func SubPull(w http.ResponseWriter, r *http.Request) {
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Get url path variables
+	urlVars := mux.Vars(r)
+
+	// Grab context references
+	refBrk := context.Get(r, "brk").(brokers.Broker)
+	refStr := context.Get(r, "str").(stores.Store)
+
+	// Create Subscriptions Object
+	sub := subscriptions.Subscriptions{}
+	sub.LoadFromStore(refStr)
+
+	// Read POST JSON body
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		respondErr(w, 500, "POST: Could not read POST Body")
+		return
+	}
+
+	// Parse pull options
+	pullInfo, err := subscriptions.GetPullOptionsJSON(body)
+	if err != nil {
+		respondErr(w, 500, "POST: Input JSON schema is not valid")
+		return
+	}
+
+	// Init Received Message List
+	recList := messages.RecList{}
+
+	// Get the subscription info
+	targSub := sub.GetSubByName(urlVars["project"], urlVars["subscription"])
+
+	fullTopic := targSub.Project + "." + targSub.Topic
+	msgs := refBrk.Consume(fullTopic, targSub.Offset)
+
+	var limit int
+	limit, err = strconv.Atoi(pullInfo.MaxMsg)
+	if err != nil {
+		limit = 0
+	}
+
+	for i, msg := range msgs {
+		if limit > 0 && i >= limit {
+			break // max messages left
+		}
+		curMsg, err := messages.LoadMsgJSON([]byte(msg))
+		if err != nil {
+			respondErr(w, 500, "Message retrieved from broker network has invalid JSON Structure")
+			return
+		}
+
+		curRec := messages.RecMsg{Msg: curMsg}
+		recList.RecMsgs = append(recList.RecMsgs, curRec)
+	}
+
+	resJSON, err := recList.ExportJSON()
+
+	if err != nil {
+		respondErr(w, 500, "RESPONSE: Error during exporting message to JSON")
+		return
+	}
+
+	// Advance Offset forward as many messages received in RecList array
+	refStr.UpdateSubOffset(targSub.Name, int64(len(recList.RecMsgs))+targSub.Offset)
+
 	output = []byte(resJSON)
 	respondOK(w, output)
 }

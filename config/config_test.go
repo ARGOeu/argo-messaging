@@ -1,6 +1,8 @@
 package config
 
 import (
+	"io/ioutil"
+	"log"
 	"testing"
 
 	"github.com/ARGOeu/argo-messaging/Godeps/_workspace/src/github.com/stretchr/testify/suite"
@@ -14,39 +16,39 @@ type ConfigTestSuite struct {
 func (suite *ConfigTestSuite) SetupTest() {
 	suite.cfgStr = `
 	{
-	  "server":"localhost:9092",
-	  "topics":["topic1","topic2"],
-		"subscriptions":{"sub1":"topic1","sub2":"topic2"}
+	  "broker_host":"localhost:9092",
+		"store_host":"localhost",
+		"store_db":"argo_msg"
 	}
 	`
+
+	log.SetOutput(ioutil.Discard)
 }
 
 func (suite *ConfigTestSuite) TestLoadConfiguration() {
-	kafkaCfg := NewKafkaCfg()
-	suite.Equal("", kafkaCfg.Server)
-	subs := map[string]string{"sub1": "topic1", "sub2": "topic2"}
-	kafkaCfg.Load()
-	suite.Equal("localhost:9092", kafkaCfg.Server)
-	suite.Equal("topic1", kafkaCfg.Topics[0])
-	suite.Equal("topic2", kafkaCfg.Topics[1])
-	suite.Equal(subs, kafkaCfg.Subs)
+	APIcfg := NewAPICfg()
+	suite.Equal("", APIcfg.BrokerHost)
+	APIcfg.Load()
+	suite.Equal("localhost:9092", APIcfg.BrokerHost)
+	suite.Equal("localhost", APIcfg.StoreHost)
+	suite.Equal("argo_msg", APIcfg.StoreDB)
 
 	// test "LOAD" param
-	kafkaCfg2 := NewKafkaCfg("LOAD")
-	suite.Equal("localhost:9092", kafkaCfg2.Server)
-	suite.Equal("topic1", kafkaCfg2.Topics[0])
-	suite.Equal("topic2", kafkaCfg2.Topics[1])
+	APIcfg2 := NewAPICfg("LOAD")
+	suite.Equal("localhost:9092", APIcfg2.BrokerHost)
+	suite.Equal("localhost", APIcfg2.StoreHost)
+	suite.Equal("argo_msg", APIcfg2.StoreDB)
 
 }
 
 func (suite *ConfigTestSuite) TestLoadStringJSON() {
-	kafkaCfg := NewKafkaCfg()
-	kafkaCfg.LoadStrJSON(suite.cfgStr)
-	suite.Equal("localhost:9092", kafkaCfg.Server)
-	suite.Equal("topic1", kafkaCfg.Topics[0])
-	suite.Equal("topic2", kafkaCfg.Topics[1])
+	APIcfg := NewAPICfg()
+	APIcfg.LoadStrJSON(suite.cfgStr)
+	suite.Equal("localhost:9092", APIcfg.BrokerHost)
+	suite.Equal("localhost", APIcfg.StoreHost)
+	suite.Equal("argo_msg", APIcfg.StoreDB)
 }
 
-func TestFactorsTestSuite(t *testing.T) {
+func TestConfigTestSuite(t *testing.T) {
 	suite.Run(t, new(ConfigTestSuite))
 }

@@ -4,9 +4,10 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/ARGOeu/argo-messaging/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
+	"github.com/ARGOeu/argo-messaging/stores"
+	"github.com/gorilla/mux"
 )
 
 // API Object that holds routing information and the router itself
@@ -24,7 +25,7 @@ type APIRoute struct {
 }
 
 // NewRouting creates a new routing object including mux.Router and routes definitions
-func NewRouting(cfg *config.KafkaCfg, brk brokers.Broker, routes []APIRoute) *API {
+func NewRouting(cfg *config.APICfg, brk brokers.Broker, str stores.Store, routes []APIRoute) *API {
 	// Create the api Object
 	ar := API{}
 	// Create a new router and reference him in API object
@@ -39,7 +40,7 @@ func NewRouting(cfg *config.KafkaCfg, brk brokers.Broker, routes []APIRoute) *AP
 		var handler http.HandlerFunc
 		handler = route.Handler
 		handler = WrapLog(handler, route.Name)
-		handler = WrapConfig(handler, cfg, brk)
+		handler = WrapConfig(handler, cfg, brk, str)
 
 		ar.Router.
 			PathPrefix("/v1").
@@ -55,8 +56,9 @@ func NewRouting(cfg *config.KafkaCfg, brk brokers.Broker, routes []APIRoute) *AP
 
 // Global list populated with default routes
 var defaultRoutes = []APIRoute{
-	{"Subscriptions List All", "GET", "/projects/{project}/subscriptions", TopicListAll},
-	{"Subscriptions List One", "GET", "/projects/{project}/subscriptions/{subscription}", TopicListOne},
+	{"Subscriptions List All", "GET", "/projects/{project}/subscriptions", SubListAll},
+	{"Subscriptions List One", "GET", "/projects/{project}/subscriptions/{subscription}", SubListOne},
+	{"Subscriptions Pull", "POST", "/projects/{project}/subscriptions/{subscription}:pull", SubPull},
 	{"Topics List All", "GET", "/projects/{project}/topics", TopicListAll},
 	{"Topics List One", "GET", "/projects/{project}/topics/{topic}", TopicListOne},
 	{"Topics Publish", "POST", "/projects/{project}/topics/{topic}:publish", TopicPublish},

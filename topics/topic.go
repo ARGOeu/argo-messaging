@@ -3,7 +3,7 @@ package topics
 import (
 	"encoding/json"
 
-	"github.com/ARGOeu/argo-messaging/config"
+	"github.com/ARGOeu/argo-messaging/stores"
 )
 
 // Topic struct to hold information for a given topic
@@ -19,19 +19,30 @@ type Topics struct {
 }
 
 // New creates a new topic based on name
-func New(name string) Topic {
-	pr := "ARGO" // Projects as entities will be handled later.
+func New(project string, name string) Topic {
+	pr := project // Projects as entities will be handled later.
 	ftn := "/projects/" + pr + "/topics/" + name
 	t := Topic{Project: pr, Name: name, FullName: ftn}
 	return t
 }
 
-// LoadFromCfg returns all topics defined in configuration
-func (tl *Topics) LoadFromCfg(cfg *config.KafkaCfg) {
-	for _, value := range cfg.Topics {
-		nTopic := New(value)
-		tl.List = append(tl.List, nTopic)
+// // LoadFromCfg returns all topics defined in configuration
+// func (tl *Topics) LoadFromCfg(cfg *config.APICfg) {
+// 	for _, value := range cfg.Topics {
+// 		nTopic := New(value)
+// 		tl.List = append(tl.List, nTopic)
+// 	}
+// }
+
+// LoadFromStore returns all subscriptions defined in store
+func (tl *Topics) LoadFromStore(store stores.Store) {
+	defer store.Close()
+	topics := store.QueryTopics()
+	for _, item := range topics {
+		curTop := New(item.Project, item.Name)
+		tl.List = append(tl.List, curTop)
 	}
+
 }
 
 // ExportJSON exports whole Topic Structure as a json string
