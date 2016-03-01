@@ -1,10 +1,13 @@
 package subscriptions
 
 import (
+	"io/ioutil"
+	"log"
 	"testing"
 
 	"github.com/ARGOeu/argo-messaging/Godeps/_workspace/src/github.com/stretchr/testify/suite"
 	"github.com/ARGOeu/argo-messaging/config"
+	"github.com/ARGOeu/argo-messaging/stores"
 )
 
 type SubTestSuite struct {
@@ -13,17 +16,16 @@ type SubTestSuite struct {
 }
 
 func (suite *SubTestSuite) SetupTest() {
-	suite.cfgStr = `
-	{
-	  "server":"localhost:9092",
-	  "topics":["topic1","topic2"],
-    "subscriptions":{"sub1":"topic1","sub2":"topic2"}
-	}
-	`
+	suite.cfgStr = `{
+		"broker_host":"localhost:9092",
+		"store_host":"localhost",
+		"store_db":"argo_msg"
+	}`
+	log.SetOutput(ioutil.Discard)
 }
 
 func (suite *SubTestSuite) TestCreate() {
-	mySub := New("test-sub", "topic1")
+	mySub := New("ARGO", "test-sub", "topic1")
 	suite.Equal("test-sub", mySub.Name)
 	suite.Equal("ARGO", mySub.Project)
 	suite.Equal("/projects/ARGO/subscriptions/test-sub", mySub.FullName)
@@ -31,48 +33,56 @@ func (suite *SubTestSuite) TestCreate() {
 }
 
 func (suite *SubTestSuite) TestGetSubByName() {
-	cfgKafka := config.NewKafkaCfg()
-	cfgKafka.LoadStrJSON(suite.cfgStr)
+	cfgAPI := config.NewAPICfg()
+	cfgAPI.LoadStrJSON(suite.cfgStr)
+	store := stores.NewMockStore(cfgAPI.StoreHost, cfgAPI.StoreDB)
 	mySubs := Subscriptions{}
-	mySubs.LoadFromCfg(cfgKafka)
+	mySubs.LoadFromStore(store)
 	result := mySubs.GetSubByName("ARGO", "sub1")
-	expSub := New("sub1", "topic1")
+	expSub := New("ARGO", "sub1", "topic1")
 	suite.Equal(expSub, result)
 }
 
 func (suite *SubTestSuite) TestGetSubsByProject() {
-	cfgKafka := config.NewKafkaCfg()
-	cfgKafka.LoadStrJSON(suite.cfgStr)
+	cfgAPI := config.NewAPICfg()
+	cfgAPI.LoadStrJSON(suite.cfgStr)
 	mySubs := Subscriptions{}
-	mySubs.LoadFromCfg(cfgKafka)
+	store := stores.NewMockStore(cfgAPI.StoreHost, cfgAPI.StoreDB)
+	mySubs.LoadFromStore(store)
 	result := mySubs.GetSubsByProject("ARGO")
-	expSub1 := New("sub1", "topic1")
-	expSub2 := New("sub2", "topic2")
+	expSub1 := New("ARGO", "sub1", "topic1")
+	expSub2 := New("ARGO", "sub2", "topic2")
+	expSub3 := New("ARGO", "sub3", "topic3")
 	expSubs := Subscriptions{}
 	expSubs.List = append(expSubs.List, expSub1)
 	expSubs.List = append(expSubs.List, expSub2)
+	expSubs.List = append(expSubs.List, expSub3)
 	suite.Equal(expSubs, result)
 }
 
 func (suite *SubTestSuite) TestLoadFromCfg() {
-	cfgKafka := config.NewKafkaCfg()
-	cfgKafka.LoadStrJSON(suite.cfgStr)
+	cfgAPI := config.NewAPICfg()
+	cfgAPI.LoadStrJSON(suite.cfgStr)
 	mySubs := Subscriptions{}
-	mySubs.LoadFromCfg(cfgKafka)
-	expSub1 := New("sub1", "topic1")
-	expSub2 := New("sub2", "topic2")
+	store := stores.NewMockStore(cfgAPI.StoreHost, cfgAPI.StoreDB)
+	mySubs.LoadFromStore(store)
+	expSub1 := New("ARGO", "sub1", "topic1")
+	expSub2 := New("ARGO", "sub2", "topic2")
+	expSub3 := New("ARGO", "sub3", "topic3")
 	expSubs := Subscriptions{}
 	expSubs.List = append(expSubs.List, expSub1)
 	expSubs.List = append(expSubs.List, expSub2)
+	expSubs.List = append(expSubs.List, expSub3)
 	suite.Equal(expSubs, mySubs)
 
 }
 
 func (suite *SubTestSuite) TestExportJson() {
-	cfgKafka := config.NewKafkaCfg()
-	cfgKafka.LoadStrJSON(suite.cfgStr)
+	cfgAPI := config.NewAPICfg()
+	cfgAPI.LoadStrJSON(suite.cfgStr)
 	mySubs := Subscriptions{}
-	mySubs.LoadFromCfg(cfgKafka)
+	store := stores.NewMockStore(cfgAPI.StoreHost, cfgAPI.StoreDB)
+	mySubs.LoadFromStore(store)
 
 	outJSON, _ := mySubs.List[0].ExportJSON()
 	expJSON := `{
@@ -98,6 +108,14 @@ func (suite *SubTestSuite) TestExportJson() {
       {
          "name": "/projects/ARGO/subscriptions/sub2",
          "topic": "/projects/ARGO/topics/topic2",
+         "pushConfig": {
+            "pushEndpoint": ""
+         },
+         "ackDeadlineSeconds": 10
+      },
+      {
+         "name": "/projects/ARGO/subscriptions/sub3",
+         "topic": "/projects/ARGO/topics/topic3",
          "pushConfig": {
             "pushEndpoint": ""
          },

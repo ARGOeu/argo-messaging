@@ -2,15 +2,17 @@ package main
 
 import (
 	"bytes"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/ARGOeu/argo-messaging/Godeps/_workspace/src/github.com/gorilla/mux"
-	"github.com/ARGOeu/argo-messaging/Godeps/_workspace/src/github.com/stretchr/testify/suite"
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
+	"github.com/ARGOeu/argo-messaging/stores"
+	"github.com/gorilla/mux"
+	"github.com/stretchr/testify/suite"
 )
 
 type HandlerTestSuite struct {
@@ -19,13 +21,12 @@ type HandlerTestSuite struct {
 }
 
 func (suite *HandlerTestSuite) SetupTest() {
-	suite.cfgStr = `
-	{
-	  "server":"localhost:9092",
-	  "topics":["topic1","topic2"],
-		"subscriptions":{"sub1":"topic1","sub2":"topic2"}
-	}
-	`
+	suite.cfgStr = `{
+		"broker_host":"localhost:9092",
+		"store_host":"localhost",
+		"store_db":"argo_msg"
+	}`
+	log.SetOutput(ioutil.Discard)
 }
 
 func (suite *HandlerTestSuite) TestSubListOne() {
@@ -44,12 +45,13 @@ func (suite *HandlerTestSuite) TestSubListOne() {
    "ackDeadlineSeconds": 10
 }`
 
-	cfgKafka := config.NewKafkaCfg()
+	cfgKafka := config.NewAPICfg()
 	cfgKafka.LoadStrJSON(suite.cfgStr)
 	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapConfig(SubListOne, cfgKafka, &brk))
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapConfig(SubListOne, cfgKafka, &brk, str))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -79,19 +81,29 @@ func (suite *HandlerTestSuite) TestSubListAll() {
             "pushEndpoint": ""
          },
          "ackDeadlineSeconds": 10
+      },
+      {
+         "name": "/projects/ARGO/subscriptions/sub3",
+         "topic": "/projects/ARGO/topics/topic3",
+         "pushConfig": {
+            "pushEndpoint": ""
+         },
+         "ackDeadlineSeconds": 10
       }
    ]
 }`
 
-	cfgKafka := config.NewKafkaCfg()
+	cfgKafka := config.NewAPICfg()
 	cfgKafka.LoadStrJSON(suite.cfgStr)
 	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/subscriptions", WrapConfig(SubListAll, cfgKafka, &brk))
+	router.HandleFunc("/v1/projects/{project}/subscriptions", WrapConfig(SubListAll, cfgKafka, &brk, str))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
+
 }
 
 func (suite *HandlerTestSuite) TestTopicListOne() {
@@ -105,12 +117,13 @@ func (suite *HandlerTestSuite) TestTopicListOne() {
    "name": "/projects/ARGO/topics/topic1"
 }`
 
-	cfgKafka := config.NewKafkaCfg()
+	cfgKafka := config.NewAPICfg()
 	cfgKafka.LoadStrJSON(suite.cfgStr)
 	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapConfig(TopicListOne, cfgKafka, &brk))
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapConfig(TopicListOne, cfgKafka, &brk, str))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -130,23 +143,28 @@ func (suite *HandlerTestSuite) TestTopicListAll() {
       },
       {
          "name": "/projects/ARGO/topics/topic2"
+      },
+      {
+         "name": "/projects/ARGO/topics/topic3"
       }
    ]
 }`
 
-	cfgKafka := config.NewKafkaCfg()
+	cfgKafka := config.NewAPICfg()
 	cfgKafka.LoadStrJSON(suite.cfgStr)
 	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/topics", WrapConfig(TopicListAll, cfgKafka, &brk))
+	router.HandleFunc("/v1/projects/{project}/topics", WrapConfig(TopicListAll, cfgKafka, &brk, str))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
+
 }
 
 func (suite *HandlerTestSuite) TestPublish() {
-	//broker.Initialize(kafkaCfg.Server)
+
 	postJSON := `{
   "messages": [
     {
@@ -172,12 +190,13 @@ func (suite *HandlerTestSuite) TestPublish() {
    ]
 }`
 
-	cfgKafka := config.NewKafkaCfg()
+	cfgKafka := config.NewAPICfg()
 	cfgKafka.LoadStrJSON(suite.cfgStr)
 	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapConfig(TopicPublish, cfgKafka, &brk))
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapConfig(TopicPublish, cfgKafka, &brk, str))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expJSON, w.Body.String())
@@ -185,7 +204,7 @@ func (suite *HandlerTestSuite) TestPublish() {
 }
 
 func (suite *HandlerTestSuite) TestPublishMultiple() {
-	//broker.Initialize(kafkaCfg.Server)
+
 	postJSON := `{
   "messages": [
     {
@@ -231,12 +250,14 @@ func (suite *HandlerTestSuite) TestPublishMultiple() {
    ]
 }`
 
-	cfgKafka := config.NewKafkaCfg()
+	cfgKafka := config.NewAPICfg()
 	cfgKafka.LoadStrJSON(suite.cfgStr)
 	brk := brokers.MockBroker{}
+	brk.Initialize(cfgKafka.BrokerHost)
+	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapConfig(TopicPublish, cfgKafka, &brk))
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapConfig(TopicPublish, cfgKafka, &brk, str))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expJSON, w.Body.String())
@@ -244,7 +265,7 @@ func (suite *HandlerTestSuite) TestPublishMultiple() {
 }
 
 func (suite *HandlerTestSuite) TestPublishError() {
-	//broker.Initialize(kafkaCfg.Server)
+
 	postJSON := `{
   "messages": [
     {
@@ -285,18 +306,133 @@ func (suite *HandlerTestSuite) TestPublishError() {
    }
 }`
 
-	cfgKafka := config.NewKafkaCfg()
+	cfgKafka := config.NewAPICfg()
 	cfgKafka.LoadStrJSON(suite.cfgStr)
 	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapConfig(TopicPublish, cfgKafka, &brk))
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapConfig(TopicPublish, cfgKafka, &brk, str))
 	router.ServeHTTP(w, req)
 	suite.Equal(500, w.Code)
 	suite.Equal(expJSON, w.Body.String())
 
 }
 
-func TestFactorsTestSuite(t *testing.T) {
+func (suite *HandlerTestSuite) TestSubPullAll() {
+
+	postJSON := `{
+  "maxMessages":"1"
+}`
+	url := "http://localhost:8080/v1/projects/ARGO/subscriptions/mocksub:pull"
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expJSON := `{
+   "receivedMessages": [
+      {
+         "message": {
+            "messageId": "0",
+            "attributes": [
+               {
+                  "key": "foo",
+                  "value": "bar"
+               }
+            ],
+            "data": "YmFzZTY0ZW5jb2RlZA==",
+            "publishTime": "2016-02-24T11:55:09.786127994Z"
+         }
+      }
+   ]
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	brk.Initialize(cfgKafka.BrokerHost)
+	brk.PopulateThree() // Add three messages to the broker queue
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:pull", WrapConfig(SubPull, cfgKafka, &brk, str))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expJSON, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestSubPullOne() {
+
+	postJSON := `{
+
+}`
+	url := "http://localhost:8080/v1/projects/ARGO/subscriptions/mocksub:pull"
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expJSON := `{
+   "receivedMessages": [
+      {
+         "message": {
+            "messageId": "0",
+            "attributes": [
+               {
+                  "key": "foo",
+                  "value": "bar"
+               }
+            ],
+            "data": "YmFzZTY0ZW5jb2RlZA==",
+            "publishTime": "2016-02-24T11:55:09.786127994Z"
+         }
+      },
+      {
+         "message": {
+            "messageId": "1",
+            "attributes": [
+               {
+                  "key": "foo2",
+                  "value": "bar2"
+               }
+            ],
+            "data": "YmFzZTY0ZW5jb2RlZA==",
+            "publishTime": "2016-02-24T11:55:09.827678754Z"
+         }
+      },
+      {
+         "message": {
+            "messageId": "2",
+            "attributes": [
+               {
+                  "key": "foo2",
+                  "value": "bar2"
+               }
+            ],
+            "data": "YmFzZTY0ZW5jb2RlZA==",
+            "publishTime": "2016-02-24T11:55:09.830417467Z"
+         }
+      }
+   ]
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	brk.Initialize(cfgKafka.BrokerHost)
+	brk.PopulateThree() // Add three messages to the broker queue
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:pull", WrapConfig(SubPull, cfgKafka, &brk, str))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expJSON, w.Body.String())
+
+}
+
+func TestHandlersTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }

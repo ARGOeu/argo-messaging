@@ -1,5 +1,5 @@
 {
-  "server":"localhost:9092",
-  "topics":["topic1","topic2"],
-  "subscriptions":{"sub1":"topic1","sub2":"topic2"}
+  "broker_host":"localhost:9092",
+  "store_host":"localhost",
+  "store_db":"argo_msg"
 }

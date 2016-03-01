@@ -8,30 +8,31 @@ import (
 	"github.com/ARGOeu/argo-messaging/Godeps/_workspace/src/github.com/spf13/viper"
 )
 
-// KafkaCfg holds kafka configuration
-type KafkaCfg struct {
-	Server string
-	Topics []string
-	Subs   map[string]string
+// APICfg holds kafka configuration
+type APICfg struct {
+	// values
+	BrokerHost string
+	StoreHost  string
+	StoreDB    string
 }
 
-// NewKafkaCfg creates a new kafka configuration object
-func NewKafkaCfg(params ...string) *KafkaCfg {
-	kcfg := KafkaCfg{}
+// NewAPICfg creates a new kafka configuration object
+func NewAPICfg(params ...string) *APICfg {
+	cfg := APICfg{}
 
 	// If NewKafkaCfg is called with argument "LOAD" automatically load config
 	for _, param := range params {
 		if param == "LOAD" {
-			kcfg.Load()
-			return &kcfg
+			cfg.Load()
+			return &cfg
 		}
 	}
 
-	return &kcfg
+	return &cfg
 }
 
 // Load the configuration
-func (kcfg *KafkaCfg) Load() {
+func (cfg *APICfg) Load() {
 
 	viper.SetConfigName("config")
 	viper.AddConfigPath("/etc/argo-messaging")
@@ -44,21 +45,25 @@ func (kcfg *KafkaCfg) Load() {
 	}
 
 	// Load Kafka configuration
-	kcfg.Server = viper.GetString("server")
-	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - server", kcfg.Server)
-	kcfg.Topics = viper.GetStringSlice("topics")
-	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - topics", kcfg.Topics)
-	kcfg.Subs = viper.GetStringMapString("subscriptions")
-	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - subscriptions", kcfg.Subs)
+	cfg.BrokerHost = viper.GetString("broker_host")
+	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - broker_host", cfg.BrokerHost)
+	cfg.StoreHost = viper.GetString("store_host")
+	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - store_host", cfg.StoreHost)
+	cfg.StoreDB = viper.GetString("store_db")
+	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - store_db", cfg.StoreDB)
 
 }
 
 // LoadStrJSON Loads configuration from a JSON string
-func (kcfg *KafkaCfg) LoadStrJSON(input string) {
+func (cfg *APICfg) LoadStrJSON(input string) {
 	viper.SetConfigType("json")
 	viper.ReadConfig(bytes.NewBuffer([]byte(input)))
 	// Load Kafka configuration
-	kcfg.Server = viper.GetString("server")
-	kcfg.Topics = viper.GetStringSlice("topics")
-	kcfg.Subs = viper.GetStringMapString("subscriptions")
+	cfg.BrokerHost = viper.GetString("broker_host")
+	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - broker_host", cfg.BrokerHost)
+	cfg.StoreHost = viper.GetString("store_host")
+	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - store_host", cfg.StoreHost)
+	cfg.StoreDB = viper.GetString("store_db")
+	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - store_db", cfg.StoreDB)
+
 }

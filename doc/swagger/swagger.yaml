@@ -51,12 +51,42 @@ paths:
           required: true
           type: string
       tags:
-        - Subscritions
+        - Subscriptions
       responses:
         200:
           description: An array of Subscriptions
           schema:
             $ref: '#/definitions/Subscription'
+
+  /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}:pull:
+    post:
+      summary: Pull Messages from an existing subscription
+      description: |
+        Use an existing subscription to pull messages
+      parameters:
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: SUBSCRIPTION
+          in: path
+          description: Name of the subscription
+          required: true
+          type: string
+        - name: Pull Options
+          in: body
+          description: Parameters to be used during pull
+          required: true
+          schema:
+           $ref: '#/definitions/PullOptions'
+      tags:
+        - Subscriptions
+      responses:
+        200:
+          description: An array of received messages
+          schema:
+            $ref: '#/definitions/ReceivedMessages'
 
   /projects/{PROJECT}/topics:
     get:
@@ -103,7 +133,7 @@ paths:
           schema:
             $ref: '#/definitions/Topic'
   /projects/{PROJECT}/topics/{TOPIC}:publish:
-    get:
+    post:
       summary: List topics in a project
       description: |
         The topic:publish endpoint publish a message to a specific topic
@@ -133,6 +163,12 @@ paths:
             $ref: '#/definitions/MessageIDs'
 
 definitions:
+  PullOptions:
+    type: object
+    properties:
+      maxMessages:
+        type: string
+        description: Max number of messages to be consumed
   Subscription:
     type: object
     properties:
@@ -176,6 +212,35 @@ definitions:
       data:
         type: string
         description: Message payload in Base64 encoding"
+  ReceivedMessages:
+    type: object
+    properties:
+      receivedMessages:
+        type: array
+        items:
+          $ref: '#/definitions/ReceivedMessage'
+  ReceivedMessage:
+    type: object
+    properties:
+      message:
+        type: object
+        properties:
+          messageId:
+            type: string
+            description: id of the message
+          attributes:
+            type: array
+            description: key/value dictionary accompanying the message
+            items:
+              $ref: '#/definitions/Attribute'
+          data:
+            type: string
+            description: base64 encoding of the message payload
+          publishTime:
+            type: string
+            description: publish datetime in ISO8601 string (+ns)
+
+
   MessageIDs:
      type: object
      properties:

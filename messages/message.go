@@ -6,6 +6,16 @@ import (
 	"errors"
 )
 
+// RecMsg holds info for a received message
+type RecMsg struct {
+	Msg Message `json:"message"`
+}
+
+// RecList holds the array of the receivedMessages - subscription related
+type RecList struct {
+	RecMsgs []RecMsg `json:"receivedMessages"`
+}
+
 // MsgList is used to hold a list of messages
 type MsgList struct {
 	Msgs []Message `json:"messages"`
@@ -130,6 +140,12 @@ func (msg *Message) ExportJSON() (string, error) {
 // ExportJSON exports whole msgId  Structure as a json string
 func (msgIDs *MsgIDs) ExportJSON() (string, error) {
 	output, err := json.MarshalIndent(msgIDs, "", "   ")
+	return string(output[:]), err
+}
+
+// ExportJSON exports whole msgId  Structure as a json string
+func (recList *RecList) ExportJSON() (string, error) {
+	output, err := json.MarshalIndent(recList, "", "   ")
 	return string(output[:]), err
 }
 
