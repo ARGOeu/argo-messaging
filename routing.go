@@ -80,5 +80,6 @@ var defaultRoutes = []APIRoute{
 	{"subscriptions:pull", "POST", "/projects/{project}/subscriptions/{subscription}:pull", SubPull},
 	{"topics:list", "GET", "/projects/{project}/topics", TopicListAll},
 	{"topics:show", "GET", "/projects/{project}/topics/{topic}", TopicListOne},
+	{"topics:create", "PUT", "/projects/{project}/topics/{topic}", TopicCreate},
 	{"topics:publish", "POST", "/projects/{project}/topics/{topic}:publish", TopicPublish},
 }

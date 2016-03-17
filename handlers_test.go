@@ -106,6 +106,63 @@ func (suite *HandlerTestSuite) TestSubListAll() {
 
 }
 
+func (suite *HandlerTestSuite) TestTopicCreate() {
+
+	req, err := http.NewRequest("PUT", "http://localhost:8080/v1/projects/ARGO/topics/topicNew", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "name": "/projects/ARGO/topics/topicNew"
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapConfig(TopicCreate, cfgKafka, &brk, str))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+}
+
+func (suite *HandlerTestSuite) TestTopicCreateExists() {
+
+	req, err := http.NewRequest("PUT", "http://localhost:8080/v1/projects/ARGO/topics/topic1", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "error": {
+      "code": 409,
+      "message": "Topic Already Exists",
+      "errors": [
+         {
+            "message": "Topic Already Exists",
+            "domain": "global",
+            "reason": "backend"
+         }
+      ],
+      "status": "INTERNAL"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapConfig(TopicCreate, cfgKafka, &brk, str))
+	router.ServeHTTP(w, req)
+	suite.Equal(409, w.Code)
+	suite.Equal(expResp, w.Body.String())
+}
+
 func (suite *HandlerTestSuite) TestTopicListOne() {
 
 	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/topics/topic1", nil)

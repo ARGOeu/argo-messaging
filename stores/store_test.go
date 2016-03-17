@@ -44,6 +44,21 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal(true, store.HasResourceRoles("topics:list_all", []string{"publisher"}))
 	suite.Equal(true, store.HasResourceRoles("topics:publish", []string{"publisher"}))
 
+	store.InsertTopic("ARGO", "topicFresh")
+	store.InsertSub("ARGO", "subFresh", "topicFresh", 0)
+
+	eTopList2 := []QTopic{QTopic{"ARGO", "topic1"},
+		QTopic{"ARGO", "topic2"},
+		QTopic{"ARGO", "topic3"},
+		QTopic{"ARGO", "topicFresh"}}
+
+	eSubList2 := []QSub{QSub{"ARGO", "sub1", "topic1", 0},
+		QSub{"ARGO", "sub2", "topic2", 0},
+		QSub{"ARGO", "sub3", "topic3", 0},
+		QSub{"ARGO", "subFresh", "topicFresh", 0}}
+
+	suite.Equal(eTopList2, store.QueryTopics())
+	suite.Equal(eSubList2, store.QuerySubs())
 }
 
 func TestStoresTestSuite(t *testing.T) {

@@ -42,6 +42,23 @@ func (suite *TopicTestSuite) TestGetTopicByName() {
 	suite.Equal(expTopic, result)
 }
 
+func (suite *TopicTestSuite) TestCreateTopicStore() {
+	APIcfg := config.NewAPICfg()
+	APIcfg.LoadStrJSON(suite.cfgStr)
+	myTopics := Topics{}
+	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
+	myTopics.LoadFromStore(store)
+
+	tp, err := myTopics.CreateTopic("ARGO", "topic1", store)
+	suite.Equal(Topic{}, tp)
+	suite.Equal("exists", err.Error())
+
+	tp2, err2 := myTopics.CreateTopic("ARGO", "topicNew", store)
+	expTopic := New("ARGO", "topicNew")
+	suite.Equal(expTopic, tp2)
+	suite.Equal(nil, err2)
+}
+
 func (suite *TopicTestSuite) TestHasProjectTopic() {
 	APIcfg := config.NewAPICfg()
 	APIcfg.LoadStrJSON(suite.cfgStr)

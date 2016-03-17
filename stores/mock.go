@@ -107,6 +107,20 @@ func (mk *MockStore) HasProject(project string) bool {
 	return false
 }
 
+// InsertTopic inserts a new topic object to the store
+func (mk *MockStore) InsertTopic(project string, name string) error {
+	topic := QTopic{project, name}
+	mk.TopicList = append(mk.TopicList, topic)
+	return nil
+}
+
+// InsertSub inserts a new sub object to the store
+func (mk *MockStore) InsertSub(project string, name string, topic string, offset int64) error {
+	sub := QSub{project, name, topic, offset}
+	mk.SubList = append(mk.SubList, sub)
+	return nil
+}
+
 // QuerySubs Query Subscription info from store
 func (mk *MockStore) QuerySubs() []QSub {
 	return mk.SubList

@@ -2,6 +2,7 @@ package topics
 
 import (
 	"encoding/json"
+	"errors"
 
 	"github.com/ARGOeu/argo-messaging/stores"
 )
@@ -77,6 +78,17 @@ func (tl *Topics) GetTopicsByProject(project string) Topics {
 	}
 
 	return result
+}
+
+// CreateTopic creates a new topic
+func (tl *Topics) CreateTopic(project string, name string, store stores.Store) (Topic, error) {
+	if tl.HasTopic(project, name) {
+		return Topic{}, errors.New("exists")
+	}
+
+	topicNew := New(project, name)
+	err := store.InsertTopic(project, name)
+	return topicNew, err
 }
 
 // HasTopic returns true if project & topic combination exist
