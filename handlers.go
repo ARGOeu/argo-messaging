@@ -131,6 +131,42 @@ func SubListOne(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// TopicDelete (DEL) deletes an existing topic
+func TopicDelete(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+
+	// Grab context references
+	refStr := context.Get(r, "str").(stores.Store)
+	// Initialize Topics
+	tp := topics.Topics{}
+	tp.LoadFromStore(refStr)
+
+	// Get Result Object
+	err := tp.RemoveTopic(urlVars["project"], urlVars["topic"], refStr)
+	if err != nil {
+		if err.Error() == "not found" {
+			respondErr(w, 404, "Topic Not Found")
+			return
+		}
+
+		respondErr(w, 500, err.Error())
+	}
+
+	// Write empty response if anything ok
+	respondOK(w, output)
+
+}
+
 // TopicCreate (PUT) creates a new  topic
 func TopicCreate(w http.ResponseWriter, r *http.Request) {
 

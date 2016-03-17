@@ -41,6 +41,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal(true, store.HasResourceRoles("topics:list_all", []string{"admin", "foo"}))
 	suite.Equal(false, store.HasResourceRoles("topics:list_all", []string{"foo"}))
 	suite.Equal(false, store.HasResourceRoles("topics:publish", []string{"reader"}))
+	suite.Equal(true, store.HasResourceRoles("topics:list_all", []string{"admin"}))
 	suite.Equal(true, store.HasResourceRoles("topics:list_all", []string{"publisher"}))
 	suite.Equal(true, store.HasResourceRoles("topics:publish", []string{"publisher"}))
 
@@ -59,6 +60,21 @@ func (suite *StoreTestSuite) TestMockStore() {
 
 	suite.Equal(eTopList2, store.QueryTopics())
 	suite.Equal(eSubList2, store.QuerySubs())
+
+	// Test delete on topic
+	err := store.RemoveTopic("ARGO", "topicFresh")
+	suite.Equal(nil, err)
+	suite.Equal(eTopList, store.QueryTopics())
+	err = store.RemoveTopic("ARGO", "topicFresh")
+	suite.Equal("not found", err.Error())
+
+	// Test delete on subscription
+	err = store.RemoveSub("ARGO", "subFresh")
+	suite.Equal(nil, err)
+	suite.Equal(eSubList, store.QuerySubs())
+	err = store.RemoveSub("ARGO", "subFresh")
+	suite.Equal("not found", err.Error())
+
 }
 
 func TestStoresTestSuite(t *testing.T) {

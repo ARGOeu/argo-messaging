@@ -38,6 +38,7 @@ func New(project string, name string) Topic {
 // LoadFromStore returns all subscriptions defined in store
 func (tl *Topics) LoadFromStore(store stores.Store) {
 	defer store.Close()
+	tl.List = []Topic{}
 	topics := store.QueryTopics()
 	for _, item := range topics {
 		curTop := New(item.Project, item.Name)
@@ -89,6 +90,15 @@ func (tl *Topics) CreateTopic(project string, name string, store stores.Store) (
 	topicNew := New(project, name)
 	err := store.InsertTopic(project, name)
 	return topicNew, err
+}
+
+// RemoveTopic removes an existing topic
+func (tl *Topics) RemoveTopic(project string, name string, store stores.Store) error {
+	if tl.HasTopic(project, name) == false {
+		return errors.New("not found")
+	}
+
+	return store.RemoveTopic(project, name)
 }
 
 // HasTopic returns true if project & topic combination exist

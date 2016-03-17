@@ -171,6 +171,18 @@ func (mong *MongoStore) InsertSub(project string, name string, topic string, off
 	return mong.InsertResource("subscriptions", sub)
 }
 
+// RemoveTopic removes a topic from the store
+func (mong *MongoStore) RemoveTopic(project string, name string) error {
+	topic := QTopic{project, name}
+	return mong.RemoveResource("topics", topic)
+}
+
+// RemoveSub removes a subscription from the store
+func (mong *MongoStore) RemoveSub(project string, name string) error {
+	sub := QSub{project, name, "", 0}
+	return mong.RemoveResource("subscriptions", sub)
+}
+
 // InsertResource inserts a new topic object to the datastore
 func (mong *MongoStore) InsertResource(col string, res interface{}) error {
 	session, err := mgo.Dial(mong.Server)
@@ -183,6 +195,25 @@ func (mong *MongoStore) InsertResource(col string, res interface{}) error {
 	c := db.C(col)
 
 	err = c.Insert(res)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return err
+}
+
+// RemoveResource removes a resource from the store
+func (mong *MongoStore) RemoveResource(col string, res interface{}) error {
+	session, err := mgo.Dial(mong.Server)
+	if err != nil {
+		panic(err)
+	}
+	defer session.Close()
+
+	db := session.DB(mong.Database)
+	c := db.C(col)
+
+	err = c.Remove(res)
 	if err != nil {
 		log.Fatal(err)
 	}

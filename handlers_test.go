@@ -106,6 +106,60 @@ func (suite *HandlerTestSuite) TestSubListAll() {
 
 }
 
+func (suite *HandlerTestSuite) TestTopicDelete() {
+
+	req, err := http.NewRequest("DELETE", "http://localhost:8080/v1/projects/ARGO/topics/topic1", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := ""
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapConfig(TopicDelete, cfgKafka, &brk, str))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+}
+
+func (suite *HandlerTestSuite) TestTopicDeleteNotfound() {
+
+	req, err := http.NewRequest("DELETE", "http://localhost:8080/v1/projects/ARGO/topics/topicFoo", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "error": {
+      "code": 404,
+      "message": "Topic Not Found",
+      "errors": [
+         {
+            "message": "Topic Not Found",
+            "domain": "global",
+            "reason": "backend"
+         }
+      ],
+      "status": "INTERNAL"
+   }
+}`
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapConfig(TopicDelete, cfgKafka, &brk, str))
+	router.ServeHTTP(w, req)
+	suite.Equal(404, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
 func (suite *HandlerTestSuite) TestTopicCreate() {
 
 	req, err := http.NewRequest("PUT", "http://localhost:8080/v1/projects/ARGO/topics/topicNew", nil)

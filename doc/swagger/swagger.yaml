@@ -145,6 +145,38 @@ paths:
           $ref: "#/responses/500"
 
   /projects/{PROJECT}/topics/{TOPIC}:
+
+    get:
+      summary: List topics in a project
+      description: |
+        The Topics endpoint returns a list of available topics for a given project
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: TOPIC
+          in: path
+          description: Name of the topic
+          required: true
+          type: string
+      tags:
+        - Topics
+      responses:
+        200:
+          description: A topic object
+          schema:
+            $ref: '#/definitions/Topic'
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
     put:
       summary: Create a new topic in a project
       description: |
@@ -178,11 +210,10 @@ paths:
           $ref: "#/responses/409"
         500:
           $ref: "#/responses/500"
-
-    get:
-      summary: List topics in a project
+    delete:
+      summary: Delete an existing topic in a project
       description: |
-        The Topics endpoint returns a list of available topics for a given project
+        This request deletes an existing topic in a project
       parameters:
         - $ref: '#/parameters/ApiKey'
         - name: PROJECT
@@ -199,17 +230,22 @@ paths:
         - Topics
       responses:
         200:
-          description: A topic object
+          description: Empty response if the topic is successfully deleted
           schema:
-            $ref: '#/definitions/Topic'
+            type: string
+            default: ""
+            description: empty string
         401:
           $ref: "#/responses/401"
         403:
           $ref: "#/responses/403"
         404:
           $ref: "#/responses/404"
+        409:
+          $ref: "#/responses/409"
         500:
           $ref: "#/responses/500"
+
 
   /projects/{PROJECT}/topics/{TOPIC}:publish:
     post:
