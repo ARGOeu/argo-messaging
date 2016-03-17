@@ -42,6 +42,17 @@ func (suite *TopicTestSuite) TestGetTopicByName() {
 	suite.Equal(expTopic, result)
 }
 
+func (suite *TopicTestSuite) TestHasProjectTopic() {
+	APIcfg := config.NewAPICfg()
+	APIcfg.LoadStrJSON(suite.cfgStr)
+	myTopics := Topics{}
+	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
+	myTopics.LoadFromStore(store)
+
+	suite.Equal(false, myTopics.HasTopic("ARGO", "FOO"))
+	suite.Equal(true, myTopics.HasTopic("ARGO", "topic1"))
+}
+
 func (suite *TopicTestSuite) TestGetTopicsByProject() {
 	APIcfg := config.NewAPICfg()
 	APIcfg.LoadStrJSON(suite.cfgStr)

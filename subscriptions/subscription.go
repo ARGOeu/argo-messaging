@@ -95,3 +95,13 @@ func (sl *Subscriptions) GetSubsByProject(project string) Subscriptions {
 
 	return result
 }
+
+// HasSub returns true if project & subscription combination exist
+func (sl *Subscriptions) HasSub(project string, name string) bool {
+	res := sl.GetSubByName(project, name)
+	if res.Name != "" {
+		return true
+	}
+
+	return false
+}

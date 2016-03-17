@@ -178,7 +178,7 @@ func (suite *HandlerTestSuite) TestPublish() {
     }
   ]
 }`
-	url := "http://localhost:8080/v1/projects/ARGO/topics/mocktopic:publish"
+	url := "http://localhost:8080/v1/projects/ARGO/topics/topic1:publish"
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(postJSON)))
 	if err != nil {
 		log.Fatal(err)
@@ -236,7 +236,7 @@ func (suite *HandlerTestSuite) TestPublishMultiple() {
     }
   ]
 }`
-	url := "http://localhost:8080/v1/projects/ARGO/topics/mocktopic:publish"
+	url := "http://localhost:8080/v1/projects/ARGO/topics/topic1:publish"
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(postJSON)))
 	if err != nil {
 		log.Fatal(err)
@@ -285,7 +285,7 @@ func (suite *HandlerTestSuite) TestPublishError() {
     }
   ]
 }`
-	url := "http://localhost:8080/v1/projects/ARGO/topics/mocktopic:publish"
+	url := "http://localhost:8080/v1/projects/ARGO/topics/topic1:publish"
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(postJSON)))
 	if err != nil {
 		log.Fatal(err)
@@ -319,12 +319,70 @@ func (suite *HandlerTestSuite) TestPublishError() {
 
 }
 
+func (suite *HandlerTestSuite) TestPublishNoTopic() {
+
+	postJSON := `{
+  "messages": [
+		{
+			"attributes": [
+				{
+					"key": "foo",
+					"value": "bar"
+				}
+			],
+			"data": "YmFzZTY0ZW5jb2RlZA=="
+		},
+    {
+      "attributes": [
+        {
+          "key": "foo2",
+          "value": "bar2"
+        }
+      ],
+      "data": "YmFzZTY0ZW5jb2RlZA=="
+    }
+  ]
+}`
+	url := "http://localhost:8080/v1/projects/ARGO/topics/FOO:publish"
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expJSON := `{
+   "error": {
+      "code": 404,
+      "message": "POST: Project/Topic combination: ARGO/FOO doesnt exist",
+      "errors": [
+         {
+            "message": "POST: Project/Topic combination: ARGO/FOO doesnt exist",
+            "domain": "global",
+            "reason": "backend"
+         }
+      ],
+      "status": "INTERNAL"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapConfig(TopicPublish, cfgKafka, &brk, str))
+	router.ServeHTTP(w, req)
+	suite.Equal(404, w.Code)
+	suite.Equal(expJSON, w.Body.String())
+
+}
+
 func (suite *HandlerTestSuite) TestSubPullAll() {
 
 	postJSON := `{
   "maxMessages":"1"
 }`
-	url := "http://localhost:8080/v1/projects/ARGO/subscriptions/mocksub:pull"
+	url := "http://localhost:8080/v1/projects/ARGO/subscriptions/sub1:pull"
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(postJSON)))
 	if err != nil {
 		log.Fatal(err)
@@ -363,12 +421,53 @@ func (suite *HandlerTestSuite) TestSubPullAll() {
 
 }
 
+func (suite *HandlerTestSuite) TestSubError() {
+
+	postJSON := `{
+
+}`
+	url := "http://localhost:8080/v1/projects/ARGO/subscriptions/foo:pull"
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expJSON := `{
+   "error": {
+      "code": 404,
+      "message": "POST: Project/subscription combination: ARGO/foo doesnt exist",
+      "errors": [
+         {
+            "message": "POST: Project/subscription combination: ARGO/foo doesnt exist",
+            "domain": "global",
+            "reason": "backend"
+         }
+      ],
+      "status": "INTERNAL"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	brk.Initialize(cfgKafka.BrokerHost)
+	brk.PopulateThree() // Add three messages to the broker queue
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:pull", WrapConfig(SubPull, cfgKafka, &brk, str))
+	router.ServeHTTP(w, req)
+	suite.Equal(404, w.Code)
+	suite.Equal(expJSON, w.Body.String())
+
+}
+
 func (suite *HandlerTestSuite) TestSubPullOne() {
 
 	postJSON := `{
 
 }`
-	url := "http://localhost:8080/v1/projects/ARGO/subscriptions/mocksub:pull"
+	url := "http://localhost:8080/v1/projects/ARGO/subscriptions/sub1:pull"
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(postJSON)))
 	if err != nil {
 		log.Fatal(err)

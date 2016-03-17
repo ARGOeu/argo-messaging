@@ -85,7 +85,7 @@ func (b *MockBroker) Initialize(peer string) {
 // Publish function publish a message to the broker
 func (b *MockBroker) Publish(topic string, payload string) (string, int, int64) {
 	b.MsgList = append(b.MsgList, payload)
-	return "ARGO.mocktopic", 0, int64(len(b.MsgList))
+	return "ARGO.topic1", 0, int64(len(b.MsgList))
 }
 
 // GetOffset returns a current topic's offset

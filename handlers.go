@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/ARGOeu/argo-messaging/auth"
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
 	"github.com/ARGOeu/argo-messaging/messages"
@@ -37,6 +38,7 @@ func WrapConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Broker, st
 // WrapLog handle wrapper to apply Logging
 func WrapLog(hfn http.Handler, name string) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
 		start := time.Now()
 
 		hfn.ServeHTTP(w, r)
@@ -48,6 +50,43 @@ func WrapLog(hfn http.Handler, name string) http.HandlerFunc {
 			name,
 			time.Since(start),
 		)
+	})
+}
+
+// WrapAuthenticate handle wrapper to apply authentication
+func WrapAuthenticate(hfn http.Handler) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		urlVars := mux.Vars(r)
+		urlValues := r.URL.Query()
+
+		refStr := context.Get(r, "str").(stores.Store)
+
+		roles := auth.Authenticate(urlVars["project"], urlValues.Get("key"), refStr)
+
+		if len(roles) > 0 {
+			context.Set(r, "auth_roles", roles)
+			hfn.ServeHTTP(w, r)
+		} else {
+			respondErr(w, 401, "Unauthorized")
+		}
+
+	})
+}
+
+// WrapAuthorize handle wrapper to apply authentication
+func WrapAuthorize(hfn http.Handler, routeName string) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		refStr := context.Get(r, "str").(stores.Store)
+		refRoles := context.Get(r, "auth_roles").([]string)
+
+		if auth.Authorize(routeName, refRoles, refStr) {
+			hfn.ServeHTTP(w, r)
+		} else {
+			respondErr(w, 403, "Access to this resource is forbidden")
+		}
+
 	})
 }
 
@@ -226,6 +265,12 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 	tp := topics.Topics{}
 	tp.LoadFromStore(refStr)
 
+	// Check if Project/Topic exist
+	if tp.HasTopic(urlVars["project"], urlVars["topic"]) == false {
+		respondErr(w, 404, "POST: Project/Topic combination: "+urlVars["project"]+"/"+urlVars["topic"]+" doesnt exist")
+		return
+	}
+
 	// Read POST JSON body
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -315,6 +360,12 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	// Create Subscriptions Object
 	sub := subscriptions.Subscriptions{}
 	sub.LoadFromStore(refStr)
+
+	// Check if Project/Topic exist
+	if sub.HasSub(urlVars["project"], urlVars["subscription"]) == false {
+		respondErr(w, 404, "POST: Project/subscription combination: "+urlVars["project"]+"/"+urlVars["subscription"]+" doesnt exist")
+		return
+	}
 
 	// Read POST JSON body
 	body, err := ioutil.ReadAll(r.Body)

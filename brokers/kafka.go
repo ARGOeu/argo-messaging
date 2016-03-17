@@ -130,7 +130,7 @@ ConsumerLoop:
 	for {
 		select {
 		case msg := <-partitionConsumer.Messages():
-			log.Printf("Consumed message offset %d\n", msg.Offset)
+
 			messages = append(messages, string(msg.Value[:]))
 			consumed++
 			if offset+consumed > loff-1 {

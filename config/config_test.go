@@ -18,7 +18,9 @@ func (suite *ConfigTestSuite) SetupTest() {
 	{
 	  "broker_host":"localhost:9092",
 		"store_host":"localhost",
-		"store_db":"argo_msg"
+		"store_db":"argo_msg",
+		"use_authorization":true,
+		"use_authentication":true
 	}
 	`
 
@@ -32,12 +34,16 @@ func (suite *ConfigTestSuite) TestLoadConfiguration() {
 	suite.Equal("localhost:9092", APIcfg.BrokerHost)
 	suite.Equal("localhost", APIcfg.StoreHost)
 	suite.Equal("argo_msg", APIcfg.StoreDB)
+	suite.Equal(true, APIcfg.Authen)
+	suite.Equal(true, APIcfg.Author)
 
 	// test "LOAD" param
 	APIcfg2 := NewAPICfg("LOAD")
 	suite.Equal("localhost:9092", APIcfg2.BrokerHost)
 	suite.Equal("localhost", APIcfg2.StoreHost)
 	suite.Equal("argo_msg", APIcfg2.StoreDB)
+	suite.Equal(true, APIcfg2.Authen)
+	suite.Equal(true, APIcfg2.Author)
 
 }
 
@@ -47,6 +53,8 @@ func (suite *ConfigTestSuite) TestLoadStringJSON() {
 	suite.Equal("localhost:9092", APIcfg.BrokerHost)
 	suite.Equal("localhost", APIcfg.StoreHost)
 	suite.Equal("argo_msg", APIcfg.StoreDB)
+	suite.Equal(true, APIcfg.Authen)
+	suite.Equal(true, APIcfg.Author)
 }
 
 func TestConfigTestSuite(t *testing.T) {

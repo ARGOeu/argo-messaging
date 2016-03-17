@@ -19,6 +19,7 @@ paths:
       description: |
         The subscriptions endpoint returns a list of available subscriptions for a given project
       parameters:
+        - $ref: '#/parameters/ApiKey'
         - name: PROJECT
           in: path
           description: Name of the project
@@ -33,6 +34,14 @@ paths:
             type: array
             items:
               $ref: '#/definitions/Subscription'
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
 
   /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}:
     get:
@@ -40,6 +49,7 @@ paths:
       description: |
         Lists information about a specific subscription belonging to a specific project
       parameters:
+        - $ref: '#/parameters/ApiKey'
         - name: PROJECT
           in: path
           description: Name of the project
@@ -57,6 +67,14 @@ paths:
           description: An array of Subscriptions
           schema:
             $ref: '#/definitions/Subscription'
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
 
   /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}:pull:
     post:
@@ -87,6 +105,14 @@ paths:
           description: An array of received messages
           schema:
             $ref: '#/definitions/ReceivedMessages'
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
 
   /projects/{PROJECT}/topics:
     get:
@@ -94,6 +120,7 @@ paths:
       description: |
         The Topics endpoint returns a list of available topics for a given project
       parameters:
+        - $ref: '#/parameters/ApiKey'
         - name: PROJECT
           in: path
           description: Name of the project
@@ -108,6 +135,14 @@ paths:
             type: array
             items:
               $ref: '#/definitions/Topic'
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
 
   /projects/{PROJECT}/topics/{TOPIC}:
     get:
@@ -115,6 +150,7 @@ paths:
       description: |
         The Topics endpoint returns a list of available topics for a given project
       parameters:
+        - $ref: '#/parameters/ApiKey'
         - name: PROJECT
           in: path
           description: Name of the project
@@ -132,12 +168,22 @@ paths:
           description: A topic object
           schema:
             $ref: '#/definitions/Topic'
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
+
   /projects/{PROJECT}/topics/{TOPIC}:publish:
     post:
       summary: List topics in a project
       description: |
         The topic:publish endpoint publish a message to a specific topic
       parameters:
+        - $ref: '#/parameters/ApiKey'
         - name: PROJECT
           in: path
           description: Name of the project
@@ -161,6 +207,41 @@ paths:
           description: An array of messageIDs
           schema:
             $ref: '#/definitions/MessageIDs'
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
+
+parameters:
+  ApiKey:
+    name: key
+    in: query
+    description: user key token for authentication
+    required: true
+    type: string
+    default: SecretKey123
+
+responses:
+  401:
+    description: Unauthorized user based on key
+    schema:
+      $ref: '#/definitions/ErrorMsg'
+  403:
+    description: Access Forbidden for the user on the resource
+    schema:
+      $ref: '#/definitions/ErrorMsg'
+  404:
+    description: Item not found
+    schema:
+      $ref: '#/definitions/ErrorMsg'
+  500:
+    description: Internal Error
+    schema:
+      $ref: '#/definitions/ErrorMsg'
 
 definitions:
   PullOptions:
@@ -248,3 +329,34 @@ definitions:
          type: array
          items:
            type: string
+
+  ErrorMsg:
+    type: object
+    properties:
+      error:
+        type: object
+        properties:
+          code:
+            type: string
+            description: code of the error
+          message:
+            type: string
+            description: general message of the error
+          errors:
+            type: array
+            description: list of errors occured
+            items:
+              type: object
+              properties:
+                message:
+                  type: string
+                  description: error message
+                domain:
+                  type: string
+                  description: where the error happened
+                reason:
+                  type: string
+                  description: reason given for the error
+          status:
+            type: string
+            description: status of the error

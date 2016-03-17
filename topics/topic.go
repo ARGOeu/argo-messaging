@@ -78,3 +78,13 @@ func (tl *Topics) GetTopicsByProject(project string) Topics {
 
 	return result
 }
+
+// HasTopic returns true if project & topic combination exist
+func (tl *Topics) HasTopic(project string, name string) bool {
+	res := tl.GetTopicByName(project, name)
+	if res.Name != "" {
+		return true
+	}
+
+	return false
+}

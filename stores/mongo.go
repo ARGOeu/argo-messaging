@@ -14,20 +14,6 @@ type MongoStore struct {
 	// Session  *mgo.Session
 }
 
-// QSubs are the results of the Qsub query
-type QSubs struct {
-	Project string `bson:"project"`
-	Name    string `bson:"name"`
-	Topic   string `bson:"topic"`
-	Offset  int64  `bson:"offset"`
-}
-
-// QTopics are the results of the QTopic query
-type QTopics struct {
-	Project string `bson:"project"`
-	Name    string `bson:"name"`
-}
-
 // NewMongoStore creates new mongo store
 func NewMongoStore(server string, db string) *MongoStore {
 	mong := MongoStore{}
@@ -78,7 +64,7 @@ func (mong *MongoStore) UpdateSubOffset(name string, offset int64) {
 }
 
 // QueryTopics Query Subscription info from store
-func (mong *MongoStore) QueryTopics() []QTopics {
+func (mong *MongoStore) QueryTopics() []QTopic {
 
 	session, err := mgo.Dial(mong.Server)
 	if err != nil {
@@ -88,7 +74,7 @@ func (mong *MongoStore) QueryTopics() []QTopics {
 
 	db := session.DB(mong.Database)
 	c := db.C("topics")
-	var results []QTopics
+	var results []QTopic
 	err = c.Find(bson.M{}).All(&results)
 
 	if err != nil {
@@ -98,8 +84,83 @@ func (mong *MongoStore) QueryTopics() []QTopics {
 	return results
 }
 
+//HasResourceRoles returns the roles of a user in a project
+func (mong *MongoStore) HasResourceRoles(resource string, roles []string) bool {
+	session, err := mgo.Dial(mong.Server)
+	if err != nil {
+		panic(err)
+	}
+	defer session.Close()
+
+	db := session.DB(mong.Database)
+	c := db.C("roles")
+	var results []QRole
+	err = c.Find(bson.M{"resource": resource, "roles": bson.M{"$in": roles}}).All(&results)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if len(results) > 0 {
+		return true
+	}
+
+	return false
+
+}
+
+//GetUserRoles returns the roles of a user in a project
+func (mong *MongoStore) GetUserRoles(project string, token string) []string {
+	session, err := mgo.Dial(mong.Server)
+	if err != nil {
+		panic(err)
+	}
+	defer session.Close()
+
+	db := session.DB(mong.Database)
+	c := db.C("users")
+	var results []QUser
+	err = c.Find(bson.M{"project": project, "token": token}).All(&results)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if len(results) == 0 {
+		return []string{}
+	}
+
+	if len(results) > 1 {
+		log.Printf("%s\t%s\t%s:%s", "WARNING", "STORE", "Multiple users with the same token: ", token)
+
+	}
+
+	return results[0].Roles
+
+}
+
+// HasProject Returns true if project exists
+func (mong *MongoStore) HasProject(project string) bool {
+	session, err := mgo.Dial(mong.Server)
+	if err != nil {
+		panic(err)
+	}
+	defer session.Close()
+
+	db := session.DB(mong.Database)
+	c := db.C("projects")
+	var results []QProject
+	err = c.Find(bson.M{}).All(&results)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if len(results) > 0 {
+		return true
+	}
+	return false
+}
+
 // QuerySubs Query Subscription info from store
-func (mong *MongoStore) QuerySubs() []QSubs {
+func (mong *MongoStore) QuerySubs() []QSub {
 
 	session, err := mgo.Dial(mong.Server)
 	if err != nil {
@@ -109,7 +170,7 @@ func (mong *MongoStore) QuerySubs() []QSubs {
 
 	db := session.DB(mong.Database)
 	c := db.C("subscriptions")
-	var results []QSubs
+	var results []QSub
 	err = c.Find(bson.M{}).All(&results)
 	if err != nil {
 		log.Fatal(err)
