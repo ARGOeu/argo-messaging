@@ -78,7 +78,7 @@ func (b *MockBroker) InitConfig() {
 }
 
 // Initialize the broker struct
-func (b *MockBroker) Initialize(peer string) {
+func (b *MockBroker) Initialize(peers []string) {
 	b.MsgList = make([]string, 0)
 }
 

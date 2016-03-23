@@ -23,5 +23,12 @@ func Authenticate(project string, token string, store stores.Store) []string {
 
 // Authorize based on resource and  role information
 func Authorize(resource string, roles []string, store stores.Store) bool {
+	// check if _admin_ is in roles
+	for _, role := range roles {
+		if role == "_admin_" {
+			return true
+		}
+	}
+
 	return store.HasResourceRoles(resource, roles)
 }

@@ -31,9 +31,9 @@ func (b *KafkaBroker) CloseConnections() {
 }
 
 // NewKafkaBroker creates a new kafka broker object
-func NewKafkaBroker(peer string) *KafkaBroker {
+func NewKafkaBroker(peers []string) *KafkaBroker {
 	brk := KafkaBroker{}
-	brk.Initialize(peer)
+	brk.Initialize(peers)
 	return &brk
 }
 
@@ -43,32 +43,33 @@ func (b *KafkaBroker) InitConfig() {
 }
 
 // Initialize the broker struct
-func (b *KafkaBroker) Initialize(peer string) {
+func (b *KafkaBroker) Initialize(peers []string) {
 	b.Config = sarama.NewConfig()
 	b.Config.Producer.RequiredAcks = sarama.WaitForAll
 	b.Config.Producer.Retry.Max = 5
-	b.Servers = []string{peer}
+	b.Servers = peers
 
 	var err error
-
-	b.Producer, err = sarama.NewSyncProducer(b.Servers, b.Config)
-	if err != nil {
-		// Should not reach here
-		panic(err)
-	}
 
 	b.Client, err = sarama.NewClient(b.Servers, nil)
 	if err != nil {
 		// Should not reach here
-		panic(err)
+		log.Fatalf("%s\t%s\t%s", "FATAL", "BROKER", err.Error())
+	}
+
+	b.Producer, err = sarama.NewSyncProducer(b.Servers, b.Config)
+	if err != nil {
+		// Should not reach here
+		log.Fatalf("%s\t%s\t%s", "FATAL", "BROKER", err.Error())
+
 	}
 
 	b.Consumer, err = sarama.NewConsumer(b.Servers, nil)
 	if err != nil {
-		panic(err)
+		log.Fatalf("%s\t%s\t%s", "FATAL", "BROKER", err.Error())
 	}
 
-	log.Printf("%s\t%s\t%s:%s", "INFO", "BROKER", "Kafka Backend Initialized! Kafka server", peer)
+	log.Printf("%s\t%s\t%s:%s", "INFO", "BROKER", "Kafka Backend Initialized! Kafka node list", peers)
 
 }
 

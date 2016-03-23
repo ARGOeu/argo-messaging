@@ -51,6 +51,8 @@ func NewRouting(cfg *config.APICfg, brk brokers.Broker, str stores.Store, routes
 
 			handler = WrapAuthenticate(handler)
 		}
+
+		handler = WrapValidate(handler)
 		handler = WrapConfig(handler, cfg, brk, str)
 
 		ar.Router.
@@ -78,8 +80,9 @@ var defaultRoutes = []APIRoute{
 	{"subscriptions:list", "GET", "/projects/{project}/subscriptions", SubListAll},
 	{"subscriptions:show", "GET", "/projects/{project}/subscriptions/{subscription}", SubListOne},
 	{"subscriptions:create", "PUT", "/projects/{project}/subscriptions/{subscription}", SubCreate},
-	{"subscriptions:pull", "POST", "/projects/{project}/subscriptions/{subscription}:pull", SubPull},
 	{"subscriptions:delete", "DELETE", "/projects/{project}/subscriptions/{subscription}", SubDelete},
+	{"subscriptions:pull", "POST", "/projects/{project}/subscriptions/{subscription}:pull", SubPull},
+	{"subscriptions:acknowledge", "POST", "/projects/{project}/subscriptions/{subscription}:acknowledge", SubAck},
 	{"topics:list", "GET", "/projects/{project}/topics", TopicListAll},
 	{"topics:show", "GET", "/projects/{project}/topics/{topic}", TopicListOne},
 	{"topics:create", "PUT", "/projects/{project}/topics/{topic}", TopicCreate},

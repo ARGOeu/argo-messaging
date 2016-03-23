@@ -11,11 +11,13 @@ import (
 // APICfg holds kafka configuration
 type APICfg struct {
 	// values
-	BrokerHost string
-	StoreHost  string
-	StoreDB    string
-	Authen     bool
-	Author     bool
+	Port        int
+	BrokerHosts []string
+	StoreHost   string
+	StoreDB     string
+	Authen      bool
+	Author      bool
+	Ack         bool
 }
 
 // NewAPICfg creates a new kafka configuration object
@@ -47,8 +49,10 @@ func (cfg *APICfg) Load() {
 	}
 
 	// Load Kafka configuration
-	cfg.BrokerHost = viper.GetString("broker_host")
-	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - broker_host", cfg.BrokerHost)
+	cfg.Port = viper.GetInt("port")
+	log.Printf("%s\t%s\t%s:%d", "INFO", "CONFIG", "Parameter Loaded - port", cfg.Port)
+	cfg.BrokerHosts = viper.GetStringSlice("broker_hosts")
+	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - broker_host", cfg.BrokerHosts)
 	cfg.StoreHost = viper.GetString("store_host")
 	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - store_host", cfg.StoreHost)
 	cfg.StoreDB = viper.GetString("store_db")
@@ -57,6 +61,8 @@ func (cfg *APICfg) Load() {
 	log.Printf("%s\t%s\t%s:%t", "INFO", "CONFIG", "Parameter Loaded - use_authentication", cfg.Authen)
 	cfg.Author = viper.GetBool("use_authorization")
 	log.Printf("%s\t%s\t%s:%t", "INFO", "CONFIG", "Parameter Loaded - use_authorization", cfg.Author)
+	cfg.Ack = viper.GetBool("use_ack")
+	log.Printf("%s\t%s\t%s:%t", "INFO", "CONFIG", "Parameter Loaded - use_ack", cfg.Ack)
 }
 
 // LoadStrJSON Loads configuration from a JSON string
@@ -64,8 +70,10 @@ func (cfg *APICfg) LoadStrJSON(input string) {
 	viper.SetConfigType("json")
 	viper.ReadConfig(bytes.NewBuffer([]byte(input)))
 	// Load Kafka configuration
-	cfg.BrokerHost = viper.GetString("broker_host")
-	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - broker_host", cfg.BrokerHost)
+	cfg.Port = viper.GetInt("port")
+	log.Printf("%s\t%s\t%s:%d", "INFO", "CONFIG", "Parameter Loaded - port", cfg.Port)
+	cfg.BrokerHosts = viper.GetStringSlice("broker_hosts")
+	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - broker_host", cfg.BrokerHosts)
 	cfg.StoreHost = viper.GetString("store_host")
 	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - store_host", cfg.StoreHost)
 	cfg.StoreDB = viper.GetString("store_db")
@@ -74,5 +82,7 @@ func (cfg *APICfg) LoadStrJSON(input string) {
 	log.Printf("%s\t%s\t%s:%t", "INFO", "CONFIG", "Parameter Loaded - use_authentication", cfg.Authen)
 	cfg.Author = viper.GetBool("use_authorization")
 	log.Printf("%s\t%s\t%s:%t", "INFO", "CONFIG", "Parameter Loaded - use_authorization", cfg.Author)
+	cfg.Ack = viper.GetBool("use_ack")
+	log.Printf("%s\t%s\t%s:%t", "INFO", "CONFIG", "Parameter Loaded - use_ack", cfg.Ack)
 
 }

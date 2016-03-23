@@ -20,9 +20,9 @@ func (suite *StoreTestSuite) TestMockStore() {
 		QTopic{"ARGO", "topic2"},
 		QTopic{"ARGO", "topic3"}}
 
-	eSubList := []QSub{QSub{"ARGO", "sub1", "topic1", 0},
-		QSub{"ARGO", "sub2", "topic2", 0},
-		QSub{"ARGO", "sub3", "topic3", 0}}
+	eSubList := []QSub{QSub{"ARGO", "sub1", "topic1", 0, 0, "", 10},
+		QSub{"ARGO", "sub2", "topic2", 0, 0, "", 10},
+		QSub{"ARGO", "sub3", "topic3", 0, 0, "", 10}}
 
 	suite.Equal(eTopList, store.QueryTopics())
 	suite.Equal(eSubList, store.QuerySubs())
@@ -46,17 +46,17 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal(true, store.HasResourceRoles("topics:publish", []string{"publisher"}))
 
 	store.InsertTopic("ARGO", "topicFresh")
-	store.InsertSub("ARGO", "subFresh", "topicFresh", 0)
+	store.InsertSub("ARGO", "subFresh", "topicFresh", 0, 10)
 
 	eTopList2 := []QTopic{QTopic{"ARGO", "topic1"},
 		QTopic{"ARGO", "topic2"},
 		QTopic{"ARGO", "topic3"},
 		QTopic{"ARGO", "topicFresh"}}
 
-	eSubList2 := []QSub{QSub{"ARGO", "sub1", "topic1", 0},
-		QSub{"ARGO", "sub2", "topic2", 0},
-		QSub{"ARGO", "sub3", "topic3", 0},
-		QSub{"ARGO", "subFresh", "topicFresh", 0}}
+	eSubList2 := []QSub{QSub{"ARGO", "sub1", "topic1", 0, 0, "", 10},
+		QSub{"ARGO", "sub2", "topic2", 0, 0, "", 10},
+		QSub{"ARGO", "sub3", "topic3", 0, 0, "", 10},
+		QSub{"ARGO", "subFresh", "topicFresh", 0, 0, "", 10}}
 
 	suite.Equal(eTopList2, store.QueryTopics())
 	suite.Equal(eSubList2, store.QuerySubs())

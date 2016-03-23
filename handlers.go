@@ -6,7 +6,9 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ARGOeu/argo-messaging/auth"
@@ -22,6 +24,31 @@ import (
 
 // HandlerWrappers
 //////////////////
+
+// WrapValidate handles validation
+func WrapValidate(hfn http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		urlVars := mux.Vars(r)
+
+		// sort keys
+		keys := []string(nil)
+		for key := range urlVars {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+
+		// Iterate alphabetically
+		for _, key := range keys {
+			if validName(urlVars[key]) == false {
+				respondErr(w, 400, "Invalid "+key+" name", "INVALID_ARGUMENT")
+				return
+			}
+		}
+		hfn.ServeHTTP(w, r)
+
+	})
+}
 
 // WrapConfig handle wrapper to retrieve kafka configuration
 func WrapConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Broker, str stores.Store) http.HandlerFunc {
@@ -68,7 +95,7 @@ func WrapAuthenticate(hfn http.Handler) http.HandlerFunc {
 			context.Set(r, "auth_roles", roles)
 			hfn.ServeHTTP(w, r)
 		} else {
-			respondErr(w, 401, "Unauthorized")
+			respondErr(w, 401, "Unauthorized", "UNAUTHORIZED")
 		}
 
 	})
@@ -84,7 +111,7 @@ func WrapAuthorize(hfn http.Handler, routeName string) http.HandlerFunc {
 		if auth.Authorize(routeName, refRoles, refStr) {
 			hfn.ServeHTTP(w, r)
 		} else {
-			respondErr(w, 403, "Access to this resource is forbidden")
+			respondErr(w, 403, "Access to this resource is forbidden", "FORBIDDEN")
 		}
 
 	})
@@ -92,6 +119,98 @@ func WrapAuthorize(hfn http.Handler, routeName string) http.HandlerFunc {
 
 // HandlerFunctions
 ///////////////////
+
+// SubAck (GET) one subscription
+func SubAck(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+
+	// Grab context references
+	refStr := context.Get(r, "str").(stores.Store)
+
+	// Initialize Subscription
+	sub := subscriptions.Subscriptions{}
+	sub.LoadFromStore(refStr)
+
+	// Read POST JSON body
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		respondErr(w, 500, "Bad request body", "BAD_REQUEST")
+		return
+	}
+
+	// Parse pull options
+	postBody, err := subscriptions.GetAckFromJSON(body)
+	if err != nil {
+		respondErr(w, 400, "Invalid ack parameter", "INVALID_ARGUMENT")
+		return
+	}
+
+	// Check if sub exists
+
+	if sub.HasSub(urlVars["project"], urlVars["subscription"]) == false {
+		respondErr(w, 404, "Subscription does not exist", "NOT_FOUND")
+	}
+
+	// Get Ack
+	if postBody.IDs == nil {
+		respondErr(w, 400, "Invalid ack id", "INVALID_ARGUMENT")
+		return
+	}
+
+	ack := postBody.IDs[0]
+
+	items := strings.Split(ack, "/")
+	if len(items) != 4 || items[0] != "projects" || items[1] != urlVars["project"] || items[2] != "subscriptions" {
+		respondErr(w, 400, "Invalid ack id", "INVALID_ARGUMENT")
+		return
+	}
+
+	subItems := strings.Split(items[3], ":")
+	if len(subItems) != 2 || subItems[0] != urlVars["subscription"] {
+		respondErr(w, 400, "Invalid ack id", "INVALID_ARGUMENT")
+		return
+	}
+
+	off, err := strconv.Atoi(subItems[1])
+	if err != nil {
+		respondErr(w, 400, "Invalid ack id", "INVALID_ARGUMENT")
+		return
+	}
+
+	zSec := "2006-01-02T15:04:05Z"
+	t := time.Now()
+	ts := t.Format(zSec)
+
+	err = refStr.UpdateSubOffsetAck(urlVars["subscription"], int64(off+1), ts)
+	if err != nil {
+
+		if err.Error() == "ack timeout" {
+			respondErr(w, 408, err.Error(), "TIMEOUT")
+			return
+		}
+
+		respondErr(w, 400, err.Error(), "INTERNAL")
+		return
+	}
+
+	// Output result to JSON
+	resJSON := "{}"
+
+	// Write response
+	output = []byte(resJSON)
+	respondOK(w, output)
+
+}
 
 // SubListOne (GET) one subscription
 func SubListOne(w http.ResponseWriter, r *http.Request) {
@@ -118,10 +237,17 @@ func SubListOne(w http.ResponseWriter, r *http.Request) {
 	res := subscriptions.Subscription{}
 	res = sub.GetSubByName(urlVars["project"], urlVars["subscription"])
 
+	// If not found
+	if res.Name == "" {
+		respondErr(w, 404, "Subscription does not exist", "NOT_FOUND")
+		return
+	}
+
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
+
 	if err != nil {
-		respondErr(w, 500, "Error Exporting Retrieved Data to JSON")
+		respondErr(w, 500, "Error exporting data", "INTERNAL")
 		return
 	}
 
@@ -155,11 +281,50 @@ func TopicDelete(w http.ResponseWriter, r *http.Request) {
 	err := tp.RemoveTopic(urlVars["project"], urlVars["topic"], refStr)
 	if err != nil {
 		if err.Error() == "not found" {
-			respondErr(w, 404, "Topic Not Found")
+			respondErr(w, 404, "Topic doesn't exist", "NOT_FOUND")
 			return
 		}
 
-		respondErr(w, 500, err.Error())
+		respondErr(w, 500, err.Error(), "INTERNAL")
+	}
+
+	// Write empty response if anything ok
+	respondOK(w, output)
+
+}
+
+// SubDelete (DEL) deletes an existing subscription
+func SubDelete(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+
+	// Grab context references
+	refStr := context.Get(r, "str").(stores.Store)
+	// Initialize subs
+	sb := subscriptions.Subscriptions{}
+	sb.LoadFromStore(refStr)
+
+	// Get Result Object
+	err := sb.RemoveSub(urlVars["project"], urlVars["subscription"], refStr)
+
+	if err != nil {
+
+		if err.Error() == "not found" {
+			respondErr(w, 404, "Subscription doesn't exist", "NOT_FOUND")
+			return
+		}
+
+		respondErr(w, 500, err.Error(), "INTERNAL")
+		return
 	}
 
 	// Write empty response if anything ok
@@ -192,21 +357,21 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 	// Read POST JSON body
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		respondErr(w, 500, "POST: Could not read POST Body")
+		respondErr(w, 500, "Bad Request body", "BAD_REQUEST")
 		return
 	}
 
 	// Parse pull options
 	postBody, err := subscriptions.GetFromJSON(body)
 	if err != nil {
-		respondErr(w, 500, "POST: Input JSON schema is not valid")
+		respondErr(w, 400, "Invalid Subscription Arguments", "INVALID_ARGUMENT")
 		return
 	}
 
 	tProject, tName, err := subscriptions.ExtractFullTopicRef(postBody.FullTopic)
 
 	if err != nil {
-		respondErr(w, 404, "Invalid Topic Name")
+		respondErr(w, 400, "Invalid Topic Name", "INVALID_ARGUMENT")
 		return
 	}
 
@@ -215,69 +380,36 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 	tp.LoadFromStore(refStr)
 
 	if tp.HasTopic(tProject, tName) == false {
-		respondErr(w, 404, "Topic not found")
+		respondErr(w, 404, "Topic doesn't exist", "NOT_FOUND")
 		return
 	}
 
 	// Get current topic offset
-	curOff := refBrk.GetOffset(tName)
+
+	fullTopic := tProject + "." + tName
+	curOff := refBrk.GetOffset(fullTopic)
 
 	// Get Result Object
-	res, err := sb.CreateSub(urlVars["project"], urlVars["subscription"], tName, curOff, refStr)
+	res, err := sb.CreateSub(urlVars["project"], urlVars["subscription"], tName, curOff, postBody.Ack, refStr)
+
 	if err != nil {
 		if err.Error() == "exists" {
-			respondErr(w, 409, "Subscription Already Exists")
+			respondErr(w, 409, "Subscription already exists", "ALREADY_EXISTS")
 			return
 		}
 
-		respondErr(w, 500, err.Error())
+		respondErr(w, 500, err.Error(), "INTERNAL")
 	}
 
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
 	if err != nil {
-		respondErr(w, 500, "Error Exporting Retrieved Data to JSON")
+		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL")
 		return
 	}
 
 	// Write response
 	output = []byte(resJSON)
-	respondOK(w, output)
-
-}
-
-// SubDelete (DEL) deletes an existing subscription
-func SubDelete(w http.ResponseWriter, r *http.Request) {
-
-	// Init output
-	output := []byte("")
-
-	// Add content type header to the response
-	contentType := "application/json"
-	charset := "utf-8"
-	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
-
-	// Grab url path variables
-	urlVars := mux.Vars(r)
-
-	// Grab context references
-	refStr := context.Get(r, "str").(stores.Store)
-	// Initialize subs
-	sb := subscriptions.Subscriptions{}
-	sb.LoadFromStore(refStr)
-
-	// Get Result Object
-	err := sb.RemoveSub(urlVars["project"], urlVars["subscription"], refStr)
-	if err != nil {
-		if err.Error() == "not found" {
-			respondErr(w, 404, "Subscription Not Found")
-			return
-		}
-
-		respondErr(w, 500, err.Error())
-	}
-
-	// Write empty response if anything ok
 	respondOK(w, output)
 
 }
@@ -306,17 +438,17 @@ func TopicCreate(w http.ResponseWriter, r *http.Request) {
 	res, err := tp.CreateTopic(urlVars["project"], urlVars["topic"], refStr)
 	if err != nil {
 		if err.Error() == "exists" {
-			respondErr(w, 409, "Topic Already Exists")
+			respondErr(w, 409, "Topic already exists", "ALREADY_EXISTS")
 			return
 		}
 
-		respondErr(w, 500, err.Error())
+		respondErr(w, 500, err.Error(), "INTERNAL")
 	}
 
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
 	if err != nil {
-		respondErr(w, 500, "Error Exporting Retrieved Data to JSON")
+		respondErr(w, 500, "Error Exporting Retrieved Data to JSON", "INTERNAL")
 		return
 	}
 
@@ -353,7 +485,7 @@ func TopicListOne(w http.ResponseWriter, r *http.Request) {
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
 	if err != nil {
-		respondErr(w, 500, "Error Exporting Retrieved Data to JSON")
+		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL")
 		return
 	}
 
@@ -391,7 +523,7 @@ func SubListAll(w http.ResponseWriter, r *http.Request) {
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
 	if err != nil {
-		respondErr(w, 500, "RESPONSE: Error Exporting Retrieved Data to JSON")
+		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL")
 		return
 	}
 
@@ -429,7 +561,7 @@ func TopicListAll(w http.ResponseWriter, r *http.Request) {
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
 	if err != nil {
-		respondErr(w, 500, "RESPONSE: Error Exporting Retrieved Data to JSON")
+		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL")
 		return
 	}
 
@@ -462,21 +594,21 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 
 	// Check if Project/Topic exist
 	if tp.HasTopic(urlVars["project"], urlVars["topic"]) == false {
-		respondErr(w, 404, "POST: Project/Topic combination: "+urlVars["project"]+"/"+urlVars["topic"]+" doesnt exist")
+		respondErr(w, 404, "Topic doesn't exist", "NOT_FOUND")
 		return
 	}
 
 	// Read POST JSON body
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		respondErr(w, 500, "POST: Could not read POST Body")
+		respondErr(w, 500, "Bad Request Body", "BAD REQUEST")
 		return
 	}
 
 	// Create Message List from Post JSON
 	msgList, err := messages.LoadMsgListJSON(body)
 	if err != nil {
-		respondErr(w, 500, "POST: Input JSON schema is not valid")
+		respondErr(w, 400, "Invalid Message Arguments", "INVALID_ARGUMENT")
 		return
 	}
 
@@ -497,25 +629,25 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 		// Publish the message
 		payload, err := msg.ExportJSON()
 		if err != nil {
-			respondErr(w, 500, "PUBLISH: Error during exporting message to JSON")
+			respondErr(w, 500, "Error during data export to JSON", "INTERNAL")
 			return
 		}
 
-		rTop, rPart, rOff := refBrk.Publish(fullTopic, payload)
+		rTop, _, rOff := refBrk.Publish(fullTopic, payload)
 
 		// Assertions for Succesfull Publish
 		if rTop != fullTopic {
-			respondErr(w, 500, "PUBLISH: Broker reports wrong topic")
+			respondErr(w, 500, "Broker reports wrong topic", "INTERNAL")
 			return
 		}
 
-		if rPart != 0 {
-			respondErr(w, 500, "PUBLISH: Broker reports wrong partition")
-			return
-		}
+		// if rPart != 0 {
+		// 	respondErr(w, 500, "Broker reports wrong partition", "INTERNAL")
+		// 	return
+		// }
 
 		if rOff != off {
-			respondErr(w, 500, "PUBLISH: Broker reports wrong offset")
+			respondErr(w, 500, "Broker reports wrong offset", "INTERNAL")
 			return
 		}
 
@@ -526,7 +658,7 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 	// Export the msgIDs
 	resJSON, err := msgIDs.ExportJSON()
 	if err != nil {
-		respondErr(w, 500, "RESPONSE: Error during exporting message to JSON")
+		respondErr(w, 500, "Error during export data to JSON", "INTERNAL")
 		return
 	}
 
@@ -551,6 +683,7 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	// Grab context references
 	refBrk := context.Get(r, "brk").(brokers.Broker)
 	refStr := context.Get(r, "str").(stores.Store)
+	refCfg := context.Get(r, "cfg").(*config.APICfg)
 
 	// Create Subscriptions Object
 	sub := subscriptions.Subscriptions{}
@@ -558,21 +691,21 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 
 	// Check if Project/Topic exist
 	if sub.HasSub(urlVars["project"], urlVars["subscription"]) == false {
-		respondErr(w, 404, "POST: Project/subscription combination: "+urlVars["project"]+"/"+urlVars["subscription"]+" doesnt exist")
+		respondErr(w, 404, "Subscription doesn't exist", "NOT_FOUND")
 		return
 	}
 
 	// Read POST JSON body
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		respondErr(w, 500, "POST: Could not read POST Body")
+		respondErr(w, 500, "Bad Request Body", "BAD_REQUEST")
 		return
 	}
 
 	// Parse pull options
 	pullInfo, err := subscriptions.GetPullOptionsJSON(body)
 	if err != nil {
-		respondErr(w, 500, "POST: Input JSON schema is not valid")
+		respondErr(w, 400, "Pull Parameters Invalid", "INVALID_ARGUMENT")
 		return
 	}
 
@@ -591,29 +724,39 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 		limit = 0
 	}
 
+	ackPrefix := "projects/" + urlVars["project"] + "/subscriptions/" + urlVars["subscription"] + ":"
+
 	for i, msg := range msgs {
 		if limit > 0 && i >= limit {
 			break // max messages left
 		}
 		curMsg, err := messages.LoadMsgJSON([]byte(msg))
 		if err != nil {
-			respondErr(w, 500, "Message retrieved from broker network has invalid JSON Structure")
+			respondErr(w, 500, "Message retrieved from broker network has invalid JSON Structure", "INTERNAL")
 			return
 		}
 
-		curRec := messages.RecMsg{Msg: curMsg}
+		curRec := messages.RecMsg{AckID: ackPrefix + curMsg.ID, Msg: curMsg}
 		recList.RecMsgs = append(recList.RecMsgs, curRec)
 	}
 
 	resJSON, err := recList.ExportJSON()
 
 	if err != nil {
-		respondErr(w, 500, "RESPONSE: Error during exporting message to JSON")
+		respondErr(w, 500, "Error during exporting message to JSON", "INTERNAL")
 		return
 	}
 
 	// Advance Offset forward as many messages received in RecList array
-	refStr.UpdateSubOffset(targSub.Name, int64(len(recList.RecMsgs))+targSub.Offset)
+	if refCfg.Ack == false {
+		refStr.UpdateSubOffset(targSub.Name, int64(len(recList.RecMsgs))+targSub.Offset)
+	} else {
+		// Stamp time to UTC Z to seconds
+		zSec := "2006-01-02T15:04:05Z"
+		t := time.Now()
+		ts := t.Format(zSec)
+		refStr.UpdateSubPull(targSub.Name, int64(len(recList.RecMsgs))+targSub.Offset, ts)
+	}
 
 	output = []byte(resJSON)
 	respondOK(w, output)
@@ -629,19 +772,19 @@ func respondOK(w http.ResponseWriter, output []byte) {
 }
 
 // respondErr is used to finalize response writer with proper error codes and error output
-func respondErr(w http.ResponseWriter, errCode int, errMsg string) {
+func respondErr(w http.ResponseWriter, errCode int, errMsg string, status string) {
 	log.Printf("ERROR\t%d\t%s", errCode, errMsg)
 	w.WriteHeader(errCode)
 	rt := APIErrorRoot{}
 	bd := APIErrorBody{}
-	em := APIError{}
-	em.Message = errMsg
-	em.Domain = "global"
-	em.Reason = "backend"
+	//em := APIError{}
+	//em.Message = errMsg
+	//em.Domain = "global"
+	//em.Reason = "backend"
 	bd.Code = errCode
 	bd.Message = errMsg
-	bd.ErrList = append(bd.ErrList, em)
-	bd.Status = "INTERNAL"
+	//bd.ErrList = append(bd.ErrList, em)
+	bd.Status = status
 	rt.Body = bd
 	// Output API Erorr object to JSON
 	output, _ := json.MarshalIndent(rt, "", "   ")
@@ -657,7 +800,7 @@ type APIErrorRoot struct {
 type APIErrorBody struct {
 	Code    int        `json:"code"`
 	Message string     `json:"message"`
-	ErrList []APIError `json:"errors"`
+	ErrList []APIError `json:"errors,omitempty"`
 	Status  string     `json:"status"`
 }
 
