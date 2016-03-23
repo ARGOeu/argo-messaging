@@ -29,6 +29,115 @@ func (suite *HandlerTestSuite) SetupTest() {
 	log.SetOutput(ioutil.Discard)
 }
 
+func (suite *HandlerTestSuite) TestSubCreate() {
+
+	postJSON := `{
+	"topic":"projects/ARGO/topics/topic1"
+}`
+
+	req, err := http.NewRequest("PUT", "http://localhost:8080/v1/projects/ARGO/subscriptions/subNew", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "name": "/projects/ARGO/subscriptions/subNew",
+   "topic": "/projects/ARGO/topics/topic1",
+   "pushConfig": {
+      "pushEndpoint": ""
+   },
+   "ackDeadlineSeconds": 10
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapConfig(SubCreate, cfgKafka, &brk, str))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestSubCreateExists() {
+
+	postJSON := `{
+	"topic":"projects/ARGO/topics/topic1"
+}`
+
+	req, err := http.NewRequest("PUT", "http://localhost:8080/v1/projects/ARGO/subscriptions/sub1", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "error": {
+      "code": 409,
+      "message": "Subscription Already Exists",
+      "errors": [
+         {
+            "message": "Subscription Already Exists",
+            "domain": "global",
+            "reason": "backend"
+         }
+      ],
+      "status": "INTERNAL"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapConfig(SubCreate, cfgKafka, &brk, str))
+	router.ServeHTTP(w, req)
+	suite.Equal(409, w.Code)
+	suite.Equal(expResp, w.Body.String())
+}
+
+func (suite *HandlerTestSuite) TestSubCreateErrorTopic() {
+
+	postJSON := `{
+	"topic":"projects/ARGO/topics/topicFoo"
+}`
+
+	req, err := http.NewRequest("PUT", "http://localhost:8080/v1/projects/ARGO/subscriptions/sub1", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "error": {
+      "code": 404,
+      "message": "Topic not found",
+      "errors": [
+         {
+            "message": "Topic not found",
+            "domain": "global",
+            "reason": "backend"
+         }
+      ],
+      "status": "INTERNAL"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapConfig(SubCreate, cfgKafka, &brk, str))
+	router.ServeHTTP(w, req)
+	suite.Equal(404, w.Code)
+	suite.Equal(expResp, w.Body.String())
+}
+
 func (suite *HandlerTestSuite) TestSubListOne() {
 
 	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/subscriptions/sub1", nil)
@@ -109,6 +218,7 @@ func (suite *HandlerTestSuite) TestSubListAll() {
 func (suite *HandlerTestSuite) TestTopicDelete() {
 
 	req, err := http.NewRequest("DELETE", "http://localhost:8080/v1/projects/ARGO/topics/topic1", nil)
+
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -129,6 +239,7 @@ func (suite *HandlerTestSuite) TestTopicDelete() {
 func (suite *HandlerTestSuite) TestTopicDeleteNotfound() {
 
 	req, err := http.NewRequest("DELETE", "http://localhost:8080/v1/projects/ARGO/topics/topicFoo", nil)
+
 	if err != nil {
 		log.Fatal(err)
 	}

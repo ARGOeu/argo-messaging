@@ -88,6 +88,47 @@ func (suite *SubTestSuite) TestLoadFromCfg() {
 
 }
 
+func (suite *SubTestSuite) TestCreateSubStore() {
+	APIcfg := config.NewAPICfg()
+	APIcfg.LoadStrJSON(suite.cfgStr)
+	mySubs := Subscriptions{}
+	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
+	mySubs.LoadFromStore(store)
+
+	sub, err := mySubs.CreateSub("ARGO", "sub1", "topic1", 0, store)
+	suite.Equal(Subscription{}, sub)
+	suite.Equal("exists", err.Error())
+
+	sub2, err2 := mySubs.CreateSub("ARGO", "subNew", "topicNew", 0, store)
+	expSub := New("ARGO", "subNew", "topicNew")
+	suite.Equal(expSub, sub2)
+	suite.Equal(nil, err2)
+}
+
+func (suite *SubTestSuite) TestExtractFullTopic() {
+	APIcfg := config.NewAPICfg()
+	APIcfg.LoadStrJSON(suite.cfgStr)
+	mySubs := Subscriptions{}
+	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
+	mySubs.LoadFromStore(store)
+
+	project, topic, err := ExtractFullTopicRef("projects/ARGO/topics/topic1")
+	suite.Equal("ARGO", project)
+	suite.Equal("topic1", topic)
+	suite.Equal(nil, err)
+
+	project2, topic2, err2 := ExtractFullTopicRef("proje/ARGO/topic/topic1")
+	suite.Equal("", project2)
+	suite.Equal("", topic2)
+	suite.Equal("wrong topic name declaration", err2.Error())
+
+	project3, topic3, err3 := ExtractFullTopicRef("projects/ARGO/topics/topic1/lalala")
+	suite.Equal("", project3)
+	suite.Equal("", topic3)
+	suite.Equal("wrong topic name declaration", err3.Error())
+
+}
+
 func (suite *SubTestSuite) TestExportJson() {
 	cfgAPI := config.NewAPICfg()
 	cfgAPI.LoadStrJSON(suite.cfgStr)

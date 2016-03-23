@@ -77,6 +77,7 @@ func NewRouting(cfg *config.APICfg, brk brokers.Broker, str stores.Store, routes
 var defaultRoutes = []APIRoute{
 	{"subscriptions:list", "GET", "/projects/{project}/subscriptions", SubListAll},
 	{"subscriptions:show", "GET", "/projects/{project}/subscriptions/{subscription}", SubListOne},
+	{"subscriptions:create", "PUT", "/projects/{project}/subscriptions/{subscription}", SubCreate},
 	{"subscriptions:pull", "POST", "/projects/{project}/subscriptions/{subscription}:pull", SubPull},
 	{"topics:list", "GET", "/projects/{project}/topics", TopicListAll},
 	{"topics:show", "GET", "/projects/{project}/topics/{topic}", TopicListOne},
