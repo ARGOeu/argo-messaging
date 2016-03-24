@@ -39,7 +39,18 @@ func NewRouting(cfg *config.APICfg, brk brokers.Broker, str stores.Store, routes
 		// prepare handle wrappers
 		var handler http.HandlerFunc
 		handler = route.Handler
+
 		handler = WrapLog(handler, route.Name)
+
+		if cfg.Author && cfg.Authen {
+
+			handler = WrapAuthorize(handler, route.Name)
+		}
+
+		if cfg.Authen {
+
+			handler = WrapAuthenticate(handler)
+		}
 		handler = WrapConfig(handler, cfg, brk, str)
 
 		ar.Router.
@@ -49,6 +60,14 @@ func NewRouting(cfg *config.APICfg, brk brokers.Broker, str stores.Store, routes
 			Handler(handler)
 	}
 
+	if cfg.Authen {
+		log.Printf("INFO\tAPI\tAPI Authentication mechanism enabled")
+	}
+
+	if cfg.Author {
+		log.Printf("INFO\tAPI\tAPI Authorization mechanism enabled")
+	}
+
 	log.Printf("INFO\tAPI\tAPI Router initialized! Ready to start listening...")
 	// Return reference to API object
 	return &ar
@@ -56,10 +75,10 @@ func NewRouting(cfg *config.APICfg, brk brokers.Broker, str stores.Store, routes
 
 // Global list populated with default routes
 var defaultRoutes = []APIRoute{
-	{"Subscriptions List All", "GET", "/projects/{project}/subscriptions", SubListAll},
-	{"Subscriptions List One", "GET", "/projects/{project}/subscriptions/{subscription}", SubListOne},
-	{"Subscriptions Pull", "POST", "/projects/{project}/subscriptions/{subscription}:pull", SubPull},
-	{"Topics List All", "GET", "/projects/{project}/topics", TopicListAll},
-	{"Topics List One", "GET", "/projects/{project}/topics/{topic}", TopicListOne},
-	{"Topics Publish", "POST", "/projects/{project}/topics/{topic}:publish", TopicPublish},
+	{"subscriptions:list", "GET", "/projects/{project}/subscriptions", SubListAll},
+	{"subscriptions:show", "GET", "/projects/{project}/subscriptions/{subscription}", SubListOne},
+	{"subscriptions:pull", "POST", "/projects/{project}/subscriptions/{subscription}:pull", SubPull},
+	{"topics:list", "GET", "/projects/{project}/topics", TopicListAll},
+	{"topics:show", "GET", "/projects/{project}/topics/{topic}", TopicListOne},
+	{"topics:publish", "POST", "/projects/{project}/topics/{topic}:publish", TopicPublish},
 }

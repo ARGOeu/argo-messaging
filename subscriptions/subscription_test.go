@@ -43,6 +43,17 @@ func (suite *SubTestSuite) TestGetSubByName() {
 	suite.Equal(expSub, result)
 }
 
+func (suite *SubTestSuite) TestHasProjectTopic() {
+	cfgAPI := config.NewAPICfg()
+	cfgAPI.LoadStrJSON(suite.cfgStr)
+	store := stores.NewMockStore(cfgAPI.StoreHost, cfgAPI.StoreDB)
+	mySubs := Subscriptions{}
+	mySubs.LoadFromStore(store)
+
+	suite.Equal(false, mySubs.HasSub("ARGO", "FOO"))
+	suite.Equal(true, mySubs.HasSub("ARGO", "sub1"))
+}
+
 func (suite *SubTestSuite) TestGetSubsByProject() {
 	cfgAPI := config.NewAPICfg()
 	cfgAPI.LoadStrJSON(suite.cfgStr)
