@@ -34,7 +34,7 @@ go install
 install --directory %{buildroot}/var/www/argo-messaging
 install --mode 755 bin/argo-messaging %{buildroot}/var/www/argo-messaging/argo-messaging
 
-install --directory %{buildroot}/etc
+install --directory %{buildroot}/etc/argo-messaging
 install --mode 644 src/github.com/ARGOeu/argo-messaging/config.json %{buildroot}/etc/argo-messaging/config.json
 
 install --directory %{buildroot}/etc/init
