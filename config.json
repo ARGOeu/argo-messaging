@@ -1,0 +1,7 @@
+{
+  "broker_host":"localhost:9092",
+  "store_host":"localhost",
+  "store_db":"argo_msg",
+  "use_authorization":true,
+  "use_authentication":true
+}

@@ -1,0 +1,362 @@
+# ARGO Messaging API expressed in swagger
+swagger: '2.0'
+info:
+  title: argo-messaging-api
+  description:  ARGO Messaging API for broker network
+  version: "0.9.1-1"
+
+host: localhost
+schemes:
+  - http
+
+basePath: /v1
+produces:
+  - application/json
+paths:
+  /projects/{PROJECT}/subscriptions:
+    get:
+      summary: List subscriptions in a project
+      description: |
+        The subscriptions endpoint returns a list of available subscriptions for a given project
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+      tags:
+        - Subscriptions
+      responses:
+        200:
+          description: An array of subscriptions
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Subscription'
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
+
+  /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}:
+    get:
+      summary: Show infromation about a specific subscription
+      description: |
+        Lists information about a specific subscription belonging to a specific project
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: SUBSCRIPTION
+          in: path
+          description: Name of the subscription
+          required: true
+          type: string
+      tags:
+        - Subscriptions
+      responses:
+        200:
+          description: An array of Subscriptions
+          schema:
+            $ref: '#/definitions/Subscription'
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
+
+  /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}:pull:
+    post:
+      summary: Pull Messages from an existing subscription
+      description: |
+        Use an existing subscription to pull messages
+      parameters:
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: SUBSCRIPTION
+          in: path
+          description: Name of the subscription
+          required: true
+          type: string
+        - name: Pull Options
+          in: body
+          description: Parameters to be used during pull
+          required: true
+          schema:
+           $ref: '#/definitions/PullOptions'
+      tags:
+        - Subscriptions
+      responses:
+        200:
+          description: An array of received messages
+          schema:
+            $ref: '#/definitions/ReceivedMessages'
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
+
+  /projects/{PROJECT}/topics:
+    get:
+      summary: List topics in a project
+      description: |
+        The Topics endpoint returns a list of available topics for a given project
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+      tags:
+        - Topics
+      responses:
+        200:
+          description: An array of topics
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Topic'
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
+
+  /projects/{PROJECT}/topics/{TOPIC}:
+    get:
+      summary: List topics in a project
+      description: |
+        The Topics endpoint returns a list of available topics for a given project
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: TOPIC
+          in: path
+          description: Name of the topic
+          required: true
+          type: string
+      tags:
+        - Topics
+      responses:
+        200:
+          description: A topic object
+          schema:
+            $ref: '#/definitions/Topic'
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
+
+  /projects/{PROJECT}/topics/{TOPIC}:publish:
+    post:
+      summary: List topics in a project
+      description: |
+        The topic:publish endpoint publish a message to a specific topic
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: TOPIC
+          in: path
+          description: Name of the topic
+          required: true
+          type: string
+        - name: Message
+          in: body
+          description: Message JSON representation
+          required: true
+          schema:
+           $ref: '#/definitions/Message'
+      tags:
+        - Topics
+      responses:
+        200:
+          description: An array of messageIDs
+          schema:
+            $ref: '#/definitions/MessageIDs'
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
+
+parameters:
+  ApiKey:
+    name: key
+    in: query
+    description: user key token for authentication
+    required: true
+    type: string
+    default: SecretKey123
+
+responses:
+  401:
+    description: Unauthorized user based on key
+    schema:
+      $ref: '#/definitions/ErrorMsg'
+  403:
+    description: Access Forbidden for the user on the resource
+    schema:
+      $ref: '#/definitions/ErrorMsg'
+  404:
+    description: Item not found
+    schema:
+      $ref: '#/definitions/ErrorMsg'
+  500:
+    description: Internal Error
+    schema:
+      $ref: '#/definitions/ErrorMsg'
+
+definitions:
+  PullOptions:
+    type: object
+    properties:
+      maxMessages:
+        type: string
+        description: Max number of messages to be consumed
+  Subscription:
+    type: object
+    properties:
+      name:
+        type: string
+        description: Name of the subscription
+      topic:
+        type: string
+        description: Name of the topic
+      pushConfig:
+            $ref: '#/definitions/PushConfig'
+      ackDeadlineSeconds:
+        type: integer
+        description: maximum wait time in seconds for Acknowledgement
+  PushConfig:
+    type: object
+    properties:
+      pushEndpoint:
+        type: string
+        description: endpoint url for endpoint to push messages
+  Topic:
+    type: object
+    properties:
+      name:
+        type: string
+        description: Name of the topic
+  Attribute:
+    type: object
+    properties:
+      key:
+        type: string
+      value:
+        type: string
+  Message:
+    type: object
+    properties:
+      attributes:
+        type: array
+        items:
+          $ref: '#/definitions/Attribute'
+      data:
+        type: string
+        description: Message payload in Base64 encoding"
+  ReceivedMessages:
+    type: object
+    properties:
+      receivedMessages:
+        type: array
+        items:
+          $ref: '#/definitions/ReceivedMessage'
+  ReceivedMessage:
+    type: object
+    properties:
+      message:
+        type: object
+        properties:
+          messageId:
+            type: string
+            description: id of the message
+          attributes:
+            type: array
+            description: key/value dictionary accompanying the message
+            items:
+              $ref: '#/definitions/Attribute'
+          data:
+            type: string
+            description: base64 encoding of the message payload
+          publishTime:
+            type: string
+            description: publish datetime in ISO8601 string (+ns)
+
+
+  MessageIDs:
+     type: object
+     properties:
+       messageIDs:
+         type: array
+         items:
+           type: string
+
+  ErrorMsg:
+    type: object
+    properties:
+      error:
+        type: object
+        properties:
+          code:
+            type: string
+            description: code of the error
+          message:
+            type: string
+            description: general message of the error
+          errors:
+            type: array
+            description: list of errors occured
+            items:
+              type: object
+              properties:
+                message:
+                  type: string
+                  description: error message
+                domain:
+                  type: string
+                  description: where the error happened
+                reason:
+                  type: string
+                  description: reason given for the error
+          status:
+            type: string
+            description: status of the error

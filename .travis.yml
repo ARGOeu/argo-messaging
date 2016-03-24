@@ -1,0 +1,12 @@
+# this container should be prepared for golang
+language: go
+
+install:
+ - go get github.com/tools/godep
+ - go get github.com/axw/gocov/...
+ - go get github.com/AlekSi/gocov-xml
+
+script:
+ - godep restore
+ - godep update ...
+ - gocov test ./... | gocov-xml > coverage.xml
