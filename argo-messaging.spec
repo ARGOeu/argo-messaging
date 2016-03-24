@@ -55,6 +55,13 @@ go clean
 %attr(0644,root,root) /etc/init/argo-messaging.conf
 
 %changelog
+* Thu Mar 23 2016 Themis Zamani <themiszamani@gmail.com> - 0.9.2-1%{?dist}
+- ARGO-375 - Added Authentication to Messaging API
+- ARGO-324 - Implemented Subscription pull method
+- ARGO-323 - Implemented Topic:Publish call
+- ARGO-321 - Implemented Topics resource model and calls
+- ARGO-320 - Implemented Message Resource
+- ARGO-319 - Added initial api frontend
 * Thu Jan 21 2016 Konstantinos Kagkelidis <kaggis@gmail.com> - 0.9.1-1%{?dist}
 - First Implementation of ARGO API for messaging
 - Connect to a Apace Kafka broker network with a list of designated topics
