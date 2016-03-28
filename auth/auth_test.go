@@ -21,9 +21,9 @@ func (suite *AuthTestSuite) TestMockStore() {
 	suite.Equal(true, Authorize("topics:list_all", []string{"admin", "reader"}, store))
 	suite.Equal(true, Authorize("topics:list_all", []string{"admin", "foo"}, store))
 	suite.Equal(false, Authorize("topics:list_all", []string{"foo"}, store))
-	suite.Equal(false, Authorize("topics:publish", []string{"reader"}, store))
 	suite.Equal(true, Authorize("topics:list_all", []string{"publisher"}, store))
 	suite.Equal(true, Authorize("topics:publish", []string{"publisher"}, store))
+	suite.Equal(false, Authorize("topics:publish", []string{"reader"}, store))
 
 }
 

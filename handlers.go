@@ -131,6 +131,50 @@ func SubListOne(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// TopicCreate (PUT) creates a new  topic
+func TopicCreate(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+
+	// Grab context references
+	refStr := context.Get(r, "str").(stores.Store)
+	// Initialize Topics
+	tp := topics.Topics{}
+	tp.LoadFromStore(refStr)
+
+	// Get Result Object
+	res, err := tp.CreateTopic(urlVars["project"], urlVars["topic"], refStr)
+	if err != nil {
+		if err.Error() == "exists" {
+			respondErr(w, 409, "Topic Already Exists")
+			return
+		}
+
+		respondErr(w, 500, err.Error())
+	}
+
+	// Output result to JSON
+	resJSON, err := res.ExportJSON()
+	if err != nil {
+		respondErr(w, 500, "Error Exporting Retrieved Data to JSON")
+		return
+	}
+
+	// Write response
+	output = []byte(resJSON)
+	respondOK(w, output)
+
+}
+
 // TopicListOne (GET) one topic
 func TopicListOne(w http.ResponseWriter, r *http.Request) {
 

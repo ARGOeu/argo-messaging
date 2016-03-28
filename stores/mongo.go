@@ -159,6 +159,37 @@ func (mong *MongoStore) HasProject(project string) bool {
 	return false
 }
 
+// InsertTopic inserts a topic to the store
+func (mong *MongoStore) InsertTopic(project string, name string) error {
+	topic := QTopic{project, name}
+	return mong.InsertResource("topics", topic)
+}
+
+// InsertSub inserts a subscription to the store
+func (mong *MongoStore) InsertSub(project string, name string, topic string, offset int64) error {
+	sub := QSub{project, name, topic, offset}
+	return mong.InsertResource("subscriptions", sub)
+}
+
+// InsertResource inserts a new topic object to the datastore
+func (mong *MongoStore) InsertResource(col string, res interface{}) error {
+	session, err := mgo.Dial(mong.Server)
+	if err != nil {
+		panic(err)
+	}
+	defer session.Close()
+
+	db := session.DB(mong.Database)
+	c := db.C(col)
+
+	err = c.Insert(res)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return err
+}
+
 // QuerySubs Query Subscription info from store
 func (mong *MongoStore) QuerySubs() []QSub {
 
