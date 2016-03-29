@@ -105,6 +105,21 @@ func (suite *SubTestSuite) TestCreateSubStore() {
 	suite.Equal(nil, err2)
 }
 
+func (suite *SubTestSuite) TestRemoveSubStore() {
+	APIcfg := config.NewAPICfg()
+	APIcfg.LoadStrJSON(suite.cfgStr)
+	mySubs := Subscriptions{}
+	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
+	mySubs.LoadFromStore(store)
+
+	suite.Equal(true, mySubs.HasSub("ARGO", "sub1"))
+
+	suite.Equal("not found", mySubs.RemoveSub("ARGO", "subFoo", store).Error())
+	suite.Equal(nil, mySubs.RemoveSub("ARGO", "sub1", store))
+	mySubs.LoadFromStore(store)
+	suite.Equal(false, mySubs.HasSub("ARGO", "sub1"))
+}
+
 func (suite *SubTestSuite) TestExtractFullTopic() {
 	APIcfg := config.NewAPICfg()
 	APIcfg.LoadStrJSON(suite.cfgStr)

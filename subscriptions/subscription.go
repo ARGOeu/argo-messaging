@@ -74,6 +74,7 @@ func (sl *Subscriptions) ExportJSON() (string, error) {
 // LoadFromStore returns all subscriptions defined in store
 func (sl *Subscriptions) LoadFromStore(store stores.Store) {
 	defer store.Close()
+	sl.List = []Subscription{}
 	subs := store.QuerySubs()
 	for _, item := range subs {
 		curSub := New(item.Project, item.Name, item.Topic)
@@ -92,6 +93,15 @@ func (sl *Subscriptions) CreateSub(project string, name string, topic string, of
 	subNew := New(project, name, topic)
 	err := store.InsertSub(project, name, topic, offset)
 	return subNew, err
+}
+
+// RemoveSub removes an existing subscription
+func (sl *Subscriptions) RemoveSub(project string, name string, store stores.Store) error {
+	if sl.HasSub(project, name) == false {
+		return errors.New("not found")
+	}
+
+	return store.RemoveSub(project, name)
 }
 
 // GetSubByName returns a specific topic
