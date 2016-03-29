@@ -246,6 +246,42 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// SubDelete (DEL) deletes an existing subscription
+func SubDelete(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+
+	// Grab context references
+	refStr := context.Get(r, "str").(stores.Store)
+	// Initialize subs
+	sb := subscriptions.Subscriptions{}
+	sb.LoadFromStore(refStr)
+
+	// Get Result Object
+	err := sb.RemoveSub(urlVars["project"], urlVars["subscription"], refStr)
+	if err != nil {
+		if err.Error() == "not found" {
+			respondErr(w, 404, "Subscription Not Found")
+			return
+		}
+
+		respondErr(w, 500, err.Error())
+	}
+
+	// Write empty response if anything ok
+	respondOK(w, output)
+
+}
+
 // TopicCreate (PUT) creates a new  topic
 func TopicCreate(w http.ResponseWriter, r *http.Request) {
 

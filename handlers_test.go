@@ -138,6 +138,60 @@ func (suite *HandlerTestSuite) TestSubCreateErrorTopic() {
 	suite.Equal(expResp, w.Body.String())
 }
 
+func (suite *HandlerTestSuite) TestSubDelete() {
+
+	req, err := http.NewRequest("DELETE", "http://localhost:8080/v1/projects/ARGO/subscriptions/sub1", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := ""
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapConfig(SubDelete, cfgKafka, &brk, str))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+}
+
+func (suite *HandlerTestSuite) TestSubDeleteNotfound() {
+
+	req, err := http.NewRequest("DELETE", "http://localhost:8080/v1/projects/ARGO/subscriptions/subFoo", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "error": {
+      "code": 404,
+      "message": "Subscription Not Found",
+      "errors": [
+         {
+            "message": "Subscription Not Found",
+            "domain": "global",
+            "reason": "backend"
+         }
+      ],
+      "status": "INTERNAL"
+   }
+}`
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapConfig(SubDelete, cfgKafka, &brk, str))
+	router.ServeHTTP(w, req)
+	suite.Equal(404, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
 func (suite *HandlerTestSuite) TestSubListOne() {
 
 	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/subscriptions/sub1", nil)
