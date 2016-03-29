@@ -59,6 +59,21 @@ func (suite *TopicTestSuite) TestCreateTopicStore() {
 	suite.Equal(nil, err2)
 }
 
+func (suite *TopicTestSuite) TestRemoveTopicStore() {
+	APIcfg := config.NewAPICfg()
+	APIcfg.LoadStrJSON(suite.cfgStr)
+	myTopics := Topics{}
+	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
+	myTopics.LoadFromStore(store)
+
+	suite.Equal(true, myTopics.HasTopic("ARGO", "topic1"))
+
+	suite.Equal("not found", myTopics.RemoveTopic("ARGO", "topicFoo", store).Error())
+	suite.Equal(nil, myTopics.RemoveTopic("ARGO", "topic1", store))
+	myTopics.LoadFromStore(store)
+	suite.Equal(false, myTopics.HasTopic("ARGO", "topic1"))
+}
+
 func (suite *TopicTestSuite) TestHasProjectTopic() {
 	APIcfg := config.NewAPICfg()
 	APIcfg.LoadStrJSON(suite.cfgStr)

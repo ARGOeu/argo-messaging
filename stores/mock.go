@@ -1,5 +1,7 @@
 package stores
 
+import "errors"
+
 // MockStore holds configuration
 type MockStore struct {
 	Server      string
@@ -119,6 +121,32 @@ func (mk *MockStore) InsertSub(project string, name string, topic string, offset
 	sub := QSub{project, name, topic, offset}
 	mk.SubList = append(mk.SubList, sub)
 	return nil
+}
+
+// RemoveTopic removes an existing topic
+func (mk *MockStore) RemoveTopic(project string, name string) error {
+	for i, topic := range mk.TopicList {
+		if topic.Name == name && topic.Project == project {
+			// found item at i, remove it using index
+			mk.TopicList = append(mk.TopicList[:i], mk.TopicList[i+1:]...)
+			return nil
+		}
+	}
+
+	return errors.New("not found")
+}
+
+// RemoveSub removes an existing sub from the store
+func (mk *MockStore) RemoveSub(project string, name string) error {
+	for i, sub := range mk.SubList {
+		if sub.Name == name && sub.Project == project {
+			// found item at i, remove it using index
+			mk.SubList = append(mk.SubList[:i], mk.SubList[i+1:]...)
+			return nil
+		}
+	}
+
+	return errors.New("not found")
 }
 
 // QuerySubs Query Subscription info from store
