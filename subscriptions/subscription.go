@@ -2,6 +2,8 @@ package subscriptions
 
 import (
 	"encoding/json"
+	"errors"
+	"strings"
 
 	"github.com/ARGOeu/argo-messaging/stores"
 )
@@ -25,7 +27,7 @@ type PushConfig struct {
 
 // Subscriptions holds a list of Topic items
 type Subscriptions struct {
-	List []Subscription `json:"subscriptions"`
+	List []Subscription `json:"subscriptions,omitempty"`
 }
 
 // SubPullOptions holds info about a pull operation on a subscription
@@ -37,6 +39,13 @@ type SubPullOptions struct {
 // GetPullOptionsJSON retrieves pull information
 func GetPullOptionsJSON(input []byte) (SubPullOptions, error) {
 	s := SubPullOptions{}
+	err := json.Unmarshal([]byte(input), &s)
+	return s, err
+}
+
+// GetFromJSON retrieves Sub Info From Json
+func GetFromJSON(input []byte) (Subscription, error) {
+	s := Subscription{}
 	err := json.Unmarshal([]byte(input), &s)
 	return s, err
 }
@@ -74,6 +83,17 @@ func (sl *Subscriptions) LoadFromStore(store stores.Store) {
 
 }
 
+// CreateSub creates a new subscription
+func (sl *Subscriptions) CreateSub(project string, name string, topic string, offset int64, store stores.Store) (Subscription, error) {
+	if sl.HasSub(project, name) {
+		return Subscription{}, errors.New("exists")
+	}
+
+	subNew := New(project, name, topic)
+	err := store.InsertSub(project, name, topic, offset)
+	return subNew, err
+}
+
 // GetSubByName returns a specific topic
 func (sl *Subscriptions) GetSubByName(project string, name string) Subscription {
 	for _, value := range sl.List {
@@ -104,4 +124,19 @@ func (sl *Subscriptions) HasSub(project string, name string) bool {
 	}
 
 	return false
+}
+
+// ExtractFullTopicRef gets a full topic ref and extracts project and topic refs
+func ExtractFullTopicRef(fTopicRef string) (string, string, error) {
+	items := strings.Split(fTopicRef, "/")
+	if len(items) != 4 {
+		return "", "", errors.New("wrong topic name declaration")
+	}
+
+	if items[0] != "projects" && items[2] != "topics" {
+		return "", "", errors.New("wrong topic name declaration")
+	}
+
+	return items[1], items[3], nil
+
 }

@@ -16,7 +16,7 @@ type Topic struct {
 
 // Topics holds a list of Topic items
 type Topics struct {
-	List []Topic `json:"topics"`
+	List []Topic `json:"topics,omitempty"`
 }
 
 // New creates a new topic based on name

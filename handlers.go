@@ -167,6 +167,85 @@ func TopicDelete(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// SubCreate (PUT) creates a new subscription
+func SubCreate(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+
+	// Grab context references
+	refStr := context.Get(r, "str").(stores.Store)
+	refBrk := context.Get(r, "brk").(brokers.Broker)
+
+	// Initialize Subscriptions
+	sb := subscriptions.Subscriptions{}
+	sb.LoadFromStore(refStr)
+
+	// Read POST JSON body
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		respondErr(w, 500, "POST: Could not read POST Body")
+		return
+	}
+
+	// Parse pull options
+	postBody, err := subscriptions.GetFromJSON(body)
+	if err != nil {
+		respondErr(w, 500, "POST: Input JSON schema is not valid")
+		return
+	}
+
+	tProject, tName, err := subscriptions.ExtractFullTopicRef(postBody.FullTopic)
+
+	if err != nil {
+		respondErr(w, 404, "Invalid Topic Name")
+		return
+	}
+
+	// Initialize Topics
+	tp := topics.Topics{}
+	tp.LoadFromStore(refStr)
+
+	if tp.HasTopic(tProject, tName) == false {
+		respondErr(w, 404, "Topic not found")
+		return
+	}
+
+	// Get current topic offset
+	curOff := refBrk.GetOffset(tName)
+
+	// Get Result Object
+	res, err := sb.CreateSub(urlVars["project"], urlVars["subscription"], tName, curOff, refStr)
+	if err != nil {
+		if err.Error() == "exists" {
+			respondErr(w, 409, "Subscription Already Exists")
+			return
+		}
+
+		respondErr(w, 500, err.Error())
+	}
+
+	// Output result to JSON
+	resJSON, err := res.ExportJSON()
+	if err != nil {
+		respondErr(w, 500, "Error Exporting Retrieved Data to JSON")
+		return
+	}
+
+	// Write response
+	output = []byte(resJSON)
+	respondOK(w, output)
+
+}
+
 // TopicCreate (PUT) creates a new  topic
 func TopicCreate(w http.ResponseWriter, r *http.Request) {
 

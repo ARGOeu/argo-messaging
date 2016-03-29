@@ -75,6 +75,47 @@ paths:
           $ref: "#/responses/404"
         500:
           $ref: "#/responses/500"
+    put:
+      summary: Create a new subscription in a project
+      description: |
+        This request creates a new subscription in a project
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: SUBSCRIPTION
+          in: path
+          description: Name of the topic
+          required: true
+          type: string
+        - name: parameters
+          in: body
+          description: Parameters of the new subscription object
+          required: true
+          schema:
+           $ref: '#/definitions/SubParameters'
+      tags:
+        - Subscriptions
+      responses:
+        200:
+          description: The new subscription object created
+          schema:
+            $ref: '#/definitions/Subscription'
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        409:
+          $ref: "#/responses/409"
+        500:
+          $ref: "#/responses/500"
+
+
 
   /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}:pull:
     post:
@@ -324,6 +365,12 @@ definitions:
       maxMessages:
         type: string
         description: Max number of messages to be consumed
+  SubParameters:
+    type: object
+    properties:
+      topic:
+        type: string
+        description: name of the topic this subscription will subscribe to
   Subscription:
     type: object
     properties:
