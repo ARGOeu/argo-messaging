@@ -2,8 +2,12 @@
 swagger: '2.0'
 info:
   title: argo-messaging-api
-  description:  ARGO Messaging API for broker network
-  version: "0.9.1-1"
+  description: "ARGO is a lightweight service for Service Level Monitoring designed for medium and large sized e-Infrastructures. This swagger UI interface provides access to the specification of the ARGO messaging api, which can be used to produce or consume messages."
+  version: "0.9.2"
+  contact:
+    name: ARGO Developers
+    url: http://argoeu.github.io/
+    email: argo-dev@lists.grnet.gr
 
 host: localhost
 schemes:
@@ -12,6 +16,11 @@ schemes:
 basePath: /v1
 produces:
   - application/json
+tags:
+  - name: Subscriptions
+    description: Subscriptions under a given project
+  - name: Topics
+    description: Topics under a given project
 paths:
   /projects/{PROJECT}/subscriptions:
     get:
