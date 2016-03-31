@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
@@ -14,7 +15,7 @@ func main() {
 	cfg := config.NewAPICfg("LOAD")
 
 	// create and initialize broker based on configuration
-	broker := brokers.NewKafkaBroker(cfg.BrokerHost)
+	broker := brokers.NewKafkaBroker(cfg.BrokerHosts)
 	defer broker.CloseConnections()
 
 	// create the store
@@ -24,5 +25,5 @@ func main() {
 	API := NewRouting(cfg, broker, store, defaultRoutes)
 
 	// Start http server listening using API.Router
-	log.Fatal(http.ListenAndServe(":8080", API.Router))
+	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(cfg.Port), API.Router))
 }

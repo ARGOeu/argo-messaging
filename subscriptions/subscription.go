@@ -10,14 +10,16 @@ import (
 
 // Subscription struct to hold information for a given topic
 type Subscription struct {
-	Project   string     `json:"-"`
-	Name      string     `json:"-"`
-	Topic     string     `json:"-"`
-	FullName  string     `json:"name"`
-	FullTopic string     `json:"topic"`
-	PushCfg   PushConfig `json:"pushConfig"`
-	Ack       int        `json:"ackDeadlineSeconds"`
-	Offset    int64      `json:"-"`
+	Project    string     `json:"-"`
+	Name       string     `json:"-"`
+	Topic      string     `json:"-"`
+	FullName   string     `json:"name"`
+	FullTopic  string     `json:"topic"`
+	PushCfg    PushConfig `json:"pushConfig"`
+	Ack        int        `json:"ackDeadlineSeconds,omitempty"`
+	Offset     int64      `json:"-"`
+	NextOffset int64      `json:"-"`
+	PendingAck string     `json:"-"`
 }
 
 // PushConfig holds optional configuration for push operations
@@ -34,6 +36,18 @@ type Subscriptions struct {
 type SubPullOptions struct {
 	RetImm string `json:"returnImmediately,omitempty"`
 	MaxMsg string `json:"maxMessages,omitempty"`
+}
+
+// AckIDs utility struct
+type AckIDs struct {
+	IDs []string `json:"AckIds"`
+}
+
+// GetAckFromJSON retrieves ack ids from json
+func GetAckFromJSON(input []byte) (AckIDs, error) {
+	s := AckIDs{}
+	err := json.Unmarshal([]byte(input), &s)
+	return s, err
 }
 
 // GetPullOptionsJSON retrieves pull information
@@ -79,24 +93,33 @@ func (sl *Subscriptions) LoadFromStore(store stores.Store) {
 	for _, item := range subs {
 		curSub := New(item.Project, item.Name, item.Topic)
 		curSub.Offset = item.Offset
+		curSub.NextOffset = item.NextOffset
+		curSub.Ack = item.Ack
 		sl.List = append(sl.List, curSub)
 	}
 
 }
 
 // CreateSub creates a new subscription
-func (sl *Subscriptions) CreateSub(project string, name string, topic string, offset int64, store stores.Store) (Subscription, error) {
+func (sl *Subscriptions) CreateSub(project string, name string, topic string, offset int64, ack int, store stores.Store) (Subscription, error) {
+
 	if sl.HasSub(project, name) {
 		return Subscription{}, errors.New("exists")
 	}
 
 	subNew := New(project, name, topic)
-	err := store.InsertSub(project, name, topic, offset)
+	subNew.Offset = offset
+	if ack == 0 {
+		ack = 10
+	}
+	err := store.InsertSub(project, name, topic, offset, ack)
+
 	return subNew, err
 }
 
 // RemoveSub removes an existing subscription
 func (sl *Subscriptions) RemoveSub(project string, name string, store stores.Store) error {
+
 	if sl.HasSub(project, name) == false {
 		return errors.New("not found")
 	}
@@ -106,6 +129,7 @@ func (sl *Subscriptions) RemoveSub(project string, name string, store stores.Sto
 
 // GetSubByName returns a specific topic
 func (sl *Subscriptions) GetSubByName(project string, name string) Subscription {
+
 	for _, value := range sl.List {
 		if (value.Project == project) && (value.Name == name) {
 			return value

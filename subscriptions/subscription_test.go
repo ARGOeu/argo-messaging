@@ -17,10 +17,15 @@ type SubTestSuite struct {
 
 func (suite *SubTestSuite) SetupTest() {
 	suite.cfgStr = `{
-		"broker_host":"localhost:9092",
+	  "port":8080,
+		"broker_hosts":["localhost:9092"],
 		"store_host":"localhost",
-		"store_db":"argo_msg"
+		"store_db":"argo_msg",
+		"use_authorization":true,
+		"use_authentication":true,
+		"use_ack":true
 	}`
+
 	log.SetOutput(ioutil.Discard)
 }
 
@@ -88,24 +93,8 @@ func (suite *SubTestSuite) TestLoadFromCfg() {
 
 }
 
-func (suite *SubTestSuite) TestCreateSubStore() {
-	APIcfg := config.NewAPICfg()
-	APIcfg.LoadStrJSON(suite.cfgStr)
-	mySubs := Subscriptions{}
-	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
-	mySubs.LoadFromStore(store)
-
-	sub, err := mySubs.CreateSub("ARGO", "sub1", "topic1", 0, store)
-	suite.Equal(Subscription{}, sub)
-	suite.Equal("exists", err.Error())
-
-	sub2, err2 := mySubs.CreateSub("ARGO", "subNew", "topicNew", 0, store)
-	expSub := New("ARGO", "subNew", "topicNew")
-	suite.Equal(expSub, sub2)
-	suite.Equal(nil, err2)
-}
-
 func (suite *SubTestSuite) TestRemoveSubStore() {
+
 	APIcfg := config.NewAPICfg()
 	APIcfg.LoadStrJSON(suite.cfgStr)
 	mySubs := Subscriptions{}
@@ -118,6 +107,25 @@ func (suite *SubTestSuite) TestRemoveSubStore() {
 	suite.Equal(nil, mySubs.RemoveSub("ARGO", "sub1", store))
 	mySubs.LoadFromStore(store)
 	suite.Equal(false, mySubs.HasSub("ARGO", "sub1"))
+}
+
+func (suite *SubTestSuite) TestCreateSubStore() {
+
+	APIcfg := config.NewAPICfg()
+	APIcfg.LoadStrJSON(suite.cfgStr)
+	mySubs := Subscriptions{}
+	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
+	mySubs.LoadFromStore(store)
+
+	sub, err := mySubs.CreateSub("ARGO", "sub1", "topic1", 0, 0, store)
+	suite.Equal(Subscription{}, sub)
+	suite.Equal("exists", err.Error())
+
+	sub2, err2 := mySubs.CreateSub("ARGO", "subNew", "topicNew", 0, 0, store)
+	expSub := New("ARGO", "subNew", "topicNew")
+	suite.Equal(expSub, sub2)
+	suite.Equal(nil, err2)
+
 }
 
 func (suite *SubTestSuite) TestExtractFullTopic() {

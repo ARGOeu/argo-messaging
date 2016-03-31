@@ -1,6 +1,9 @@
 package stores
 
-import "errors"
+import (
+	"errors"
+	"time"
+)
 
 // MockStore holds configuration
 type MockStore struct {
@@ -32,6 +35,44 @@ func (mk *MockStore) UpdateSubOffset(name string, offset int64) {
 
 }
 
+// UpdateSubOffsetAck updates the offset of the current subscription
+func (mk *MockStore) UpdateSubOffsetAck(name string, offset int64, ts string) error {
+	// find sub
+	sub := QSub{}
+	for _, item := range mk.QuerySubs() {
+		if item.Name == name {
+			sub = item
+		}
+	}
+
+	// check if no ack pending
+	if sub.NextOffset == 0 {
+		return errors.New("no ack pending")
+	}
+
+	// check if ack offset is wrong - wrong ack
+	if offset < sub.Offset || offset > sub.NextOffset {
+		return errors.New("wrong ack")
+	}
+
+	// check if ack has timeout
+	zSec := "2006-01-02T15:04:05Z"
+	timeGiven, _ := time.Parse(zSec, ts)
+	timeRef, _ := time.Parse(zSec, sub.PendingAck)
+	durSec := timeGiven.Sub(timeRef).Seconds()
+
+	if int(durSec) > sub.Ack {
+		return errors.New("ack timeout")
+	}
+
+	return nil
+}
+
+// UpdateSubPull updates next offset info after a pull
+func (mk *MockStore) UpdateSubPull(name string, offset int64, ts string) {
+
+}
+
 // Initialize is used to initalize the mock
 func (mk *MockStore) Initialize(server string, database string) {
 	mk.Server = server
@@ -45,9 +86,9 @@ func (mk *MockStore) Initialize(server string, database string) {
 	mk.TopicList = append(mk.TopicList, qtop3)
 
 	// populate Subscriptions
-	qsub1 := QSub{"ARGO", "sub1", "topic1", 0}
-	qsub2 := QSub{"ARGO", "sub2", "topic2", 0}
-	qsub3 := QSub{"ARGO", "sub3", "topic3", 0}
+	qsub1 := QSub{"ARGO", "sub1", "topic1", 0, 0, "", 10}
+	qsub2 := QSub{"ARGO", "sub2", "topic2", 0, 0, "", 10}
+	qsub3 := QSub{"ARGO", "sub3", "topic3", 0, 0, "", 10}
 	mk.SubList = append(mk.SubList, qsub1)
 	mk.SubList = append(mk.SubList, qsub2)
 	mk.SubList = append(mk.SubList, qsub3)
@@ -117,8 +158,8 @@ func (mk *MockStore) InsertTopic(project string, name string) error {
 }
 
 // InsertSub inserts a new sub object to the store
-func (mk *MockStore) InsertSub(project string, name string, topic string, offset int64) error {
-	sub := QSub{project, name, topic, offset}
+func (mk *MockStore) InsertSub(project string, name string, topic string, offset int64, ack int) error {
+	sub := QSub{project, name, topic, offset, 0, "", ack}
 	mk.SubList = append(mk.SubList, sub)
 	return nil
 }

@@ -8,7 +8,8 @@ import (
 
 // RecMsg holds info for a received message
 type RecMsg struct {
-	Msg Message `json:"message"`
+	AckID string  `json:"ackId,omitempty"`
+	Msg   Message `json:"message"`
 }
 
 // RecList holds the array of the receivedMessages - subscription related
@@ -24,14 +25,14 @@ type MsgList struct {
 // Message struct used to hold message information
 type Message struct {
 	ID      string      `json:"messageId,omitempty"`
-	Attr    []Attribute `json:"attributes"`            // used to hold attribute key/value store
+	Attr    []Attribute `json:"attributes,omitempty"`  // used to hold attribute key/value store
 	Data    string      `json:"data"`                  // base64 encoded data payload
 	PubTime string      `json:"publishTime,omitempty"` // publish timedate of message
 }
 
 // MsgIDs utility struct
 type MsgIDs struct {
-	IDs []string `json:"messageIDs"`
+	IDs []string `json:"messageIds"`
 }
 
 // Attribute representation as key/value
