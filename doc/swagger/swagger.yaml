@@ -176,6 +176,7 @@ paths:
       description: |
         Use an existing subscription to pull messages
       parameters:
+        - $ref: '#/parameters/ApiKey'
         - name: PROJECT
           in: path
           description: Name of the project
@@ -483,12 +484,12 @@ paths:
           description: Name of the topic
           required: true
           type: string
-        - name: Message
+        - name: Messages
           in: body
           description: Message JSON representation
           required: true
           schema:
-           $ref: '#/definitions/Message'
+           $ref: '#/definitions/Messages'
       tags:
         - Topics
       responses:
@@ -602,6 +603,10 @@ definitions:
       data:
         type: string
         description: Message payload in Base64 encoding"
+  Messages:
+    type: array
+    items:
+      $ref: '#/definitions/Message'
   ReceivedMessages:
     type: object
     properties:
