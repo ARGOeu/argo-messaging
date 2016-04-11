@@ -54,9 +54,12 @@ func WrapValidate(hfn http.HandlerFunc) http.HandlerFunc {
 func WrapConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Broker, str stores.Store) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
+		nStr := str.Clone()
+		defer nStr.Close()
 		context.Set(r, "cfg", cfg)
 		context.Set(r, "brk", brk)
-		context.Set(r, "str", str)
+		context.Set(r, "str", nStr)
+
 		hfn.ServeHTTP(w, r)
 
 	})
@@ -481,6 +484,12 @@ func TopicListOne(w http.ResponseWriter, r *http.Request) {
 	// Get Result Object
 	res := topics.Topic{}
 	res = tp.GetTopicByName(urlVars["project"], urlVars["topic"])
+
+	// If not found
+	if res.Name == "" {
+		respondErr(w, 404, "Topic does not exist", "NOT_FOUND")
+		return
+	}
 
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()

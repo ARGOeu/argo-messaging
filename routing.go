@@ -7,6 +7,7 @@ import (
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
 	"github.com/ARGOeu/argo-messaging/stores"
+	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
 )
 
@@ -29,7 +30,7 @@ func NewRouting(cfg *config.APICfg, brk brokers.Broker, str stores.Store, routes
 	// Create the api Object
 	ar := API{}
 	// Create a new router and reference him in API object
-	ar.Router = mux.NewRouter().StrictSlash(true)
+	ar.Router = mux.NewRouter().StrictSlash(false)
 	// reference routes input in API object too keep info centralized
 	ar.Routes = routes
 
@@ -59,7 +60,7 @@ func NewRouting(cfg *config.APICfg, brk brokers.Broker, str stores.Store, routes
 			PathPrefix("/v1").
 			Methods(route.Method).
 			Path(route.Path).
-			Handler(handler)
+			Handler(context.ClearHandler(handler))
 	}
 
 	if cfg.Authen {

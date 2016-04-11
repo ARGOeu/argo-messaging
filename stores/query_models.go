@@ -22,7 +22,7 @@ type QUser struct {
 
 // QRole holds roles resources relationships
 type QRole struct {
-	Name  string   `bson:"name"`
+	Name  string   `bson:"resource"`
 	Roles []string `bson:"roles"`
 }
 

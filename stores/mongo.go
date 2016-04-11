@@ -13,35 +13,41 @@ import (
 type MongoStore struct {
 	Server   string
 	Database string
-	// Session  *mgo.Session
+	Session  *mgo.Session
 }
 
 // NewMongoStore creates new mongo store
 func NewMongoStore(server string, db string) *MongoStore {
 	mong := MongoStore{}
-	mong.Initialize(server, db)
+	mong.Server = server
+	mong.Database = db
 	return &mong
 }
 
 // Close is used to close session
 func (mong *MongoStore) Close() {
-	// mong.Session.Close()
+	mong.Session.Close()
+	log.Printf("Session Closed...")
+}
+
+// Clone the store with  a cloned session
+func (mong *MongoStore) Clone() Store {
+	nStore := NewMongoStore(mong.Server, mong.Database)
+	nStore.Session = mong.Session.Clone()
+	return nStore
 }
 
 // Initialize initializes the mongo store struct
-func (mong *MongoStore) Initialize(server string, database string) {
+func (mong *MongoStore) Initialize() {
 
-	mong.Server = server
-	mong.Database = database
-
-	session, err := mgo.Dial(server)
+	session, err := mgo.Dial(mong.Server)
 	if err != nil && session != nil {
 
 		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
 
 	}
 
-	// mong.Session = session
+	mong.Session = session
 
 	log.Printf("%s\t%s\t%s: %s", "INFO", "STORE", "Connected to Mongo", mong.Server)
 }
@@ -49,18 +55,12 @@ func (mong *MongoStore) Initialize(server string, database string) {
 // UpdateSubPull updates next offset and sets timestamp for Ack
 func (mong *MongoStore) UpdateSubPull(name string, nextOff int64, ts string) {
 
-	session, err := mgo.Dial(mong.Server)
-	if err != nil {
-		panic(err)
-	}
-
-	defer session.Close()
-	db := session.DB(mong.Database)
+	db := mong.Session.DB(mong.Database)
 	c := db.C("subscriptions")
 
 	doc := bson.M{"name": name}
 	change := bson.M{"$set": bson.M{"next_offset": nextOff, "pending_ack": ts}}
-	err = c.Update(doc, change)
+	err := c.Update(doc, change)
 	if err != nil {
 		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
 	}
@@ -70,18 +70,12 @@ func (mong *MongoStore) UpdateSubPull(name string, nextOff int64, ts string) {
 // UpdateSubOffsetAck updates a subscription offset after Ack
 func (mong *MongoStore) UpdateSubOffsetAck(name string, offset int64, ts string) error {
 
-	session, err := mgo.Dial(mong.Server)
-	if err != nil {
-		panic(err)
-	}
-
-	defer session.Close()
-	db := session.DB(mong.Database)
+	db := mong.Session.DB(mong.Database)
 	c := db.C("subscriptions")
 
 	// Get Info
 	res := QSub{}
-	err = c.Find(bson.M{"name": name}).One(&res)
+	err := c.Find(bson.M{"name": name}).One(&res)
 
 	// check if no ack pending
 	if res.NextOffset == 0 {
@@ -117,18 +111,12 @@ func (mong *MongoStore) UpdateSubOffsetAck(name string, offset int64, ts string)
 // UpdateSubOffset updates a subscription offset
 func (mong *MongoStore) UpdateSubOffset(name string, offset int64) {
 
-	session, err := mgo.Dial(mong.Server)
-	if err != nil {
-		panic(err)
-	}
-
-	defer session.Close()
-	db := session.DB(mong.Database)
+	db := mong.Session.DB(mong.Database)
 	c := db.C("subscriptions")
 
 	doc := bson.M{"name": name}
 	change := bson.M{"$set": bson.M{"offset": offset, "next_offset": 0, "pending_ack": ""}}
-	err = c.Update(doc, change)
+	err := c.Update(doc, change)
 	if err != nil {
 		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
 	}
@@ -138,16 +126,10 @@ func (mong *MongoStore) UpdateSubOffset(name string, offset int64) {
 // QueryTopics Query Subscription info from store
 func (mong *MongoStore) QueryTopics() []QTopic {
 
-	session, err := mgo.Dial(mong.Server)
-	if err != nil {
-		panic(err)
-	}
-	defer session.Close()
-
-	db := session.DB(mong.Database)
+	db := mong.Session.DB(mong.Database)
 	c := db.C("topics")
 	var results []QTopic
-	err = c.Find(bson.M{}).All(&results)
+	err := c.Find(bson.M{}).All(&results)
 
 	if err != nil {
 		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
@@ -158,16 +140,11 @@ func (mong *MongoStore) QueryTopics() []QTopic {
 
 //HasResourceRoles returns the roles of a user in a project
 func (mong *MongoStore) HasResourceRoles(resource string, roles []string) bool {
-	session, err := mgo.Dial(mong.Server)
-	if err != nil {
-		panic(err)
-	}
-	defer session.Close()
 
-	db := session.DB(mong.Database)
+	db := mong.Session.DB(mong.Database)
 	c := db.C("roles")
 	var results []QRole
-	err = c.Find(bson.M{"resource": resource, "roles": bson.M{"$in": roles}}).All(&results)
+	err := c.Find(bson.M{"resource": resource, "roles": bson.M{"$in": roles}}).All(&results)
 	if err != nil {
 		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
 	}
@@ -182,16 +159,11 @@ func (mong *MongoStore) HasResourceRoles(resource string, roles []string) bool {
 
 //GetUserRoles returns the roles of a user in a project
 func (mong *MongoStore) GetUserRoles(project string, token string) []string {
-	session, err := mgo.Dial(mong.Server)
-	if err != nil {
-		panic(err)
-	}
-	defer session.Close()
 
-	db := session.DB(mong.Database)
+	db := mong.Session.DB(mong.Database)
 	c := db.C("users")
 	var results []QUser
-	err = c.Find(bson.M{"project": project, "token": token}).All(&results)
+	err := c.Find(bson.M{"project": project, "token": token}).All(&results)
 	if err != nil {
 		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
 	}
@@ -211,16 +183,11 @@ func (mong *MongoStore) GetUserRoles(project string, token string) []string {
 
 // HasProject Returns true if project exists
 func (mong *MongoStore) HasProject(project string) bool {
-	session, err := mgo.Dial(mong.Server)
-	if err != nil {
-		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
-	}
-	defer session.Close()
 
-	db := session.DB(mong.Database)
+	db := mong.Session.DB(mong.Database)
 	c := db.C("projects")
 	var results []QProject
-	err = c.Find(bson.M{}).All(&results)
+	err := c.Find(bson.M{}).All(&results)
 	if err != nil {
 		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
 	}
@@ -257,16 +224,11 @@ func (mong *MongoStore) RemoveSub(project string, name string) error {
 
 // InsertResource inserts a new topic object to the datastore
 func (mong *MongoStore) InsertResource(col string, res interface{}) error {
-	session, err := mgo.Dial(mong.Server)
-	if err != nil {
-		panic(err)
-	}
-	defer session.Close()
 
-	db := session.DB(mong.Database)
+	db := mong.Session.DB(mong.Database)
 	c := db.C(col)
 
-	err = c.Insert(res)
+	err := c.Insert(res)
 	if err != nil {
 		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
 	}
@@ -277,16 +239,10 @@ func (mong *MongoStore) InsertResource(col string, res interface{}) error {
 // RemoveResource removes a resource from the store
 func (mong *MongoStore) RemoveResource(col string, res interface{}) error {
 
-	session, err := mgo.Dial(mong.Server)
-	if err != nil {
-		panic(err)
-	}
-	defer session.Close()
-
-	db := session.DB(mong.Database)
+	db := mong.Session.DB(mong.Database)
 	c := db.C(col)
 
-	err = c.Remove(res)
+	err := c.Remove(res)
 	if err != nil {
 		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
 	}
@@ -297,16 +253,10 @@ func (mong *MongoStore) RemoveResource(col string, res interface{}) error {
 // QuerySubs Query Subscription info from store
 func (mong *MongoStore) QuerySubs() []QSub {
 
-	session, err := mgo.Dial(mong.Server)
-	if err != nil {
-		panic(err)
-	}
-	defer session.Close()
-
-	db := session.DB(mong.Database)
+	db := mong.Session.DB(mong.Database)
 	c := db.C("subscriptions")
 	var results []QSub
-	err = c.Find(bson.M{}).All(&results)
+	err := c.Find(bson.M{}).All(&results)
 	if err != nil {
 		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
 	}
