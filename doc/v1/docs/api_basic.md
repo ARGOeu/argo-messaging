@@ -1,24 +1,18 @@
----
-title: 'ARGO Messaging Service documentation | ARGO'
-page_title: Argo Messaging API Basic Information
-font_title: fa fa-cogs
-description: Argo Messaging API Basic Information
----
-
-# Basics
+# Introduction
 The ARGO Messaging Service API implements the Google PubSub specification and thus supports HTTP RPC-style methods in the form of:
 
- https://messaging.argo.grnet.gr/api/projects/METHOD
+ `https://messaging.argo.grnet.gr/api/projects/METHOD`
 
-All methods must be called using HTTPS. Arguments can be passed as GET or POST params, or a mix. The response contains a 200 OK for a successful request and a JSON object in case of an error. For failure results, the error property will contain a short machine-readable error code. In the case of problematic calls,  during handling user’s request the API responds using a predefined schema (described in chapter Errors), that contains a short machine-readable warning code, an error code and an error description  (or list of them, in the case of multiple errors).
+All methods must be called using HTTPS. Arguments can be passed as GET or POST params, or a mix. The response contains a `200 OK` for a successful request and a JSON object in case of an error. For failure results, the error property will contain a short machine-readable error code. In the case of problematic calls,  during handling user’s request the API responds using a predefined schema (described in chapter Errors), that contains a short machine-readable warning code, an error code and an error description  (or list of them, in the case of multiple errors).
 
-Each user is authenticated by adding the url parameter ?key=T0K3N in each API request
+Each user is authenticated by adding the url parameter `?key=T0K3N` in each API request
 
-## Configuration - Configuration file: config.json
+## Configuration file: config.json
 
 The first step for using the messaging API is to edit the main configuration file.
 
 The ARGO Messaging Service main configuration file is config.json. An example configuration is listed below:
+
 ```json
 {
   "port":8080,
@@ -28,9 +22,10 @@ The ARGO Messaging Service main configuration file is config.json. An example co
   "use_authorization":true,
   "use_authentication":true,
   "use_ack":true
-}```
+}
+```
 
-Explanation of config parameters:
+### Explanation of config parameters:
 
 Parameter | Description
 --------- | -----------
@@ -42,4 +37,4 @@ use_authorization | If true, API will boot with support for authorization
 use_authentication | If true, API will boot with support for authentication
 use_ack | If true, API will boot with acknowledgement support when consuming messages
 
-Location of config.json: API will look first for config.json locally in the folder where the executable runs and then in the /etc/argo-messaging/ location.
+**Location of config.json**: API will look first for config.json locally in the folder where the executable runs and then in the ` /etc/argo-messaging/`  location.

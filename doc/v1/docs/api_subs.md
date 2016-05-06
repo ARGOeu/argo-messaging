@@ -1,24 +1,22 @@
----
-title: 'ARGO Messaging Service documentation | ARGO'
-page_title: ARGO Messaging API Subscriptions related Calls
-font_title: fa fa-cogs
-description: ARGO Messaging API Subscriptions related Calls
----
+# Subscriptions Api Calls
 
-# Manage Subscriptions - Create subscriptions  
+## [PUT] Manage Subscriptions - Create subscriptions  
 This request creates a new subscription in a project with a PUT request
 
-#### Request
+### Request
 `PUT /v1/projects/{project_name}/subscriptions/{subscription_name}`
 
-#### Where
+### Where
 - Project_name: Name of the project to create
 - subscription_name: The subscription name to create
 
-#### Example request
-`curl -X PUT -H "Content-Type: application/json"  -d 'PUTBODY' " https://{URL}/v1/projects/EGI/subscriptions/alert_engine ?key=S3CR3T"`
+### Example request
+```json
+curl -X PUT -H "Content-Type: application/json"  -d 'PUTBODY' 
+	" https://{URL}/v1/projects/EGI/subscriptions/alert_engine ?key=S3CR3T"`
+```
 
-#### PUT  BODY
+### PUT  BODY
 ```json
 {
  "topic": "projects/EGI/topics/monitoring",
@@ -26,7 +24,7 @@ This request creates a new subscription in a project with a PUT request
 }
 ```
 
-#### Responses  
+### Responses  
 
 Success Response
 `200 OK`
@@ -38,24 +36,29 @@ Success Response
 }
 ```
 
-#### Errors
+### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
 
-#Manage Subscriptions - List Subscriptions
+## [GET] Manage Subscriptions - List Subscriptions
 
 This request lists all subscriptions  in a project with a GET  request
-#### Request
+### Request
 `GET /v1/projects/{project_name}/subscriptions/`
 
-#### Where
+### Where
 - Project_name: Name of the project to list the subscriptions
 
-#### Example request
-`curl -X PUT -H "Content-Type: application/json"  -d '' " https://{URL}/v1/projects/EGI/subscriptions/?key=S3CR3T"`
+### Example request
+```json
+curl -X PUT -H "Content-Type: application/json" 
+  -d '' " https://{URL}/v1/projects/EGI/subscriptions/?key=S3CR3T"
+```
 
-#### Responses  
+
+### Responses  
 Success Response
 `200 OK`
+
 ```json
  "subscriptions": [
  {
@@ -67,64 +70,70 @@ Success Response
 ]
 ```
 
-#### Errors
+### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
 
 
-# Manage Subscriptions - Delete Subscriptions
+## [DELETE] Manage Subscriptions - Delete Subscriptions
 This request deletes a topic in a project with a DELETE request
 
-#### Request
+### Request
 `DELETE /v1/projects/{project_name}/subscriptions/{subscription_name}`
 
-#### Where
+### Where
 - Project_name: Name of the project
 - subscription_name: The subscription name to delete
 
-#### Example request
+### Example request
 
-`curl -X DELETE -H "Content-Type: application/json"  http://{URL}/v1/projects/EGI/subscriptions/alert_engine?key=S3CR3T"`
+```json
+curl -X DELETE -H "Content-Type: application/json"  
+http://{URL}/v1/projects/EGI/subscriptions/alert_engine?key=S3CR3T
+```
 
-#### Responses  
+### Responses  
 
 Success Response
 Code: `200 OK`, Empty response if successful.
 
-#### Errors
+### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
 
 
 
-# Pull messages from a subscription (Consume)
+## [POST] Pull messages from a subscription (Consume)
 
 This request consumes messages from a subscription in a project with a POST request
 
-#### Request
+### Request
 `POST /v1/projects/{project_name}/subscriptions/{subscription_name}:pull`
 
-#### Post body:
+### Post body:
 ```json
 {
  "maxMessages": "1",
 }
 ```
 
-#### Where
+### Where
 - Project_name: Name of the project
 - subscription_name: The subscription name to consume
 - maxMessages: the max number of messages to consume
 
 
-#### Example request
+### Example request
 
-`curl -X POST -H "Content-Type: application/json"  -d POSTDATA https://{URL}/v1/projects/EGI/subscriptions/alert_engine:pull?key=S3CR3T"`
+```json
+curl -X POST -H "Content-Type: application/json" 
+  -d POSTDATA https://{URL}/v1/projects/EGI/subscriptions/alert_engine:pull?key=S3CR3T"
+```
 
-#### post body:
+### post body:
 {
  "maxMessages": "1",
 }
 
-#### Responses  
+### Responses  
 
 `200 OK`
 ```json
@@ -147,14 +156,14 @@ This request consumes messages from a subscription in a project with a POST requ
 }
 ```
 
-#### Errors
+### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
 
 
-# Sending an ACK
+## [POST] Sending an ACK
 This request sends an ack that the message has been  received
 
-#### Request
+### Request
 `POST /v1/projects/{project_name}/subscriptions/{subscription_name}:acknowledge`
 
 ### Post body:
@@ -167,15 +176,17 @@ This request sends an ack that the message has been  received
 }
 ```
 
-#### Where
+### Where
 - Project_name: Name of the project
 - subscription_name: The subscription name to consume
 - ackIds: the ids of the messages
 
 
-#### Example request
+### Example request
 
-`curl -X POST -H "Content-Type: application/json"  -d POSTDATA http://{URL}/v1/projects/EGI/subscriptions/alert_engine:acknowledge?key=S3CR3T"`
+`curl -X POST -H "Content-Type: application/json"  
+-d POSTDATA http://{URL}/v1/projects/EGI/subscriptions/alert_engine:acknowledge?key=S3CR3T"
+```
 
 ### post body:
 ```json
@@ -187,9 +198,9 @@ This request sends an ack that the message has been  received
 }
 ```
 
-#### Responses  
+### Responses  
 Success Response
 `200 OK`
 
-#### Errors
+### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
