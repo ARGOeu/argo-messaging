@@ -1,10 +1,3 @@
----
-title: 'ARGO Messaging Service documentation | ARGO'
-page_title: ARGO Messaging API Error Messages
-font_title: fa fa-cogs
-description: ARGO Messaging API Error Messages
----
-
 # Errors
 
 In case of Error during handling user’s request the API responds using the following schema
@@ -34,10 +27,9 @@ Most of the times the errors array is empty thus omitted such as:
    }
 }
 ```
-Captured Errors from usage scenarios
-Scenario | Error Message
--------- | -------------
-Put topic with the same name |
+## Captured Errors from usage scenarios
+
+### Put topic with the same name 
 ```json
 {
   "error": {
@@ -47,7 +39,7 @@ Put topic with the same name |
   }
 }
 ```
-Put subscription with the same name |
+### Put subscription with the same name 
 ```json
 {
   "error": {
@@ -57,7 +49,7 @@ Put subscription with the same name |
   }
 }
 ```
-Invalid Topics name |
+### Invalid Topics name 
 ```json
 {
   "error": {
@@ -67,7 +59,7 @@ Invalid Topics name |
   }
 }
 ```
-Get a subscription that doesn’t exist |
+### Get a subscription that doesn’t exist 
 ```json
 {
   "error": {
