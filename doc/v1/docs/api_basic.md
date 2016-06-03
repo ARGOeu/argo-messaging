@@ -15,13 +15,16 @@ The ARGO Messaging Service main configuration file is config.json. An example co
 
 ```json
 {
+  "bind_ip":"",
   "port":8080,
   "broker_host":"localhost:9092",
   "store_host":"localhost",
   "store_db":"argo_msg",
   "use_authorization":true,
   "use_authentication":true,
-  "use_ack":true
+  "use_ack":true,
+  "certificate":"/etc/pki/tls/certs/localhost.crt",
+  "certificate_key":"/etc/pki/tls/private/localhost.key"
 }
 ```
 
@@ -29,6 +32,7 @@ The ARGO Messaging Service main configuration file is config.json. An example co
 
 Parameter | Description
 --------- | -----------
+bind_ip | the ip address to listen to.
 port | The port where the API will listen to
 broker_host | Address:port of the broker instance
 store_host | Address:port of the datastore server
@@ -36,5 +40,7 @@ store_db | Database name used on the datastore server
 use_authorization | If true, API will boot with support for authorization
 use_authentication | If true, API will boot with support for authentication
 use_ack | If true, API will boot with acknowledgement support when consuming messages
+certificate | path to the node's TLS certificate file
+certificate_key | path to the certificate's private key
 
 **Location of config.json**: API will look first for config.json locally in the folder where the executable runs and then in the ` /etc/argo-messaging/`  location.

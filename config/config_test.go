@@ -15,13 +15,16 @@ type ConfigTestSuite struct {
 
 func (suite *ConfigTestSuite) SetupTest() {
 	suite.cfgStr = `{
+	  "bind_ip":"",
 	  "port":8080,
 		"broker_hosts":["localhost:9092"],
 		"store_host":"localhost",
 		"store_db":"argo_msg",
 		"use_authorization":true,
 		"use_authentication":true,
-		"use_ack":true
+		"use_ack":true,
+		"certificate":"/etc/pki/tls/certs/localhost.crt",
+		"certificate_key":"/etc/pki/tls/private/localhost.key"
 	}`
 
 	log.SetOutput(ioutil.Discard)
@@ -48,7 +51,9 @@ func (suite *ConfigTestSuite) TestLoadConfiguration() {
 	suite.Equal(true, APIcfg2.Author)
 	suite.Equal(8080, APIcfg.Port)
 	suite.Equal(true, APIcfg.Ack)
-
+	suite.Equal("", APIcfg.BindIP)
+	suite.Equal("/etc/pki/tls/certs/localhost.crt", APIcfg.Cert)
+	suite.Equal("/etc/pki/tls/private/localhost.key", APIcfg.CertKey)
 }
 
 func (suite *ConfigTestSuite) TestLoadStringJSON() {
@@ -61,6 +66,9 @@ func (suite *ConfigTestSuite) TestLoadStringJSON() {
 	suite.Equal(true, APIcfg.Author)
 	suite.Equal(8080, APIcfg.Port)
 	suite.Equal(true, APIcfg.Ack)
+	suite.Equal("", APIcfg.BindIP)
+	suite.Equal("/etc/pki/tls/certs/localhost.crt", APIcfg.Cert)
+	suite.Equal("/etc/pki/tls/private/localhost.key", APIcfg.CertKey)
 }
 
 func TestConfigTestSuite(t *testing.T) {

@@ -11,6 +11,7 @@ import (
 // APICfg holds kafka configuration
 type APICfg struct {
 	// values
+	BindIP      string
 	Port        int
 	BrokerHosts []string
 	StoreHost   string
@@ -18,6 +19,8 @@ type APICfg struct {
 	Authen      bool
 	Author      bool
 	Ack         bool
+	Cert        string
+	CertKey     string
 }
 
 // NewAPICfg creates a new kafka configuration object
@@ -49,6 +52,8 @@ func (cfg *APICfg) Load() {
 	}
 
 	// Load Kafka configuration
+	cfg.BindIP = viper.GetString("bind_ip")
+	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - bind_ip", cfg.BindIP)
 	cfg.Port = viper.GetInt("port")
 	log.Printf("%s\t%s\t%s:%d", "INFO", "CONFIG", "Parameter Loaded - port", cfg.Port)
 	cfg.BrokerHosts = viper.GetStringSlice("broker_hosts")
@@ -63,6 +68,11 @@ func (cfg *APICfg) Load() {
 	log.Printf("%s\t%s\t%s:%t", "INFO", "CONFIG", "Parameter Loaded - use_authorization", cfg.Author)
 	cfg.Ack = viper.GetBool("use_ack")
 	log.Printf("%s\t%s\t%s:%t", "INFO", "CONFIG", "Parameter Loaded - use_ack", cfg.Ack)
+	cfg.Cert = viper.GetString("certificate")
+	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - certificate", cfg.Cert)
+	cfg.CertKey = viper.GetString("certificate_key")
+	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - certificate_key", cfg.CertKey)
+
 }
 
 // LoadStrJSON Loads configuration from a JSON string
@@ -70,6 +80,8 @@ func (cfg *APICfg) LoadStrJSON(input string) {
 	viper.SetConfigType("json")
 	viper.ReadConfig(bytes.NewBuffer([]byte(input)))
 	// Load Kafka configuration
+	cfg.BindIP = viper.GetString("bind_ip")
+	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - bind_ip", cfg.BindIP)
 	cfg.Port = viper.GetInt("port")
 	log.Printf("%s\t%s\t%s:%d", "INFO", "CONFIG", "Parameter Loaded - port", cfg.Port)
 	cfg.BrokerHosts = viper.GetStringSlice("broker_hosts")
@@ -84,5 +96,9 @@ func (cfg *APICfg) LoadStrJSON(input string) {
 	log.Printf("%s\t%s\t%s:%t", "INFO", "CONFIG", "Parameter Loaded - use_authorization", cfg.Author)
 	cfg.Ack = viper.GetBool("use_ack")
 	log.Printf("%s\t%s\t%s:%t", "INFO", "CONFIG", "Parameter Loaded - use_ack", cfg.Ack)
+	cfg.Cert = viper.GetString("certificate")
+	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - certificate", cfg.Cert)
+	cfg.CertKey = viper.GetString("certificate_key")
+	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - certificate_key", cfg.CertKey)
 
 }
