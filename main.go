@@ -20,6 +20,7 @@ func main() {
 
 	// create the store
 	store := stores.NewMongoStore(cfg.StoreHost, cfg.StoreDB)
+	store.Initialize()
 
 	// create and initialize API routing object
 	API := NewRouting(cfg, broker, store, defaultRoutes)

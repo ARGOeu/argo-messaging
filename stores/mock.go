@@ -20,8 +20,10 @@ type MockStore struct {
 // NewMockStore creates new mock store
 func NewMockStore(server string, database string) *MockStore {
 	mk := MockStore{}
-	mk.Initialize(server, database)
+	mk.Server = server
+	mk.Database = database
 	mk.Session = true
+	mk.Initialize()
 	return &mk
 }
 
@@ -74,9 +76,8 @@ func (mk *MockStore) UpdateSubPull(name string, offset int64, ts string) {
 }
 
 // Initialize is used to initalize the mock
-func (mk *MockStore) Initialize(server string, database string) {
-	mk.Server = server
-	mk.Database = database
+func (mk *MockStore) Initialize() {
+
 	// populate topics
 	qtop1 := QTopic{"ARGO", "topic1"}
 	qtop2 := QTopic{"ARGO", "topic2"}
@@ -106,6 +107,11 @@ func (mk *MockStore) Initialize(server string, database string) {
 	mk.RoleList = append(mk.RoleList, qRole1)
 	mk.RoleList = append(mk.RoleList, qRole2)
 
+}
+
+// Clone the store
+func (mk *MockStore) Clone() Store {
+	return mk
 }
 
 // GetUserRoles returns the roles of a user in a project
