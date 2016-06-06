@@ -43,15 +43,8 @@ func NewRouting(cfg *config.APICfg, brk brokers.Broker, str stores.Store, routes
 
 		handler = WrapLog(handler, route.Name)
 
-		if cfg.Author && cfg.Authen {
-
-			handler = WrapAuthorize(handler, route.Name)
-		}
-
-		if cfg.Authen {
-
-			handler = WrapAuthenticate(handler)
-		}
+		handler = WrapAuthorize(handler, route.Name)
+		handler = WrapAuthenticate(handler)
 
 		handler = WrapValidate(handler)
 		handler = WrapConfig(handler, cfg, brk, str)
@@ -61,14 +54,6 @@ func NewRouting(cfg *config.APICfg, brk brokers.Broker, str stores.Store, routes
 			Methods(route.Method).
 			Path(route.Path).
 			Handler(context.ClearHandler(handler))
-	}
-
-	if cfg.Authen {
-		log.Printf("INFO\tAPI\tAPI Authentication mechanism enabled")
-	}
-
-	if cfg.Author {
-		log.Printf("INFO\tAPI\tAPI Authorization mechanism enabled")
 	}
 
 	log.Printf("INFO\tAPI\tAPI Router initialized! Ready to start listening...")

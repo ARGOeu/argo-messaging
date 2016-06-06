@@ -1,12 +1,9 @@
 {
   "bind_ip":"",
   "port":8080,
-  "broker_hosts":["as03.hadoop:9092"],
+  "broker_hosts":["localhost:9092"],
   "store_host":"localhost",
   "store_db":"argo_msg",
-  "use_authorization":true,
-  "use_authentication":true,
-  "use_ack":true,
   "certificate":"/etc/pki/tls/certs/localhost.crt",
   "certificate_key":"/etc/pki/tls/private/localhost.key"
 }
