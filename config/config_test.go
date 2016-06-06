@@ -20,9 +20,6 @@ func (suite *ConfigTestSuite) SetupTest() {
 		"broker_hosts":["localhost:9092"],
 		"store_host":"localhost",
 		"store_db":"argo_msg",
-		"use_authorization":true,
-		"use_authentication":true,
-		"use_ack":true,
 		"certificate":"/etc/pki/tls/certs/localhost.crt",
 		"certificate_key":"/etc/pki/tls/private/localhost.key"
 	}`
@@ -37,20 +34,14 @@ func (suite *ConfigTestSuite) TestLoadConfiguration() {
 	suite.Equal([]string{"localhost:9092"}, APIcfg.BrokerHosts)
 	suite.Equal("localhost", APIcfg.StoreHost)
 	suite.Equal("argo_msg", APIcfg.StoreDB)
-	suite.Equal(true, APIcfg.Authen)
-	suite.Equal(true, APIcfg.Author)
 	suite.Equal(8080, APIcfg.Port)
-	suite.Equal(true, APIcfg.Ack)
 
 	// test "LOAD" param
 	APIcfg2 := NewAPICfg("LOAD")
 	suite.Equal([]string{"localhost:9092"}, APIcfg2.BrokerHosts)
 	suite.Equal("localhost", APIcfg2.StoreHost)
 	suite.Equal("argo_msg", APIcfg2.StoreDB)
-	suite.Equal(true, APIcfg2.Authen)
-	suite.Equal(true, APIcfg2.Author)
 	suite.Equal(8080, APIcfg.Port)
-	suite.Equal(true, APIcfg.Ack)
 	suite.Equal("", APIcfg.BindIP)
 	suite.Equal("/etc/pki/tls/certs/localhost.crt", APIcfg.Cert)
 	suite.Equal("/etc/pki/tls/private/localhost.key", APIcfg.CertKey)
@@ -62,10 +53,7 @@ func (suite *ConfigTestSuite) TestLoadStringJSON() {
 	suite.Equal([]string{"localhost:9092"}, APIcfg.BrokerHosts)
 	suite.Equal("localhost", APIcfg.StoreHost)
 	suite.Equal("argo_msg", APIcfg.StoreDB)
-	suite.Equal(true, APIcfg.Authen)
-	suite.Equal(true, APIcfg.Author)
 	suite.Equal(8080, APIcfg.Port)
-	suite.Equal(true, APIcfg.Ack)
 	suite.Equal("", APIcfg.BindIP)
 	suite.Equal("/etc/pki/tls/certs/localhost.crt", APIcfg.Cert)
 	suite.Equal("/etc/pki/tls/private/localhost.key", APIcfg.CertKey)

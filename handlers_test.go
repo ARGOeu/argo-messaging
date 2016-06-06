@@ -168,7 +168,6 @@ func (suite *HandlerTestSuite) TestSubListOne() {
 
 	cfgKafka := config.NewAPICfg()
 	cfgKafka.LoadStrJSON(suite.cfgStr)
-	cfgKafka.Ack = true
 
 	brk := brokers.MockBroker{}
 	str := stores.NewMockStore("whatever", "argo_mgs")

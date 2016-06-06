@@ -56,7 +56,6 @@ func WrapConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Broker, st
 
 		nStr := str.Clone()
 		defer nStr.Close()
-		context.Set(r, "cfg", cfg)
 		context.Set(r, "brk", brk)
 		context.Set(r, "str", nStr)
 
@@ -692,7 +691,6 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	// Grab context references
 	refBrk := context.Get(r, "brk").(brokers.Broker)
 	refStr := context.Get(r, "str").(stores.Store)
-	refCfg := context.Get(r, "cfg").(*config.APICfg)
 
 	// Create Subscriptions Object
 	sub := subscriptions.Subscriptions{}
@@ -756,16 +754,11 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Advance Offset forward as many messages received in RecList array
-	if refCfg.Ack == false {
-		refStr.UpdateSubOffset(targSub.Name, int64(len(recList.RecMsgs))+targSub.Offset)
-	} else {
-		// Stamp time to UTC Z to seconds
-		zSec := "2006-01-02T15:04:05Z"
-		t := time.Now()
-		ts := t.Format(zSec)
-		refStr.UpdateSubPull(targSub.Name, int64(len(recList.RecMsgs))+targSub.Offset, ts)
-	}
+	// Stamp time to UTC Z to seconds
+	zSec := "2006-01-02T15:04:05Z"
+	t := time.Now()
+	ts := t.Format(zSec)
+	refStr.UpdateSubPull(targSub.Name, int64(len(recList.RecMsgs))+targSub.Offset, ts)
 
 	output = []byte(resJSON)
 	respondOK(w, output)
