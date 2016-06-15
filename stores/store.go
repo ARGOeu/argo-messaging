@@ -10,6 +10,7 @@ type Store interface {
 	InsertTopic(project string, name string) error
 	InsertSub(project string, name string, topic string, offest int64, ack int) error
 	HasProject(project string) bool
+	QueryOneSub(project string, sub string) (QSub, error)
 	HasResourceRoles(resource string, roles []string) bool
 	GetUserRoles(project string, token string) []string
 	UpdateSubOffset(name string, offset int64)

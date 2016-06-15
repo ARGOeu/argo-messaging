@@ -27,7 +27,7 @@ func NewMongoStore(server string, db string) *MongoStore {
 // Close is used to close session
 func (mong *MongoStore) Close() {
 	mong.Session.Close()
-	log.Printf("Session Closed...")
+	// log.Printf("Session Closed...")
 }
 
 // Clone the store with  a cloned session
@@ -181,6 +181,24 @@ func (mong *MongoStore) GetUserRoles(project string, token string) []string {
 
 }
 
+// QueryOneSub queries and returns specific sub of project
+func (mong *MongoStore) QueryOneSub(project string, sub string) (QSub, error) {
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C("subscriptions")
+	var results []QSub
+	err := c.Find(bson.M{"project": project, "name": sub}).All(&results)
+	if err != nil {
+		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
+	}
+
+	if len(results) > 0 {
+		return results[0], nil
+	}
+
+	return QSub{}, errors.New("empty")
+}
+
 // HasProject Returns true if project exists
 func (mong *MongoStore) HasProject(project string) bool {
 
@@ -206,7 +224,7 @@ func (mong *MongoStore) InsertTopic(project string, name string) error {
 
 // InsertSub inserts a subscription to the store
 func (mong *MongoStore) InsertSub(project string, name string, topic string, offset int64, ack int) error {
-	sub := QSub{project, name, topic, offset, 0, "", ack}
+	sub := QSub{project, name, topic, offset, 0, "", "", ack}
 	return mong.InsertResource("subscriptions", sub)
 }
 
