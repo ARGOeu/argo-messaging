@@ -11,7 +11,7 @@ info:
 
 host: localhost
 schemes:
-  - http
+  - https
 
 basePath: /v1
 produces:
