@@ -6,6 +6,7 @@ import (
 
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
+	"github.com/ARGOeu/argo-messaging/push"
 	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
@@ -26,7 +27,7 @@ type APIRoute struct {
 }
 
 // NewRouting creates a new routing object including mux.Router and routes definitions
-func NewRouting(cfg *config.APICfg, brk brokers.Broker, str stores.Store, routes []APIRoute) *API {
+func NewRouting(cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *push.Manager, routes []APIRoute) *API {
 	// Create the api Object
 	ar := API{}
 	// Create a new router and reference him in API object
@@ -47,7 +48,7 @@ func NewRouting(cfg *config.APICfg, brk brokers.Broker, str stores.Store, routes
 		handler = WrapAuthenticate(handler)
 
 		handler = WrapValidate(handler)
-		handler = WrapConfig(handler, cfg, brk, str)
+		handler = WrapConfig(handler, cfg, brk, str, mgr)
 
 		ar.Router.
 			PathPrefix("/v1").
@@ -69,6 +70,7 @@ var defaultRoutes = []APIRoute{
 	{"subscriptions:delete", "DELETE", "/projects/{project}/subscriptions/{subscription}", SubDelete},
 	{"subscriptions:pull", "POST", "/projects/{project}/subscriptions/{subscription}:pull", SubPull},
 	{"subscriptions:acknowledge", "POST", "/projects/{project}/subscriptions/{subscription}:acknowledge", SubAck},
+	{"subscriptions:modifyPushConfig", "POST", "/projects/{project}/subscriptions/{subscription}:modifyPushConfig", SubModPush},
 	{"topics:list", "GET", "/projects/{project}/topics", TopicListAll},
 	{"topics:show", "GET", "/projects/{project}/topics/{topic}", TopicListOne},
 	{"topics:create", "PUT", "/projects/{project}/topics/{topic}", TopicCreate},

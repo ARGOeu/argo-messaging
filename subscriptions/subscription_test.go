@@ -123,11 +123,11 @@ func (suite *SubTestSuite) TestCreateSubStore() {
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
 	mySubs.LoadFromStore(store)
 
-	sub, err := mySubs.CreateSub("ARGO", "sub1", "topic1", 0, 0, store)
+	sub, err := mySubs.CreateSub("ARGO", "sub1", "topic1", "", 0, 0, store)
 	suite.Equal(Subscription{}, sub)
 	suite.Equal("exists", err.Error())
 
-	sub2, err2 := mySubs.CreateSub("ARGO", "subNew", "topicNew", 0, 0, store)
+	sub2, err2 := mySubs.CreateSub("ARGO", "subNew", "topicNew", "", 0, 0, store)
 	expSub := New("ARGO", "subNew", "topicNew")
 	suite.Equal(expSub, sub2)
 	suite.Equal(nil, err2)

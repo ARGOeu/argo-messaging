@@ -11,6 +11,7 @@ import (
 
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
+	"github.com/ARGOeu/argo-messaging/push"
 	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/suite"
@@ -60,8 +61,9 @@ func (suite *HandlerTestSuite) TestSubCreate() {
 	brk := brokers.MockBroker{}
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
+	mgr := push.Manager{}
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapConfig(SubCreate, cfgKafka, &brk, str))
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapConfig(SubCreate, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -93,7 +95,8 @@ func (suite *HandlerTestSuite) TestSubCreateExists() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapConfig(SubCreate, cfgKafka, &brk, str))
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapConfig(SubCreate, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(409, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -122,9 +125,10 @@ func (suite *HandlerTestSuite) TestSubCreateErrorTopic() {
 	cfgKafka.LoadStrJSON(suite.cfgStr)
 	brk := brokers.MockBroker{}
 	str := stores.NewMockStore("whatever", "argo_mgs")
+	mgr := push.Manager{}
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapConfig(SubCreate, cfgKafka, &brk, str))
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapConfig(SubCreate, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(404, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -142,9 +146,10 @@ func (suite *HandlerTestSuite) TestSubDelete() {
 	cfgKafka.LoadStrJSON(suite.cfgStr)
 	brk := brokers.MockBroker{}
 	str := stores.NewMockStore("whatever", "argo_mgs")
+	mgr := push.Manager{}
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapConfig(SubDelete, cfgKafka, &brk, str))
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapConfig(SubDelete, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -173,7 +178,8 @@ func (suite *HandlerTestSuite) TestSubListOne() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapConfig(SubListOne, cfgKafka, &brk, str))
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapConfig(SubListOne, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -228,8 +234,9 @@ func (suite *HandlerTestSuite) TestSubListAll() {
 	brk := brokers.MockBroker{}
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
+	mgr := push.Manager{}
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/subscriptions", WrapConfig(SubListAll, cfgKafka, &brk, str))
+	router.HandleFunc("/v1/projects/{project}/subscriptions", WrapConfig(SubListAll, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -251,7 +258,8 @@ func (suite *HandlerTestSuite) TestTopicDelete() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapConfig(TopicDelete, cfgKafka, &brk, str))
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapConfig(TopicDelete, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -277,7 +285,8 @@ func (suite *HandlerTestSuite) TestSubDeleteNotfound() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapConfig(SubDelete, cfgKafka, &brk, str))
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapConfig(SubDelete, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(404, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -305,7 +314,8 @@ func (suite *HandlerTestSuite) TestTopicDeleteNotfound() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapConfig(TopicDelete, cfgKafka, &brk, str))
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapConfig(TopicDelete, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(404, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -329,7 +339,9 @@ func (suite *HandlerTestSuite) TestTopicCreate() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapConfig(TopicCreate, cfgKafka, &brk, str))
+	mgr := push.Manager{}
+
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapConfig(TopicCreate, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -356,7 +368,8 @@ func (suite *HandlerTestSuite) TestTopicCreateExists() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapConfig(TopicCreate, cfgKafka, &brk, str))
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapConfig(TopicCreate, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(409, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -379,7 +392,8 @@ func (suite *HandlerTestSuite) TestTopicListOne() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapConfig(TopicListOne, cfgKafka, &brk, str))
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapConfig(TopicListOne, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -412,7 +426,8 @@ func (suite *HandlerTestSuite) TestTopicListAll() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/topics", WrapConfig(TopicListAll, cfgKafka, &brk, str))
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/topics", WrapConfig(TopicListAll, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -452,7 +467,8 @@ func (suite *HandlerTestSuite) TestPublish() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapConfig(TopicPublish, cfgKafka, &brk, str))
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapConfig(TopicPublish, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expJSON, w.Body.String())
@@ -513,7 +529,8 @@ func (suite *HandlerTestSuite) TestPublishMultiple() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapConfig(TopicPublish, cfgKafka, &brk, str))
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapConfig(TopicPublish, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expJSON, w.Body.String())
@@ -561,7 +578,8 @@ func (suite *HandlerTestSuite) TestPublishError() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapConfig(TopicPublish, cfgKafka, &brk, str))
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapConfig(TopicPublish, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(400, w.Code)
 	suite.Equal(expJSON, w.Body.String())
@@ -612,7 +630,8 @@ func (suite *HandlerTestSuite) TestPublishNoTopic() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapConfig(TopicPublish, cfgKafka, &brk, str))
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapConfig(TopicPublish, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(404, w.Code)
 	suite.Equal(expJSON, w.Body.String())
@@ -657,7 +676,8 @@ func (suite *HandlerTestSuite) TestSubPullOne() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:pull", WrapConfig(SubPull, cfgKafka, &brk, str))
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:pull", WrapConfig(SubPull, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expJSON, w.Body.String())
@@ -708,7 +728,8 @@ func (suite *HandlerTestSuite) TestSubAck() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:acknowledge", WrapConfig(SubAck, cfgKafka, &brk, str))
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:acknowledge", WrapConfig(SubAck, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(400, w.Code)
 	suite.Equal(expJSON1, w.Body.String())
@@ -723,7 +744,8 @@ func (suite *HandlerTestSuite) TestSubAck() {
 	req2, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(postJSON2)))
 	router2 := mux.NewRouter().StrictSlash(true)
 	w2 := httptest.NewRecorder()
-	router2.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:acknowledge", WrapConfig(SubAck, cfgKafka, &brk, str))
+	mgr = push.Manager{}
+	router2.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:acknowledge", WrapConfig(SubAck, cfgKafka, &brk, str, &mgr))
 	router2.ServeHTTP(w2, req2)
 	suite.Equal(200, w2.Code)
 	suite.Equal("{}", w2.Body.String())
@@ -737,7 +759,8 @@ func (suite *HandlerTestSuite) TestSubAck() {
 	req3, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(postJSON3)))
 	router3 := mux.NewRouter().StrictSlash(true)
 	w3 := httptest.NewRecorder()
-	router3.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:acknowledge", WrapConfig(SubAck, cfgKafka, &brk, str))
+	mgr = push.Manager{}
+	router3.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:acknowledge", WrapConfig(SubAck, cfgKafka, &brk, str, &mgr))
 	router3.ServeHTTP(w3, req3)
 	suite.Equal(408, w3.Code)
 	suite.Equal(expJSON2, w3.Body.String())
@@ -771,7 +794,8 @@ func (suite *HandlerTestSuite) TestSubError() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:pull", WrapConfig(SubPull, cfgKafka, &brk, str))
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:pull", WrapConfig(SubPull, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(404, w.Code)
 	suite.Equal(expJSON, w.Body.String())
@@ -844,7 +868,8 @@ func (suite *HandlerTestSuite) TestSubPullAll() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:pull", WrapConfig(SubPull, cfgKafka, &brk, str))
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:pull", WrapConfig(SubPull, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expJSON, w.Body.String())
@@ -898,7 +923,8 @@ func (suite *HandlerTestSuite) TestValidationInSubs() {
 		w := httptest.NewRecorder()
 		req, err := http.NewRequest("GET", url, bytes.NewBuffer([]byte("")))
 		router := mux.NewRouter().StrictSlash(true)
-		router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapValidate(WrapConfig(SubListOne, cfgKafka, &brk, str)))
+		mgr := push.Manager{}
+		router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapValidate(WrapConfig(SubListOne, cfgKafka, &brk, str, &mgr)))
 
 		if err != nil {
 			log.Fatal(err)
@@ -970,7 +996,8 @@ func (suite *HandlerTestSuite) TestValidationInTopics() {
 		w := httptest.NewRecorder()
 		req, err := http.NewRequest("GET", url, bytes.NewBuffer([]byte("")))
 		router := mux.NewRouter().StrictSlash(true)
-		router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapValidate(WrapConfig(TopicListOne, cfgKafka, &brk, str)))
+		mgr := push.Manager{}
+		router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapValidate(WrapConfig(TopicListOne, cfgKafka, &brk, str, &mgr)))
 
 		if err != nil {
 			log.Fatal(err)

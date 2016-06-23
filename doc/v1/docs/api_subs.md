@@ -12,7 +12,7 @@ This request creates a new subscription in a project with a PUT request
 
 ### Example request
 ```json
-curl -X PUT -H "Content-Type: application/json"  -d 'PUTBODY' 
+curl -X PUT -H "Content-Type: application/json"  -d 'PUTBODY'
 	" https://{URL}/v1/projects/EGI/subscriptions/alert_engine ?key=S3CR3T"`
 ```
 
@@ -50,7 +50,7 @@ This request lists all subscriptions  in a project with a GET  request
 
 ### Example request
 ```json
-curl -X PUT -H "Content-Type: application/json" 
+curl -X PUT -H "Content-Type: application/json"
   -d '' " https://{URL}/v1/projects/EGI/subscriptions/?key=S3CR3T"
 ```
 
@@ -99,7 +99,45 @@ Code: `200 OK`, Empty response if successful.
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
 
+## [POST] Modify Push Configuration
+This request modifies the push configuration of a subscription
 
+### Request
+`POST /v1/projects/{project_name}/subscriptions/{subscription_name}:modifyPushConfig`
+
+### Post body:
+```json
+{
+  "pushConfig": {"pushEndpoint": ""}
+}
+```
+
+### Where
+- Project_name: Name of the project
+- subscription_name: The subscription name to consume
+- pushConfig: configuration including pushEndpoint for the remote endpoint to receive the messages
+
+
+### Example request
+
+`curl -X POST -H "Content-Type: application/json"  
+-d POSTDATA http://{URL}/v1/projects/EGI/subscriptions/alert_engine:modifyPushConfig?key=S3CR3T"
+```
+
+### post body:
+```json
+{
+  "pushConfig": {"pushEndpoint": "host:example.com:8080/path/to/hook"}
+}
+```
+
+### Responses  
+
+Success Response
+Code: `200 OK`, Empty response if successful.
+
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors
 
 ## [POST] Pull messages from a subscription (Consume)
 
@@ -124,7 +162,7 @@ This request consumes messages from a subscription in a project with a POST requ
 ### Example request
 
 ```json
-curl -X POST -H "Content-Type: application/json" 
+curl -X POST -H "Content-Type: application/json"
   -d POSTDATA https://{URL}/v1/projects/EGI/subscriptions/alert_engine:pull?key=S3CR3T"
 ```
 
