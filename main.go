@@ -5,11 +5,21 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
+	"github.com/ARGOeu/argo-messaging/push"
 	"github.com/ARGOeu/argo-messaging/stores"
 )
+
+func testPushers(mgr *push.Manager) {
+	time.Sleep(5 * time.Second)
+	mgr.Stop("ARGO/sub1")
+	time.Sleep(5 * time.Second)
+	mgr.Shoutout()
+	panic("examine traces")
+}
 
 func main() {
 	// create and load configuration object

@@ -87,12 +87,14 @@ func (mk *MockStore) Initialize() {
 	mk.TopicList = append(mk.TopicList, qtop3)
 
 	// populate Subscriptions
-	qsub1 := QSub{"ARGO", "sub1", "topic1", 0, 0, "", 10}
-	qsub2 := QSub{"ARGO", "sub2", "topic2", 0, 0, "", 10}
-	qsub3 := QSub{"ARGO", "sub3", "topic3", 0, 0, "", 10}
+	qsub1 := QSub{"ARGO", "sub1", "topic1", 0, 0, "", "", 10}
+	qsub2 := QSub{"ARGO", "sub2", "topic2", 0, 0, "", "", 10}
+	qsub3 := QSub{"ARGO", "sub3", "topic3", 0, 0, "", "", 10}
+	qsub4 := QSub{"ARGO", "sub4", "topic4", 0, 0, "", "endpoint.foo", 10}
 	mk.SubList = append(mk.SubList, qsub1)
 	mk.SubList = append(mk.SubList, qsub2)
 	mk.SubList = append(mk.SubList, qsub3)
+	mk.SubList = append(mk.SubList, qsub4)
 
 	// populate Projects
 	qPr := QProject{"ARGO"}
@@ -107,6 +109,17 @@ func (mk *MockStore) Initialize() {
 	mk.RoleList = append(mk.RoleList, qRole1)
 	mk.RoleList = append(mk.RoleList, qRole2)
 
+}
+
+// QueryOneSub returns one sub exactly
+func (mk *MockStore) QueryOneSub(project string, sub string) (QSub, error) {
+	for _, item := range mk.SubList {
+		if item.Name == sub && item.Project == project {
+			return item, nil
+		}
+	}
+
+	return QSub{}, errors.New("empty")
 }
 
 // Clone the store
@@ -165,7 +178,7 @@ func (mk *MockStore) InsertTopic(project string, name string) error {
 
 // InsertSub inserts a new sub object to the store
 func (mk *MockStore) InsertSub(project string, name string, topic string, offset int64, ack int) error {
-	sub := QSub{project, name, topic, offset, 0, "", ack}
+	sub := QSub{project, name, topic, offset, 0, "", "", ack}
 	mk.SubList = append(mk.SubList, sub)
 	return nil
 }

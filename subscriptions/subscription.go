@@ -95,8 +95,28 @@ func (sl *Subscriptions) LoadFromStore(store stores.Store) {
 		curSub.Offset = item.Offset
 		curSub.NextOffset = item.NextOffset
 		curSub.Ack = item.Ack
+		curSub.PushCfg = PushConfig{item.PushEndpoint}
+
 		sl.List = append(sl.List, curSub)
 	}
+
+}
+
+// LoadOne loads one subscription
+func (sl *Subscriptions) LoadOne(project string, subname string, store stores.Store) error {
+	defer store.Close()
+	sl.List = []Subscription{}
+	sub, err := store.QueryOneSub(project, subname)
+	if err != nil {
+		return errors.New("not found")
+	}
+	curSub := New(sub.Project, sub.Name, sub.Topic)
+	curSub.Offset = sub.Offset
+	curSub.NextOffset = sub.NextOffset
+	curSub.Ack = sub.Ack
+	curSub.PushCfg = PushConfig{sub.PushEndpoint}
+	sl.List = append(sl.List, curSub)
+	return nil
 
 }
 

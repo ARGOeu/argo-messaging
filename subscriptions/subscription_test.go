@@ -69,10 +69,13 @@ func (suite *SubTestSuite) TestGetSubsByProject() {
 	expSub1 := New("ARGO", "sub1", "topic1")
 	expSub2 := New("ARGO", "sub2", "topic2")
 	expSub3 := New("ARGO", "sub3", "topic3")
+	expSub4 := New("ARGO", "sub4", "topic4")
+	expSub4.PushCfg = PushConfig{"endpoint.foo"}
 	expSubs := Subscriptions{}
 	expSubs.List = append(expSubs.List, expSub1)
 	expSubs.List = append(expSubs.List, expSub2)
 	expSubs.List = append(expSubs.List, expSub3)
+	expSubs.List = append(expSubs.List, expSub4)
 	suite.Equal(expSubs, result)
 }
 
@@ -85,10 +88,13 @@ func (suite *SubTestSuite) TestLoadFromCfg() {
 	expSub1 := New("ARGO", "sub1", "topic1")
 	expSub2 := New("ARGO", "sub2", "topic2")
 	expSub3 := New("ARGO", "sub3", "topic3")
+	expSub4 := New("ARGO", "sub4", "topic4")
+	expSub4.PushCfg = PushConfig{"endpoint.foo"}
 	expSubs := Subscriptions{}
 	expSubs.List = append(expSubs.List, expSub1)
 	expSubs.List = append(expSubs.List, expSub2)
 	expSubs.List = append(expSubs.List, expSub3)
+	expSubs.List = append(expSubs.List, expSub4)
 	suite.Equal(expSubs, mySubs)
 
 }
@@ -193,6 +199,14 @@ func (suite *SubTestSuite) TestExportJson() {
          "topic": "/projects/ARGO/topics/topic3",
          "pushConfig": {
             "pushEndpoint": ""
+         },
+         "ackDeadlineSeconds": 10
+      },
+      {
+         "name": "/projects/ARGO/subscriptions/sub4",
+         "topic": "/projects/ARGO/topics/topic4",
+         "pushConfig": {
+            "pushEndpoint": "endpoint.foo"
          },
          "ackDeadlineSeconds": 10
       }

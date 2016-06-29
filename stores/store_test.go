@@ -20,9 +20,10 @@ func (suite *StoreTestSuite) TestMockStore() {
 		QTopic{"ARGO", "topic2"},
 		QTopic{"ARGO", "topic3"}}
 
-	eSubList := []QSub{QSub{"ARGO", "sub1", "topic1", 0, 0, "", 10},
-		QSub{"ARGO", "sub2", "topic2", 0, 0, "", 10},
-		QSub{"ARGO", "sub3", "topic3", 0, 0, "", 10}}
+	eSubList := []QSub{QSub{"ARGO", "sub1", "topic1", 0, 0, "", "", 10},
+		QSub{"ARGO", "sub2", "topic2", 0, 0, "", "", 10},
+		QSub{"ARGO", "sub3", "topic3", 0, 0, "", "", 10},
+		QSub{"ARGO", "sub4", "topic4", 0, 0, "", "endpoint.foo", 10}}
 
 	suite.Equal(eTopList, store.QueryTopics())
 	suite.Equal(eSubList, store.QuerySubs())
@@ -53,10 +54,11 @@ func (suite *StoreTestSuite) TestMockStore() {
 		QTopic{"ARGO", "topic3"},
 		QTopic{"ARGO", "topicFresh"}}
 
-	eSubList2 := []QSub{QSub{"ARGO", "sub1", "topic1", 0, 0, "", 10},
-		QSub{"ARGO", "sub2", "topic2", 0, 0, "", 10},
-		QSub{"ARGO", "sub3", "topic3", 0, 0, "", 10},
-		QSub{"ARGO", "subFresh", "topicFresh", 0, 0, "", 10}}
+	eSubList2 := []QSub{QSub{"ARGO", "sub1", "topic1", 0, 0, "", "", 10},
+		QSub{"ARGO", "sub2", "topic2", 0, 0, "", "", 10},
+		QSub{"ARGO", "sub3", "topic3", 0, 0, "", "", 10},
+		QSub{"ARGO", "sub4", "topic4", 0, 0, "", "endpoint.foo", 10},
+		QSub{"ARGO", "subFresh", "topicFresh", 0, 0, "", "", 10}}
 
 	suite.Equal(eTopList2, store.QueryTopics())
 	suite.Equal(eSubList2, store.QuerySubs())
@@ -75,6 +77,8 @@ func (suite *StoreTestSuite) TestMockStore() {
 	err = store.RemoveSub("ARGO", "subFresh")
 	suite.Equal("not found", err.Error())
 
+	sb, err := store.QueryOneSub("ARGO", "sub1")
+	suite.Equal(sb, eSubList[0])
 }
 
 func TestStoresTestSuite(t *testing.T) {

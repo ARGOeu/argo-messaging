@@ -211,6 +211,14 @@ func (suite *HandlerTestSuite) TestSubListAll() {
             "pushEndpoint": ""
          },
          "ackDeadlineSeconds": 10
+      },
+      {
+         "name": "/projects/ARGO/subscriptions/sub4",
+         "topic": "/projects/ARGO/topics/topic4",
+         "pushConfig": {
+            "pushEndpoint": "endpoint.foo"
+         },
+         "ackDeadlineSeconds": 10
       }
    ]
 }`

@@ -104,6 +104,7 @@ func (b *KafkaBroker) Consume(topic string, offset int64) []string {
 
 	// Fetch offset
 	loff, err := b.Client.GetOffset(topic, 0, sarama.OffsetNewest)
+	log.Println("tryiing topic:", topic)
 	if err != nil {
 		panic(err)
 	}

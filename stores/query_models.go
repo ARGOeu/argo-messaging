@@ -2,13 +2,14 @@ package stores
 
 // QSub are the results of the Qsub query
 type QSub struct {
-	Project    string `bson:"project"`
-	Name       string `bson:"name"`
-	Topic      string `bson:"topic"`
-	Offset     int64  `bson:"offset"`
-	NextOffset int64  `bson:"next_offset"`
-	PendingAck string `bson:"pending_ack"`
-	Ack        int    `bson:"ack"`
+	Project      string `bson:"project"`
+	Name         string `bson:"name"`
+	Topic        string `bson:"topic"`
+	Offset       int64  `bson:"offset"`
+	NextOffset   int64  `bson:"next_offset"`
+	PendingAck   string `bson:"pending_ack"`
+	PushEndpoint string `bson:"push_endpoint"`
+	Ack          int    `bson:"ack"`
 }
 
 // QUser are the results of the QUser query
