@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
@@ -13,28 +12,25 @@ import (
 	"github.com/ARGOeu/argo-messaging/stores"
 )
 
-func testPushers(mgr *push.Manager) {
-	time.Sleep(5 * time.Second)
-	mgr.Stop("ARGO/sub1")
-	time.Sleep(5 * time.Second)
-	mgr.Shoutout()
-	panic("examine traces")
-}
-
 func main() {
 	// create and load configuration object
 	cfg := config.NewAPICfg("LOAD")
-
-	// create and initialize broker based on configuration
-	broker := brokers.NewKafkaBroker(cfg.BrokerHosts)
-	defer broker.CloseConnections()
 
 	// create the store
 	store := stores.NewMongoStore(cfg.StoreHost, cfg.StoreDB)
 	store.Initialize()
 
+	// create and initialize broker based on configuration
+	broker := brokers.NewKafkaBroker(cfg.BrokerHosts)
+	defer broker.CloseConnections()
+
+	sndr := push.NewHTTPSender(1)
+
+	mgr := push.NewManager(broker, store, sndr)
+	mgr.LoadPushSubs()
+	mgr.StartAll()
 	// create and initialize API routing object
-	API := NewRouting(cfg, broker, store, defaultRoutes)
+	API := NewRouting(cfg, broker, store, mgr, defaultRoutes)
 
 	//Configure TLS support only
 	config := &tls.Config{

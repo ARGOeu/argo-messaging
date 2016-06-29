@@ -15,6 +15,7 @@ import (
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
 	"github.com/ARGOeu/argo-messaging/messages"
+	"github.com/ARGOeu/argo-messaging/push"
 	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/ARGOeu/argo-messaging/subscriptions"
 	"github.com/ARGOeu/argo-messaging/topics"
@@ -51,14 +52,14 @@ func WrapValidate(hfn http.HandlerFunc) http.HandlerFunc {
 }
 
 // WrapConfig handle wrapper to retrieve kafka configuration
-func WrapConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Broker, str stores.Store) http.HandlerFunc {
+func WrapConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *push.Manager) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		nStr := str.Clone()
 		defer nStr.Close()
 		context.Set(r, "brk", brk)
 		context.Set(r, "str", nStr)
-
+		context.Set(r, "mgr", mgr)
 		hfn.ServeHTTP(w, r)
 
 	})
@@ -334,6 +335,76 @@ func SubDelete(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// SubModPush (PUT) modifies the push configuration
+func SubModPush(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+
+	refMgr := context.Get(r, "mgr").(*push.Manager)
+
+	// Read POST JSON body
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		respondErr(w, 500, "Bad Request body", "BAD_REQUEST")
+		return
+	}
+
+	// Parse pull options
+	postBody, err := subscriptions.GetFromJSON(body)
+	if err != nil {
+		respondErr(w, 400, "Invalid Subscription Arguments", "INVALID_ARGUMENT")
+		return
+	}
+
+	pushEnd := ""
+
+	if postBody.PushCfg != (subscriptions.PushConfig{}) {
+		pushEnd = postBody.PushCfg.Pend
+	}
+
+	// Grab context references
+	refStr := context.Get(r, "str").(stores.Store)
+	// Initialize subs
+	sb := subscriptions.Subscriptions{}
+	sb.LoadFromStore(refStr)
+	// Get Result Object
+	subName := urlVars["subscription"]
+	project := urlVars["project"]
+	err = sb.ModSubPush(project, subName, pushEnd, refStr)
+
+	if err != nil {
+
+		if err.Error() == "not found" {
+			respondErr(w, 404, "Subscription doesn't exist", "NOT_FOUND")
+			return
+		}
+
+		respondErr(w, 500, err.Error(), "INTERNAL")
+		return
+	}
+
+	// According to push cfg set start/stop pushing
+	if pushEnd != "" {
+		refMgr.Add(project, subName)
+		refMgr.Launch(project, subName)
+	} else {
+		refMgr.Stop(project, subName)
+	}
+
+	// Write empty response if anything ok
+	respondOK(w, output)
+
+}
+
 // SubCreate (PUT) creates a new subscription
 func SubCreate(w http.ResponseWriter, r *http.Request) {
 
@@ -351,6 +422,7 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 	// Grab context references
 	refStr := context.Get(r, "str").(stores.Store)
 	refBrk := context.Get(r, "brk").(brokers.Broker)
+	refMgr := context.Get(r, "mgr").(*push.Manager)
 
 	// Initialize Subscriptions
 	sb := subscriptions.Subscriptions{}
@@ -391,8 +463,14 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 	fullTopic := tProject + "." + tName
 	curOff := refBrk.GetOffset(fullTopic)
 
+	pushEnd := ""
+
+	if postBody.PushCfg != (subscriptions.PushConfig{}) {
+		pushEnd = postBody.PushCfg.Pend
+	}
+
 	// Get Result Object
-	res, err := sb.CreateSub(urlVars["project"], urlVars["subscription"], tName, curOff, postBody.Ack, refStr)
+	res, err := sb.CreateSub(urlVars["project"], urlVars["subscription"], tName, pushEnd, curOff, postBody.Ack, refStr)
 
 	if err != nil {
 		if err.Error() == "exists" {
@@ -401,6 +479,12 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 		}
 
 		respondErr(w, 500, err.Error(), "INTERNAL")
+	}
+
+	// Enable pushManager if subscription has pushConfiguration
+	if pushEnd != "" {
+		refMgr.Add(res.Project, res.Name)
+		refMgr.Launch(res.Project, res.Name)
 	}
 
 	// Output result to JSON

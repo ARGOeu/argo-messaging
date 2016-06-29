@@ -223,8 +223,8 @@ func (mong *MongoStore) InsertTopic(project string, name string) error {
 }
 
 // InsertSub inserts a subscription to the store
-func (mong *MongoStore) InsertSub(project string, name string, topic string, offset int64, ack int) error {
-	sub := QSub{project, name, topic, offset, 0, "", "", ack}
+func (mong *MongoStore) InsertSub(project string, name string, topic string, offset int64, ack int, push string) error {
+	sub := QSub{project, name, topic, offset, 0, "", push, ack}
 	return mong.InsertResource("subscriptions", sub)
 }
 
@@ -238,6 +238,15 @@ func (mong *MongoStore) RemoveTopic(project string, name string) error {
 func (mong *MongoStore) RemoveSub(project string, name string) error {
 	sub := bson.M{"project": project, "name": name}
 	return mong.RemoveResource("subscriptions", sub)
+}
+
+// ModSubPush modifies the push configuration
+func (mong *MongoStore) ModSubPush(project string, name string, push string) error {
+	db := mong.Session.DB(mong.Database)
+	c := db.C("subscriptions")
+
+	err := c.Update(bson.M{"project": project, "name": name}, bson.M{"$set": bson.M{"push_endpoint": push}})
+	return err
 }
 
 // InsertResource inserts a new topic object to the datastore
@@ -275,6 +284,20 @@ func (mong *MongoStore) QuerySubs() []QSub {
 	c := db.C("subscriptions")
 	var results []QSub
 	err := c.Find(bson.M{}).All(&results)
+	if err != nil {
+		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
+	}
+	return results
+
+}
+
+// QueryPushSubs retrieves subscriptions that have a push_endpoint defined
+func (mong *MongoStore) QueryPushSubs() []QSub {
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C("subscriptions")
+	var results []QSub
+	err := c.Find(bson.M{"push_endpoint": bson.M{"$ne": nil}}).All(&results)
 	if err != nil {
 		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
 	}

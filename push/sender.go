@@ -3,6 +3,7 @@ package push
 import (
 	"bytes"
 	"errors"
+	"log"
 	"net/http"
 	"time"
 )
@@ -37,14 +38,16 @@ func (hs *HTTPSender) Send(msg string, endpoint string) error {
 	var jsonStr = []byte(msg)
 	req, err := http.NewRequest("POST", endpoint, bytes.NewBuffer(jsonStr))
 	req.Header.Set("Content-Type", "application/json")
+	log.Println("Sending to endpoint:", endpoint)
+	log.Println("message contents:", msg)
 
 	resp, err := hs.Client.Do(req)
-	defer resp.Body.Close()
 
 	if err == nil {
 		if resp.StatusCode != 200 && resp.StatusCode != 201 && resp.StatusCode != 204 && resp.StatusCode != 101 {
 			err = errors.New("not delivered")
 		}
+		log.Println("message Delivered")
 	}
 
 	return err

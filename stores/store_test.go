@@ -47,7 +47,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal(true, store.HasResourceRoles("topics:publish", []string{"publisher"}))
 
 	store.InsertTopic("ARGO", "topicFresh")
-	store.InsertSub("ARGO", "subFresh", "topicFresh", 0, 10)
+	store.InsertSub("ARGO", "subFresh", "topicFresh", 0, 10, "")
 
 	eTopList2 := []QTopic{QTopic{"ARGO", "topic1"},
 		QTopic{"ARGO", "topic2"},

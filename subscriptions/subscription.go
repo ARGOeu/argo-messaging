@@ -102,6 +102,23 @@ func (sl *Subscriptions) LoadFromStore(store stores.Store) {
 
 }
 
+// LoadPushSubs returns all subscriptions defined in store that have a push configuration
+func (sl *Subscriptions) LoadPushSubs(store stores.Store) {
+	defer store.Close()
+	sl.List = []Subscription{}
+	subs := store.QueryPushSubs()
+	for _, item := range subs {
+		curSub := New(item.Project, item.Name, item.Topic)
+		curSub.Offset = item.Offset
+		curSub.NextOffset = item.NextOffset
+		curSub.Ack = item.Ack
+		curSub.PushCfg = PushConfig{item.PushEndpoint}
+
+		sl.List = append(sl.List, curSub)
+	}
+
+}
+
 // LoadOne loads one subscription
 func (sl *Subscriptions) LoadOne(project string, subname string, store stores.Store) error {
 	defer store.Close()
@@ -121,7 +138,7 @@ func (sl *Subscriptions) LoadOne(project string, subname string, store stores.St
 }
 
 // CreateSub creates a new subscription
-func (sl *Subscriptions) CreateSub(project string, name string, topic string, offset int64, ack int, store stores.Store) (Subscription, error) {
+func (sl *Subscriptions) CreateSub(project string, name string, topic string, push string, offset int64, ack int, store stores.Store) (Subscription, error) {
 
 	if sl.HasSub(project, name) {
 		return Subscription{}, errors.New("exists")
@@ -132,9 +149,19 @@ func (sl *Subscriptions) CreateSub(project string, name string, topic string, of
 	if ack == 0 {
 		ack = 10
 	}
-	err := store.InsertSub(project, name, topic, offset, ack)
+	err := store.InsertSub(project, name, topic, offset, ack, push)
 
 	return subNew, err
+}
+
+// ModSubPush updates the subscription push config
+func (sl *Subscriptions) ModSubPush(project string, name string, push string, store stores.Store) error {
+
+	if sl.HasSub(project, name) == false {
+		return errors.New("not found")
+	}
+
+	return store.ModSubPush(project, name, push)
 }
 
 // RemoveSub removes an existing subscription

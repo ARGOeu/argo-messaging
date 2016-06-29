@@ -37,6 +37,11 @@ func (mk *MockStore) UpdateSubOffset(name string, offset int64) {
 
 }
 
+// ModSubPush modifies the subscription ack
+func (mk *MockStore) ModSubPush(project string, name string, push string) error {
+	return nil
+}
+
 // UpdateSubOffsetAck updates the offset of the current subscription
 func (mk *MockStore) UpdateSubOffsetAck(name string, offset int64, ts string) error {
 	// find sub
@@ -177,8 +182,8 @@ func (mk *MockStore) InsertTopic(project string, name string) error {
 }
 
 // InsertSub inserts a new sub object to the store
-func (mk *MockStore) InsertSub(project string, name string, topic string, offset int64, ack int) error {
-	sub := QSub{project, name, topic, offset, 0, "", "", ack}
+func (mk *MockStore) InsertSub(project string, name string, topic string, offset int64, ack int, push string) error {
+	sub := QSub{project, name, topic, offset, 0, "", push, ack}
 	mk.SubList = append(mk.SubList, sub)
 	return nil
 }
@@ -207,6 +212,11 @@ func (mk *MockStore) RemoveSub(project string, name string) error {
 	}
 
 	return errors.New("not found")
+}
+
+// QueryPushSubs Query push Subscription info from store
+func (mk *MockStore) QueryPushSubs() []QSub {
+	return mk.SubList
 }
 
 // QuerySubs Query Subscription info from store
