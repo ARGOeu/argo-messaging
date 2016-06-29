@@ -255,9 +255,9 @@ paths:
 
   /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}:modifyPushConfig:
     post:
-      summary: Acknowledge the succesfull delivery of pulled messages
+      summary: Modify the push configuration options of the subscription
       description: |
-        Use ackId to inform the api that the messages have been correctly received
+        Updating push configuration with push endpoint information results into changing the subscription to push mode. Updating push configuration to be empty results into changing the subscription to pull mode
       parameters:
         - name: PROJECT
           in: path
@@ -269,12 +269,12 @@ paths:
           description: Name of the subscription
           required: true
           type: string
-        - name: Ack Options
+        - name: Push Configuration Options
           in: body
           description: Parameters to be used during acknowledgement
           required: true
           schema:
-           $ref: '#/definitions/PushConfig'
+           $ref: '#/definitions/PushConfigRef'
       tags:
         - Subscriptions
       responses:
@@ -546,6 +546,11 @@ definitions:
       ackDeadlineSeconds:
         type: integer
         description: maximum wait time in seconds for Acknowledgement
+  PushConfigRef:
+    type: object
+    properties:
+      pushConfig:
+         $ref: '#/definitions/PushConfig'
   PushConfig:
     type: object
     properties:
