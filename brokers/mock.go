@@ -9,12 +9,10 @@ type MockBroker struct {
 func (b *MockBroker) PopulateOne() {
 	msg1 := `{
   "messageId": "0",
-  "attributes": [
+  "attributes":
     {
-      "key": "foo",
-      "value": "bar"
-    }
-  ],
+      "foo":"bar"
+    },
   "data": "YmFzZTY0ZW5jb2RlZA==",
   "publishTime": "2016-02-24T11:55:09.786127994Z"
 }`
@@ -28,36 +26,30 @@ func (b *MockBroker) PopulateOne() {
 func (b *MockBroker) PopulateThree() {
 	msg1 := `{
   "messageId": "0",
-  "attributes": [
+  "attributes":
     {
-      "key": "foo",
-      "value": "bar"
-    }
-  ],
+      "foo":"bar"
+    },
   "data": "YmFzZTY0ZW5jb2RlZA==",
   "publishTime": "2016-02-24T11:55:09.786127994Z"
 }`
 
 	msg2 := `{
   "messageId": "1",
-  "attributes": [
+  "attributes":
     {
-      "key": "foo2",
-      "value": "bar2"
-    }
-  ],
+    	"foo2":"bar2"
+    },
   "data": "YmFzZTY0ZW5jb2RlZA==",
   "publishTime": "2016-02-24T11:55:09.827678754Z"
 }`
 
 	msg3 := `{
   "messageId": "2",
-  "attributes": [
+  "attributes":
     {
-      "key": "foo2",
-      "value": "bar2"
-    }
-  ],
+      "foo2":"bar2"
+    },
   "data": "YmFzZTY0ZW5jb2RlZA==",
   "publishTime": "2016-02-24T11:55:09.830417467Z"
 }`

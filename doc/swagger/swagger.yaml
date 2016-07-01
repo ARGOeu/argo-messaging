@@ -563,20 +563,13 @@ definitions:
       name:
         type: string
         description: Name of the topic
-  Attribute:
-    type: object
-    properties:
-      key:
-        type: string
-      value:
-        type: string
+
   Message:
     type: object
     properties:
       attributes:
-        type: array
-        items:
-          $ref: '#/definitions/Attribute'
+        type: object
+
       data:
         type: string
         description: Message payload in Base64 encoding"
@@ -604,10 +597,9 @@ definitions:
             type: string
             description: id of the message
           attributes:
-            type: array
+            type: object
             description: key/value dictionary accompanying the message
-            items:
-              $ref: '#/definitions/Attribute'
+
           data:
             type: string
             description: base64 encoding of the message payload

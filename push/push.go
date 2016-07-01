@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ARGOeu/argo-messaging/brokers"
+	"github.com/ARGOeu/argo-messaging/messages"
 	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/ARGOeu/argo-messaging/subscriptions"
 )
@@ -75,7 +76,13 @@ func (p *Pusher) push(brk brokers.Broker, store stores.Store) {
 	fullTopic := p.sub.Project + "." + p.sub.Topic
 	msgs := brk.Consume(fullTopic, p.sub.Offset)
 	if len(msgs) > 0 {
-		err := p.sndr.Send(msgs[0], p.endpoint)
+		// Generate push message template
+		pMsg := messages.PushMsg{}
+
+		pMsg.Msg, _ = messages.LoadMsgJSON([]byte(msgs[0]))
+		pMsg.Sub = p.sub.FullName
+		pMsgJSON, _ := pMsg.ExportJSON()
+		err := p.sndr.Send(pMsgJSON, p.endpoint)
 
 		if err == nil {
 			// Advance the offset
