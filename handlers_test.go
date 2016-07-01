@@ -439,12 +439,11 @@ func (suite *HandlerTestSuite) TestPublish() {
 	postJSON := `{
   "messages": [
     {
-      "attributes": [
+      "attributes":
         {
-          "key": "foo",
-          "value": "bar"
+         "foo":"bar"
         }
-      ],
+      ,
       "data": "YmFzZTY0ZW5jb2RlZA=="
     }
   ]
@@ -480,30 +479,27 @@ func (suite *HandlerTestSuite) TestPublishMultiple() {
 	postJSON := `{
   "messages": [
     {
-      "attributes": [
+      "attributes":
         {
-          "key": "foo",
-          "value": "bar"
+          "foo":"bar"
         }
-      ],
+      ,
       "data": "YmFzZTY0ZW5jb2RlZA=="
     },
     {
-      "attributes": [
+      "attributes":
         {
-          "key": "foo2",
-          "value": "bar2"
+      		"foo2":"bar2"
         }
-      ],
+      ,
       "data": "YmFzZTY0ZW5jb2RlZA=="
     },
     {
-      "attributes": [
+      "attributes":
         {
-          "key": "foo2",
-          "value": "bar2"
+          "foo2":"bar2"
         }
-      ],
+      ,
       "data": "YmFzZTY0ZW5jb2RlZA=="
     }
   ]
@@ -655,12 +651,9 @@ func (suite *HandlerTestSuite) TestSubPullOne() {
          "ackId": "projects/ARGO/subscriptions/sub1:0",
          "message": {
             "messageId": "0",
-            "attributes": [
-               {
-                  "key": "foo",
-                  "value": "bar"
-               }
-            ],
+            "attributes": {
+               "foo": "bar"
+            },
             "data": "YmFzZTY0ZW5jb2RlZA==",
             "publishTime": "2016-02-24T11:55:09.786127994Z"
          }
@@ -819,12 +812,9 @@ func (suite *HandlerTestSuite) TestSubPullAll() {
          "ackId": "projects/ARGO/subscriptions/sub1:0",
          "message": {
             "messageId": "0",
-            "attributes": [
-               {
-                  "key": "foo",
-                  "value": "bar"
-               }
-            ],
+            "attributes": {
+               "foo": "bar"
+            },
             "data": "YmFzZTY0ZW5jb2RlZA==",
             "publishTime": "2016-02-24T11:55:09.786127994Z"
          }
@@ -833,12 +823,9 @@ func (suite *HandlerTestSuite) TestSubPullAll() {
          "ackId": "projects/ARGO/subscriptions/sub1:1",
          "message": {
             "messageId": "1",
-            "attributes": [
-               {
-                  "key": "foo2",
-                  "value": "bar2"
-               }
-            ],
+            "attributes": {
+               "foo2": "bar2"
+            },
             "data": "YmFzZTY0ZW5jb2RlZA==",
             "publishTime": "2016-02-24T11:55:09.827678754Z"
          }
@@ -847,12 +834,9 @@ func (suite *HandlerTestSuite) TestSubPullAll() {
          "ackId": "projects/ARGO/subscriptions/sub1:2",
          "message": {
             "messageId": "2",
-            "attributes": [
-               {
-                  "key": "foo2",
-                  "value": "bar2"
-               }
-            ],
+            "attributes": {
+               "foo2": "bar2"
+            },
             "data": "YmFzZTY0ZW5jb2RlZA==",
             "publishTime": "2016-02-24T11:55:09.830417467Z"
          }

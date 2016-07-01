@@ -3,6 +3,7 @@ package messages
 import (
 	b64 "encoding/base64"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/ARGOeu/argo-messaging/Godeps/_workspace/src/github.com/stretchr/testify/suite"
@@ -26,7 +27,7 @@ func (suite *MsgTestSuite) TestAttributes() {
 
 	testMsg.InsertAttribute("bruce", "wayne")
 	testMsg.InsertAttribute("clark", "kent")
-	expAttr := []Attribute{{Key: "bruce", Value: "wayne"}, {Key: "clark", Value: "kent"}}
+	expAttr := Attributes{"bruce": "wayne", "clark": "kent"}
 	suite.Equal(expAttr, testMsg.Attr)
 	// Test GetAttribute
 	val1, err1 := testMsg.GetAttribute("clark")
@@ -54,41 +55,28 @@ func (suite *MsgTestSuite) TestAttributes() {
 func (suite *MsgTestSuite) TestLoadMsgJson() {
 	txtJSON := `{
    "messageId": "35",
-   "attributes": [
-     {
-       "key": "tick",
-       "value": "tock"
-     },
-     {
-       "key": "flip",
-       "value": "flop"
-     }
-   ],
+   "attributes": {"tick":"tock","flip":"flop"},
    "data": "aGVsbG8gd29ybGQh"
  }`
 
 	testMsg, err := LoadMsgJSON([]byte(txtJSON))
 	suite.Equal(nil, err)
 	suite.Equal("35", testMsg.ID)
-	expAttr := []Attribute{{Key: "tick", Value: "tock"}, {Key: "flip", Value: "flop"}}
+	expAttr := Attributes{"tick": "tock", "flip": "flop"}
 	suite.Equal(expAttr, testMsg.Attr)
 	suite.Equal("aGVsbG8gd29ybGQh", testMsg.Data)
+
+	fmt.Println(testMsg.Data)
 
 }
 
 func (suite *MsgTestSuite) TestExportJson() {
 	expJSON := `{
    "messageId": "0",
-   "attributes": [
-      {
-         "key": "foo",
-         "value": "bar"
-      },
-      {
-         "key": "color",
-         "value": "blue"
-      }
-   ],
+   "attributes": {
+      "color": "blue",
+      "foo": "bar"
+   },
    "data": "aGVsbG8gd29ybGQh"
 }`
 
@@ -100,6 +88,7 @@ func (suite *MsgTestSuite) TestExportJson() {
 	outJSON, err := testMsg.ExportJSON()
 	suite.Equal(nil, err)
 	suite.Equal(expJSON, outJSON)
+	fmt.Println(outJSON)
 
 }
 

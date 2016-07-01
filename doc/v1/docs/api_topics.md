@@ -12,7 +12,7 @@ This request creates a new topic in a project with a PUT request
 
 ### Example request
 ```json
-curl -X PUT -H "Content-Type: application/json" 
+curl -X PUT -H "Content-Type: application/json"
  -d '' " https://{URL}/v1/projects/EGI/topics/monitoring?key=S3CR3T"`
 ```
 
@@ -138,16 +138,11 @@ The topic:publish endpoint publishes a message, or a list of messages to a speci
 {
 "messages": [
  	{
-  		"attributes": [
-   		{
-    			"key": "infrastructure",
-    			"value": "testing"
-   		},
-   		{
-"key": "description",
-	  		"value":"this message is used for testing purposes"
+  		"attributes": {
+        "attr1":"test1",
+        "attr2":"test2"
    		}
-  	],
+  	,
  "data":"U28geW91IHdlbnQgYWhlYWQgYW5kIGRlY29kZWQgdGhpcywgeW91IGNvdWxkbid0IHJlc2lzdCBlaCA/"
 
  	}

@@ -1,9 +1,12 @@
 package messages
 
 import (
+	"bytes"
 	b64 "encoding/base64"
 	"encoding/json"
 	"errors"
+	"sort"
+	"strings"
 )
 
 // RecMsg holds info for a received message
@@ -24,10 +27,16 @@ type MsgList struct {
 
 // Message struct used to hold message information
 type Message struct {
-	ID      string      `json:"messageId,omitempty"`
-	Attr    []Attribute `json:"attributes,omitempty"`  // used to hold attribute key/value store
-	Data    string      `json:"data"`                  // base64 encoded data payload
-	PubTime string      `json:"publishTime,omitempty"` // publish timedate of message
+	ID      string     `json:"messageId,omitempty"`
+	Attr    Attributes `json:"attributes,omitempty"`  // used to hold attribute key/value store
+	Data    string     `json:"data"`                  // base64 encoded data payload
+	PubTime string     `json:"publishTime,omitempty"` // publish timedate of message
+}
+
+// PushMsg contains structure for push messages
+type PushMsg struct {
+	Msg Message `json:"message"`
+	Sub string  `json:"subscription"`
 }
 
 // MsgIDs utility struct
@@ -35,18 +44,47 @@ type MsgIDs struct {
 	IDs []string `json:"messageIds"`
 }
 
-// Attribute representation as key/value
-type Attribute struct {
-	Key   string `json:"key"`
-	Value string `json:"value"`
+// Attributes representation as key/value
+type Attributes map[string]string
+
+// MarshalJSON generates json string for Attributes type
+func (attr Attributes) MarshalJSON() ([]byte, error) {
+	var buff bytes.Buffer
+
+	// sort attribute keys
+	keys := make([]string, len(attr))
+	i := 0
+	for key := range attr {
+		keys[i] = key
+		i++
+	}
+	sort.Strings(keys)
+
+	// iterate over sorted keys and marshal to json
+	buff.WriteString("{")
+	for i, key := range keys {
+		if i != 0 {
+			buff.WriteString(", ")
+		}
+		buff.WriteString(strings.Join([]string{"\"", key, "\":\"", attr[key], "\""}, ""))
+	}
+
+	buff.WriteString("}")
+
+	return buff.Bytes(), nil
 }
+
+// type Attribute struct {
+// 	Key   string `json:"key"`
+// 	Value string `json:"value"`
+// }
 
 // Construct functions
 //////////////////////
 
 // New creates a new Message based on data string provided
 func New(data string) Message {
-	msg := Message{ID: "0", Attr: []Attribute{}, Data: data}
+	msg := Message{ID: "0", Attr: make(map[string]string), Data: data}
 
 	return msg
 }
@@ -74,36 +112,36 @@ func (msg *Message) GetDecoded() string {
 	return string(decoded[:])
 }
 
-// AttrExists checks if an attribute exists based on key. Returns also the index
-// of the attribute item in Attributes slice
-func (msg *Message) AttrExists(key string) (int, string) {
+// AttrExists checks if an attribute exists based on key. Returns also a boolean
+// if the attribute exists
+func (msg *Message) AttrExists(key string) (bool, string) {
 
-	for i, a := range msg.Attr {
-		if a.Key == key {
-			return i, a.Value
+	for k, value := range msg.Attr {
+		if k == key {
+			return true, value
 		}
 	}
 
-	return -1, ""
+	return false, ""
 
 }
 
 // InsertAttribute takes a key/value item and appends it in Message's attributes
 func (msg *Message) InsertAttribute(key string, value string) error {
-	i, _ := msg.AttrExists(key)
-	if i > -1 {
+	exists, _ := msg.AttrExists(key)
+	if exists {
 		return errors.New("Attribute already exists")
 	}
 
-	msg.Attr = append(msg.Attr, Attribute{Key: key, Value: value})
+	msg.Attr[key] = value
 	return nil
 }
 
 // UpdateAttribute updates an existing attribute based on key and new value
 func (msg *Message) UpdateAttribute(key string, value string) error {
-	i, _ := msg.AttrExists(key)
-	if i > -1 {
-		msg.Attr[i] = Attribute{Key: key, Value: value}
+	exists, _ := msg.AttrExists(key)
+	if exists {
+		msg.Attr[key] = value
 		return nil
 	}
 
@@ -112,9 +150,9 @@ func (msg *Message) UpdateAttribute(key string, value string) error {
 
 // RemoveAttribute takes a key and removes attribute if exists (based on key)
 func (msg *Message) RemoveAttribute(key string) error {
-	i, _ := msg.AttrExists(key)
-	if i > -1 {
-		msg.Attr = append(msg.Attr[:i], msg.Attr[i+1:]...)
+	exists, _ := msg.AttrExists(key)
+	if exists {
+		delete(msg.Attr, key)
 		return nil
 	}
 
@@ -123,13 +161,19 @@ func (msg *Message) RemoveAttribute(key string) error {
 
 // GetAttribute takes a key and return attribute value if exists (based on key)
 func (msg *Message) GetAttribute(key string) (string, error) {
-	i, value := msg.AttrExists(key)
-	if i > -1 {
+	exists, value := msg.AttrExists(key)
+	if exists {
 		return value, nil
 	}
 
 	return "", errors.New("Attribute doesn't exist")
 
+}
+
+// ExportJSON exports whole Message Structure as a json string
+func (pMsg *PushMsg) ExportJSON() (string, error) {
+	output, err := json.MarshalIndent(pMsg, "", "   ")
+	return string(output[:]), err
 }
 
 // ExportJSON exports whole Message Structure as a json string
