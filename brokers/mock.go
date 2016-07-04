@@ -94,6 +94,6 @@ func (b *MockBroker) GetOffset(topic string) int64 {
 }
 
 // Consume function to consume a message from the broker
-func (b *MockBroker) Consume(topic string, offset int64) []string {
+func (b *MockBroker) Consume(topic string, offset int64, imm bool) []string {
 	return b.MsgList
 }

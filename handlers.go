@@ -807,7 +807,11 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	targSub := sub.GetSubByName(urlVars["project"], urlVars["subscription"])
 
 	fullTopic := targSub.Project + "." + targSub.Topic
-	msgs := refBrk.Consume(fullTopic, targSub.Offset)
+	retImm := false
+	if pullInfo.RetImm == "true" {
+		retImm = true
+	}
+	msgs := refBrk.Consume(fullTopic, targSub.Offset, retImm)
 
 	var limit int
 	limit, err = strconv.Atoi(pullInfo.MaxMsg)
