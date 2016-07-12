@@ -1,6 +1,9 @@
 package brokers
 
-import "log"
+import (
+	"log"
+	"time"
+)
 
 import "github.com/ARGOeu/argo-messaging/Godeps/_workspace/src/github.com/Shopify/sarama"
 
@@ -100,7 +103,7 @@ func (b *KafkaBroker) GetOffset(topic string) int64 {
 }
 
 // Consume function to consume a message from the broker
-func (b *KafkaBroker) Consume(topic string, offset int64) []string {
+func (b *KafkaBroker) Consume(topic string, offset int64, imm bool) []string {
 
 	// Fetch offset
 	loff, err := b.Client.GetOffset(topic, 0, sarama.OffsetNewest)
@@ -128,9 +131,19 @@ func (b *KafkaBroker) Consume(topic string, offset int64) []string {
 
 	messages := []string{}
 	var consumed int64
+	timeout := time.After(300 * time.Second)
+
+	if imm {
+		timeout = time.After(100 * time.Millisecond)
+	}
+
 ConsumerLoop:
 	for {
 		select {
+		case <-timeout:
+			{
+				break ConsumerLoop
+			}
 		case msg := <-partitionConsumer.Messages():
 
 			messages = append(messages, string(msg.Value[:]))

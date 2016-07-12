@@ -526,6 +526,9 @@ definitions:
       maxMessages:
         type: string
         description: Max number of messages to be consumed
+      returnImmediately:
+        type: string
+        description: Set if should return immediately and close connection (if no messages are present) or wait until new messages
   SubParameters:
     type: object
     properties:

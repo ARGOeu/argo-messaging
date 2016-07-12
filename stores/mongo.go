@@ -41,7 +41,7 @@ func (mong *MongoStore) Clone() Store {
 func (mong *MongoStore) Initialize() {
 
 	session, err := mgo.Dial(mong.Server)
-	if err != nil && session != nil {
+	if err != nil {
 
 		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
 
