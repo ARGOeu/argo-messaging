@@ -17,7 +17,7 @@ The ARGO Messaging Service main configuration file is config.json. An example co
 {
   "bind_ip":"",
   "port":8080,
-  "broker_host":"localhost:9092",
+  "zookeer_hosts":["localhost"],
   "store_host":"localhost",
   "store_db":"argo_msg",
   "certificate":"/etc/pki/tls/certs/localhost.crt",
@@ -31,7 +31,7 @@ Parameter | Description
 --------- | -----------
 bind_ip | the ip address to listen to.
 port | The port where the API will listen to
-broker_host | Address:port of the broker instance
+zookeeper_hosts | List of zookeeper instances that are used to sync kafka 
 store_host | Address:port of the datastore server
 store_db | Database name used on the datastore server
 certificate | path to the node's TLS certificate file
