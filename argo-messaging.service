@@ -1,0 +1,12 @@
+[Unit]
+Description=ARGO Messaging api service
+
+[Service]
+User=argo-messaging
+Group=argo-messaging
+WorkingDirectory=/var/www/argo-messaging
+ExecStart=/bin/bash -c '/var/www/argo-messaging/argo-messaging'
+
+[Install]
+WantedBy=multi-user.target
+
