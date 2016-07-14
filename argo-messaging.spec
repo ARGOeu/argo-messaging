@@ -12,7 +12,6 @@ Source0: %{name}-%{version}.tar.gz
 BuildRequires: golang
 BuildRequires: git
 Requires(pre): /usr/sbin/useradd, /usr/bin/getent
-Requires(postun): /usr/sbin/userdel
 ExcludeArch: i386
 
 %description
@@ -20,7 +19,7 @@ Installs the ARGO Messaging API
 
 %pre
 /usr/bin/getent group argo-messaging || /usr/sbin/groupadd -r argo-messaging
-/usr/bin/getent passwd argo-messaging || /usr/sbin/useradd -r -s /sbin/nologin argo-messaging
+/usr/bin/getent passwd argo-messaging || /usr/sbin/useradd -r -s /sbin/nologin -d /var/www/argo-messaging -g argo-messaging argo-messaging
 
 %prep
 %setup
