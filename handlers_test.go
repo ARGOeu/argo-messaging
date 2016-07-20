@@ -521,7 +521,7 @@ func (suite *HandlerTestSuite) TestPublishMultiple() {
 	cfgKafka := config.NewAPICfg()
 	cfgKafka.LoadStrJSON(suite.cfgStr)
 	brk := brokers.MockBroker{}
-	brk.Initialize(cfgKafka.BrokerHosts)
+	brk.Initialize([]string{"localhost"})
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
@@ -664,7 +664,7 @@ func (suite *HandlerTestSuite) TestSubPullOne() {
 	cfgKafka := config.NewAPICfg()
 	cfgKafka.LoadStrJSON(suite.cfgStr)
 	brk := brokers.MockBroker{}
-	brk.Initialize(cfgKafka.BrokerHosts)
+	brk.Initialize([]string{"localhost"})
 	brk.PopulateThree() // Add three messages to the broker queue
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
@@ -716,7 +716,7 @@ func (suite *HandlerTestSuite) TestSubAck() {
 	cfgKafka := config.NewAPICfg()
 	cfgKafka.LoadStrJSON(suite.cfgStr)
 	brk := brokers.MockBroker{}
-	brk.Initialize(cfgKafka.BrokerHosts)
+	brk.Initialize([]string{"localhost"})
 	brk.PopulateThree() // Add three messages to the broker queue
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
@@ -782,7 +782,7 @@ func (suite *HandlerTestSuite) TestSubError() {
 	cfgKafka := config.NewAPICfg()
 	cfgKafka.LoadStrJSON(suite.cfgStr)
 	brk := brokers.MockBroker{}
-	brk.Initialize(cfgKafka.BrokerHosts)
+	brk.Initialize([]string{"localhost"})
 	brk.PopulateThree() // Add three messages to the broker queue
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
@@ -847,7 +847,7 @@ func (suite *HandlerTestSuite) TestSubPullAll() {
 	cfgKafka := config.NewAPICfg()
 	cfgKafka.LoadStrJSON(suite.cfgStr)
 	brk := brokers.MockBroker{}
-	brk.Initialize(cfgKafka.BrokerHosts)
+	brk.Initialize([]string{"localhost"})
 	brk.PopulateThree() // Add three messages to the broker queue
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
@@ -865,7 +865,7 @@ func (suite *HandlerTestSuite) TestValidationInSubs() {
 	cfgKafka := config.NewAPICfg()
 	cfgKafka.LoadStrJSON(suite.cfgStr)
 	brk := brokers.MockBroker{}
-	brk.Initialize(cfgKafka.BrokerHosts)
+	brk.Initialize([]string{"localhost"})
 	brk.PopulateThree() // Add three messages to the broker queue
 	str := stores.NewMockStore("whatever", "argo_mgs")
 
@@ -943,7 +943,7 @@ func (suite *HandlerTestSuite) TestValidationInTopics() {
 	cfgKafka := config.NewAPICfg()
 	cfgKafka.LoadStrJSON(suite.cfgStr)
 	brk := brokers.MockBroker{}
-	brk.Initialize(cfgKafka.BrokerHosts)
+	brk.Initialize([]string{"localhost"})
 	brk.PopulateThree() // Add three messages to the broker queue
 	str := stores.NewMockStore("whatever", "argo_mgs")
 

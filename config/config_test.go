@@ -17,7 +17,7 @@ func (suite *ConfigTestSuite) SetupTest() {
 	suite.cfgStr = `{
 	  "bind_ip":"",
 	  "port":8080,
-		"broker_hosts":["localhost:9092"],
+		"zookeeper_hosts":["localhost"],
 		"store_host":"localhost",
 		"store_db":"argo_msg",
 		"certificate":"/etc/pki/tls/certs/localhost.crt",
@@ -29,16 +29,16 @@ func (suite *ConfigTestSuite) SetupTest() {
 
 func (suite *ConfigTestSuite) TestLoadConfiguration() {
 	APIcfg := NewAPICfg()
-	suite.Equal([]string(nil), APIcfg.BrokerHosts)
+	suite.Equal([]string(nil), APIcfg.ZooHosts)
 	APIcfg.Load()
-	suite.Equal([]string{"localhost:9092"}, APIcfg.BrokerHosts)
+	suite.Equal([]string{"localhost"}, APIcfg.ZooHosts)
 	suite.Equal("localhost", APIcfg.StoreHost)
 	suite.Equal("argo_msg", APIcfg.StoreDB)
 	suite.Equal(8080, APIcfg.Port)
 
 	// test "LOAD" param
 	APIcfg2 := NewAPICfg("LOAD")
-	suite.Equal([]string{"localhost:9092"}, APIcfg2.BrokerHosts)
+	suite.Equal([]string{"localhost"}, APIcfg2.ZooHosts)
 	suite.Equal("localhost", APIcfg2.StoreHost)
 	suite.Equal("argo_msg", APIcfg2.StoreDB)
 	suite.Equal(8080, APIcfg.Port)
@@ -50,7 +50,7 @@ func (suite *ConfigTestSuite) TestLoadConfiguration() {
 func (suite *ConfigTestSuite) TestLoadStringJSON() {
 	APIcfg := NewAPICfg()
 	APIcfg.LoadStrJSON(suite.cfgStr)
-	suite.Equal([]string{"localhost:9092"}, APIcfg.BrokerHosts)
+	suite.Equal([]string{"localhost"}, APIcfg.ZooHosts)
 	suite.Equal("localhost", APIcfg.StoreHost)
 	suite.Equal("argo_msg", APIcfg.StoreDB)
 	suite.Equal(8080, APIcfg.Port)

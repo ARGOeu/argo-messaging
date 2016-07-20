@@ -21,7 +21,7 @@ func main() {
 	store.Initialize()
 
 	// create and initialize broker based on configuration
-	broker := brokers.NewKafkaBroker(cfg.BrokerHosts)
+	broker := brokers.NewKafkaBroker(cfg.GetZooList())
 	defer broker.CloseConnections()
 
 	sndr := push.NewHTTPSender(1)

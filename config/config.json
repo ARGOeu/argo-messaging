@@ -1,7 +1,7 @@
 {
   "bind_ip":"",
   "port":8080,
-  "broker_hosts":["localhost:9092"],
+  "zookeeper_hosts":["localhost"],
   "store_host":"localhost",
   "store_db":"argo_msg",
   "certificate":"/etc/pki/tls/certs/localhost.crt",
