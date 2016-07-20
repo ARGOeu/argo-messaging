@@ -27,7 +27,7 @@ func NewMongoStore(server string, db string) *MongoStore {
 // Close is used to close session
 func (mong *MongoStore) Close() {
 	mong.Session.Close()
-	// log.Printf("Session Closed...")
+
 }
 
 // Clone the store with  a cloned session

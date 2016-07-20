@@ -1,6 +1,7 @@
 {
 	"ImportPath": "github.com/ARGOeu/argo-messaging",
 	"GoVersion": "go1.5",
+	"GodepVersion": "v61",
 	"Packages": [
 		"./..."
 	],

@@ -37,7 +37,7 @@ func New(project string, name string) Topic {
 
 // LoadFromStore returns all subscriptions defined in store
 func (tl *Topics) LoadFromStore(store stores.Store) {
-	defer store.Close()
+
 	tl.List = []Topic{}
 	topics := store.QueryTopics()
 	for _, item := range topics {

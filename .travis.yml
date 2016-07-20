@@ -1,5 +1,7 @@
 # this container should be prepared for golang
 language: go
+go: 
+ - 1.5
 
 install:
  - go get github.com/tools/godep
