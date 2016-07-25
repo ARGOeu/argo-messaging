@@ -36,7 +36,7 @@ type Manager struct {
 func (mgr *Manager) LoadPushSubs() {
 	// Retrieve available push subscriptions
 	subs := subscriptions.Subscriptions{}
-	subs.LoadPushSubs(mgr.store.Clone())
+	subs.LoadPushSubs(mgr.store)
 
 	// Add all of them
 	for _, item := range subs.List {
@@ -69,7 +69,7 @@ func (p *Pusher) push(brk brokers.Broker, store stores.Store) {
 	log.Println("pid", p.id, "pushing")
 	// update sub details
 	subs := subscriptions.Subscriptions{}
-	subs.LoadOne(p.sub.Project, p.sub.Name, store.Clone())
+	subs.LoadOne(p.sub.Project, p.sub.Name, store)
 	p.sub = subs.List[0]
 	// Init Received Message List
 
@@ -167,7 +167,7 @@ func (mgr *Manager) Add(project string, subname string) error {
 	}
 	// Check if subscription exists
 	subs := subscriptions.Subscriptions{}
-	err := subs.LoadOne(project, subname, mgr.store.Clone())
+	err := subs.LoadOne(project, subname, mgr.store)
 
 	if err != nil {
 		return errors.New("No sub found")
@@ -182,7 +182,6 @@ func (mgr *Manager) Add(project string, subname string) error {
 	pushr.stop = make(chan bool, 2)
 	pushr.rate = 3000 * time.Millisecond
 	pushr.sndr = mgr.sender
-	log.Println("push sender:", pushr.sndr)
 	mgr.list[project+"/"+subname] = &pushr
 	log.Println("Push Subscription Added")
 
@@ -203,7 +202,7 @@ func (mgr *Manager) Launch(project string, sub string) error {
 		if p.running == true {
 			return errors.New("Already Running")
 		}
-		p.launch(mgr.broker, mgr.store)
+		p.launch(mgr.broker, mgr.store.Clone())
 		return nil
 	}
 
@@ -219,6 +218,8 @@ func (p *Pusher) launch(brk brokers.Broker, store stores.Store) {
 
 //Activity the push subscription
 func Activity(p *Pusher, brk brokers.Broker, store stores.Store) error {
+
+	defer store.Close()
 
 	for {
 		rate := time.After(p.rate)

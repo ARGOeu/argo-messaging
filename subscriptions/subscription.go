@@ -87,7 +87,7 @@ func (sl *Subscriptions) ExportJSON() (string, error) {
 
 // LoadFromStore returns all subscriptions defined in store
 func (sl *Subscriptions) LoadFromStore(store stores.Store) {
-	defer store.Close()
+
 	sl.List = []Subscription{}
 	subs := store.QuerySubs()
 	for _, item := range subs {
@@ -104,7 +104,7 @@ func (sl *Subscriptions) LoadFromStore(store stores.Store) {
 
 // LoadPushSubs returns all subscriptions defined in store that have a push configuration
 func (sl *Subscriptions) LoadPushSubs(store stores.Store) {
-	defer store.Close()
+
 	sl.List = []Subscription{}
 	subs := store.QueryPushSubs()
 	for _, item := range subs {
@@ -121,7 +121,7 @@ func (sl *Subscriptions) LoadPushSubs(store stores.Store) {
 
 // LoadOne loads one subscription
 func (sl *Subscriptions) LoadOne(project string, subname string, store stores.Store) error {
-	defer store.Close()
+
 	sl.List = []Subscription{}
 	sub, err := store.QueryOneSub(project, subname)
 	if err != nil {
