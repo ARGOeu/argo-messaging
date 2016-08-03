@@ -51,7 +51,8 @@ func (suite *HandlerTestSuite) TestSubCreate() {
    "name": "/projects/ARGO/subscriptions/subNew",
    "topic": "/projects/ARGO/topics/topic1",
    "pushConfig": {
-      "pushEndpoint": ""
+      "pushEndpoint": "",
+      "retryPolicy": {}
    },
    "ackDeadlineSeconds": 10
 }`
@@ -166,7 +167,8 @@ func (suite *HandlerTestSuite) TestSubListOne() {
    "name": "/projects/ARGO/subscriptions/sub1",
    "topic": "/projects/ARGO/topics/topic1",
    "pushConfig": {
-      "pushEndpoint": ""
+      "pushEndpoint": "",
+      "retryPolicy": {}
    },
    "ackDeadlineSeconds": 10
 }`
@@ -183,6 +185,7 @@ func (suite *HandlerTestSuite) TestSubListOne() {
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
+
 }
 
 func (suite *HandlerTestSuite) TestSubListAll() {
@@ -198,7 +201,8 @@ func (suite *HandlerTestSuite) TestSubListAll() {
          "name": "/projects/ARGO/subscriptions/sub1",
          "topic": "/projects/ARGO/topics/topic1",
          "pushConfig": {
-            "pushEndpoint": ""
+            "pushEndpoint": "",
+            "retryPolicy": {}
          },
          "ackDeadlineSeconds": 10
       },
@@ -206,7 +210,8 @@ func (suite *HandlerTestSuite) TestSubListAll() {
          "name": "/projects/ARGO/subscriptions/sub2",
          "topic": "/projects/ARGO/topics/topic2",
          "pushConfig": {
-            "pushEndpoint": ""
+            "pushEndpoint": "",
+            "retryPolicy": {}
          },
          "ackDeadlineSeconds": 10
       },
@@ -214,7 +219,8 @@ func (suite *HandlerTestSuite) TestSubListAll() {
          "name": "/projects/ARGO/subscriptions/sub3",
          "topic": "/projects/ARGO/topics/topic3",
          "pushConfig": {
-            "pushEndpoint": ""
+            "pushEndpoint": "",
+            "retryPolicy": {}
          },
          "ackDeadlineSeconds": 10
       },
@@ -222,7 +228,11 @@ func (suite *HandlerTestSuite) TestSubListAll() {
          "name": "/projects/ARGO/subscriptions/sub4",
          "topic": "/projects/ARGO/topics/topic4",
          "pushConfig": {
-            "pushEndpoint": "endpoint.foo"
+            "pushEndpoint": "endpoint.foo",
+            "retryPolicy": {
+               "type": "linear",
+               "period": 300
+            }
          },
          "ackDeadlineSeconds": 10
       }
@@ -873,10 +883,12 @@ func (suite *HandlerTestSuite) TestValidationInSubs() {
    "name": "/projects/ARGO/subscriptions/sub1",
    "topic": "/projects/ARGO/topics/topic1",
    "pushConfig": {
-      "pushEndpoint": ""
+      "pushEndpoint": "",
+      "retryPolicy": {}
    },
    "ackDeadlineSeconds": 10
 }`
+
 	invProject := `{
    "error": {
       "code": 400,

@@ -106,28 +106,33 @@ This request modifies the push configuration of a subscription
 `POST /v1/projects/{project_name}/subscriptions/{subscription_name}:modifyPushConfig`
 
 ### Post body:
-```json
+```
+json
 {
-  "pushConfig": {"pushEndpoint": ""}
+  "pushConfig": {  "pushEndpoint": "",
+                   "retryPolicy": { "type": "linear", "period": 300 }
+  }
 }
 ```
 
 ### Where
 - Project_name: Name of the project
 - subscription_name: The subscription name to consume
-- pushConfig: configuration including pushEndpoint for the remote endpoint to receive the messages
+- pushConfig: configuration including pushEndpoint for the remote endpoint to receive the messages. Also includes retryPolicy (type of retryPolicy and period parameters)
 
 
 ### Example request
 
 `curl -X POST -H "Content-Type: application/json"  
 -d POSTDATA http://{URL}/v1/projects/EGI/subscriptions/alert_engine:modifyPushConfig?key=S3CR3T"
-```
+`
 
 ### post body:
 ```json
 {
-  "pushConfig": {"pushEndpoint": "host:example.com:8080/path/to/hook"}
+  "pushConfig": {"pushEndpoint": "host:example.com:8080/path/to/hook",
+                 "retryPolicy":  { "type": "linear", "period": 300 }
+  }
 }
 ```
 

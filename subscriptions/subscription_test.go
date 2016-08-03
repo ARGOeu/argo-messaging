@@ -1,6 +1,7 @@
 package subscriptions
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"testing"
@@ -37,6 +38,23 @@ func (suite *SubTestSuite) TestCreate() {
 	suite.Equal("/projects/ARGO/topics/topic1", mySub.FullTopic)
 }
 
+func (suite *SubTestSuite) TestGetPushConfigFromJSON() {
+	cfgAPI := config.NewAPICfg()
+	cfgAPI.LoadStrJSON(suite.cfgStr)
+	pJSON := `
+	 {
+     "pushConfig": {
+	     "pushEndpoint": "exmplar.foo",
+	     "retryPolicy":{"type":"linear","period":6000}
+    }
+   }
+	`
+	s, err := GetFromJSON([]byte(pJSON))
+	fmt.Println(err)
+	fmt.Println(s)
+
+}
+
 func (suite *SubTestSuite) TestGetSubByName() {
 	cfgAPI := config.NewAPICfg()
 	cfgAPI.LoadStrJSON(suite.cfgStr)
@@ -45,7 +63,10 @@ func (suite *SubTestSuite) TestGetSubByName() {
 	mySubs.LoadFromStore(store)
 	result := mySubs.GetSubByName("ARGO", "sub1")
 	expSub := New("ARGO", "sub1", "topic1")
+	expSub.PushCfg.RetPol.PolicyType = ""
+	expSub.PushCfg.RetPol.Period = 0
 	suite.Equal(expSub, result)
+
 }
 
 func (suite *SubTestSuite) TestHasProjectTopic() {
@@ -67,10 +88,19 @@ func (suite *SubTestSuite) TestGetSubsByProject() {
 	mySubs.LoadFromStore(store)
 	result := mySubs.GetSubsByProject("ARGO")
 	expSub1 := New("ARGO", "sub1", "topic1")
+	expSub1.PushCfg.RetPol.PolicyType = ""
+	expSub1.PushCfg.RetPol.Period = 0
 	expSub2 := New("ARGO", "sub2", "topic2")
+	expSub2.PushCfg.RetPol.PolicyType = ""
+	expSub2.PushCfg.RetPol.Period = 0
 	expSub3 := New("ARGO", "sub3", "topic3")
+	expSub3.PushCfg.RetPol.PolicyType = ""
+	expSub3.PushCfg.RetPol.Period = 0
 	expSub4 := New("ARGO", "sub4", "topic4")
-	expSub4.PushCfg = PushConfig{"endpoint.foo"}
+	expSub4.PushCfg.RetPol.PolicyType = "linear"
+	expSub4.PushCfg.RetPol.Period = 300
+	rp := RetryPolicy{"linear", 300}
+	expSub4.PushCfg = PushConfig{"endpoint.foo", rp}
 	expSubs := Subscriptions{}
 	expSubs.List = append(expSubs.List, expSub1)
 	expSubs.List = append(expSubs.List, expSub2)
@@ -86,10 +116,19 @@ func (suite *SubTestSuite) TestLoadFromCfg() {
 	store := stores.NewMockStore(cfgAPI.StoreHost, cfgAPI.StoreDB)
 	mySubs.LoadFromStore(store)
 	expSub1 := New("ARGO", "sub1", "topic1")
+	expSub1.PushCfg.RetPol.PolicyType = ""
+	expSub1.PushCfg.RetPol.Period = 0
 	expSub2 := New("ARGO", "sub2", "topic2")
+	expSub2.PushCfg.RetPol.PolicyType = ""
+	expSub2.PushCfg.RetPol.Period = 0
 	expSub3 := New("ARGO", "sub3", "topic3")
+	expSub3.PushCfg.RetPol.PolicyType = ""
+	expSub3.PushCfg.RetPol.Period = 0
 	expSub4 := New("ARGO", "sub4", "topic4")
-	expSub4.PushCfg = PushConfig{"endpoint.foo"}
+	expSub4.PushCfg.RetPol.PolicyType = "linear"
+	expSub4.PushCfg.RetPol.Period = 300
+	rp := RetryPolicy{"linear", 300}
+	expSub4.PushCfg = PushConfig{"endpoint.foo", rp}
 	expSubs := Subscriptions{}
 	expSubs.List = append(expSubs.List, expSub1)
 	expSubs.List = append(expSubs.List, expSub2)
@@ -123,11 +162,11 @@ func (suite *SubTestSuite) TestCreateSubStore() {
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
 	mySubs.LoadFromStore(store)
 
-	sub, err := mySubs.CreateSub("ARGO", "sub1", "topic1", "", 0, 0, store)
+	sub, err := mySubs.CreateSub("ARGO", "sub1", "topic1", "", 0, 0, "linear", 300, store)
 	suite.Equal(Subscription{}, sub)
 	suite.Equal("exists", err.Error())
 
-	sub2, err2 := mySubs.CreateSub("ARGO", "subNew", "topicNew", "", 0, 0, store)
+	sub2, err2 := mySubs.CreateSub("ARGO", "subNew", "topicNew", "", 0, 0, "linear", 300, store)
 	expSub := New("ARGO", "subNew", "topicNew")
 	suite.Equal(expSub, sub2)
 	suite.Equal(nil, err2)
@@ -170,7 +209,8 @@ func (suite *SubTestSuite) TestExportJson() {
    "name": "/projects/ARGO/subscriptions/sub1",
    "topic": "/projects/ARGO/topics/topic1",
    "pushConfig": {
-      "pushEndpoint": ""
+      "pushEndpoint": "",
+      "retryPolicy": {}
    },
    "ackDeadlineSeconds": 10
 }`
@@ -182,7 +222,8 @@ func (suite *SubTestSuite) TestExportJson() {
          "name": "/projects/ARGO/subscriptions/sub1",
          "topic": "/projects/ARGO/topics/topic1",
          "pushConfig": {
-            "pushEndpoint": ""
+            "pushEndpoint": "",
+            "retryPolicy": {}
          },
          "ackDeadlineSeconds": 10
       },
@@ -190,7 +231,8 @@ func (suite *SubTestSuite) TestExportJson() {
          "name": "/projects/ARGO/subscriptions/sub2",
          "topic": "/projects/ARGO/topics/topic2",
          "pushConfig": {
-            "pushEndpoint": ""
+            "pushEndpoint": "",
+            "retryPolicy": {}
          },
          "ackDeadlineSeconds": 10
       },
@@ -198,7 +240,8 @@ func (suite *SubTestSuite) TestExportJson() {
          "name": "/projects/ARGO/subscriptions/sub3",
          "topic": "/projects/ARGO/topics/topic3",
          "pushConfig": {
-            "pushEndpoint": ""
+            "pushEndpoint": "",
+            "retryPolicy": {}
          },
          "ackDeadlineSeconds": 10
       },
@@ -206,7 +249,11 @@ func (suite *SubTestSuite) TestExportJson() {
          "name": "/projects/ARGO/subscriptions/sub4",
          "topic": "/projects/ARGO/topics/topic4",
          "pushConfig": {
-            "pushEndpoint": "endpoint.foo"
+            "pushEndpoint": "endpoint.foo",
+            "retryPolicy": {
+               "type": "linear",
+               "period": 300
+            }
          },
          "ackDeadlineSeconds": 10
       }

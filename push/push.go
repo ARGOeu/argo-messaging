@@ -14,13 +14,16 @@ import (
 
 // Pusher holds information for the pusher routine and subscription
 type Pusher struct {
-	id       int
-	sub      subscriptions.Subscription
-	endpoint string
-	stop     chan bool
-	rate     time.Duration // in milliseconds
-	running  bool
-	sndr     Sender
+	id          int
+	sub         subscriptions.Subscription
+	endpoint    string
+	retryPolicy string
+	retryPeriod int
+	stop        chan int      // 1: Stop 2: restart
+	rate        time.Duration // in milliseconds
+	running     bool
+	sndr        Sender
+	mgr         *Manager
 }
 
 // Manager manages all pusher routines
@@ -139,6 +142,26 @@ func (mgr *Manager) Get(psub string) (*Pusher, error) {
 	return nil, errors.New("not found")
 }
 
+// Restart a push subscription
+func (mgr *Manager) Restart(project string, sub string) error {
+	// Check if mgr is set
+	if !mgr.isSet() {
+		return errors.New("Push Manager not set")
+	}
+
+	if p, err := mgr.Get(project + "/" + sub); err == nil {
+		if p.running == false {
+			log.Println("Already stopped", p.id, "state:", p.running)
+			return errors.New("Already Stoped")
+		}
+		log.Println("Trying to Restart:", p.id)
+		p.stop <- 2
+		return nil
+	}
+
+	return errors.New("Not Found")
+}
+
 // Stop stops a push subscription
 func (mgr *Manager) Stop(project string, sub string) error {
 	// Check if mgr is set
@@ -152,8 +175,32 @@ func (mgr *Manager) Stop(project string, sub string) error {
 			return errors.New("Already Stoped")
 		}
 		log.Println("Trying to stop:", p.id)
-		p.stop <- true
+		p.stop <- 1
 		return nil
+	}
+
+	return errors.New("Not Found")
+}
+
+// Refresh updates the subscription information from the database
+func (mgr *Manager) Refresh(project string, sub string) error {
+	// Check if mgr is set
+	if !mgr.isSet() {
+		return errors.New("Push Manager not set")
+	}
+
+	if p, err := mgr.Get(project + "/" + sub); err == nil {
+		subs := subscriptions.Subscriptions{}
+		err := subs.LoadOne(project, sub, mgr.store)
+
+		if err != nil {
+			return errors.New("No sub found")
+		}
+
+		p.endpoint = subs.List[0].PushCfg.Pend
+		p.retryPolicy = subs.List[0].PushCfg.RetPol.PolicyType
+		p.retryPeriod = subs.List[0].PushCfg.RetPol.Period
+		p.rate = time.Duration(p.retryPeriod) * time.Millisecond
 	}
 
 	return errors.New("Not Found")
@@ -179,9 +226,12 @@ func (mgr *Manager) Add(project string, subname string) error {
 	pushr.sub = subs.List[0]
 	pushr.endpoint = subs.List[0].PushCfg.Pend
 	pushr.running = false
-	pushr.stop = make(chan bool, 2)
-	pushr.rate = 3000 * time.Millisecond
+	pushr.stop = make(chan int, 2)
+	pushr.retryPolicy = subs.List[0].PushCfg.RetPol.PolicyType
+	pushr.retryPeriod = subs.List[0].PushCfg.RetPol.Period
+	pushr.rate = time.Duration(pushr.retryPeriod) * time.Millisecond
 	pushr.sndr = mgr.sender
+	pushr.mgr = mgr
 	mgr.list[project+"/"+subname] = &pushr
 	log.Println("Push Subscription Added")
 
@@ -196,12 +246,15 @@ func (mgr *Manager) Launch(project string, sub string) error {
 		return errors.New("Push Manager not set")
 	}
 
+	mgr.Refresh(project, sub)
+
 	psub := project + "/" + sub
 
 	if p, err := mgr.Get(psub); err == nil {
 		if p.running == true {
 			return errors.New("Already Running")
 		}
+
 		p.launch(mgr.broker, mgr.store.Clone())
 		return nil
 	}
@@ -213,21 +266,28 @@ func (mgr *Manager) Launch(project string, sub string) error {
 func (p *Pusher) launch(brk brokers.Broker, store stores.Store) {
 	log.Println("pusher:", p.id, "launching...")
 	p.running = true
-	go Activity(p, brk, store)
+	if p.retryPolicy == "linear" {
+		go LinearActivity(p, brk, store)
+	}
+
 }
 
-//Activity the push subscription
-func Activity(p *Pusher, brk brokers.Broker, store stores.Store) error {
+//LinearActivity implements a linear retry push
+func LinearActivity(p *Pusher, brk brokers.Broker, store stores.Store) error {
 
 	defer store.Close()
 
 	for {
 		rate := time.After(p.rate)
 		select {
-		case <-p.stop:
+		case halt := <-p.stop:
 			{
+
 				log.Println("pusher:", p.id, "Stoping...")
 				p.running = false
+				if halt == 2 {
+					p.mgr.Launch(p.sub.Project, p.sub.Name)
+				}
 				return nil
 			}
 		case <-rate:

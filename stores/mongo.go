@@ -223,8 +223,8 @@ func (mong *MongoStore) InsertTopic(project string, name string) error {
 }
 
 // InsertSub inserts a subscription to the store
-func (mong *MongoStore) InsertSub(project string, name string, topic string, offset int64, ack int, push string) error {
-	sub := QSub{project, name, topic, offset, 0, "", push, ack}
+func (mong *MongoStore) InsertSub(project string, name string, topic string, offset int64, ack int, push string, rPolicy string, rPeriod int) error {
+	sub := QSub{project, name, topic, offset, 0, "", push, ack, rPolicy, rPeriod}
 	return mong.InsertResource("subscriptions", sub)
 }
 
@@ -241,11 +241,11 @@ func (mong *MongoStore) RemoveSub(project string, name string) error {
 }
 
 // ModSubPush modifies the push configuration
-func (mong *MongoStore) ModSubPush(project string, name string, push string) error {
+func (mong *MongoStore) ModSubPush(project string, name string, push string, rPolicy string, rPeriod int) error {
 	db := mong.Session.DB(mong.Database)
 	c := db.C("subscriptions")
 
-	err := c.Update(bson.M{"project": project, "name": name}, bson.M{"$set": bson.M{"push_endpoint": push}})
+	err := c.Update(bson.M{"project": project, "name": name}, bson.M{"$set": bson.M{"push_endpoint": push, "retry_policy": rPolicy, "retry_period": rPeriod}})
 	return err
 }
 

@@ -560,6 +560,19 @@ definitions:
       pushEndpoint:
         type: string
         description: endpoint url for endpoint to push messages
+      retryPolicy:
+        $ref: '#/definitions/RetryPolicy'
+
+  RetryPolicy:
+    type: object
+    properties:
+     type:
+       type: string
+       description: type of the retry policy used (Only linear policy supported)
+     period:
+       type: integer
+       description: period of retry policy in milliseconds
+
   Topic:
     type: object
     properties:
