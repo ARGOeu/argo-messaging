@@ -366,9 +366,18 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pushEnd := ""
-
+	rPolicy := ""
+	rPeriod := 0
 	if postBody.PushCfg != (subscriptions.PushConfig{}) {
 		pushEnd = postBody.PushCfg.Pend
+		rPolicy = postBody.PushCfg.RetPol.PolicyType
+		rPeriod = postBody.PushCfg.RetPol.Period
+		if rPolicy == "" {
+			rPolicy = "linear"
+		}
+		if rPeriod <= 0 {
+			rPeriod = 3000
+		}
 	}
 
 	// Grab context references
@@ -379,7 +388,12 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 	// Get Result Object
 	subName := urlVars["subscription"]
 	project := urlVars["project"]
-	err = sb.ModSubPush(project, subName, pushEnd, refStr)
+
+	// Get Result Object
+	old := subscriptions.Subscription{}
+	old = sb.GetSubByName(project, subName)
+
+	err = sb.ModSubPush(project, subName, pushEnd, rPolicy, rPeriod, refStr)
 
 	if err != nil {
 
@@ -394,8 +408,14 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 
 	// According to push cfg set start/stop pushing
 	if pushEnd != "" {
-		refMgr.Add(project, subName)
-		refMgr.Launch(project, subName)
+		if old.PushCfg.Pend == "" {
+			refMgr.Add(project, subName)
+			refMgr.Launch(project, subName)
+		} else if old.PushCfg.Pend != pushEnd {
+			refMgr.Restart(project, subName)
+		} else if old.PushCfg.RetPol.PolicyType != rPolicy || old.PushCfg.RetPol.Period != rPeriod {
+			refMgr.Restart(project, subName)
+		}
 	} else {
 		refMgr.Stop(project, subName)
 	}
@@ -464,13 +484,22 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 	curOff := refBrk.GetOffset(fullTopic)
 
 	pushEnd := ""
-
+	rPolicy := ""
+	rPeriod := 0
 	if postBody.PushCfg != (subscriptions.PushConfig{}) {
 		pushEnd = postBody.PushCfg.Pend
+		rPolicy = postBody.PushCfg.RetPol.PolicyType
+		rPeriod = postBody.PushCfg.RetPol.Period
+		if rPolicy == "" {
+			rPolicy = "linear"
+		}
+		if rPeriod <= 0 {
+			rPeriod = 3000
+		}
 	}
 
 	// Get Result Object
-	res, err := sb.CreateSub(urlVars["project"], urlVars["subscription"], tName, pushEnd, curOff, postBody.Ack, refStr)
+	res, err := sb.CreateSub(urlVars["project"], urlVars["subscription"], tName, pushEnd, curOff, postBody.Ack, rPolicy, rPeriod, refStr)
 
 	if err != nil {
 		if err.Error() == "exists" {

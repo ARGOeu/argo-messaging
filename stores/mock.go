@@ -38,7 +38,7 @@ func (mk *MockStore) UpdateSubOffset(name string, offset int64) {
 }
 
 // ModSubPush modifies the subscription ack
-func (mk *MockStore) ModSubPush(project string, name string, push string) error {
+func (mk *MockStore) ModSubPush(project string, name string, push string, rPolicy string, rPeriod int) error {
 	return nil
 }
 
@@ -92,10 +92,10 @@ func (mk *MockStore) Initialize() {
 	mk.TopicList = append(mk.TopicList, qtop3)
 
 	// populate Subscriptions
-	qsub1 := QSub{"ARGO", "sub1", "topic1", 0, 0, "", "", 10}
-	qsub2 := QSub{"ARGO", "sub2", "topic2", 0, 0, "", "", 10}
-	qsub3 := QSub{"ARGO", "sub3", "topic3", 0, 0, "", "", 10}
-	qsub4 := QSub{"ARGO", "sub4", "topic4", 0, 0, "", "endpoint.foo", 10}
+	qsub1 := QSub{"ARGO", "sub1", "topic1", 0, 0, "", "", 10, "linear", 300}
+	qsub2 := QSub{"ARGO", "sub2", "topic2", 0, 0, "", "", 10, "linear", 300}
+	qsub3 := QSub{"ARGO", "sub3", "topic3", 0, 0, "", "", 10, "linear", 300}
+	qsub4 := QSub{"ARGO", "sub4", "topic4", 0, 0, "", "endpoint.foo", 10, "linear", 300}
 	mk.SubList = append(mk.SubList, qsub1)
 	mk.SubList = append(mk.SubList, qsub2)
 	mk.SubList = append(mk.SubList, qsub3)
@@ -182,8 +182,8 @@ func (mk *MockStore) InsertTopic(project string, name string) error {
 }
 
 // InsertSub inserts a new sub object to the store
-func (mk *MockStore) InsertSub(project string, name string, topic string, offset int64, ack int, push string) error {
-	sub := QSub{project, name, topic, offset, 0, "", push, ack}
+func (mk *MockStore) InsertSub(project string, name string, topic string, offset int64, ack int, push string, rPolicy string, rPeriod int) error {
+	sub := QSub{project, name, topic, offset, 0, "", push, ack, rPolicy, rPeriod}
 	mk.SubList = append(mk.SubList, sub)
 	return nil
 }

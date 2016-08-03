@@ -24,7 +24,14 @@ type Subscription struct {
 
 // PushConfig holds optional configuration for push operations
 type PushConfig struct {
-	Pend string `json:"pushEndpoint"`
+	Pend   string      `json:"pushEndpoint"`
+	RetPol RetryPolicy `json:"retryPolicy"`
+}
+
+// RetryPolicy holds information on retry policies
+type RetryPolicy struct {
+	PolicyType string `json:"type,omitempty"`
+	Period     int    `json:"period,omitempty"`
 }
 
 // Subscriptions holds a list of Topic items
@@ -95,7 +102,10 @@ func (sl *Subscriptions) LoadFromStore(store stores.Store) {
 		curSub.Offset = item.Offset
 		curSub.NextOffset = item.NextOffset
 		curSub.Ack = item.Ack
-		curSub.PushCfg = PushConfig{item.PushEndpoint}
+		if item.PushEndpoint != "" {
+			rp := RetryPolicy{item.RetPolicy, item.RetPeriod}
+			curSub.PushCfg = PushConfig{item.PushEndpoint, rp}
+		}
 
 		sl.List = append(sl.List, curSub)
 	}
@@ -112,7 +122,8 @@ func (sl *Subscriptions) LoadPushSubs(store stores.Store) {
 		curSub.Offset = item.Offset
 		curSub.NextOffset = item.NextOffset
 		curSub.Ack = item.Ack
-		curSub.PushCfg = PushConfig{item.PushEndpoint}
+		rp := RetryPolicy{item.RetPolicy, item.RetPeriod}
+		curSub.PushCfg = PushConfig{item.PushEndpoint, rp}
 
 		sl.List = append(sl.List, curSub)
 	}
@@ -131,14 +142,18 @@ func (sl *Subscriptions) LoadOne(project string, subname string, store stores.St
 	curSub.Offset = sub.Offset
 	curSub.NextOffset = sub.NextOffset
 	curSub.Ack = sub.Ack
-	curSub.PushCfg = PushConfig{sub.PushEndpoint}
+	if sub.PushEndpoint != "" {
+		rp := RetryPolicy{sub.RetPolicy, sub.RetPeriod}
+		curSub.PushCfg = PushConfig{sub.PushEndpoint, rp}
+	}
+
 	sl.List = append(sl.List, curSub)
 	return nil
 
 }
 
 // CreateSub creates a new subscription
-func (sl *Subscriptions) CreateSub(project string, name string, topic string, push string, offset int64, ack int, store stores.Store) (Subscription, error) {
+func (sl *Subscriptions) CreateSub(project string, name string, topic string, push string, offset int64, ack int, retPolicy string, retPeriod int, store stores.Store) (Subscription, error) {
 
 	if sl.HasSub(project, name) {
 		return Subscription{}, errors.New("exists")
@@ -149,19 +164,19 @@ func (sl *Subscriptions) CreateSub(project string, name string, topic string, pu
 	if ack == 0 {
 		ack = 10
 	}
-	err := store.InsertSub(project, name, topic, offset, ack, push)
+	err := store.InsertSub(project, name, topic, offset, ack, push, retPolicy, retPeriod)
 
 	return subNew, err
 }
 
 // ModSubPush updates the subscription push config
-func (sl *Subscriptions) ModSubPush(project string, name string, push string, store stores.Store) error {
+func (sl *Subscriptions) ModSubPush(project string, name string, push string, retPolicy string, retPeriod int, store stores.Store) error {
 
 	if sl.HasSub(project, name) == false {
 		return errors.New("not found")
 	}
 
-	return store.ModSubPush(project, name, push)
+	return store.ModSubPush(project, name, push, retPolicy, retPeriod)
 }
 
 // RemoveSub removes an existing subscription

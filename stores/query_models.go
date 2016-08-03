@@ -10,6 +10,8 @@ type QSub struct {
 	PendingAck   string `bson:"pending_ack"`
 	PushEndpoint string `bson:"push_endpoint"`
 	Ack          int    `bson:"ack"`
+	RetPolicy    string `bson:"retry_policy"`
+	RetPeriod    int    `bson:"retry_period"`
 }
 
 // QUser are the results of the QUser query

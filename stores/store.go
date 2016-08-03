@@ -8,7 +8,7 @@ type Store interface {
 	RemoveTopic(project string, name string) error
 	RemoveSub(project string, name string) error
 	InsertTopic(project string, name string) error
-	InsertSub(project string, name string, topic string, offest int64, ack int, push string) error
+	InsertSub(project string, name string, topic string, offest int64, ack int, push string, rPolicy string, rPeriod int) error
 	HasProject(project string) bool
 	QueryOneSub(project string, sub string) (QSub, error)
 	QueryPushSubs() []QSub
@@ -17,7 +17,7 @@ type Store interface {
 	UpdateSubOffset(name string, offset int64)
 	UpdateSubPull(name string, offset int64, ts string)
 	UpdateSubOffsetAck(name string, offset int64, ts string) error
-	ModSubPush(project string, name string, push string) error
+	ModSubPush(project string, name string, push string, rPolicy string, rPeriod int) error
 	Clone() Store
 	Close()
 }
