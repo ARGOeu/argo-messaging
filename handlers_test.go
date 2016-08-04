@@ -36,6 +36,20 @@ func (suite *HandlerTestSuite) SetupTest() {
 	log.SetOutput(ioutil.Discard)
 }
 
+func (suite *HandlerTestSuite) TestValidation() {
+	suite.Equal(true, validName("topic101"))
+	suite.Equal(true, validName("topic_101"))
+	suite.Equal(true, validName("topic_101_another_thing"))
+	suite.Equal(true, validName("topic___343_random"))
+	suite.Equal(true, validName("topic_dc1cc538-1361-4317-a235-0bf383d4a69f"))
+	suite.Equal(false, validName("topic_dc1cc538.1361-4317-a235-0bf383d4a69f"))
+	suite.Equal(false, validName("topic.not.valid"))
+	suite.Equal(false, validName("spaces are not valid"))
+	suite.Equal(false, validName("topic/A"))
+	suite.Equal(false, validName("topic/B"))
+
+}
+
 func (suite *HandlerTestSuite) TestSubCreate() {
 
 	postJSON := `{
