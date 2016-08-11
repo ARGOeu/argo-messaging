@@ -77,7 +77,7 @@ func (p *Pusher) push(brk brokers.Broker, store stores.Store) {
 	// Init Received Message List
 
 	fullTopic := p.sub.Project + "." + p.sub.Topic
-	msgs := brk.Consume(fullTopic, p.sub.Offset, false)
+	msgs := brk.Consume(fullTopic, p.sub.Offset, true)
 	if len(msgs) > 0 {
 		// Generate push message template
 		pMsg := messages.PushMsg{}

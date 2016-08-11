@@ -276,6 +276,7 @@ func TopicDelete(w http.ResponseWriter, r *http.Request) {
 
 	// Grab context references
 	refStr := context.Get(r, "str").(stores.Store)
+
 	// Initialize Topics
 	tp := topics.Topics{}
 	tp.LoadFromStore(refStr)
@@ -312,6 +313,8 @@ func SubDelete(w http.ResponseWriter, r *http.Request) {
 
 	// Grab context references
 	refStr := context.Get(r, "str").(stores.Store)
+	refMgr := context.Get(r, "mgr").(*push.Manager)
+
 	// Initialize subs
 	sb := subscriptions.Subscriptions{}
 	sb.LoadFromStore(refStr)
@@ -329,6 +332,8 @@ func SubDelete(w http.ResponseWriter, r *http.Request) {
 		respondErr(w, 500, err.Error(), "INTERNAL")
 		return
 	}
+
+	refMgr.Stop(urlVars["project"], urlVars["subscription"])
 
 	// Write empty response if anything ok
 	respondOK(w, output)
