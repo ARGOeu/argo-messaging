@@ -12,19 +12,48 @@ import (
 	"github.com/ARGOeu/argo-messaging/messages"
 )
 
-type kafkaLock struct {
+type topicLock struct {
 	sync.Mutex
 }
 
 // KafkaBroker struct
 type KafkaBroker struct {
-	produceLock kafkaLock
-	consumeLock kafkaLock
-	Config      *sarama.Config
-	Producer    sarama.SyncProducer
-	Client      sarama.Client
-	Consumer    sarama.Consumer
-	Servers     []string
+	sync.Mutex
+	createTopicLock topicLock
+	consumeLock     map[string]*topicLock
+	Config          *sarama.Config
+	Producer        sarama.SyncProducer
+	Client          sarama.Client
+	Consumer        sarama.Consumer
+	Servers         []string
+}
+
+func (b *KafkaBroker) lockForTopic(topic string) {
+	// Check if lock for topic exists
+	_, present := b.consumeLock[topic]
+	if present == false {
+		// TopicLock is not in list so add it
+		b.createTopicLock.Lock()
+		_, nowPresent := b.consumeLock[topic]
+		if nowPresent == false {
+			b.consumeLock[topic] = &topicLock{}
+			b.consumeLock[topic].Lock()
+		}
+		b.createTopicLock.Unlock()
+	} else {
+		b.consumeLock[topic].Lock()
+	}
+}
+
+func (b *KafkaBroker) unlockForTopic(topic string) {
+	// Check if lock for topic exists
+	_, present := b.consumeLock[topic]
+	if present == false {
+		return
+	}
+
+	b.consumeLock[topic].Unlock()
+
 }
 
 // CloseConnections closes open producer, consumer and client
@@ -58,9 +87,8 @@ func (b *KafkaBroker) InitConfig() {
 
 // Initialize the broker struct
 func (b *KafkaBroker) Initialize(peers []string) {
-	b.consumeLock = kafkaLock{}
-	b.produceLock = kafkaLock{}
-
+	b.createTopicLock = topicLock{}
+	b.consumeLock = make(map[string]*topicLock)
 	b.Config = sarama.NewConfig()
 	b.Config.Producer.RequiredAcks = sarama.WaitForAll
 	b.Config.Producer.Retry.Max = 5
@@ -92,9 +120,7 @@ func (b *KafkaBroker) Initialize(peers []string) {
 
 // Publish function publish a message to the broker
 func (b *KafkaBroker) Publish(topic string, msg messages.Message) (string, string, int, int64) {
-	b.produceLock.Lock()
-	// Unlock after consumption
-	defer b.produceLock.Unlock()
+
 	off := b.GetOffset(topic)
 	msg.ID = strconv.FormatInt(off, 10)
 	// Stamp time to UTC Z to nanoseconds
@@ -131,10 +157,14 @@ func (b *KafkaBroker) GetOffset(topic string) int64 {
 
 // Consume function to consume a message from the broker
 func (b *KafkaBroker) Consume(topic string, offset int64, imm bool) []string {
-	b.consumeLock.Lock()
-	// Unlock after consumption
-	defer b.consumeLock.Unlock()
+
+	b.lockForTopic(topic)
+
+	defer b.unlockForTopic(topic)
 	// Fetch offset
+
+	// consumer, _ := sarama.NewConsumer(b.Servers, b.Config)
+
 	loff, err := b.Client.GetOffset(topic, 0, sarama.OffsetNewest)
 	log.Println("consuming topic:", topic, "with offset:", loff)
 	if err != nil {
@@ -149,7 +179,8 @@ func (b *KafkaBroker) Consume(topic string, offset int64, imm bool) []string {
 	partitionConsumer, err := b.Consumer.ConsumePartition(topic, 0, offset)
 
 	if err != nil {
-		panic(err)
+		log.Println("Partition already consumed aborting try")
+		return []string{}
 	}
 
 	defer func() {
@@ -177,6 +208,9 @@ ConsumerLoop:
 
 			messages = append(messages, string(msg.Value[:]))
 			consumed++
+			if imm {
+				break ConsumerLoop
+			}
 			if offset+consumed > loff-1 {
 				break ConsumerLoop
 			}
