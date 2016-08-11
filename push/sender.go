@@ -45,7 +45,7 @@ func (hs *HTTPSender) Send(msg string, endpoint string) error {
 
 	if err == nil {
 		if resp.StatusCode != 200 && resp.StatusCode != 201 && resp.StatusCode != 204 && resp.StatusCode != 101 {
-			err = errors.New("not delivered")
+			err = errors.New("Endpoint Responded: not delivered")
 		}
 		log.Println("message Delivered")
 	}

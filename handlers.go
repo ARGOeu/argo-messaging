@@ -740,22 +740,9 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 	for _, msg := range msgList.Msgs {
 		// Get offset and set it as msg
 		fullTopic := urlVars["project"] + "." + urlVars["topic"]
-		off := refBrk.GetOffset(fullTopic)
-		msg.ID = strconv.FormatInt(off, 10)
-		// Stamp time to UTC Z to nanoseconds
-		zNano := "2006-01-02T15:04:05.999999999Z"
-		t := time.Now()
-		msg.PubTime = t.Format(zNano)
 
-		// Publish the message
-		payload, err := msg.ExportJSON()
-		if err != nil {
-			respondErr(w, 500, "Error during data export to JSON", "INTERNAL")
-			return
-		}
-
-		rTop, _, rOff := refBrk.Publish(fullTopic, payload)
-
+		msgID, rTop, _, _ := refBrk.Publish(fullTopic, msg)
+		msg.ID = msgID
 		// Assertions for Succesfull Publish
 		if rTop != fullTopic {
 			respondErr(w, 500, "Broker reports wrong topic", "INTERNAL")
@@ -766,11 +753,11 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 		// 	respondErr(w, 500, "Broker reports wrong partition", "INTERNAL")
 		// 	return
 		// }
-
-		if rOff != off {
-			respondErr(w, 500, "Broker reports wrong offset", "INTERNAL")
-			return
-		}
+		//
+		// if rOff != off {
+		// 	respondErr(w, 500, "Broker reports wrong offset", "INTERNAL")
+		// 	return
+		// }
 
 		// Append the MsgID of the successful published message to the msgIds list
 		msgIDs.IDs = append(msgIDs.IDs, msg.ID)

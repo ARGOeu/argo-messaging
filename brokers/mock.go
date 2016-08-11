@@ -1,5 +1,11 @@
 package brokers
 
+import (
+	"strconv"
+
+	"github.com/ARGOeu/argo-messaging/messages"
+)
+
 // MockBroker struct
 type MockBroker struct {
 	MsgList []string
@@ -75,9 +81,12 @@ func (b *MockBroker) Initialize(peers []string) {
 }
 
 // Publish function publish a message to the broker
-func (b *MockBroker) Publish(topic string, payload string) (string, int, int64) {
+func (b *MockBroker) Publish(topic string, msg messages.Message) (string, string, int, int64) {
+	payload, _ := msg.ExportJSON()
 	b.MsgList = append(b.MsgList, payload)
-	return "ARGO.topic1", 0, int64(len(b.MsgList))
+	off := b.GetOffset(topic) - 1
+	msgID := strconv.FormatInt(off, 10)
+	return msgID, "ARGO.topic1", 0, int64(len(b.MsgList))
 }
 
 // GetOffset returns a current topic's offset

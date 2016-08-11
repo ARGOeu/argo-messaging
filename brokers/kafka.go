@@ -2,18 +2,29 @@ package brokers
 
 import (
 	"log"
+	"strconv"
+	"sync"
 	"time"
 )
 
-import "github.com/ARGOeu/argo-messaging/Godeps/_workspace/src/github.com/Shopify/sarama"
+import (
+	"github.com/ARGOeu/argo-messaging/Godeps/_workspace/src/github.com/Shopify/sarama"
+	"github.com/ARGOeu/argo-messaging/messages"
+)
+
+type kafkaLock struct {
+	sync.Mutex
+}
 
 // KafkaBroker struct
 type KafkaBroker struct {
-	Config   *sarama.Config
-	Producer sarama.SyncProducer
-	Client   sarama.Client
-	Consumer sarama.Consumer
-	Servers  []string
+	produceLock kafkaLock
+	consumeLock kafkaLock
+	Config      *sarama.Config
+	Producer    sarama.SyncProducer
+	Client      sarama.Client
+	Consumer    sarama.Consumer
+	Servers     []string
 }
 
 // CloseConnections closes open producer, consumer and client
@@ -47,6 +58,9 @@ func (b *KafkaBroker) InitConfig() {
 
 // Initialize the broker struct
 func (b *KafkaBroker) Initialize(peers []string) {
+	b.consumeLock = kafkaLock{}
+	b.produceLock = kafkaLock{}
+
 	b.Config = sarama.NewConfig()
 	b.Config.Producer.RequiredAcks = sarama.WaitForAll
 	b.Config.Producer.Retry.Max = 5
@@ -77,19 +91,32 @@ func (b *KafkaBroker) Initialize(peers []string) {
 }
 
 // Publish function publish a message to the broker
-func (b *KafkaBroker) Publish(topic string, payload string) (string, int, int64) {
+func (b *KafkaBroker) Publish(topic string, msg messages.Message) (string, string, int, int64) {
+	b.produceLock.Lock()
+	// Unlock after consumption
+	defer b.produceLock.Unlock()
+	off := b.GetOffset(topic)
+	msg.ID = strconv.FormatInt(off, 10)
+	// Stamp time to UTC Z to nanoseconds
+	zNano := "2006-01-02T15:04:05.999999999Z"
+	t := time.Now()
+	msg.PubTime = t.Format(zNano)
 
-	msg := &sarama.ProducerMessage{
+	// Publish the message
+	payload, _ := msg.ExportJSON()
+
+	msgFinal := &sarama.ProducerMessage{
 		Topic: topic,
 		Value: sarama.StringEncoder(payload),
 	}
 
-	partition, offset, err := b.Producer.SendMessage(msg)
+	partition, offset, err := b.Producer.SendMessage(msgFinal)
 	if err != nil {
 		panic(err)
 	}
 
-	return topic, int(partition), offset
+	return msg.ID, topic, int(partition), offset
+
 }
 
 // GetOffset returns a current topic's offset
@@ -104,10 +131,12 @@ func (b *KafkaBroker) GetOffset(topic string) int64 {
 
 // Consume function to consume a message from the broker
 func (b *KafkaBroker) Consume(topic string, offset int64, imm bool) []string {
-
+	b.consumeLock.Lock()
+	// Unlock after consumption
+	defer b.consumeLock.Unlock()
 	// Fetch offset
 	loff, err := b.Client.GetOffset(topic, 0, sarama.OffsetNewest)
-	log.Println("tryiing topic:", topic)
+	log.Println("consuming topic:", topic, "with offset:", loff)
 	if err != nil {
 		panic(err)
 	}
