@@ -301,19 +301,19 @@ func (suite *SubTestSuite) TestSubACL() {
 
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
 
-	sACL := GetSubACL("ARGO", "sub1", store)
+	sACL, _ := GetSubACL("ARGO", "sub1", store)
 	outJSON, _ := sACL.ExportJSON()
 	suite.Equal(expJSON01, outJSON)
 
-	sACL2 := GetSubACL("ARGO", "sub2", store)
+	sACL2, _ := GetSubACL("ARGO", "sub2", store)
 	outJSON2, _ := sACL2.ExportJSON()
 	suite.Equal(expJSON02, outJSON2)
 
-	sACL3 := GetSubACL("ARGO", "sub3", store)
+	sACL3, _ := GetSubACL("ARGO", "sub3", store)
 	outJSON3, _ := sACL3.ExportJSON()
 	suite.Equal(expJSON03, outJSON3)
 
-	sACL4 := GetSubACL("ARGO", "sub4", store)
+	sACL4, _ := GetSubACL("ARGO", "sub4", store)
 	outJSON4, _ := sACL4.ExportJSON()
 	suite.Equal(expJSON04, outJSON4)
 

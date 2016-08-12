@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -422,6 +423,200 @@ func (suite *HandlerTestSuite) TestTopicListOne() {
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
+}
+
+func (suite *HandlerTestSuite) TestTopicACL01() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/topics/topic1:acl", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "authorized_users": [
+      "userA",
+      "userB"
+   ]
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:acl", WrapConfig(TopicACL, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestTopicACL02() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/topics/topic3:acl", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "authorized_users": [
+      "userC"
+   ]
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:acl", WrapConfig(TopicACL, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestModTopicACL01() {
+
+	postExp := `{"authorized_users":["userX","userZ"]}`
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/projects/ARGO/topics/topic1:modAcl", bytes.NewBuffer([]byte(postExp)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:modAcl", WrapConfig(TopicModACL, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal("", w.Body.String())
+
+	req2, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/topics/topic1:acl", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:acl", WrapConfig(TopicACL, cfgKafka, &brk, str, &mgr))
+	w2 := httptest.NewRecorder()
+	router.ServeHTTP(w2, req2)
+	suite.Equal(200, w2.Code)
+
+	expResp := `{
+   "authorized_users": [
+      "userX",
+      "userZ"
+   ]
+}`
+
+	suite.Equal(expResp, w2.Body.String())
+	fmt.Println(w2.Body.String())
+}
+
+func (suite *HandlerTestSuite) TestModSubACL01() {
+
+	postExp := `{"authorized_users":["userX","userZ"]}`
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/projects/ARGO/subscription/sub1:modAcl", bytes.NewBuffer([]byte(postExp)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/subscription/{subscription}:modAcl", WrapConfig(SubModACL, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal("", w.Body.String())
+
+	req2, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/subscription/sub1:acl", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	router.HandleFunc("/v1/projects/{project}/subscription/{subscription}:acl", WrapConfig(SubACL, cfgKafka, &brk, str, &mgr))
+	w2 := httptest.NewRecorder()
+	router.ServeHTTP(w2, req2)
+	suite.Equal(200, w2.Code)
+
+	expResp := `{
+   "authorized_users": [
+      "userX",
+      "userZ"
+   ]
+}`
+
+	suite.Equal(expResp, w2.Body.String())
+	fmt.Println(w2.Body.String())
+}
+
+func (suite *HandlerTestSuite) TestSubACL01() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/subscription/sub1:acl", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "authorized_users": [
+      "userA",
+      "userB"
+   ]
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/subscription/{subscription}:acl", WrapConfig(SubACL, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestSubACL02() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/subscriptions/sub3:acl", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "authorized_users": [
+      "userD",
+      "userB",
+      "userA"
+   ]
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:acl", WrapConfig(SubACL, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
 }
 
 func (suite *HandlerTestSuite) TestTopicListAll() {
