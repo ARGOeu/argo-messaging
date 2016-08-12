@@ -73,6 +73,12 @@ func (p *Pusher) push(brk brokers.Broker, store stores.Store) {
 	// update sub details
 	subs := subscriptions.Subscriptions{}
 	subs.LoadOne(p.sub.Project, p.sub.Name, store)
+
+	// If subscription doesn't exist in store stop and remove it from manager
+	if len(subs.List) == 0 {
+		p.stop <- 1
+		p.mgr.Remove(p.sub.Project, p.sub.Name)
+	}
 	p.sub = subs.List[0]
 	// Init Received Message List
 
@@ -140,6 +146,21 @@ func (mgr *Manager) Get(psub string) (*Pusher, error) {
 		return p, nil
 	}
 	return nil, errors.New("not found")
+}
+
+// Remove a push subscription
+func (mgr *Manager) Remove(project string, sub string) error {
+	// Check if mgr is set
+	if !mgr.isSet() {
+		return errors.New("Push Manager not set")
+	}
+
+	if _, err := mgr.Get(project + "/" + sub); err == nil {
+		delete(mgr.list, project+"/"+sub)
+		return nil
+	}
+
+	return errors.New("Not Found")
 }
 
 // Restart a push subscription
