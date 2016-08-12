@@ -423,7 +423,7 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		refMgr.Stop(project, subName)
-		refMgr.Remove(project, subName)
+
 	}
 
 	// Write empty response if anything ok

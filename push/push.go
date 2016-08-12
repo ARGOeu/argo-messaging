@@ -77,7 +77,7 @@ func (p *Pusher) push(brk brokers.Broker, store stores.Store) {
 	// If subscription doesn't exist in store stop and remove it from manager
 	if len(subs.List) == 0 {
 		p.stop <- 1
-		p.mgr.Remove(p.sub.Project, p.sub.Name)
+		return
 	}
 	p.sub = subs.List[0]
 	// Init Received Message List
@@ -308,6 +308,8 @@ func LinearActivity(p *Pusher, brk brokers.Broker, store stores.Store) error {
 				p.running = false
 				if halt == 2 {
 					p.mgr.Launch(p.sub.Project, p.sub.Name)
+				} else {
+					p.mgr.Remove(p.sub.Project, p.sub.Name)
 				}
 				return nil
 			}
