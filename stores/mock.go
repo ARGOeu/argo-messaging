@@ -15,6 +15,23 @@ type MockStore struct {
 	UserList    []QUser
 	RoleList    []QRole
 	Session     bool
+	TopicsACL   map[string]QAcl
+	SubsACL     map[string]QAcl
+}
+
+// QueryACL Topic/Subscription ACL
+func (mk *MockStore) QueryACL(project string, resource string, name string) (QAcl, error) {
+	if resource == "topic" {
+		if _, exists := mk.TopicsACL[name]; exists {
+			return mk.TopicsACL[name], nil
+		}
+	} else if resource == "subscription" {
+		if _, exists := mk.SubsACL[name]; exists {
+			return mk.SubsACL[name], nil
+		}
+	}
+
+	return QAcl{}, errors.New("not found")
 }
 
 // NewMockStore creates new mock store
@@ -114,6 +131,27 @@ func (mk *MockStore) Initialize() {
 	mk.RoleList = append(mk.RoleList, qRole1)
 	mk.RoleList = append(mk.RoleList, qRole2)
 
+	qTopicACL01 := QAcl{[]string{"userA", "userB"}}
+	qTopicACL02 := QAcl{[]string{"userA", "userB", "userD"}}
+	qTopicACL03 := QAcl{[]string{"userC"}}
+
+	qSubACL01 := QAcl{[]string{"userA", "userB"}}
+	qSubACL02 := QAcl{[]string{"userA", "userC"}}
+	qSubACL03 := QAcl{[]string{"userD", "userB", "userA"}}
+	qSubACL04 := QAcl{[]string{"userB", "userD"}}
+
+	mk.TopicsACL = make(map[string]QAcl)
+	mk.SubsACL = make(map[string]QAcl)
+
+	mk.TopicsACL["topic1"] = qTopicACL01
+	mk.TopicsACL["topic2"] = qTopicACL02
+	mk.TopicsACL["topic3"] = qTopicACL03
+
+	mk.SubsACL["sub1"] = qSubACL01
+	mk.SubsACL["sub2"] = qSubACL02
+	mk.SubsACL["sub3"] = qSubACL03
+	mk.SubsACL["sub4"] = qSubACL04
+
 }
 
 // QueryOneSub returns one sub exactly
@@ -133,14 +171,14 @@ func (mk *MockStore) Clone() Store {
 }
 
 // GetUserRoles returns the roles of a user in a project
-func (mk *MockStore) GetUserRoles(project string, token string) []string {
+func (mk *MockStore) GetUserRoles(project string, token string) ([]string, string) {
 	for _, item := range mk.UserList {
 		if item.Project == project && item.Token == token {
-			return item.Roles
+			return item.Roles, "userA"
 		}
 	}
 
-	return []string{}
+	return []string{}, ""
 }
 
 //HasResourceRoles returns the roles of a user in a project

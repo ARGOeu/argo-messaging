@@ -5,5 +5,6 @@
   "store_host":"localhost",
   "store_db":"argo_msg",
   "certificate":"/etc/pki/tls/certs/localhost.crt",
-  "certificate_key":"/etc/pki/tls/private/localhost.key"
+  "certificate_key":"/etc/pki/tls/private/localhost.key",
+  "per_resource_auth":"true"
 }

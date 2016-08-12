@@ -51,6 +51,23 @@ func WrapValidate(hfn http.HandlerFunc) http.HandlerFunc {
 	})
 }
 
+// WrapMockAuthConfig handle wrapper is used in tests were some auth context is needed
+func WrapMockAuthConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *push.Manager) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		nStr := str.Clone()
+		defer nStr.Close()
+		context.Set(r, "brk", brk)
+		context.Set(r, "str", nStr)
+		context.Set(r, "mgr", mgr)
+		context.Set(r, "auth_resource", cfg.ResAuth)
+		context.Set(r, "auth_user", "userA")
+		context.Set(r, "auth_roles", []string{"publisher", "consumer"})
+		hfn.ServeHTTP(w, r)
+
+	})
+}
+
 // WrapConfig handle wrapper to retrieve kafka configuration
 func WrapConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *push.Manager) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -60,6 +77,7 @@ func WrapConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Broker, st
 		context.Set(r, "brk", brk)
 		context.Set(r, "str", nStr)
 		context.Set(r, "mgr", mgr)
+		context.Set(r, "auth_resource", cfg.ResAuth)
 		hfn.ServeHTTP(w, r)
 
 	})
@@ -92,10 +110,11 @@ func WrapAuthenticate(hfn http.Handler) http.HandlerFunc {
 
 		refStr := context.Get(r, "str").(stores.Store)
 
-		roles := auth.Authenticate(urlVars["project"], urlValues.Get("key"), refStr)
+		roles, user := auth.Authenticate(urlVars["project"], urlValues.Get("key"), refStr)
 
 		if len(roles) > 0 {
 			context.Set(r, "auth_roles", roles)
+			context.Set(r, "auth_user", user)
 			hfn.ServeHTTP(w, r)
 		} else {
 			respondErr(w, 401, "Unauthorized", "UNAUTHORIZED")
@@ -712,8 +731,12 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 	urlVars := mux.Vars(r)
 
 	// Grab context references
+
 	refBrk := context.Get(r, "brk").(brokers.Broker)
 	refStr := context.Get(r, "str").(stores.Store)
+	refUser := context.Get(r, "auth_user").(string)
+	refRoles := context.Get(r, "auth_roles").([]string)
+	refAuthResource := context.Get(r, "auth_resource").(bool)
 
 	// Create Topics Object
 	tp := topics.Topics{}
@@ -723,6 +746,17 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 	if tp.HasTopic(urlVars["project"], urlVars["topic"]) == false {
 		respondErr(w, 404, "Topic doesn't exist", "NOT_FOUND")
 		return
+	}
+
+	// Check Authorization per topic
+	// - if enabled in config
+	// - if user has only publisher role
+
+	if refAuthResource && auth.IsPublisher(refRoles) {
+		if auth.PerResource(urlVars["project"], "topic", urlVars["topic"], refUser, refStr) == false {
+			respondErr(w, 403, "Access to this resource is forbidden", "FORBIDDEN")
+			return
+		}
 	}
 
 	// Read POST JSON body
@@ -797,6 +831,9 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	// Grab context references
 	refBrk := context.Get(r, "brk").(brokers.Broker)
 	refStr := context.Get(r, "str").(stores.Store)
+	refUser := context.Get(r, "auth_user").(string)
+	refRoles := context.Get(r, "auth_roles").([]string)
+	refAuthResource := context.Get(r, "auth_resource").(bool)
 
 	// Create Subscriptions Object
 	sub := subscriptions.Subscriptions{}
@@ -806,6 +843,15 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	if sub.HasSub(urlVars["project"], urlVars["subscription"]) == false {
 		respondErr(w, 404, "Subscription doesn't exist", "NOT_FOUND")
 		return
+	}
+
+	// Check Authorization per subscription
+	// - if enabled in config
+	// - if user has only consumer role
+	if refAuthResource && auth.IsConsumer(refRoles) {
+		if auth.PerResource(urlVars["project"], "subscription", urlVars["subscription"], refUser, refStr) == false {
+			respondErr(w, 403, "Access to this resource is forbidden", "FORBIDDEN")
+		}
 	}
 
 	// Read POST JSON body

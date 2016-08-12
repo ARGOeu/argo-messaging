@@ -1,6 +1,7 @@
 package stores
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -33,8 +34,10 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal(false, store.HasProject("FOO"))
 
 	// Test user
-	suite.Equal([]string{"admin", "member"}, store.GetUserRoles("ARGO", "S3CR3T"))
-	suite.Equal([]string{}, store.GetUserRoles("ARGO", "SecretKey"))
+	roles01, _ := store.GetUserRoles("ARGO", "S3CR3T")
+	roles02, _ := store.GetUserRoles("ARGO", "SecretKey")
+	suite.Equal([]string{"admin", "member"}, roles01)
+	suite.Equal([]string{}, roles02)
 
 	// Test roles
 	suite.Equal(true, store.HasResourceRoles("topics:list_all", []string{"admin"}))
@@ -79,6 +82,39 @@ func (suite *StoreTestSuite) TestMockStore() {
 
 	sb, err := store.QueryOneSub("ARGO", "sub1")
 	suite.Equal(sb, eSubList[0])
+
+	// Query ACLS
+	ExpectedACL01 := QAcl{[]string{"userA", "userB"}}
+	QAcl01, _ := store.QueryACL("ARGO", "topic", "topic1")
+	suite.Equal(ExpectedACL01, QAcl01)
+
+	ExpectedACL02 := QAcl{[]string{"userA", "userB", "userD"}}
+	QAcl02, _ := store.QueryACL("ARGO", "topic", "topic2")
+	suite.Equal(ExpectedACL02, QAcl02)
+
+	ExpectedACL03 := QAcl{[]string{"userC"}}
+	QAcl03, _ := store.QueryACL("ARGO", "topic", "topic3")
+	suite.Equal(ExpectedACL03, QAcl03)
+
+	ExpectedACL04 := QAcl{[]string{"userA", "userB"}}
+	QAcl04, _ := store.QueryACL("ARGO", "subscription", "sub1")
+	suite.Equal(ExpectedACL04, QAcl04)
+
+	ExpectedACL05 := QAcl{[]string{"userA", "userC"}}
+	QAcl05, _ := store.QueryACL("ARGO", "subscription", "sub2")
+	suite.Equal(ExpectedACL05, QAcl05)
+
+	ExpectedACL06 := QAcl{[]string{"userD", "userB", "userA"}}
+	QAcl06, _ := store.QueryACL("ARGO", "subscription", "sub3")
+	suite.Equal(ExpectedACL06, QAcl06)
+
+	ExpectedACL07 := QAcl{[]string{"userB", "userD"}}
+	QAcl07, _ := store.QueryACL("ARGO", "subscription", "sub4")
+	suite.Equal(ExpectedACL07, QAcl07)
+
+	QAcl08, err08 := store.QueryACL("ARGO", "subscr", "sub4ss")
+	suite.Equal(QAcl{}, QAcl08)
+	suite.Equal(errors.New("not found"), err08)
 }
 
 func TestStoresTestSuite(t *testing.T) {

@@ -13,11 +13,12 @@ type Store interface {
 	QueryOneSub(project string, sub string) (QSub, error)
 	QueryPushSubs() []QSub
 	HasResourceRoles(resource string, roles []string) bool
-	GetUserRoles(project string, token string) []string
+	GetUserRoles(project string, token string) ([]string, string)
 	UpdateSubOffset(name string, offset int64)
 	UpdateSubPull(name string, offset int64, ts string)
 	UpdateSubOffsetAck(name string, offset int64, ts string) error
 	ModSubPush(project string, name string, push string, rPolicy string, rPeriod int) error
+	QueryACL(project string, resource string, name string) (QAcl, error)
 	Clone() Store
 	Close()
 }

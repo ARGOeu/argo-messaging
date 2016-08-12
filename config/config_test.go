@@ -21,7 +21,8 @@ func (suite *ConfigTestSuite) SetupTest() {
 		"store_host":"localhost",
 		"store_db":"argo_msg",
 		"certificate":"/etc/pki/tls/certs/localhost.crt",
-		"certificate_key":"/etc/pki/tls/private/localhost.key"
+		"certificate_key":"/etc/pki/tls/private/localhost.key",
+		"per_resource_auth":"true"
 	}`
 
 	log.SetOutput(ioutil.Discard)
@@ -45,6 +46,7 @@ func (suite *ConfigTestSuite) TestLoadConfiguration() {
 	suite.Equal("", APIcfg.BindIP)
 	suite.Equal("/etc/pki/tls/certs/localhost.crt", APIcfg.Cert)
 	suite.Equal("/etc/pki/tls/private/localhost.key", APIcfg.CertKey)
+	suite.Equal(true, APIcfg.ResAuth)
 }
 
 func (suite *ConfigTestSuite) TestLoadStringJSON() {
@@ -57,6 +59,7 @@ func (suite *ConfigTestSuite) TestLoadStringJSON() {
 	suite.Equal("", APIcfg.BindIP)
 	suite.Equal("/etc/pki/tls/certs/localhost.crt", APIcfg.Cert)
 	suite.Equal("/etc/pki/tls/private/localhost.key", APIcfg.CertKey)
+	suite.Equal(true, APIcfg.ResAuth)
 }
 
 func TestConfigTestSuite(t *testing.T) {

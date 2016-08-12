@@ -21,7 +21,8 @@ The ARGO Messaging Service main configuration file is config.json. An example co
   "store_host":"localhost",
   "store_db":"argo_msg",
   "certificate":"/etc/pki/tls/certs/localhost.crt",
-  "certificate_key":"/etc/pki/tls/private/localhost.key"
+  "certificate_key":"/etc/pki/tls/private/localhost.key",
+  "per_resource_auth":true
 }
 ```
 
@@ -31,10 +32,11 @@ Parameter | Description
 --------- | -----------
 bind_ip | the ip address to listen to.
 port | The port where the API will listen to
-zookeeper_hosts | List of zookeeper instances that are used to sync kafka 
+zookeeper_hosts | List of zookeeper instances that are used to sync kafka
 store_host | Address:port of the datastore server
 store_db | Database name used on the datastore server
 certificate | path to the node's TLS certificate file
 certificate_key | path to the certificate's private key
+per_resource_auth | enable authorization per resource (topic/subscription)
 
 **Location of config.json**: API will look first for config.json locally in the folder where the executable runs and then in the ` /etc/argo-messaging/`  location.

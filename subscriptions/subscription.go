@@ -50,6 +50,27 @@ type AckIDs struct {
 	IDs []string `json:"AckIds"`
 }
 
+// SubACL holds the authorized users for a topic
+type SubACL struct {
+	AuthUsers []string `json:"authorized_users"`
+}
+
+// GetSubACL returns an authorized list of users for the topic
+func GetSubACL(project string, sub string, store stores.Store) SubACL {
+	subACL, _ := store.QueryACL(project, "subscription", sub)
+	result := SubACL{}
+	for _, item := range subACL.ACL {
+		result.AuthUsers = append(result.AuthUsers, item)
+	}
+	return result
+}
+
+// ExportJSON export subscription acl body to json for use in http response
+func (sAcl *SubACL) ExportJSON() (string, error) {
+	output, err := json.MarshalIndent(sAcl, "", "   ")
+	return string(output[:]), err
+}
+
 // GetAckFromJSON retrieves ack ids from json
 func GetAckFromJSON(input []byte) (AckIDs, error) {
 	s := AckIDs{}

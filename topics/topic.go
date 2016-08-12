@@ -14,6 +14,11 @@ type Topic struct {
 	FullName string `json:"name"`
 }
 
+// TopicACL holds the authorized users for a topic
+type TopicACL struct {
+	AuthUsers []string `json:"authorized_users"`
+}
+
 // Topics holds a list of Topic items
 type Topics struct {
 	List []Topic `json:"topics,omitempty"`
@@ -50,6 +55,22 @@ func (tl *Topics) LoadFromStore(store stores.Store) {
 // ExportJSON exports whole Topic Structure as a json string
 func (tp *Topic) ExportJSON() (string, error) {
 	output, err := json.MarshalIndent(tp, "", "   ")
+	return string(output[:]), err
+}
+
+// GetTopicACL returns an authorized list of users for the topic
+func GetTopicACL(project string, topic string, store stores.Store) TopicACL {
+	topicACL, _ := store.QueryACL(project, "topic", topic)
+	result := TopicACL{}
+	for _, item := range topicACL.ACL {
+		result.AuthUsers = append(result.AuthUsers, item)
+	}
+	return result
+}
+
+// ExportJSON export topic acl body to json for use in http response
+func (tAcl *TopicACL) ExportJSON() (string, error) {
+	output, err := json.MarshalIndent(tAcl, "", "   ")
 	return string(output[:]), err
 }
 
