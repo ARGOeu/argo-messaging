@@ -3,7 +3,7 @@ package brokers
 import (
 	"testing"
 
-	"github.com/ARGOeu/argo-messaging/Godeps/_workspace/src/github.com/stretchr/testify/suite"
+	"github.com/stretchr/testify/suite"
 )
 
 type BrokerTestSuite struct {

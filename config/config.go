@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ARGOeu/argo-messaging/Godeps/_workspace/src/github.com/samuel/go-zookeeper/zk"
-	"github.com/ARGOeu/argo-messaging/Godeps/_workspace/src/github.com/spf13/viper"
+	"github.com/samuel/go-zookeeper/zk"
+	"github.com/spf13/viper"
 )
 
 // APICfg holds kafka configuration
