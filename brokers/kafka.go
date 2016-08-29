@@ -8,7 +8,7 @@ import (
 )
 
 import (
-	"github.com/ARGOeu/argo-messaging/Godeps/_workspace/src/github.com/Shopify/sarama"
+	"github.com/Shopify/sarama"
 	"github.com/ARGOeu/argo-messaging/messages"
 )
 
