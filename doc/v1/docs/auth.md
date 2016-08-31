@@ -75,3 +75,15 @@ subscriptions:create | Allow user to create a new subscription when using `PUT /
 subscriptions:delete | Allow user to delete an existing subscription when using `DELETE /projects/PROJECT_A/subscriptions/SUB_A`
 subscriptions:pull | Allow user to pull messages from a subscription when using `POST /projects/PROJECT_A/subscriptions/SUB_A:pull`
 subscriptions:acknowledge | Allow user to acknowledge messages that has pulled when using `POST /projects/PROJECT_A/subscriptions/SUB_A:acknowledge`
+
+# Per Resource Authorization
+
+Messaging API provides the option to control in finer detail access on resources such as topics and subscriptions for users(clients) that are producers or subscribers. Each resource (topic/subscription) comes with an access list (ACL) that contains producers or subscribers that are eligible to use that resource (when publishing or pulling messages respectively). Users with the admin role are able to modify Access lists for topics and subscriptions on the project they belong. In order for the feature to be available Messaging API should have the config parameter `per_resource_auth` set to `true`
+
+# List ACL of a given topic
+
+# Modify ACL of a given topic
+
+# List ACL of a given subscription
+
+# Modify ACL of a given subscription

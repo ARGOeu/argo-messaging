@@ -24,13 +24,14 @@ type HandlerTestSuite struct {
 
 func (suite *HandlerTestSuite) SetupTest() {
 	suite.cfgStr = `{
-	  "port":8080,
-		"broker_hosts":["localhost:9092"],
-		"store_host":"localhost",
-		"store_db":"argo_msg",
-		"use_authorization":true,
-		"use_authentication":true,
-		"use_ack":true
+	"bind_ip":"",
+	"port":8080,
+	"zookeeper_hosts":["localhost"],
+	"store_host":"localhost",
+	"store_db":"argo_msg",
+	"certificate":"/etc/pki/tls/certs/localhost.crt",
+	"certificate_key":"/etc/pki/tls/private/localhost.key",
+	"per_resource_auth":"true"
 	}`
 
 	log.SetOutput(ioutil.Discard)
@@ -491,7 +492,7 @@ func (suite *HandlerTestSuite) TestPublish() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapConfig(TopicPublish, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapMockAuthConfig(TopicPublish, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expJSON, w.Body.String())
@@ -550,7 +551,7 @@ func (suite *HandlerTestSuite) TestPublishMultiple() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapConfig(TopicPublish, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapMockAuthConfig(TopicPublish, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expJSON, w.Body.String())
@@ -599,7 +600,7 @@ func (suite *HandlerTestSuite) TestPublishError() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapConfig(TopicPublish, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapMockAuthConfig(TopicPublish, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(400, w.Code)
 	suite.Equal(expJSON, w.Body.String())
@@ -651,7 +652,7 @@ func (suite *HandlerTestSuite) TestPublishNoTopic() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapConfig(TopicPublish, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapMockAuthConfig(TopicPublish, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(404, w.Code)
 	suite.Equal(expJSON, w.Body.String())
@@ -694,7 +695,7 @@ func (suite *HandlerTestSuite) TestSubPullOne() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:pull", WrapConfig(SubPull, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:pull", WrapMockAuthConfig(SubPull, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expJSON, w.Body.String())
@@ -812,7 +813,7 @@ func (suite *HandlerTestSuite) TestSubError() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:pull", WrapConfig(SubPull, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:pull", WrapMockAuthConfig(SubPull, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(404, w.Code)
 	suite.Equal(expJSON, w.Body.String())
@@ -877,7 +878,7 @@ func (suite *HandlerTestSuite) TestSubPullAll() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:pull", WrapConfig(SubPull, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:pull", WrapMockAuthConfig(SubPull, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expJSON, w.Body.String())

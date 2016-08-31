@@ -1,7 +1,6 @@
 package subscriptions
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
 	"testing"
@@ -44,14 +43,16 @@ func (suite *SubTestSuite) TestGetPushConfigFromJSON() {
 	pJSON := `
 	 {
      "pushConfig": {
-	     "pushEndpoint": "exmplar.foo",
+	     "pushEndpoint": "exemplar.foo",
 	     "retryPolicy":{"type":"linear","period":6000}
     }
    }
 	`
 	s, err := GetFromJSON([]byte(pJSON))
-	fmt.Println(err)
-	fmt.Println(s)
+	suite.Equal(nil, err)
+	suite.Equal("exemplar.foo", s.PushCfg.Pend)
+	suite.Equal("linear", s.PushCfg.RetPol.PolicyType)
+	suite.Equal(6000, s.PushCfg.RetPol.Period)
 
 }
 
@@ -262,6 +263,59 @@ func (suite *SubTestSuite) TestExportJson() {
 
 	outJSON2, _ := mySubs.ExportJSON()
 	suite.Equal(expJSON2, outJSON2)
+
+}
+
+func (suite *SubTestSuite) TestSubACL() {
+	expJSON01 := `{
+   "authorized_users": [
+      "userA",
+      "userB"
+   ]
+}`
+
+	expJSON02 := `{
+   "authorized_users": [
+      "userA",
+      "userC"
+   ]
+}`
+
+	expJSON03 := `{
+   "authorized_users": [
+      "userD",
+      "userB",
+      "userA"
+   ]
+}`
+
+	expJSON04 := `{
+   "authorized_users": [
+      "userB",
+      "userD"
+   ]
+}`
+
+	APIcfg := config.NewAPICfg()
+	APIcfg.LoadStrJSON(suite.cfgStr)
+
+	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
+
+	sACL := GetSubACL("ARGO", "sub1", store)
+	outJSON, _ := sACL.ExportJSON()
+	suite.Equal(expJSON01, outJSON)
+
+	sACL2 := GetSubACL("ARGO", "sub2", store)
+	outJSON2, _ := sACL2.ExportJSON()
+	suite.Equal(expJSON02, outJSON2)
+
+	sACL3 := GetSubACL("ARGO", "sub3", store)
+	outJSON3, _ := sACL3.ExportJSON()
+	suite.Equal(expJSON03, outJSON3)
+
+	sACL4 := GetSubACL("ARGO", "sub4", store)
+	outJSON4, _ := sACL4.ExportJSON()
+	suite.Equal(expJSON04, outJSON4)
 
 }
 

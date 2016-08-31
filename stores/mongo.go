@@ -123,6 +123,31 @@ func (mong *MongoStore) UpdateSubOffset(name string, offset int64) {
 
 }
 
+// QueryACL queries topic or subscription for a list of authorized users
+func (mong *MongoStore) QueryACL(project string, resource string, name string) (QAcl, error) {
+	db := mong.Session.DB(mong.Database)
+	var results []QAcl
+	var c *mgo.Collection
+	if resource == "topic" {
+		c = db.C("topics")
+	} else if resource == "subscription" {
+		c = db.C("subscriptions")
+	} else {
+		return QAcl{}, errors.New("wrong resource type")
+	}
+
+	err := c.Find(bson.M{"project": project, "name": resource}).All(&results)
+	if err != nil {
+		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
+	}
+
+	if len(results) > 0 {
+		return results[0], nil
+	}
+
+	return QAcl{}, errors.New("empty")
+}
+
 // QueryTopics Query Subscription info from store
 func (mong *MongoStore) QueryTopics() []QTopic {
 
@@ -158,7 +183,7 @@ func (mong *MongoStore) HasResourceRoles(resource string, roles []string) bool {
 }
 
 //GetUserRoles returns the roles of a user in a project
-func (mong *MongoStore) GetUserRoles(project string, token string) []string {
+func (mong *MongoStore) GetUserRoles(project string, token string) ([]string, string) {
 
 	db := mong.Session.DB(mong.Database)
 	c := db.C("users")
@@ -169,7 +194,7 @@ func (mong *MongoStore) GetUserRoles(project string, token string) []string {
 	}
 
 	if len(results) == 0 {
-		return []string{}
+		return []string{}, ""
 	}
 
 	if len(results) > 1 {
@@ -177,7 +202,7 @@ func (mong *MongoStore) GetUserRoles(project string, token string) []string {
 
 	}
 
-	return results[0].Roles
+	return results[0].Roles, results[0].Name
 
 }
 

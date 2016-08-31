@@ -14,6 +14,11 @@ type QSub struct {
 	RetPeriod    int    `bson:"retry_period"`
 }
 
+// QAcl holds a list of authorized users queried from topic or subscription collections
+type QAcl struct {
+	ACL []string `bson:"acl"`
+}
+
 // QUser are the results of the QUser query
 type QUser struct {
 	Name    string   `bson:"name"`

@@ -22,6 +22,7 @@ type APICfg struct {
 	StoreDB   string
 	Cert      string
 	CertKey   string
+	ResAuth   bool
 }
 
 // NewAPICfg creates a new kafka configuration object
@@ -100,6 +101,8 @@ func (cfg *APICfg) Load() {
 	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - certificate", cfg.Cert)
 	cfg.CertKey = viper.GetString("certificate_key")
 	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - certificate_key", cfg.CertKey)
+	cfg.ResAuth = viper.GetBool("per_resource_auth")
+	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - per_resource_auth", cfg.CertKey)
 
 }
 
@@ -122,5 +125,7 @@ func (cfg *APICfg) LoadStrJSON(input string) {
 	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - certificate", cfg.Cert)
 	cfg.CertKey = viper.GetString("certificate_key")
 	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - certificate_key", cfg.CertKey)
+	cfg.ResAuth = viper.GetBool("per_resource_auth")
+	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - per_resource_auth", cfg.CertKey)
 
 }
