@@ -136,7 +136,7 @@ func (mong *MongoStore) QueryACL(project string, resource string, name string) (
 		return QAcl{}, errors.New("wrong resource type")
 	}
 
-	err := c.Find(bson.M{"project": project, "name": resource}).All(&results)
+	err := c.Find(bson.M{"project": project, "name": name}).All(&results)
 	if err != nil {
 		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
 	}
