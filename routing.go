@@ -65,19 +65,21 @@ func NewRouting(cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *p
 // Global list populated with default routes
 var defaultRoutes = []APIRoute{
 	{"subscriptions:list", "GET", "/projects/{project}/subscriptions", SubListAll},
+	{"subscriptions:acl", "GET", "/projects/{project}/subscriptions/{subscription}:acl", SubACL},
 	{"subscriptions:show", "GET", "/projects/{project}/subscriptions/{subscription}", SubListOne},
 	{"subscriptions:create", "PUT", "/projects/{project}/subscriptions/{subscription}", SubCreate},
 	{"subscriptions:delete", "DELETE", "/projects/{project}/subscriptions/{subscription}", SubDelete},
 	{"subscriptions:pull", "POST", "/projects/{project}/subscriptions/{subscription}:pull", SubPull},
 	{"subscriptions:acknowledge", "POST", "/projects/{project}/subscriptions/{subscription}:acknowledge", SubAck},
 	{"subscriptions:modifyPushConfig", "POST", "/projects/{project}/subscriptions/{subscription}:modifyPushConfig", SubModPush},
-	{"subscriptions:acl", "GET", "/projects/{project}/subscriptions/{subscription}:acl", SubACL},
+
 	{"subscriptions:modifyAcl", "POST", "/projects/{project}/subscriptions/{subscription}:acl", SubACL},
 	{"topics:list", "GET", "/projects/{project}/topics", TopicListAll},
+	{"topics:acl", "GET", "/projects/{project}/topics/{topic}:acl", TopicACL},
 	{"topics:show", "GET", "/projects/{project}/topics/{topic}", TopicListOne},
 	{"topics:create", "PUT", "/projects/{project}/topics/{topic}", TopicCreate},
 	{"topics:delete", "DELETE", "/projects/{project}/topics/{topic}", TopicDelete},
 	{"topics:publish", "POST", "/projects/{project}/topics/{topic}:publish", TopicPublish},
-	{"topics:acl", "GET", "/projects/{project}/topics/{topic}:acl", TopicACL},
+
 	{"topics:modifyAcl", "POST", "/projects/{project}/topics/{topic}:modifyAcl", TopicModACL},
 }
