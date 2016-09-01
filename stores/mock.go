@@ -49,6 +49,24 @@ func (mk *MockStore) Close() {
 	mk.Session = false
 }
 
+// ModACL changes the acl in a function
+func (mk *MockStore) ModACL(project string, resource string, name string, acl []string) error {
+	newAcl := QAcl{ACL: acl}
+	if resource == "topics" {
+		if _, exists := mk.TopicsACL[name]; exists {
+			mk.TopicsACL[name] = newAcl
+			return nil
+		}
+	} else if resource == "subscriptions" {
+		if _, exists := mk.SubsACL[name]; exists {
+			mk.SubsACL[name] = newAcl
+			return nil
+		}
+	}
+
+	return errors.New("not found")
+}
+
 // UpdateSubOffset updates the offset of the current subscription
 func (mk *MockStore) UpdateSubOffset(name string, offset int64) {
 

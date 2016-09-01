@@ -145,7 +145,7 @@ func (mong *MongoStore) QueryACL(project string, resource string, name string) (
 		return results[0], nil
 	}
 
-	return QAcl{}, errors.New("empty")
+	return QAcl{}, errors.New("not found")
 }
 
 // QueryTopics Query Subscription info from store
@@ -263,6 +263,14 @@ func (mong *MongoStore) RemoveTopic(project string, name string) error {
 func (mong *MongoStore) RemoveSub(project string, name string) error {
 	sub := bson.M{"project": project, "name": name}
 	return mong.RemoveResource("subscriptions", sub)
+}
+
+// ModACL modifies the push configuration
+func (mong *MongoStore) ModACL(project string, resource string, name string, acl []string) error {
+	db := mong.Session.DB(mong.Database)
+	c := db.C(resource)
+	err := c.Update(bson.M{"project": project, "name": name}, bson.M{"$set": bson.M{"acl": acl}})
+	return err
 }
 
 // ModSubPush modifies the push configuration

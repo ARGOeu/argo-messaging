@@ -73,6 +73,36 @@ Success Response
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
 
+## [GET] Manage Subscriptions - Get a subscription's list of authorized users
+This request returns a list of authorized users to consume from the subscription
+
+### Request
+`GET /v1/projects/{project_name}/subscriptions/{sub_name}:acl``
+
+### Where
+- Project_name: Name of the project to get
+- Sub_name: The subscription name
+
+### Example request
+
+```json
+curl -H "Content-Type: application/json"  
+-d '' " https://{URL}/v1/projects/EGI/subscriptions/subscription:acl?key=S3CR3T"`
+```
+
+### Responses  
+
+Success Response
+`200 OK`
+```json
+{
+ "authorized_users": ["userC","userD"]
+}
+```
+
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors
+
 
 ## [DELETE] Manage Subscriptions - Delete Subscriptions
 This request deletes a topic in a project with a DELETE request

@@ -168,6 +168,82 @@ paths:
         500:
           $ref: "#/responses/500"
 
+  /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}:acl:
+    get:
+      summary: List ACL of a given subscription
+      description: |
+        Show a list of authorized consumers on the given subscription
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: SUBSCRIPTION
+          in: path
+          description: Name of the Subscription
+          required: true
+          type: string
+      tags:
+        - Subscriptions
+      responses:
+        200:
+          description: An array of authorized users
+          schema:
+            $ref: '#/definitions/AuthUsers'
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
+
+  /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}:modifyAcl:
+    get:
+      summary: Modify ACL of a given subscription
+      description: |
+        Modify the list of authorized consumers on a subscription
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: SUBSCRIPTION
+          in: path
+          description: Name of the subscription
+          required: true
+          type: string
+        - name: Authorized_users
+          in: body
+          description: List of authorized users
+          required: true
+          schema:
+           $ref: '#/definitions/AuthUsers'
+      tags:
+        - Topics
+      responses:
+        200:
+          description: An empty response if Authorized User list is succesfully updated
+          schema:
+            $ref: '#/definitions/AuthUsers'
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
+
 
 
   /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}:pull:
@@ -480,6 +556,82 @@ paths:
         500:
           $ref: "#/responses/500"
 
+  /projects/{PROJECT}/topics/{TOPIC}:acl:
+    get:
+      summary: List ACL of a given topic
+      description: |
+        Show a list of authorized producers on the given topic
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: TOPIC
+          in: path
+          description: Name of the topic
+          required: true
+          type: string
+      tags:
+        - Topics
+      responses:
+        200:
+          description: An array of authorized users
+          schema:
+            $ref: '#/definitions/AuthUsers'
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
+
+  /projects/{PROJECT}/topics/{TOPIC}:modifyAcl:
+    get:
+      summary: Modify ACL of a given topic
+      description: |
+        Modify the list of authorized producers on a topic
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: TOPIC
+          in: path
+          description: Name of the topic
+          required: true
+          type: string
+        - name: Authorized_users
+          in: body
+          description: List of authorized users
+          required: true
+          schema:
+           $ref: '#/definitions/AuthUsers'
+      tags:
+        - Topics
+      responses:
+        200:
+          description: An empty response if Authorized User list is succesfully updated
+          schema:
+            $ref: '#/definitions/AuthUsers'
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
+
 parameters:
   ApiKey:
     name: key
@@ -520,6 +672,15 @@ responses:
       $ref: '#/definitions/ErrorMsg'
 
 definitions:
+
+  AuthUsers:
+    type: object
+    properties:
+      auth_users:
+        type: array
+        items:
+         type: string
+
   PullOptions:
     type: object
     properties:

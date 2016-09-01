@@ -19,6 +19,7 @@ type Store interface {
 	UpdateSubOffsetAck(name string, offset int64, ts string) error
 	ModSubPush(project string, name string, push string, rPolicy string, rPeriod int) error
 	QueryACL(project string, resource string, name string) (QAcl, error)
+	ModACL(project string, resource string, name string, acl []string) error
 	Clone() Store
 	Close()
 }

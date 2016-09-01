@@ -51,14 +51,14 @@ func IsConsumer(roles []string) bool {
 // PerResource  (for topics and subscriptions)
 func PerResource(project string, resType string, resName string, user string, store stores.Store) bool {
 	if resType == "topic" {
-		tACL := topics.GetTopicACL(project, resName, store)
+		tACL, _ := topics.GetTopicACL(project, resName, store)
 		for _, item := range tACL.AuthUsers {
 			if item == user {
 				return true
 			}
 		}
 	} else if resType == "subscription" {
-		sACL := subscriptions.GetSubACL(project, resName, store)
+		sACL, _ := subscriptions.GetSubACL(project, resName, store)
 		for _, item := range sACL.AuthUsers {
 			if item == user {
 				return true

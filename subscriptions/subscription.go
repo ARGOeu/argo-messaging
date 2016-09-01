@@ -56,13 +56,28 @@ type SubACL struct {
 }
 
 // GetSubACL returns an authorized list of users for the topic
-func GetSubACL(project string, sub string, store stores.Store) SubACL {
-	subACL, _ := store.QueryACL(project, "subscription", sub)
+func GetSubACL(project string, sub string, store stores.Store) (SubACL, error) {
 	result := SubACL{}
+	subACL, err := store.QueryACL(project, "subscription", sub)
+	if err != nil {
+		return result, err
+	}
 	for _, item := range subACL.ACL {
 		result.AuthUsers = append(result.AuthUsers, item)
 	}
-	return result
+	return result, nil
+}
+
+// GetACLFromJSON retrieves SubACL info from JSON
+func GetACLFromJSON(input []byte) (SubACL, error) {
+	s := SubACL{}
+	err := json.Unmarshal([]byte(input), &s)
+	return s, err
+}
+
+// ModACL is called to modify a sub's acl
+func ModACL(project string, name string, acl []string, store stores.Store) error {
+	return store.ModACL(project, "subscriptions", name, acl)
 }
 
 // ExportJSON export subscription acl body to json for use in http response

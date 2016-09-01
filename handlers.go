@@ -359,6 +359,110 @@ func SubDelete(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// TopicModACL (PUT) modifies the ACL
+func TopicModACL(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+
+	// Read POST JSON body
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		respondErr(w, 500, "Bad Request body", "BAD_REQUEST")
+		return
+	}
+
+	// Parse pull options
+	postBody, err := topics.GetACLFromJSON(body)
+	if err != nil {
+		respondErr(w, 400, "Invalid Subscription ACL Arguments", "INVALID_ARGUMENT")
+		return
+	}
+
+	// Grab context references
+	refStr := context.Get(r, "str").(stores.Store)
+
+	// Get Result Object
+	subName := urlVars["topic"]
+	project := urlVars["project"]
+
+	err = topics.ModACL(project, subName, postBody.AuthUsers, refStr)
+
+	if err != nil {
+
+		if err.Error() == "not found" {
+			respondErr(w, 404, "Topic doesn't exist", "NOT_FOUND")
+			return
+		}
+
+		respondErr(w, 500, err.Error(), "INTERNAL")
+		return
+	}
+
+	respondOK(w, output)
+
+}
+
+// SubModACL (PUT) modifies the ACL
+func SubModACL(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+
+	// Read POST JSON body
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		respondErr(w, 500, "Bad Request body", "BAD_REQUEST")
+		return
+	}
+
+	// Parse pull options
+	postBody, err := subscriptions.GetACLFromJSON(body)
+	if err != nil {
+		respondErr(w, 400, "Invalid Subscription ACL Arguments", "INVALID_ARGUMENT")
+		return
+	}
+
+	// Grab context references
+	refStr := context.Get(r, "str").(stores.Store)
+
+	// Get Result Object
+	subName := urlVars["subscription"]
+	project := urlVars["project"]
+
+	err = subscriptions.ModACL(project, subName, postBody.AuthUsers, refStr)
+
+	if err != nil {
+
+		if err.Error() == "not found" {
+			respondErr(w, 404, "Subscription doesn't exist", "NOT_FOUND")
+			return
+		}
+
+		respondErr(w, 500, err.Error(), "INTERNAL")
+		return
+	}
+
+	respondOK(w, output)
+
+}
+
 // SubModPush (PUT) modifies the push configuration
 func SubModPush(w http.ResponseWriter, r *http.Request) {
 
@@ -625,6 +729,84 @@ func TopicListOne(w http.ResponseWriter, r *http.Request) {
 	// If not found
 	if res.Name == "" {
 		respondErr(w, 404, "Topic does not exist", "NOT_FOUND")
+		return
+	}
+
+	// Output result to JSON
+	resJSON, err := res.ExportJSON()
+	if err != nil {
+		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL")
+		return
+	}
+
+	// Write response
+	output = []byte(resJSON)
+	respondOK(w, output)
+
+}
+
+// TopicACL (GET) one topic's authorized users
+func TopicACL(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+
+	// Grab context references
+	refStr := context.Get(r, "str").(stores.Store)
+
+	// Get Result Object
+	res, err := topics.GetTopicACL(urlVars["project"], urlVars["topic"], refStr)
+
+	// If not found
+	if err != nil {
+		respondErr(w, 404, "Topic does not exist", "NOT_FOUND")
+		return
+	}
+
+	// Output result to JSON
+	resJSON, err := res.ExportJSON()
+	if err != nil {
+		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL")
+		return
+	}
+
+	// Write response
+	output = []byte(resJSON)
+	respondOK(w, output)
+
+}
+
+// SubACL (GET) one topic's authorized users
+func SubACL(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+
+	// Grab context references
+	refStr := context.Get(r, "str").(stores.Store)
+
+	// Get Result Object
+	res, err := subscriptions.GetSubACL(urlVars["project"], urlVars["subscription"], refStr)
+
+	// If not found
+	if err != nil {
+		respondErr(w, 404, "Subscription does not exist", "NOT_FOUND")
 		return
 	}
 

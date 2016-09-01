@@ -59,13 +59,28 @@ func (tp *Topic) ExportJSON() (string, error) {
 }
 
 // GetTopicACL returns an authorized list of users for the topic
-func GetTopicACL(project string, topic string, store stores.Store) TopicACL {
-	topicACL, _ := store.QueryACL(project, "topic", topic)
+func GetTopicACL(project string, topic string, store stores.Store) (TopicACL, error) {
 	result := TopicACL{}
+	topicACL, err := store.QueryACL(project, "topic", topic)
+	if err != nil {
+		return result, err
+	}
 	for _, item := range topicACL.ACL {
 		result.AuthUsers = append(result.AuthUsers, item)
 	}
-	return result
+	return result, err
+}
+
+// GetACLFromJSON retrieves TopicACL info from JSON
+func GetACLFromJSON(input []byte) (TopicACL, error) {
+	s := TopicACL{}
+	err := json.Unmarshal([]byte(input), &s)
+	return s, err
+}
+
+// ModACL is called to modify a topic's acl
+func ModACL(project string, name string, acl []string, store stores.Store) error {
+	return store.ModACL(project, "topics", name, acl)
 }
 
 // ExportJSON export topic acl body to json for use in http response

@@ -155,15 +155,15 @@ func (suite *TopicTestSuite) TestTopicACL() {
 
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
 
-	tACL := GetTopicACL("ARGO", "topic1", store)
+	tACL, _ := GetTopicACL("ARGO", "topic1", store)
 	outJSON, _ := tACL.ExportJSON()
 	suite.Equal(expJSON01, outJSON)
 
-	tACL2 := GetTopicACL("ARGO", "topic2", store)
+	tACL2, _ := GetTopicACL("ARGO", "topic2", store)
 	outJSON2, _ := tACL2.ExportJSON()
 	suite.Equal(expJSON02, outJSON2)
 
-	tACL3 := GetTopicACL("ARGO", "topic3", store)
+	tACL3, _ := GetTopicACL("ARGO", "topic3", store)
 	outJSON3, _ := tACL3.ExportJSON()
 	suite.Equal(expJSON03, outJSON3)
 
