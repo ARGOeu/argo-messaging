@@ -1,21 +1,14 @@
----
-title: 'ARGO Messaging Service documentation | ARGO'
-page_title: Authentication & Authorization
-font_title: fa fa-cogs
-description: Authentication & Authorization
----
-
 # Security and privacy considerations
 
 Authentication is the process of determining the identity of a client, which is typically a user account. Authorization is the process of determining what permissions an authenticated identity has on a set of specified resources. In the Messaging API, there can be no authorization without authentication.
 
 > This is an initial implementation of the user authentication and authorization. In the next versions of the ARGO Messaging service we are going to provide support for both bear and OpenID Connect tokens for the API access and it will be possible to apply ACLs at each (resource) subscriptions and topics.
 
-# User Authentication
+## User Authentication
 
 Authentication requires the presence of a populated “users” collection in the datastore in the adhering to the following schema:
 
-```json
+```
 {
 	"name" : "john",
 	"email" : "john@doe.com",
@@ -40,11 +33,11 @@ roles | List of roles that user has. Each role definition is used in authorizati
 
 Each user is authenticated by adding the url parameter ?key=T0K3N in each API request
 
-# Authorization
+## Authorization
 
 Authorization requires the presence of a populated “roles” collection in the datastore in the adhering to the following schema:
 
-```json
+```
 {
 	"resource" : "resource_name:action",
 	"roles" : [
@@ -76,11 +69,11 @@ subscriptions:delete | Allow user to delete an existing subscription when using 
 subscriptions:pull | Allow user to pull messages from a subscription when using `POST /projects/PROJECT_A/subscriptions/SUB_A:pull`
 subscriptions:acknowledge | Allow user to acknowledge messages that has pulled when using `POST /projects/PROJECT_A/subscriptions/SUB_A:acknowledge`
 
-# Per Resource Authorization
+## Per Resource Authorization
 
 Messaging API provides the option to control in finer detail access on resources such as topics and subscriptions for users(clients) that are producers or subscribers. Each resource (topic/subscription) comes with an access list (ACL) that contains producers or subscribers that are eligible to use that resource (when publishing or pulling messages respectively). Users with the admin role are able to modify Access lists for topics and subscriptions on the project they belong. In order for the feature to be available Messaging API should have the config parameter `per_resource_auth` set to `true`
 
-# List ACL of a given topic
+## [GET] List ACL of a given topic
 The following request returns a list of authorized users (publishers) of a given topic
 
 ### Request
@@ -90,14 +83,10 @@ The following request returns a list of authorized users (publishers) of a given
 - Project_name: name of the project
 - topic_name: name of the topic
 
-
-
 ### Example request
 
 ```
-json
-curl -X POST -H "Content-Type: application/json"  
--d { POSTDATA } https://{URL}/v1/projects/EGI/topics/monitoring:acl?key=S3CR3T"`
+curl  -H "Content-Type: application/json" https://{URL}/v1/projects/EGI/topics/monitoring:acl?key=S3CR3T"`
 ```
 
 ### Responses  
@@ -105,7 +94,6 @@ curl -X POST -H "Content-Type: application/json"
 Success Response
 `200 OK`
 ```
-json
 {
  "authorized_users": [
   "UserA","UserB"
@@ -118,7 +106,7 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 
 
 
-# Modify ACL of a given topic
+## [POST] Modify ACL of a given topic
 The following request Modifies the authorized users list of a given topic
 
 ### Request
@@ -131,7 +119,6 @@ The following request Modifies the authorized users list of a given topic
 
 ### Post data
 ```
-json
 {
 "authorized_users": [
  "UserX","UserY"
@@ -142,7 +129,6 @@ json
 ### Example request
 
 ```
-json
 curl -X POST -H "Content-Type: application/json"  
 -d { POSTDATA } https://{URL}/v1/projects/EGI/topics/monitoring:modifyAcl?key=S3CR3T"`
 ```
@@ -156,7 +142,7 @@ Success Response
 Please refer to section [Errors](api_errors.md) to see all possible Errors
 
 
-# List ACL of a given subscription
+## [GET] List ACL of a given subscription
 The following request returns a list of authorized users for a given subscription
 
 ### Request
@@ -166,12 +152,9 @@ The following request returns a list of authorized users for a given subscriptio
 - Project_name: Name of the project
 - sub_name: name of the subscription
 
-
-
 ### Example request
 
 ```
-json
 curl -X POST -H "Content-Type: application/json"  
 -d { POSTDATA } https://{URL}/v1/projects/EGI/subscriptions/monitoring:acl?key=S3CR3T"`
 ```
@@ -181,7 +164,6 @@ curl -X POST -H "Content-Type: application/json"
 Success Response
 `200 OK`
 ```
-json
 {
  "authorized_users": [
   "UserA","UserB"
@@ -192,8 +174,7 @@ json
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
 
-
-# Modify ACL of a given subscription
+## [POST] Modify ACL of a given subscription
 
 The following request Modifies the authorized users list of a given subscription
 
@@ -207,7 +188,6 @@ The following request Modifies the authorized users list of a given subscription
 
 ### Post data
 ```
-json
 {
 "authorized_users": [
  "UserX","UserY"
@@ -218,9 +198,7 @@ json
 ### Example request
 
 ```
-json
-curl -X POST -H "Content-Type: application/json"  
--d { POSTDATA } https://{URL}/v1/projects/EGI/subscriptions/monitoring:modifyAcl?key=S3CR3T"`
+curl -H "Content-Type: application/json"  https://{URL}/v1/projects/EGI/subscriptions/monitoring:modifyAcl?key=S3CR3T"`
 ```
 
 ### Responses  
