@@ -204,7 +204,7 @@ paths:
           $ref: "#/responses/500"
 
   /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}:modifyAcl:
-    get:
+    post:
       summary: Modify ACL of a given subscription
       description: |
         Modify the list of authorized consumers on a subscription
@@ -592,7 +592,7 @@ paths:
           $ref: "#/responses/500"
 
   /projects/{PROJECT}/topics/{TOPIC}:modifyAcl:
-    get:
+    post:
       summary: Modify ACL of a given topic
       description: |
         Modify the list of authorized producers on a topic
