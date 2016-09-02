@@ -227,7 +227,7 @@ paths:
           schema:
            $ref: '#/definitions/AuthUsers'
       tags:
-        - Topics
+        - Subscriptions
       responses:
         200:
           description: An empty response if Authorized User list is succesfully updated
