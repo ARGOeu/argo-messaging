@@ -181,6 +181,7 @@ func SubAck(w http.ResponseWriter, r *http.Request) {
 
 	if sub.HasSub(urlVars["project"], urlVars["subscription"]) == false {
 		respondErr(w, 404, "Subscription does not exist", "NOT_FOUND")
+		return
 	}
 
 	// Get Ack
@@ -309,6 +310,7 @@ func TopicDelete(w http.ResponseWriter, r *http.Request) {
 		}
 
 		respondErr(w, 500, err.Error(), "INTERNAL")
+		return
 	}
 
 	// Write empty response if anything ok
@@ -637,6 +639,7 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 		}
 
 		respondErr(w, 500, err.Error(), "INTERNAL")
+		return
 	}
 
 	// Enable pushManager if subscription has pushConfiguration
@@ -1033,6 +1036,7 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	if refAuthResource && auth.IsConsumer(refRoles) {
 		if auth.PerResource(urlVars["project"], "subscription", urlVars["subscription"], refUser, refStr) == false {
 			respondErr(w, 403, "Access to this resource is forbidden", "FORBIDDEN")
+			return
 		}
 	}
 
