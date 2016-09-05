@@ -115,6 +115,15 @@ func (suite *StoreTestSuite) TestMockStore() {
 	QAcl08, err08 := store.QueryACL("ARGO", "subscr", "sub4ss")
 	suite.Equal(QAcl{}, QAcl08)
 	suite.Equal(errors.New("not found"), err08)
+
+	//Check has users
+	allFound, notFound := store.HasUsers("ARGO", []string{"UserA", "UserB", "FooUser"})
+	suite.Equal(false, allFound)
+	suite.Equal([]string{"FooUser"}, notFound)
+
+	allFound, notFound = store.HasUsers("ARGO", []string{"UserA", "UserB"})
+	suite.Equal(true, allFound)
+	suite.Equal([]string(nil), notFound)
 }
 
 func TestStoresTestSuite(t *testing.T) {
