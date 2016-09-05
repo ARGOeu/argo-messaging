@@ -139,18 +139,6 @@ Success Response
 `200 OK`
 
 ### Errors
-If the to-be updated ACL contains users that are non-existent in the project the API returns the following error:
-`404 NOT_FOUND`
-```
-{
-   "error": {
-      "code": 404,
-      "message": "User(s): UserFoo1,UserFoo2 do not exist",
-      "status": "NOT_FOUND"
-   }
-}
-```
-
 Please refer to section [Errors](api_errors.md) to see all possible Errors
 
 
@@ -219,16 +207,4 @@ Success Response
 `200 OK`
 
 ### Errors
-If the to-be updated ACL contains users that are non-existent in the project the API returns the following error:
-`404 NOT_FOUND`
-```
-{
-   "error": {
-      "code": 404,
-      "message": "User(s): UserFoo1,UserFoo2 do not exist",
-      "status": "NOT_FOUND"
-   }
-}
-```
-
 Please refer to section [Errors](api_errors.md) to see all possible Errors

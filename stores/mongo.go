@@ -123,37 +123,6 @@ func (mong *MongoStore) UpdateSubOffset(name string, offset int64) {
 
 }
 
-// HasUsers accepts a user array of usernames and returns the not found
-func (mong *MongoStore) HasUsers(project string, users []string) (bool, []string) {
-	db := mong.Session.DB(mong.Database)
-	var results []QUser
-	var notFound []string
-	c := db.C("users")
-
-	err := c.Find(bson.M{"project": project, "name": bson.M{"$in": users}}).All(&results)
-	if err != nil {
-		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
-	}
-
-	// for each given username
-	for _, username := range users {
-		found := false
-		// loop through all found users
-		for _, user := range results {
-			if username == user.Name {
-				found = true
-			}
-		}
-		// if not found add it to the notFound
-		if !found {
-			notFound = append(notFound, username)
-		}
-
-	}
-
-	return len(notFound) == 0, notFound
-}
-
 // QueryACL queries topic or subscription for a list of authorized users
 func (mong *MongoStore) QueryACL(project string, resource string, name string) (QAcl, error) {
 	db := mong.Session.DB(mong.Database)
