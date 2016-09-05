@@ -5,9 +5,9 @@ import (
 	"log"
 	"testing"
 
-	"github.com/stretchr/testify/suite"
 	"github.com/ARGOeu/argo-messaging/config"
 	"github.com/ARGOeu/argo-messaging/stores"
+	"github.com/stretchr/testify/suite"
 )
 
 type SubTestSuite struct {
@@ -296,6 +296,10 @@ func (suite *SubTestSuite) TestSubACL() {
    ]
 }`
 
+	expJSON05 := `{
+   "authorized_users": []
+}`
+
 	APIcfg := config.NewAPICfg()
 	APIcfg.LoadStrJSON(suite.cfgStr)
 
@@ -316,6 +320,10 @@ func (suite *SubTestSuite) TestSubACL() {
 	sACL4, _ := GetSubACL("ARGO", "sub4", store)
 	outJSON4, _ := sACL4.ExportJSON()
 	suite.Equal(expJSON04, outJSON4)
+
+	sACL5 := SubACL{}
+	outJSON5, _ := sACL5.ExportJSON()
+	suite.Equal(expJSON05, outJSON5)
 
 }
 

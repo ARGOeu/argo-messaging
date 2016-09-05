@@ -5,9 +5,9 @@ import (
 	"log"
 	"testing"
 
-	"github.com/stretchr/testify/suite"
 	"github.com/ARGOeu/argo-messaging/config"
 	"github.com/ARGOeu/argo-messaging/stores"
+	"github.com/stretchr/testify/suite"
 )
 
 type TopicTestSuite struct {
@@ -150,6 +150,11 @@ func (suite *TopicTestSuite) TestTopicACL() {
       "userC"
    ]
 }`
+
+	expJSON04 := `{
+   "authorized_users": []
+}`
+
 	APIcfg := config.NewAPICfg()
 	APIcfg.LoadStrJSON(suite.cfgStr)
 
@@ -166,6 +171,10 @@ func (suite *TopicTestSuite) TestTopicACL() {
 	tACL3, _ := GetTopicACL("ARGO", "topic3", store)
 	outJSON3, _ := tACL3.ExportJSON()
 	suite.Equal(expJSON03, outJSON3)
+
+	tACL4 := TopicACL{}
+	outJSON4, _ := tACL4.ExportJSON()
+	suite.Equal(expJSON04, outJSON4)
 
 }
 
