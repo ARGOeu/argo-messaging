@@ -1,8 +1,6 @@
 package auth
 
 import (
-	"errors"
-
 	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/ARGOeu/argo-messaging/subscriptions"
 	"github.com/ARGOeu/argo-messaging/topics"
@@ -48,27 +46,6 @@ func IsConsumer(roles []string) bool {
 	}
 
 	return false
-}
-
-// AreValidUsers accepts a user array of usernames and checks if users exist in the store
-func AreValidUsers(project string, users []string, store stores.Store) (bool, error) {
-	found, notFound := store.HasUsers(project, users)
-	if found {
-		return true, nil
-	}
-
-	var list string
-
-	for i, username := range notFound {
-		if i == 0 {
-			list = list + username
-		} else {
-			list = list + ", " + username
-		}
-
-	}
-	return false, errors.New("User(s): " + list + " do not exist")
-
 }
 
 // PerResource  (for topics and subscriptions)
