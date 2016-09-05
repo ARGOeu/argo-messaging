@@ -80,6 +80,7 @@ func GetACLFromJSON(input []byte) (TopicACL, error) {
 
 // ModACL is called to modify a topic's acl
 func ModACL(project string, name string, acl []string, store stores.Store) error {
+
 	return store.ModACL(project, "topics", name, acl)
 }
 

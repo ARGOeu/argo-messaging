@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -480,9 +479,71 @@ func (suite *HandlerTestSuite) TestTopicACL02() {
 
 }
 
+func (suite *HandlerTestSuite) TestModTopicACLWrong() {
+
+	postExp := `{"authorized_users":["UserX","UserFoo"]}`
+
+	expRes := `{
+   "error": {
+      "code": 404,
+      "message": "User(s): UserFoo do not exist",
+      "status": "NOT_FOUND"
+   }
+}`
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/projects/ARGO/topics/topic1:modAcl", bytes.NewBuffer([]byte(postExp)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:modAcl", WrapConfig(TopicModACL, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(404, w.Code)
+	suite.Equal(expRes, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestModSubACLWrong() {
+
+	postExp := `{"authorized_users":["UserX","UserFoo"]}`
+
+	expRes := `{
+   "error": {
+      "code": 404,
+      "message": "User(s): UserFoo do not exist",
+      "status": "NOT_FOUND"
+   }
+}`
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/projects/ARGO/subscriptions/sub101:modAcl", bytes.NewBuffer([]byte(postExp)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modAcl", WrapConfig(SubModACL, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(404, w.Code)
+	suite.Equal(expRes, w.Body.String())
+
+}
+
 func (suite *HandlerTestSuite) TestModTopicACL01() {
 
-	postExp := `{"authorized_users":["userX","userZ"]}`
+	postExp := `{"authorized_users":["UserX","UserZ"]}`
 
 	req, err := http.NewRequest("POST", "http://localhost:8080/v1/projects/ARGO/topics/topic1:modAcl", bytes.NewBuffer([]byte(postExp)))
 	if err != nil {
@@ -512,18 +573,18 @@ func (suite *HandlerTestSuite) TestModTopicACL01() {
 
 	expResp := `{
    "authorized_users": [
-      "userX",
-      "userZ"
+      "UserX",
+      "UserZ"
    ]
 }`
 
 	suite.Equal(expResp, w2.Body.String())
-	fmt.Println(w2.Body.String())
+
 }
 
 func (suite *HandlerTestSuite) TestModSubACL01() {
 
-	postExp := `{"authorized_users":["userX","userZ"]}`
+	postExp := `{"authorized_users":["UserX","UserZ"]}`
 
 	req, err := http.NewRequest("POST", "http://localhost:8080/v1/projects/ARGO/subscription/sub1:modAcl", bytes.NewBuffer([]byte(postExp)))
 	if err != nil {
@@ -553,13 +614,13 @@ func (suite *HandlerTestSuite) TestModSubACL01() {
 
 	expResp := `{
    "authorized_users": [
-      "userX",
-      "userZ"
+      "UserX",
+      "UserZ"
    ]
 }`
 
 	suite.Equal(expResp, w2.Body.String())
-	fmt.Println(w2.Body.String())
+
 }
 
 func (suite *HandlerTestSuite) TestSubACL01() {

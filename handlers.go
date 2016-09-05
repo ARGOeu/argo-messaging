@@ -396,6 +396,13 @@ func TopicModACL(w http.ResponseWriter, r *http.Request) {
 	subName := urlVars["topic"]
 	project := urlVars["project"]
 
+	// check if user list contain valid users for the given project
+	_, err = auth.AreValidUsers(project, postBody.AuthUsers, refStr)
+	if err != nil {
+		respondErr(w, 404, err.Error(), "NOT_FOUND")
+		return
+	}
+
 	err = topics.ModACL(project, subName, postBody.AuthUsers, refStr)
 
 	if err != nil {
@@ -447,6 +454,13 @@ func SubModACL(w http.ResponseWriter, r *http.Request) {
 	// Get Result Object
 	subName := urlVars["subscription"]
 	project := urlVars["project"]
+
+	// check if user list contain valid users for the given project
+	_, err = auth.AreValidUsers(project, postBody.AuthUsers, refStr)
+	if err != nil {
+		respondErr(w, 404, err.Error(), "NOT_FOUND")
+		return
+	}
 
 	err = subscriptions.ModACL(project, subName, postBody.AuthUsers, refStr)
 

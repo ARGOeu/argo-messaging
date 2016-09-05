@@ -49,6 +49,30 @@ func (mk *MockStore) Close() {
 	mk.Session = false
 }
 
+// HasUsers accepts a user array of usernames and returns the not found
+func (mk *MockStore) HasUsers(project string, users []string) (bool, []string) {
+
+	var notFound []string
+
+	// for each given username
+	for _, username := range users {
+		found := false
+		// loop through all found users
+		for _, user := range mk.UserList {
+			if username == user.Name {
+				found = true
+			}
+		}
+		// if not found add it to the notFound
+		if !found {
+			notFound = append(notFound, username)
+		}
+
+	}
+
+	return len(notFound) == 0, notFound
+}
+
 // ModACL changes the acl in a function
 func (mk *MockStore) ModACL(project string, resource string, name string, acl []string) error {
 	newAcl := QAcl{ACL: acl}
@@ -143,6 +167,11 @@ func (mk *MockStore) Initialize() {
 	// populate Users
 	qUsr := QUser{"Test", "Test@test.com", "ARGO", "S3CR3T", []string{"admin", "member"}}
 	mk.UserList = append(mk.UserList, qUsr)
+
+	mk.UserList = append(mk.UserList, QUser{"UserA", "foo-email", "ARGO", "S3CR3T", []string{"admin", "member"}})
+	mk.UserList = append(mk.UserList, QUser{"UserB", "foo-email", "ARGO", "S3CR3T", []string{"admin", "member"}})
+	mk.UserList = append(mk.UserList, QUser{"UserX", "foo-email", "ARGO", "S3CR3T", []string{"consumer", "member"}})
+	mk.UserList = append(mk.UserList, QUser{"UserZ", "foo-email", "ARGO", "S3CR3T", []string{"producer", "member"}})
 
 	qRole1 := QRole{"topics:list_all", []string{"admin", "reader", "publisher"}}
 	qRole2 := QRole{"topics:publish", []string{"admin", "publisher"}}

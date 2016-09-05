@@ -3,8 +3,8 @@ package auth
 import (
 	"testing"
 
-	"github.com/stretchr/testify/suite"
 	"github.com/ARGOeu/argo-messaging/stores"
+	"github.com/stretchr/testify/suite"
 )
 
 type AuthTestSuite struct {
@@ -92,6 +92,16 @@ func (suite *AuthTestSuite) TestAuth() {
 	suite.Equal(false, IsPublisher([]string{"consumer"}))
 	suite.Equal(true, IsPublisher([]string{"consumer", "publisher"}))
 	suite.Equal(true, IsPublisher([]string{"publisher"}))
+
+	// Check ValidUsers mechanism
+	v, err := AreValidUsers("ARGO", []string{"UserA", "foo", "bar"}, store)
+	suite.Equal(false, v)
+	suite.Equal("User(s): foo, bar do not exist", err.Error())
+
+	// Check ValidUsers mechanism
+	v, err = AreValidUsers("ARGO", []string{"UserA", "UserB"}, store)
+	suite.Equal(true, v)
+	suite.Equal(nil, err)
 
 }
 

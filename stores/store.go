@@ -10,6 +10,7 @@ type Store interface {
 	InsertTopic(project string, name string) error
 	InsertSub(project string, name string, topic string, offest int64, ack int, push string, rPolicy string, rPeriod int) error
 	HasProject(project string) bool
+	HasUsers(project string, users []string) (bool, []string)
 	QueryOneSub(project string, sub string) (QSub, error)
 	QueryPushSubs() []QSub
 	HasResourceRoles(resource string, roles []string) bool
