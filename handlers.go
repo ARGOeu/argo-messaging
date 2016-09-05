@@ -385,7 +385,7 @@ func TopicModACL(w http.ResponseWriter, r *http.Request) {
 	// Parse pull options
 	postBody, err := topics.GetACLFromJSON(body)
 	if err != nil {
-		respondErr(w, 400, "Invalid Subscription ACL Arguments", "INVALID_ARGUMENT")
+		respondErr(w, 400, "Invalid Topic ACL Arguments", "INVALID_ARGUMENT")
 		return
 	}
 

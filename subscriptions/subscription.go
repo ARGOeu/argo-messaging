@@ -72,6 +72,9 @@ func GetSubACL(project string, sub string, store stores.Store) (SubACL, error) {
 func GetACLFromJSON(input []byte) (SubACL, error) {
 	s := SubACL{}
 	err := json.Unmarshal([]byte(input), &s)
+	if s.AuthUsers == nil {
+		return s, errors.New("wrong argument")
+	}
 	return s, err
 }
 

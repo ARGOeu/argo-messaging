@@ -72,14 +72,12 @@ var defaultRoutes = []APIRoute{
 	{"subscriptions:pull", "POST", "/projects/{project}/subscriptions/{subscription}:pull", SubPull},
 	{"subscriptions:acknowledge", "POST", "/projects/{project}/subscriptions/{subscription}:acknowledge", SubAck},
 	{"subscriptions:modifyPushConfig", "POST", "/projects/{project}/subscriptions/{subscription}:modifyPushConfig", SubModPush},
-
-	{"subscriptions:modifyAcl", "POST", "/projects/{project}/subscriptions/{subscription}:acl", SubACL},
+	{"subscriptions:modifyAcl", "POST", "/projects/{project}/subscriptions/{subscription}:modifyAcl", SubModACL},
 	{"topics:list", "GET", "/projects/{project}/topics", TopicListAll},
 	{"topics:acl", "GET", "/projects/{project}/topics/{topic}:acl", TopicACL},
 	{"topics:show", "GET", "/projects/{project}/topics/{topic}", TopicListOne},
 	{"topics:create", "PUT", "/projects/{project}/topics/{topic}", TopicCreate},
 	{"topics:delete", "DELETE", "/projects/{project}/topics/{topic}", TopicDelete},
 	{"topics:publish", "POST", "/projects/{project}/topics/{topic}:publish", TopicPublish},
-
 	{"topics:modifyAcl", "POST", "/projects/{project}/topics/{topic}:modifyAcl", TopicModACL},
 }
