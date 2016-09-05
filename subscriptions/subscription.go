@@ -82,6 +82,9 @@ func ModACL(project string, name string, acl []string, store stores.Store) error
 
 // ExportJSON export subscription acl body to json for use in http response
 func (sAcl *SubACL) ExportJSON() (string, error) {
+	if sAcl.AuthUsers == nil {
+		sAcl.AuthUsers = make([]string, 0)
+	}
 	output, err := json.MarshalIndent(sAcl, "", "   ")
 	return string(output[:]), err
 }

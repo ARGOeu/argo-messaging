@@ -54,6 +54,7 @@ func (tl *Topics) LoadFromStore(store stores.Store) {
 
 // ExportJSON exports whole Topic Structure as a json string
 func (tp *Topic) ExportJSON() (string, error) {
+
 	output, err := json.MarshalIndent(tp, "", "   ")
 	return string(output[:]), err
 }
@@ -85,6 +86,9 @@ func ModACL(project string, name string, acl []string, store stores.Store) error
 
 // ExportJSON export topic acl body to json for use in http response
 func (tAcl *TopicACL) ExportJSON() (string, error) {
+	if tAcl.AuthUsers == nil {
+		tAcl.AuthUsers = make([]string, 0)
+	}
 	output, err := json.MarshalIndent(tAcl, "", "   ")
 	return string(output[:]), err
 }
