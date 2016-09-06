@@ -76,6 +76,9 @@ func GetTopicACL(project string, topic string, store stores.Store) (TopicACL, er
 func GetACLFromJSON(input []byte) (TopicACL, error) {
 	s := TopicACL{}
 	err := json.Unmarshal([]byte(input), &s)
+	if s.AuthUsers == nil {
+		return s, errors.New("wrong argument")
+	}
 	return s, err
 }
 
