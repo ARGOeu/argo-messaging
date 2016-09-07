@@ -980,7 +980,16 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 		// Get offset and set it as msg
 		fullTopic := urlVars["project"] + "." + urlVars["topic"]
 
-		msgID, rTop, _, _ := refBrk.Publish(fullTopic, msg)
+		msgID, rTop, _, _, err := refBrk.Publish(fullTopic, msg)
+
+		if err != nil {
+			if err.Error() == "kafka server: Message was too large, server rejected it to avoid allocation error." {
+				respondErr(w, 413, "Message size too large", "INVALID_ARGUMENT")
+				return
+			}
+			respondErr(w, 500, err.Error(), "INTERNAL")
+			return
+		}
 		msg.ID = msgID
 		// Assertions for Succesfull Publish
 		if rTop != fullTopic {

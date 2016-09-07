@@ -21,6 +21,7 @@ Invalid Topics Name | 400 | ```{"error":{"code":400,"message":"Invalid topics na
 Topic Doesn't Exist | 404 | ```{"error":{"code":404,"message":"Topic does not exist","status":"NOT_FOUND"}}``` | Show specific Topic  (GET)
 Invalid Topic ACL arguments | 400 | ```{"error":{"code":400,"message":"Invalid Topic ACL Arguments","status":"INVALID_ARGUMENT"}}``` | Modify Topic ACL (POST)
 Subscription Doesn't Exist | 404 | ```{"error":{"code":404,"message":"Subscription does not exist","status":"NOT_FOUND"}}``` | Show specific Subscription  (GET)
+Message size to large | 413 | ```{"error":{"code":413,"message":"Message size too large","status":"INVALID_ARGUMENT"}}``` | Topic Publish (POST)
 Invalid Subscription Arguments | 400 | ```{"error":{"code":404,"message":"Invalid Subscription Arguments","status":"INVALID_ARGUMENT"}}``` | Create Subscription (POST), Modify Push Configuration (POST)
 Invalid Subscription ACL arguments | 400 | ```{"error":{"code":400,"message":"Invalid Subscription ACL Arguments","status":"INVALID_ARGUMENT"}}``` | Modify Subscription ACL (POST)
 Invalid ACK Parameter | 400 | ```{"error":{"code":400,"message":"Invalid ack parameter","status":"INVALID_ARGUMENT"}}``` | Subscription Acknowledge (POST)
