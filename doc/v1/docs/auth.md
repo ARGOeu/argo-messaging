@@ -74,85 +74,10 @@ subscriptions:acknowledge | Allow user to acknowledge messages that has pulled w
 Messaging API provides the option to control in finer detail access on resources such as topics and subscriptions for users(clients) that are producers or subscribers. Each resource (topic/subscription) comes with an access list (ACL) that contains producers or subscribers that are eligible to use that resource (when publishing or pulling messages respectively). Users with the admin role are able to modify Access lists for topics and subscriptions on the project they belong. In order for the feature to be available Messaging API should have the config parameter `per_resource_auth` set to `true`
 
 ## [GET] List ACL of a given topic
-The following request returns a list of authorized users (publishers) of a given topic
-
-### Request
-`GET /v1/projects/{project_name}/topics/{topic_name}:acl`
-
-### Where
-- Project_name: name of the project
-- topic_name: name of the topic
-
-### Example request
-
-```
-curl  -H "Content-Type: application/json" https://{URL}/v1/projects/EGI/topics/monitoring:acl?key=S3CR3T"`
-```
-
-### Responses  
-
-Success Response
-`200 OK`
-```
-{
- "authorized_users": [
-  "UserA","UserB"
- ]
-}
-```
-
-### Errors
-Please refer to section [Errors](api_errors.md) to see all possible Errors
-
-
+Please refer to section [Topics:List ACL of a given topic ](api_topics.md#get-list-acl-of-a-given-topic).
 
 ## [POST] Modify ACL of a given topic
-The following request Modifies the authorized users list of a given topic
-
-### Request
-`POST /v1/projects/{project_name}/topics/{topic_name}:modifyAcl`
-
-### Where
-- Project_name: Name of the project
-- topic_name: name of the topic
-
-
-### Post data
-```
-{
-"authorized_users": [
- "UserX","UserY"
-]
-}
-```
-
-### Example request
-
-```
-curl -X POST -H "Content-Type: application/json"  
--d { POSTDATA } https://{URL}/v1/projects/EGI/topics/monitoring:modifyAcl?key=S3CR3T"`
-```
-
-### Responses  
-
-Success Response
-`200 OK`
-
-### Errors
-If the to-be updated ACL contains users that are non-existent in the project the API returns the following error:
-`404 NOT_FOUND`
-```
-{
-   "error": {
-      "code": 404,
-      "message": "User(s): UserFoo1,UserFoo2 do not exist",
-      "status": "NOT_FOUND"
-   }
-}
-```
-
-Please refer to section [Errors](api_errors.md) to see all possible Errors
-
+Please refer to section [Topics:Modify ACL of a given topic ](api_topics.md#post-modify-acl-of-a-given-topic).
 
 ## [GET] List ACL of a given subscription
 The following request returns a list of authorized users for a given subscription

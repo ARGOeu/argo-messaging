@@ -1,10 +1,15 @@
 #Topics Api Calls
 
+Topics are resources that can hold messages. Publishers (users/systems) can create topics on demand and name them (Usually with names that make sense and express the class of messages delivered in the topic).
+A topic name must be scoped to a project.
+
 ## [PUT] Manage Topics - Create new topic
-This request creates a new topic in a project with a PUT request
+This request creates a new topic with the given topic_name in a project with a PUT request
 
 ### Request
-`PUT /v1/projects/{project_name}/topics/{topic_name}`
+```json
+PUT "/v1/projects/{project_name}/topics/{topic_name}"
+```
 
 ### Where
 - Project_name: Name of the project to create
@@ -13,10 +18,12 @@ This request creates a new topic in a project with a PUT request
 ### Example request
 ```json
 curl -X PUT -H "Content-Type: application/json"
- -d '' " https://{URL}/v1/projects/EGI/topics/monitoring?key=S3CR3T"`
+ -d '' " https://{URL}/v1/projects/EGI/topics/monitoring?key=S3CR3T"
 ```
 
 ### Responses  
+
+If successful, the response contains the newly created topic.
 
 Success Response
 `200 OK`
@@ -31,10 +38,12 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 
 
 ## [DELETE] Manage Topics - Delete topic
-This request deletes a topic in a project with a DELETE request
+This request deletes the defined topic in a project with a DELETE request
 
 ### Request
-`DELETE /v1/projects/{project_name}/topics/{topic_name}``
+```json
+DELETE "/v1/projects/{project_name}/topics/{topic_name}"
+```
 
 ### Where
 - Project_name: Name of the project to delete
@@ -44,9 +53,8 @@ This request deletes a topic in a project with a DELETE request
 
 ```json
 curl -X DELETE -H "Content-Type: application/json"  
--d '' " https://{URL}/v1/projects/EGI/topics/monitoring?key=S3CR3T"`
+-d '' "https://{URL}/v1/projects/EGI/topics/monitoring?key=S3CR3T"
 ```
-
 
 ### Responses  
 
@@ -60,7 +68,9 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 This request gets the details of a topic in a project with a GET request
 
 ### Request
-`GET /v1/projects/{project_name}/topics/{topic_name}``
+```json
+GET "/v1/projects/{project_name}/topics/{topic_name}"
+```
 
 ### Where
 - Project_name: Name of the project to get
@@ -70,10 +80,11 @@ This request gets the details of a topic in a project with a GET request
 
 ```json
 curl -H "Content-Type: application/json"  
--d '' " https://{URL}/v1/projects/EGI/topics/monitoring?key=S3CR3T"`
+-d '' " https://{URL}/v1/projects/EGI/topics/monitoring?key=S3CR3T"
 ```
 
 ### Responses  
+If successful, the response returns the details of the defined topic.
 
 Success Response
 `200 OK`
@@ -90,10 +101,12 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 This request gets the list of topics in a project with a GET request
 
 ### Request
-`GET /v1/projects/{project_name}/topics`
+```json
+GET "/v1/projects/{project_name}/topics"
+```
 
 ### Where
-Project_name: Name of the project to get the list of topics
+ - Project_name: Name of the project to get the list of topics
 
 ### Example request
 
@@ -126,7 +139,9 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 The topic:publish endpoint publishes a message, or a list of messages to a specific topic with a  POST request
 
 ### Request
-`POST /v1/projects/{project_name}/topics/{topic_name}:publish`
+```json
+POST "/v1/projects/{project_name}/topics/{topic_name}:publish"
+```
 
 ### Where
 - Project_name: Name of the project to post the messages
@@ -157,13 +172,14 @@ The topic:publish endpoint publishes a message, or a list of messages to a speci
 
 ```json
 curl -X POST -H "Content-Type: application/json"  
--d { POSTDATA } https://{URL}/v1/projects/EGI/topics/monitoring:publish?key=S3CR3T"`
+-d { POSTDATA } "https://{URL}/v1/projects/EGI/topics/monitoring:publish?key=S3CR3T"
 ```
 
 ### Responses  
 
-Success Response
-`200 OK`
+If successful, the response contains the messageIds of the messages published.
+
+Success Response `200 OK`
 ```json
 {
  "messageIds": [
@@ -173,4 +189,90 @@ Success Response
 ```
 
 ### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors
+
+
+## [GET] List ACL of a given topic
+The following request returns a list of authorized users (publishers) of a given topic. 
+
+### Request
+```
+GET "/v1/projects/{project_name}/topics/{topic_name}:acl"
+```
+
+### Where
+- Project_name: name of the project
+- topic_name: name of the topic
+
+### Example request
+
+```json
+curl  -H "Content-Type: application/json" "https://{URL}/v1/projects/EGI/topics/monitoring:acl?key=S3CR3T"
+```
+
+### Responses  
+If successful it returns the authorized users of the topic.
+
+Success Response
+`200 OK`
+```
+{
+ "authorized_users": [
+  "UserA","UserB"
+ ]
+}
+```
+
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors
+
+
+
+## [POST] Modify ACL of a given topic
+The following request Modifies the authorized users list of a given topic
+
+### Request
+```
+POST "/v1/projects/{project_name}/topics/{topic_name}:modifyAcl"
+```
+
+### Where
+- Project_name: Name of the project
+- topic_name: name of the topic
+
+
+### Post data
+```
+{
+"authorized_users": [
+ "UserX","UserY"
+]
+}
+```
+
+### Example request
+
+```
+curl -X POST -H "Content-Type: application/json"  
+-d { POSTDATA } "https://{URL}/v1/projects/EGI/topics/monitoring:modifyAcl?key=S3CR3T"
+```
+
+### Responses  
+
+Success Response
+`200 OK`
+
+### Errors
+If the to-be updated ACL contains users that are non-existent in the project the API returns the following error:
+`404 NOT_FOUND`
+```
+{
+   "error": {
+      "code": 404,
+      "message": "User(s): UserFoo1,UserFoo2 do not exist",
+      "status": "NOT_FOUND"
+   }
+}
+```
+
 Please refer to section [Errors](api_errors.md) to see all possible Errors
