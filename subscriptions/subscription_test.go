@@ -327,6 +327,36 @@ func (suite *SubTestSuite) TestSubACL() {
 
 }
 
+func (suite *SubTestSuite) TestGetMaxAckID() {
+	ackIDs := []string{"projects/ARGO/subscriptions/sub1:2",
+		"projects/ARGO/subscriptions/sub1:4",
+		"projects/ARGO/subscriptions/sub1:1555",
+		"projects/ARGO/subscriptions/sub1:5",
+		"projects/ARGO/subscriptions/sub1:3"}
+
+	max, err := GetMaxAckID(ackIDs)
+	suite.Equal(nil, err)
+	suite.Equal("projects/ARGO/subscriptions/sub1:1555", max)
+
+}
+
+func (suite *SubTestSuite) TestGetOffsetFromAckID() {
+	ackIDs := []string{"projects/ARGO/subscriptions/sub1:2",
+		"projects/ARGO/subscriptions/sub1:4",
+		"projects/ARGO/subscriptions/sub1:1555",
+		"projects/ARGO/subscriptions/sub1:5",
+		"projects/ARGO/subscriptions/sub1:3"}
+
+	expOffsets := []int64{2, 4, 1555, 5, 3}
+
+	for i := range ackIDs {
+		off, err := GetOffsetFromAckID(ackIDs[i])
+		suite.Equal(nil, err)
+		suite.Equal(expOffsets[i], off)
+	}
+
+}
+
 func TestSubTestSuite(t *testing.T) {
 	suite.Run(t, new(SubTestSuite))
 }

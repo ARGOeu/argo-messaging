@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/ARGOeu/argo-messaging/auth"
@@ -177,34 +176,40 @@ func SubAck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get urlParams
+	projectName := urlVars["project"]
+	subName := urlVars["subscription"]
+
 	// Check if sub exists
 
-	if sub.HasSub(urlVars["project"], urlVars["subscription"]) == false {
+	if sub.HasSub(projectName, subName) == false {
 		respondErr(w, 404, "Subscription does not exist", "NOT_FOUND")
 		return
 	}
 
-	// Get Ack
+	// Get list of AckIDs
 	if postBody.IDs == nil {
 		respondErr(w, 400, "Invalid ack id", "INVALID_ARGUMENT")
 		return
 	}
 
-	ack := postBody.IDs[0]
-
-	items := strings.Split(ack, "/")
-	if len(items) != 4 || items[0] != "projects" || items[1] != urlVars["project"] || items[2] != "subscriptions" {
-		respondErr(w, 400, "Invalid ack id", "INVALID_ARGUMENT")
-		return
+	// Check if each AckID is valid
+	for _, ackID := range postBody.IDs {
+		if validAckID(projectName, subName, ackID) == false {
+			respondErr(w, 400, "Invalid ack id", "INVALID_ARGUMENT")
+			return
+		}
 	}
 
-	subItems := strings.Split(items[3], ":")
-	if len(subItems) != 2 || subItems[0] != urlVars["subscription"] {
-		respondErr(w, 400, "Invalid ack id", "INVALID_ARGUMENT")
+	// Get Max ackID
+	maxAckID, err := subscriptions.GetMaxAckID(postBody.IDs)
+	if err != nil {
+		respondErr(w, 500, "Error handling acknowledgement", "INTERNAL")
 		return
 	}
+	// Extract offset from max ackID
+	off, err := subscriptions.GetOffsetFromAckID(maxAckID)
 
-	off, err := strconv.Atoi(subItems[1])
 	if err != nil {
 		respondErr(w, 400, "Invalid ack id", "INVALID_ARGUMENT")
 		return

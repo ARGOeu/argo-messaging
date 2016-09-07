@@ -3,6 +3,7 @@ package subscriptions
 import (
 	"encoding/json"
 	"errors"
+	"strconv"
 	"strings"
 
 	"github.com/ARGOeu/argo-messaging/stores"
@@ -277,4 +278,42 @@ func ExtractFullTopicRef(fTopicRef string) (string, string, error) {
 
 	return items[1], items[3], nil
 
+}
+
+// GetMaxAckID gets a list of ack ids and selects the maximum one
+func GetMaxAckID(ackIDs []string) (string, error) {
+	var max int64
+	var maxAckID string
+
+	for _, ackID := range ackIDs {
+
+		offNum, err := GetOffsetFromAckID(ackID)
+
+		if err != nil {
+			return "", errors.New("invalid argument")
+		}
+
+		if offNum >= max {
+			max = offNum
+			maxAckID = ackID
+		}
+
+	}
+
+	return maxAckID, nil
+
+}
+
+// GetOffsetFromAckID extracts an offset from an ackID
+func GetOffsetFromAckID(ackID string) (int64, error) {
+
+	var num int64
+	tokens := strings.Split(ackID, "/")
+	if len(tokens) != 4 {
+		return num, errors.New("invalid argument")
+	}
+	subTokens := strings.Split(tokens[3], ":")
+	num, err := strconv.ParseInt(subTokens[1], 10, 64)
+
+	return num, err
 }
