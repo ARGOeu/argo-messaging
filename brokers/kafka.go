@@ -8,8 +8,8 @@ import (
 )
 
 import (
-	"github.com/Shopify/sarama"
 	"github.com/ARGOeu/argo-messaging/messages"
+	"github.com/Shopify/sarama"
 )
 
 type topicLock struct {
@@ -119,7 +119,7 @@ func (b *KafkaBroker) Initialize(peers []string) {
 }
 
 // Publish function publish a message to the broker
-func (b *KafkaBroker) Publish(topic string, msg messages.Message) (string, string, int, int64) {
+func (b *KafkaBroker) Publish(topic string, msg messages.Message) (string, string, int, int64, error) {
 
 	off := b.GetOffset(topic)
 	msg.ID = strconv.FormatInt(off, 10)
@@ -138,10 +138,10 @@ func (b *KafkaBroker) Publish(topic string, msg messages.Message) (string, strin
 
 	partition, offset, err := b.Producer.SendMessage(msgFinal)
 	if err != nil {
-		panic(err)
+		return msg.ID, topic, int(partition), offset, err
 	}
 
-	return msg.ID, topic, int(partition), offset
+	return msg.ID, topic, int(partition), offset, nil
 
 }
 
