@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -245,6 +244,7 @@ func (suite *HandlerTestSuite) TestSubListAll() {
          "topic": "/projects/ARGO/topics/topic4",
          "pushConfig": {
             "pushEndpoint": "endpoint.foo",
+            "maxMessages": 1,
             "retryPolicy": {
                "type": "linear",
                "period": 300
@@ -518,7 +518,7 @@ func (suite *HandlerTestSuite) TestModTopicACL01() {
 }`
 
 	suite.Equal(expResp, w2.Body.String())
-	fmt.Println(w2.Body.String())
+
 }
 
 func (suite *HandlerTestSuite) TestModSubACL01() {
@@ -559,7 +559,7 @@ func (suite *HandlerTestSuite) TestModSubACL01() {
 }`
 
 	suite.Equal(expResp, w2.Body.String())
-	fmt.Println(w2.Body.String())
+
 }
 
 func (suite *HandlerTestSuite) TestSubACL01() {

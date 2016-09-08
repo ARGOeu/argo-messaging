@@ -613,6 +613,7 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 	curOff := refBrk.GetOffset(fullTopic)
 
 	pushEnd := ""
+	pushMaxMsg := 1
 	rPolicy := ""
 	rPeriod := 0
 	if postBody.PushCfg != (subscriptions.PushConfig{}) {
@@ -628,7 +629,7 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get Result Object
-	res, err := sb.CreateSub(urlVars["project"], urlVars["subscription"], tName, pushEnd, curOff, postBody.Ack, rPolicy, rPeriod, refStr)
+	res, err := sb.CreateSub(urlVars["project"], urlVars["subscription"], tName, pushEnd, pushMaxMsg, curOff, postBody.Ack, rPolicy, rPeriod, refStr)
 
 	if err != nil {
 		if err.Error() == "exists" {

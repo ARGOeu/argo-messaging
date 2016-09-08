@@ -9,6 +9,7 @@ type QSub struct {
 	NextOffset   int64  `bson:"next_offset"`
 	PendingAck   string `bson:"pending_ack"`
 	PushEndpoint string `bson:"push_endpoint"`
+	PushMaxMsg   int    `bson:"push_max_messages"`
 	Ack          int    `bson:"ack"`
 	RetPolicy    string `bson:"retry_policy"`
 	RetPeriod    int    `bson:"retry_period"`
