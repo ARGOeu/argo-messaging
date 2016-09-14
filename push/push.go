@@ -66,6 +66,30 @@ func (mgr *Manager) StopAll() error {
 	return nil
 }
 
+// RemoveProjectAll stops and removes all pushers related to a project
+func (mgr *Manager) RemoveProjectAll(projectUUID string) error {
+	// collect all subs to be removed here
+	subsToRemove := []string{}
+	// Iterate and stop all relevant subs
+	for k := range mgr.list {
+		project, sub, err := splitPSub(k)
+		if err != nil {
+			return err
+		}
+		if project == projectUUID {
+			mgr.Stop(projectUUID, sub)
+			subsToRemove = append(subsToRemove, sub)
+		}
+
+	}
+	// Now remove relevant subs from the list
+	for _, sub := range subsToRemove {
+		mgr.Remove(projectUUID, sub)
+	}
+
+	return nil
+}
+
 // Push method of pusher object to consume and push messages
 func (p *Pusher) push(brk brokers.Broker, store stores.Store) {
 	log.Println("pid", p.id, "pushing")

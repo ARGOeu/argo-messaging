@@ -165,7 +165,6 @@ func (suite *StoreTestSuite) TestMockStore() {
 	projectOut5, err := store.QueryProjects("", "")
 	suite.Equal(expProj5, projectOut5)
 	suite.Equal(nil, err)
-
 	projectOut6, err := store.QueryProjects("argo_uuid2", "ARGO3")
 	suite.Equal(expProj6, projectOut6)
 	suite.Equal(nil, err)
@@ -191,6 +190,20 @@ func (suite *StoreTestSuite) TestMockStore() {
 	store.UpdateProject("argo_uuid3", "ARGO_3", "a newly modified description", modified)
 	prUp3, _ := store.QueryProjects("argo_uuid3", "")
 	suite.Equal(expPr3, prUp3[0])
+
+	// Test RemoveProjectTopics
+	store.RemoveProjectTopics("argo_uuid")
+	resTop, _ := store.QueryTopics("argo_uuid", "")
+	suite.Equal([]QTopic{}, resTop)
+	store.RemoveProjectSubs("argo_uuid")
+	resSub, _ := store.QuerySubs("argo_uuid", "")
+	suite.Equal([]QSub{}, resSub)
+
+	// Test RemoveProject
+	store.RemoveProject("argo_uuid")
+	resProj, err := store.QueryProjects("argo_uuid", "")
+	suite.Equal([]QProject{}, resProj)
+	suite.Equal(errors.New("not found"), err)
 
 }
 

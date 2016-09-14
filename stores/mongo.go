@@ -58,6 +58,7 @@ func (mong *MongoStore) QueryProjects(uuid string, name string) ([]QProject, err
 	query := bson.M{}
 
 	if name != "" {
+
 		query = bson.M{"name": name}
 
 	} else if uuid != "" {
@@ -228,8 +229,6 @@ func (mong *MongoStore) QueryACL(projectUUID string, resource string, name strin
 // QueryTopics Query Subscription info from store
 func (mong *MongoStore) QueryTopics(projectUUID string, name string) ([]QTopic, error) {
 
-	// By default return all topics of a given project
-
 	query := bson.M{"project_uuid": projectUUID}
 	// If name is given return only the specific topic
 	if name != "" {
@@ -343,6 +342,24 @@ func (mong *MongoStore) InsertSub(projectUUID string, name string, topic string,
 	return mong.InsertResource("subscriptions", sub)
 }
 
+// RemoveProjectTopics removes all topics related to a project UUID
+func (mong *MongoStore) RemoveProjectTopics(projectUUID string) error {
+	topicMatch := QTopic{ProjectUUID: projectUUID}
+	return mong.RemoveAll("topics", topicMatch)
+}
+
+// RemoveProjectSubs removes all subscriptions related to a project UUID
+func (mong *MongoStore) RemoveProjectSubs(projectUUID string) error {
+	subMatch := QSub{ProjectUUID: projectUUID}
+	return mong.RemoveAll("subscriptions", subMatch)
+}
+
+// RemoveProject removes a project from the store
+func (mong *MongoStore) RemoveProject(uuid string) error {
+	project := QProject{UUID: uuid}
+	return mong.RemoveResource("projects", project)
+}
+
 // RemoveTopic removes a topic from the store
 func (mong *MongoStore) RemoveTopic(projectUUID string, name string) error {
 	topic := QTopic{projectUUID, name}
@@ -386,6 +403,20 @@ func (mong *MongoStore) InsertResource(col string, res interface{}) error {
 	return err
 }
 
+// RemoveAll removes all  occurences matched with a resource from the store
+func (mong *MongoStore) RemoveAll(col string, res interface{}) error {
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C(col)
+
+	_, err := c.RemoveAll(res)
+	if err != nil {
+		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
+	}
+
+	return err
+}
+
 // RemoveResource removes a resource from the store
 func (mong *MongoStore) RemoveResource(col string, res interface{}) error {
 
@@ -403,11 +434,11 @@ func (mong *MongoStore) RemoveResource(col string, res interface{}) error {
 // QuerySubs Query Subscription info from store
 func (mong *MongoStore) QuerySubs(projectUUID string, name string) ([]QSub, error) {
 
-	// By default return all topics of a given project
 	query := bson.M{"project_uuid": projectUUID}
 	// If name is given return only the specific topic
 	if name != "" {
 		query = bson.M{"project_uuid": projectUUID, "name": name}
+
 	}
 
 	db := mong.Session.DB(mong.Database)

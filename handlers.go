@@ -151,6 +151,46 @@ func WrapAuthorize(hfn http.Handler, routeName string) http.HandlerFunc {
 // HandlerFunctions
 ///////////////////
 
+// ProjectDelete (DEL) deletes an existing project (also removes it's topics and subscriptions)
+func ProjectDelete(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+
+	// Grab context references
+	refStr := context.Get(r, "str").(stores.Store)
+	refMgr := context.Get(r, "mgr").(*push.Manager)
+	// Get Result Object
+	// Get project UUID First to use as reference
+	projectUUID := projects.GetUUIDByName(urlVars["project"], refStr)
+	// RemoveProject removes also attached subs and topics from the datastore
+	err := projects.RemoveProject(projectUUID, refStr)
+	if err != nil {
+		if err.Error() == "not found" {
+			respondErr(w, 404, "Project doesn't exist", "NOT_FOUND")
+			return
+		}
+
+		respondErr(w, 500, err.Error(), "INTERNAL")
+		return
+	}
+	// Stop any relevant push subscriptions
+	if err := refMgr.RemoveProjectAll(projectUUID); err != nil {
+		respondErr(w, 500, err.Error(), "INTERNAL")
+	}
+	// Write empty response if anything ok
+	respondOK(w, output)
+
+}
+
 // ProjectUpdate (PUT) updates the name or the description of an existing project
 func ProjectUpdate(w http.ResponseWriter, r *http.Request) {
 
@@ -335,6 +375,7 @@ func ProjectListOne(w http.ResponseWriter, r *http.Request) {
 	refStr := context.Get(r, "str").(stores.Store)
 
 	// Get Results Object
+
 	results, err := projects.Find("", urlProject, refStr)
 
 	if err != nil {
@@ -967,7 +1008,6 @@ func TopicListOne(w http.ResponseWriter, r *http.Request) {
 	results, err := topics.Find(projectUUID, urlVars["topic"], refStr)
 
 	if err != nil {
-
 		respondErr(w, 500, "Backend error", "INTERNAL_SERVER_ERROR")
 
 	}
@@ -1130,7 +1170,9 @@ func TopicListAll(w http.ResponseWriter, r *http.Request) {
 	projectUUID := projects.GetUUIDByName(urlVars["project"], refStr)
 	res, err := topics.Find(projectUUID, "", refStr)
 	if err != nil {
+
 		respondErr(w, 500, "Backend error", "INTERNAL_SERVER_ERROR")
+
 		return
 	}
 	// Output result to JSON
@@ -1225,16 +1267,6 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// if rPart != 0 {
-		// 	respondErr(w, 500, "Broker reports wrong partition", "INTERNAL_SERVER_ERROR")
-		// 	return
-		// }
-		//
-		// if rOff != off {
-		// 	respondErr(w, 500, "Broker reports wrong offset", "INTERNAL_SERVER_ERROR")
-		// 	return
-		// }
-
 		// Append the MsgID of the successful published message to the msgIds list
 		msgIDs.IDs = append(msgIDs.IDs, msg.ID)
 	}
@@ -1309,7 +1341,9 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	// Get the subscription info
 	results, err := subscriptions.Find(projectUUID, urlVars["subscription"], refStr)
 	if err != nil {
+
 		respondErr(w, 500, "Backend error", "INTERNAL_SERVER_ERROR")
+
 		return
 	}
 	if results.Empty() {

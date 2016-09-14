@@ -11,6 +11,9 @@ type Store interface {
 	RemoveSub(projectUUID string, name string) error
 	QueryProjects(uuid string, name string) ([]QProject, error)
 	UpdateProject(projectUUID string, name string, description string, modifiedOn time.Time) error
+	RemoveProject(uuid string) error
+	RemoveProjectTopics(projectUUID string) error
+	RemoveProjectSubs(projectUUID string) error
 	InsertProject(uuid string, name string, createdOn time.Time, modifiedOn time.Time, createdBy string, description string) error
 	InsertTopic(projectUUID string, name string) error
 	InsertSub(projectUUID string, name string, topic string, offest int64, ack int, push string, rPolicy string, rPeriod int) error
