@@ -151,6 +151,66 @@ func WrapAuthorize(hfn http.Handler, routeName string) http.HandlerFunc {
 // HandlerFunctions
 ///////////////////
 
+// ProjectUpdate (PUT) updates the name or the description of an existing project
+func ProjectUpdate(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+	urlProject := urlVars["project"]
+
+	// Grab context references
+	refStr := context.Get(r, "str").(stores.Store)
+
+	// Read POST JSON body
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		respondErr(w, 400, "Invalid Request body", "INVALID_ARGUMENT")
+		return
+	}
+
+	// Parse pull options
+	postBody, err := projects.GetFromJSON(body)
+	if err != nil {
+		respondErr(w, 400, "Invalid Project Arguments", "INVALID_ARGUMENT")
+		return
+	}
+
+	modified := time.Now()
+	// Get Result Object
+	projectUUID := projects.GetUUIDByName(urlProject, refStr)
+	res, err := projects.UpdateProject(projectUUID, postBody.Name, postBody.Description, modified, refStr)
+
+	if err != nil {
+		if err.Error() == "not found" {
+			respondErr(w, 403, "Project not found", "NOT_FOUND")
+			return
+		}
+
+		respondErr(w, 500, err.Error(), "INTERNAL")
+		return
+	}
+
+	// Output result to JSON
+	resJSON, err := res.ExportJSON()
+	if err != nil {
+		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL")
+		return
+	}
+
+	// Write response
+	output = []byte(resJSON)
+	respondOK(w, output)
+
+}
+
 // ProjectCreate (POST) creates a new project
 func ProjectCreate(w http.ResponseWriter, r *http.Request) {
 
@@ -197,13 +257,16 @@ func ProjectCreate(w http.ResponseWriter, r *http.Request) {
 		}
 
 		respondErr(w, 500, err.Error(), "INTERNAL_SERVER_ERROR")
+
 		return
 	}
 
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
 	if err != nil {
+
 		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
+
 		return
 	}
 
@@ -228,10 +291,12 @@ func ProjectListAll(w http.ResponseWriter, r *http.Request) {
 	refStr := context.Get(r, "str").(stores.Store)
 
 	// Get Results Object
-	res, err := projects.Find("", refStr)
+	res, err := projects.Find("", "", refStr)
 
 	if err != nil && err.Error() != "not found" {
+
 		respondErr(w, 500, "Internal error while querying datastore", "INTERNAL_SERVER_ERROR")
+
 		return
 	}
 
@@ -239,7 +304,9 @@ func ProjectListAll(w http.ResponseWriter, r *http.Request) {
 	resJSON, err := res.ExportJSON()
 
 	if err != nil {
+
 		respondErr(w, 500, "Error exporting data", "INTERNAL_SERVER_ERROR")
+
 		return
 	}
 
@@ -268,7 +335,7 @@ func ProjectListOne(w http.ResponseWriter, r *http.Request) {
 	refStr := context.Get(r, "str").(stores.Store)
 
 	// Get Results Object
-	res, err := projects.Find(urlProject, refStr)
+	res, err := projects.Find("", urlProject, refStr)
 
 	if err != nil {
 		if err.Error() == "not found" {
@@ -277,6 +344,7 @@ func ProjectListOne(w http.ResponseWriter, r *http.Request) {
 		}
 
 		respondErr(w, 500, "Internal error while querying datastore", "INTERNAL_SERVER_ERROR")
+
 		return
 	}
 
@@ -284,7 +352,9 @@ func ProjectListOne(w http.ResponseWriter, r *http.Request) {
 	resJSON, err := res.ExportJSON()
 
 	if err != nil {
+
 		respondErr(w, 500, "Error exporting data", "INTERNAL_SERVER_ERROR")
+
 		return
 	}
 
@@ -412,7 +482,9 @@ func SubListOne(w http.ResponseWriter, r *http.Request) {
 	results, err := subscriptions.Find(projectUUID, urlVars["subscription"], refStr)
 
 	if err != nil {
+
 		respondErr(w, 500, "Backend Error", "INTERNAL_SERVER_ERROR")
+
 	}
 
 	// If not found
@@ -685,7 +757,9 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 	res, err := subscriptions.Find(projectUUID, subName, refStr)
 
 	if err != nil {
+
 		respondErr(w, 500, "Backend Error", "INTERNAL_SERVER_ERROR")
+
 		return
 	}
 
@@ -892,7 +966,9 @@ func TopicListOne(w http.ResponseWriter, r *http.Request) {
 	results, err := topics.Find(projectUUID, urlVars["topic"], refStr)
 
 	if err != nil {
+
 		respondErr(w, 500, "Backend error", "INTERNAL_SERVER_ERROR")
+
 	}
 
 	// If not found
@@ -1014,7 +1090,9 @@ func SubListAll(w http.ResponseWriter, r *http.Request) {
 	projectUUID := projects.GetUUIDByName(urlVars["project"], refStr)
 	res, err := subscriptions.Find(projectUUID, "", refStr)
 	if err != nil {
+
 		respondErr(w, 500, "Backend error", "INTERNAL_SERVER_ERROR")
+
 		return
 	}
 	// Output result to JSON

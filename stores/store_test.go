@@ -142,16 +142,19 @@ func (suite *StoreTestSuite) TestMockStore() {
 	expProj2 := []QProject{qPr2}
 	expProj3 := []QProject{qPr, qPr2}
 	expProj4 := []QProject{}
-	projectOut1, err := store.QueryProjects("ARGO", "")
+
+	projectOut1, err := store.QueryProjects("", "ARGO")
 	suite.Equal(expProj1, projectOut1)
 	suite.Equal(nil, err)
-	projectOut2, err := store.QueryProjects("ARGO2", "")
+	projectOut2, err := store.QueryProjects("", "ARGO2")
+
 	suite.Equal(expProj2, projectOut2)
 	suite.Equal(nil, err)
 	projectOut3, err := store.QueryProjects("", "")
 	suite.Equal(expProj3, projectOut3)
 	suite.Equal(nil, err)
-	projectOut4, err := store.QueryProjects("FOO", "")
+
+	projectOut4, err := store.QueryProjects("", "FOO")
 	suite.Equal(expProj4, projectOut4)
 	suite.Equal(errors.New("not found"), err)
 	// Test insert project
@@ -162,16 +165,32 @@ func (suite *StoreTestSuite) TestMockStore() {
 	projectOut5, err := store.QueryProjects("", "")
 	suite.Equal(expProj5, projectOut5)
 	suite.Equal(nil, err)
-	projectOut6, err := store.QueryProjects("ARGO3", "argo_uuid2")
+
+	projectOut6, err := store.QueryProjects("argo_uuid2", "ARGO3")
 	suite.Equal(expProj6, projectOut6)
 	suite.Equal(nil, err)
 	// Test queries by uuid
-	projectOut7, err := store.QueryProjects("", "argo_uuid2")
+	projectOut7, err := store.QueryProjects("argo_uuid2", "")
 	suite.Equal(expProj2, projectOut7)
 	suite.Equal(nil, err)
-	projectOut8, err := store.QueryProjects("", "foo_uuidNone")
+	projectOut8, err := store.QueryProjects("foo_uuidNone", "")
 	suite.Equal(expProj4, projectOut8)
 	suite.Equal(errors.New("not found"), err)
+
+	// Test update project
+	modified = time.Date(2010, time.November, 10, 23, 0, 0, 0, time.UTC)
+	expPr1 := QProject{UUID: "argo_uuid3", Name: "ARGO3", CreatedOn: created, ModifiedOn: modified, CreatedBy: "userA", Description: "a modified description"}
+	store.UpdateProject("argo_uuid3", "", "a modified description", modified)
+	prUp1, _ := store.QueryProjects("argo_uuid3", "")
+	suite.Equal(expPr1, prUp1[0])
+	expPr2 := QProject{UUID: "argo_uuid3", Name: "ARGO_updated3", CreatedOn: created, ModifiedOn: modified, CreatedBy: "userA", Description: "a modified description"}
+	store.UpdateProject("argo_uuid3", "ARGO_updated3", "", modified)
+	prUp2, _ := store.QueryProjects("argo_uuid3", "")
+	suite.Equal(expPr2, prUp2[0])
+	expPr3 := QProject{UUID: "argo_uuid3", Name: "ARGO_3", CreatedOn: created, ModifiedOn: modified, CreatedBy: "userA", Description: "a newly modified description"}
+	store.UpdateProject("argo_uuid3", "ARGO_3", "a newly modified description", modified)
+	prUp3, _ := store.QueryProjects("argo_uuid3", "")
+	suite.Equal(expPr3, prUp3[0])
 
 }
 

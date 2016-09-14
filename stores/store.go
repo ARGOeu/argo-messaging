@@ -7,9 +7,10 @@ type Store interface {
 	Initialize()
 	QuerySubs(projectUUID string, name string) ([]QSub, error)
 	QueryTopics(projectUUID string, name string) ([]QTopic, error)
-	QueryProjects(name string, uuid string) ([]QProject, error)
 	RemoveTopic(projectUUID string, name string) error
 	RemoveSub(projectUUID string, name string) error
+	QueryProjects(uuid string, name string) ([]QProject, error)
+	UpdateProject(projectUUID string, name string, description string, modifiedOn time.Time) error
 	InsertProject(uuid string, name string, createdOn time.Time, modifiedOn time.Time, createdBy string, description string) error
 	InsertTopic(projectUUID string, name string) error
 	InsertSub(projectUUID string, name string, topic string, offest int64, ack int, push string, rPolicy string, rPeriod int) error

@@ -23,33 +23,38 @@ func (suite *ProjectsTestSuite) TestProjects() {
 	ep2 := Projects{List: []Project{item2}}
 	ep3 := Projects{List: []Project{item1, item2}}
 	ep4 := Projects{}
-	p1, err := Find("ARGO", store)
+
+	p1, err := Find("", "ARGO", store)
 	suite.Equal(ep1, p1)
 	suite.Equal(nil, err)
-	p2, err := Find("ARGO2", store)
+	p2, err := Find("", "ARGO2", store)
 	suite.Equal(ep2, p2)
 	suite.Equal(nil, err)
-	p3, err := Find("", store)
+	p3, err := Find("", "", store)
 	suite.Equal(ep3, p3)
 	suite.Equal(nil, err)
-	p4, err := Find("FOO", store)
+	p4, err := Find("", "FOO", store)
+
 	suite.Equal(ep4, p4)
 	suite.Equal(errors.New("not found"), err)
 
 	// Create new project
 	itemNew := NewProject("uuid_new", "BRAND_NEW", tm, tm, "userA", "brand new project")
-	CreateProject("uuid_new", "BRAND_NEW", tm, "userA", "brand new project", store)
+	reflect, err := CreateProject("uuid_new", "BRAND_NEW", tm, "userA", "brand new project", store)
+
 	expNew := Projects{List: []Project{itemNew}}
 	expAllNew := Projects{List: []Project{item1, item2, itemNew}}
 
-	pNew, err := Find("BRAND_NEW", store)
+	pNew, err := Find("", "BRAND_NEW", store)
+
+	suite.Equal(expNew.List[0], reflect)
 	suite.Equal(expNew, pNew)
 	suite.Equal(nil, err)
 
 	// Test GetNameByUUID
 	suite.Equal("BRAND_NEW", GetNameByUUID("uuid_new", store))
 
-	pAllNew, err := Find("", store)
+	pAllNew, err := Find("", "", store)
 	suite.Equal(expAllNew, pAllNew)
 	suite.Equal(nil, err)
 
@@ -115,6 +120,43 @@ func (suite *ProjectsTestSuite) TestProjects() {
 	prGen03, err := GetFromJSON([]byte(prJSON3))
 	suite.Equal(expGen03, prGen03)
 	suite.Equal(true, err != nil)
+
+	// Test updates
+
+	expUpdJSON := `{
+   "projects": [
+      {
+         "name": "NEW_ARGO",
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "userA",
+         "description": "a new description and name for  project"
+      },
+      {
+         "name": "ARGO2",
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "userA",
+         "description": "this project has only description changed"
+      },
+      {
+         "name": "ONLY_NAME_CHANGED",
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "userA",
+         "description": "brand new project"
+      }
+   ]
+}`
+
+	UpdateProject("argo_uuid", "NEW_ARGO", "a new description and name for  project", tm, store)
+	UpdateProject("argo_uuid2", "", "this project has only description changed", tm, store)
+	UpdateProject("uuid_new", "ONLY_NAME_CHANGED", "", tm, store)
+
+	pAllUpdated, _ := Find("", "", store)
+	outAllUpdJSON, _ := pAllUpdated.ExportJSON()
+
+	suite.Equal(expUpdJSON, outAllUpdJSON)
 
 }
 

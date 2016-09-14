@@ -67,6 +67,7 @@ var defaultRoutes = []APIRoute{
 	{"projects:list", "GET", "/projects", ProjectListAll},
 	{"projects:show", "GET", "/projects/{project}", ProjectListOne},
 	{"projects:create", "POST", "/projects/{project}", ProjectCreate},
+	{"projects:update", "PUT", "/projects/{project}", ProjectUpdate},
 	{"subscriptions:list", "GET", "/projects/{project}/subscriptions", SubListAll},
 	{"subscriptions:acl", "GET", "/projects/{project}/subscriptions/{subscription}:acl", SubACL},
 	{"subscriptions:show", "GET", "/projects/{project}/subscriptions/{subscription}", SubListOne},

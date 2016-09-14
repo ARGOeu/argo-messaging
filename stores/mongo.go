@@ -53,12 +53,13 @@ func (mong *MongoStore) Initialize() {
 }
 
 // QueryProjects queries the database for a specific project or a list of all projects
-func (mong *MongoStore) QueryProjects(name string, uuid string) ([]QProject, error) {
+func (mong *MongoStore) QueryProjects(uuid string, name string) ([]QProject, error) {
 
 	query := bson.M{}
 
 	if name != "" {
 		query = bson.M{"name": name}
+
 	} else if uuid != "" {
 		query = bson.M{"uuid": uuid}
 	}
@@ -76,6 +77,25 @@ func (mong *MongoStore) QueryProjects(name string, uuid string) ([]QProject, err
 	}
 
 	return results, errors.New("empty")
+}
+
+// UpdateProject updates project information
+func (mong *MongoStore) UpdateProject(projectUUID string, name string, description string, modifiedOn time.Time) error {
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C("projects")
+
+	doc := bson.M{"uuid": projectUUID}
+	pr := QProject{Name: name, Description: description, ModifiedOn: modifiedOn}
+
+	change := bson.M{"$set": pr}
+
+	err := c.Update(doc, change)
+	if err != nil {
+		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
+	}
+	return err
+
 }
 
 // UpdateSubPull updates next offset and sets timestamp for Ack
@@ -209,13 +229,12 @@ func (mong *MongoStore) QueryACL(projectUUID string, resource string, name strin
 func (mong *MongoStore) QueryTopics(projectUUID string, name string) ([]QTopic, error) {
 
 	// By default return all topics of a given project
-	query := bson.M{"project_uuid": projectUUID}
 
+	query := bson.M{"project_uuid": projectUUID}
 	// If name is given return only the specific topic
 	if name != "" {
 		query = bson.M{"project_uuid": projectUUID, "name": name}
 	}
-
 	db := mong.Session.DB(mong.Database)
 	c := db.C("topics")
 	var results []QTopic
@@ -386,7 +405,6 @@ func (mong *MongoStore) QuerySubs(projectUUID string, name string) ([]QSub, erro
 
 	// By default return all topics of a given project
 	query := bson.M{"project_uuid": projectUUID}
-
 	// If name is given return only the specific topic
 	if name != "" {
 		query = bson.M{"project_uuid": projectUUID, "name": name}
