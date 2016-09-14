@@ -244,6 +244,7 @@ func (suite *HandlerTestSuite) TestSubListAll() {
          "topic": "/projects/ARGO/topics/topic4",
          "pushConfig": {
             "pushEndpoint": "endpoint.foo",
+            "maxMessages": 1,
             "retryPolicy": {
                "type": "linear",
                "period": 300

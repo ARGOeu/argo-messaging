@@ -15,7 +15,7 @@ type Subscription struct {
 	Topic      string     `json:"-"`
 	FullName   string     `json:"name"`
 	FullTopic  string     `json:"topic"`
-	PushCfg    PushConfig `json:"pushConfig"`
+	PushCfg    PushConfig `json:"pushConfig,omitempty"`
 	Ack        int        `json:"ackDeadlineSeconds,omitempty"`
 	Offset     int64      `json:"-"`
 	NextOffset int64      `json:"-"`
@@ -24,8 +24,9 @@ type Subscription struct {
 
 // PushConfig holds optional configuration for push operations
 type PushConfig struct {
-	Pend   string      `json:"pushEndpoint"`
-	RetPol RetryPolicy `json:"retryPolicy"`
+	Pend      string      `json:"pushEndpoint"`
+	MaxMsgNum int         `json:"maxMessages,omitempty"`
+	RetPol    RetryPolicy `json:"retryPolicy"`
 }
 
 // RetryPolicy holds information on retry policies
@@ -146,7 +147,7 @@ func (sl *Subscriptions) LoadFromStore(store stores.Store) {
 		curSub.Ack = item.Ack
 		if item.PushEndpoint != "" {
 			rp := RetryPolicy{item.RetPolicy, item.RetPeriod}
-			curSub.PushCfg = PushConfig{item.PushEndpoint, rp}
+			curSub.PushCfg = PushConfig{item.PushEndpoint, item.PushMaxMsg, rp}
 		}
 
 		sl.List = append(sl.List, curSub)
@@ -165,7 +166,7 @@ func (sl *Subscriptions) LoadPushSubs(store stores.Store) {
 		curSub.NextOffset = item.NextOffset
 		curSub.Ack = item.Ack
 		rp := RetryPolicy{item.RetPolicy, item.RetPeriod}
-		curSub.PushCfg = PushConfig{item.PushEndpoint, rp}
+		curSub.PushCfg = PushConfig{item.PushEndpoint, item.PushMaxMsg, rp}
 
 		sl.List = append(sl.List, curSub)
 	}
@@ -186,7 +187,7 @@ func (sl *Subscriptions) LoadOne(project string, subname string, store stores.St
 	curSub.Ack = sub.Ack
 	if sub.PushEndpoint != "" {
 		rp := RetryPolicy{sub.RetPolicy, sub.RetPeriod}
-		curSub.PushCfg = PushConfig{sub.PushEndpoint, rp}
+		curSub.PushCfg = PushConfig{sub.PushEndpoint, sub.PushMaxMsg, rp}
 	}
 
 	sl.List = append(sl.List, curSub)
@@ -195,7 +196,7 @@ func (sl *Subscriptions) LoadOne(project string, subname string, store stores.St
 }
 
 // CreateSub creates a new subscription
-func (sl *Subscriptions) CreateSub(project string, name string, topic string, push string, offset int64, ack int, retPolicy string, retPeriod int, store stores.Store) (Subscription, error) {
+func (sl *Subscriptions) CreateSub(project string, name string, topic string, push string, pushMaxMsg int, offset int64, ack int, retPolicy string, retPeriod int, store stores.Store) (Subscription, error) {
 
 	if sl.HasSub(project, name) {
 		return Subscription{}, errors.New("exists")
@@ -206,7 +207,7 @@ func (sl *Subscriptions) CreateSub(project string, name string, topic string, pu
 	if ack == 0 {
 		ack = 10
 	}
-	err := store.InsertSub(project, name, topic, offset, ack, push, retPolicy, retPeriod)
+	err := store.InsertSub(project, name, topic, offset, ack, push, pushMaxMsg, retPolicy, retPeriod)
 
 	return subNew, err
 }

@@ -279,8 +279,8 @@ func (mong *MongoStore) InsertTopic(project string, name string) error {
 }
 
 // InsertSub inserts a subscription to the store
-func (mong *MongoStore) InsertSub(project string, name string, topic string, offset int64, ack int, push string, rPolicy string, rPeriod int) error {
-	sub := QSub{project, name, topic, offset, 0, "", push, ack, rPolicy, rPeriod}
+func (mong *MongoStore) InsertSub(project string, name string, topic string, offset int64, ack int, push string, pushMaxMsg int, rPolicy string, rPeriod int) error {
+	sub := QSub{project, name, topic, offset, 0, "", push, pushMaxMsg, ack, rPolicy, rPeriod}
 	return mong.InsertResource("subscriptions", sub)
 }
 

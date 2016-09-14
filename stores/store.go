@@ -8,7 +8,7 @@ type Store interface {
 	RemoveTopic(project string, name string) error
 	RemoveSub(project string, name string) error
 	InsertTopic(project string, name string) error
-	InsertSub(project string, name string, topic string, offest int64, ack int, push string, rPolicy string, rPeriod int) error
+	InsertSub(project string, name string, topic string, offset int64, ack int, push string, pushMaxMsg int, rPolicy string, rPeriod int) error
 	HasProject(project string) bool
 	HasUsers(project string, users []string) (bool, []string)
 	QueryOneSub(project string, sub string) (QSub, error)

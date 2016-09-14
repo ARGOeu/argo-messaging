@@ -101,7 +101,7 @@ func (suite *SubTestSuite) TestGetSubsByProject() {
 	expSub4.PushCfg.RetPol.PolicyType = "linear"
 	expSub4.PushCfg.RetPol.Period = 300
 	rp := RetryPolicy{"linear", 300}
-	expSub4.PushCfg = PushConfig{"endpoint.foo", rp}
+	expSub4.PushCfg = PushConfig{"endpoint.foo", 1, rp}
 	expSubs := Subscriptions{}
 	expSubs.List = append(expSubs.List, expSub1)
 	expSubs.List = append(expSubs.List, expSub2)
@@ -129,7 +129,7 @@ func (suite *SubTestSuite) TestLoadFromCfg() {
 	expSub4.PushCfg.RetPol.PolicyType = "linear"
 	expSub4.PushCfg.RetPol.Period = 300
 	rp := RetryPolicy{"linear", 300}
-	expSub4.PushCfg = PushConfig{"endpoint.foo", rp}
+	expSub4.PushCfg = PushConfig{"endpoint.foo", 1, rp}
 	expSubs := Subscriptions{}
 	expSubs.List = append(expSubs.List, expSub1)
 	expSubs.List = append(expSubs.List, expSub2)
@@ -163,11 +163,11 @@ func (suite *SubTestSuite) TestCreateSubStore() {
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
 	mySubs.LoadFromStore(store)
 
-	sub, err := mySubs.CreateSub("ARGO", "sub1", "topic1", "", 0, 0, "linear", 300, store)
+	sub, err := mySubs.CreateSub("ARGO", "sub1", "topic1", "", 1, 0, 0, "linear", 300, store)
 	suite.Equal(Subscription{}, sub)
 	suite.Equal("exists", err.Error())
 
-	sub2, err2 := mySubs.CreateSub("ARGO", "subNew", "topicNew", "", 0, 0, "linear", 300, store)
+	sub2, err2 := mySubs.CreateSub("ARGO", "subNew", "topicNew", "", 1, 0, 0, "linear", 300, store)
 	expSub := New("ARGO", "subNew", "topicNew")
 	suite.Equal(expSub, sub2)
 	suite.Equal(nil, err2)
@@ -251,6 +251,7 @@ func (suite *SubTestSuite) TestExportJson() {
          "topic": "/projects/ARGO/topics/topic4",
          "pushConfig": {
             "pushEndpoint": "endpoint.foo",
+            "maxMessages": 1,
             "retryPolicy": {
                "type": "linear",
                "period": 300
