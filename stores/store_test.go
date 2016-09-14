@@ -3,6 +3,7 @@ package stores
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/suite"
 )
@@ -17,17 +18,19 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal("mockhost", store.Server)
 	suite.Equal("mockbase", store.Database)
 
-	eTopList := []QTopic{QTopic{"ARGO", "topic1"},
-		QTopic{"ARGO", "topic2"},
-		QTopic{"ARGO", "topic3"}}
+	eTopList := []QTopic{QTopic{"argo_uuid", "topic1"},
+		QTopic{"argo_uuid", "topic2"},
+		QTopic{"argo_uuid", "topic3"}}
 
-	eSubList := []QSub{QSub{"ARGO", "sub1", "topic1", 0, 0, "", "", 10, "linear", 300},
-		QSub{"ARGO", "sub2", "topic2", 0, 0, "", "", 10, "linear", 300},
-		QSub{"ARGO", "sub3", "topic3", 0, 0, "", "", 10, "linear", 300},
-		QSub{"ARGO", "sub4", "topic4", 0, 0, "", "endpoint.foo", 10, "linear", 300}}
+	eSubList := []QSub{QSub{"argo_uuid", "sub1", "topic1", 0, 0, "", "", 10, "linear", 300},
+		QSub{"argo_uuid", "sub2", "topic2", 0, 0, "", "", 10, "linear", 300},
+		QSub{"argo_uuid", "sub3", "topic3", 0, 0, "", "", 10, "linear", 300},
+		QSub{"argo_uuid", "sub4", "topic4", 0, 0, "", "endpoint.foo", 10, "linear", 300}}
 
-	suite.Equal(eTopList, store.QueryTopics())
-	suite.Equal(eSubList, store.QuerySubs())
+	tpList, _ := store.QueryTopics("argo_uuid", "")
+	suite.Equal(eTopList, tpList)
+	subList, _ := store.QuerySubs("argo_uuid", "")
+	suite.Equal(eSubList, subList)
 
 	// Test Project
 	suite.Equal(true, store.HasProject("ARGO"))
@@ -49,38 +52,42 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal(true, store.HasResourceRoles("topics:list_all", []string{"publisher"}))
 	suite.Equal(true, store.HasResourceRoles("topics:publish", []string{"publisher"}))
 
-	store.InsertTopic("ARGO", "topicFresh")
-	store.InsertSub("ARGO", "subFresh", "topicFresh", 0, 10, "", "linear", 300)
+	store.InsertTopic("argo_uuid", "topicFresh")
+	store.InsertSub("argo_uuid", "subFresh", "topicFresh", 0, 10, "", "linear", 300)
 
-	eTopList2 := []QTopic{QTopic{"ARGO", "topic1"},
-		QTopic{"ARGO", "topic2"},
-		QTopic{"ARGO", "topic3"},
-		QTopic{"ARGO", "topicFresh"}}
+	eTopList2 := []QTopic{QTopic{"argo_uuid", "topic1"},
+		QTopic{"argo_uuid", "topic2"},
+		QTopic{"argo_uuid", "topic3"},
+		QTopic{"argo_uuid", "topicFresh"}}
 
-	eSubList2 := []QSub{QSub{"ARGO", "sub1", "topic1", 0, 0, "", "", 10, "linear", 300},
-		QSub{"ARGO", "sub2", "topic2", 0, 0, "", "", 10, "linear", 300},
-		QSub{"ARGO", "sub3", "topic3", 0, 0, "", "", 10, "linear", 300},
-		QSub{"ARGO", "sub4", "topic4", 0, 0, "", "endpoint.foo", 10, "linear", 300},
-		QSub{"ARGO", "subFresh", "topicFresh", 0, 0, "", "", 10, "linear", 300}}
+	eSubList2 := []QSub{QSub{"argo_uuid", "sub1", "topic1", 0, 0, "", "", 10, "linear", 300},
+		QSub{"argo_uuid", "sub2", "topic2", 0, 0, "", "", 10, "linear", 300},
+		QSub{"argo_uuid", "sub3", "topic3", 0, 0, "", "", 10, "linear", 300},
+		QSub{"argo_uuid", "sub4", "topic4", 0, 0, "", "endpoint.foo", 10, "linear", 300},
+		QSub{"argo_uuid", "subFresh", "topicFresh", 0, 0, "", "", 10, "linear", 300}}
 
-	suite.Equal(eTopList2, store.QueryTopics())
-	suite.Equal(eSubList2, store.QuerySubs())
+	tpList, _ = store.QueryTopics("argo_uuid", "")
+	suite.Equal(eTopList2, tpList)
+	subList, _ = store.QuerySubs("argo_uuid", "")
+	suite.Equal(eSubList2, subList)
 
 	// Test delete on topic
-	err := store.RemoveTopic("ARGO", "topicFresh")
+	err := store.RemoveTopic("argo_uuid", "topicFresh")
 	suite.Equal(nil, err)
-	suite.Equal(eTopList, store.QueryTopics())
-	err = store.RemoveTopic("ARGO", "topicFresh")
+	tpList, _ = store.QueryTopics("argo_uuid", "")
+	suite.Equal(eTopList, tpList)
+	err = store.RemoveTopic("argo_uuid", "topicFresh")
 	suite.Equal("not found", err.Error())
 
 	// Test delete on subscription
-	err = store.RemoveSub("ARGO", "subFresh")
+	err = store.RemoveSub("argo_uuid", "subFresh")
 	suite.Equal(nil, err)
-	suite.Equal(eSubList, store.QuerySubs())
-	err = store.RemoveSub("ARGO", "subFresh")
+	subList, _ = store.QuerySubs("argo_uuid", "")
+	suite.Equal(eSubList, subList)
+	err = store.RemoveSub("argo_uuid", "subFresh")
 	suite.Equal("not found", err.Error())
 
-	sb, err := store.QueryOneSub("ARGO", "sub1")
+	sb, err := store.QueryOneSub("argo_uuid", "sub1")
 	suite.Equal(sb, eSubList[0])
 
 	// Query ACLS
@@ -124,6 +131,48 @@ func (suite *StoreTestSuite) TestMockStore() {
 	allFound, notFound = store.HasUsers("ARGO", []string{"UserA", "UserB"})
 	suite.Equal(true, allFound)
 	suite.Equal([]string(nil), notFound)
+
+	created := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
+	modified := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
+
+	// Test Projects
+	qPr := QProject{UUID: "argo_uuid", Name: "ARGO", CreatedOn: created, ModifiedOn: modified, CreatedBy: "userA", Description: "simple project"}
+	qPr2 := QProject{UUID: "argo_uuid2", Name: "ARGO2", CreatedOn: created, ModifiedOn: modified, CreatedBy: "userA", Description: "simple project"}
+	expProj1 := []QProject{qPr}
+	expProj2 := []QProject{qPr2}
+	expProj3 := []QProject{qPr, qPr2}
+	expProj4 := []QProject{}
+	projectOut1, err := store.QueryProjects("ARGO", "")
+	suite.Equal(expProj1, projectOut1)
+	suite.Equal(nil, err)
+	projectOut2, err := store.QueryProjects("ARGO2", "")
+	suite.Equal(expProj2, projectOut2)
+	suite.Equal(nil, err)
+	projectOut3, err := store.QueryProjects("", "")
+	suite.Equal(expProj3, projectOut3)
+	suite.Equal(nil, err)
+	projectOut4, err := store.QueryProjects("FOO", "")
+	suite.Equal(expProj4, projectOut4)
+	suite.Equal(errors.New("not found"), err)
+	// Test insert project
+	qPr3 := QProject{UUID: "argo_uuid3", Name: "ARGO3", CreatedOn: created, ModifiedOn: modified, CreatedBy: "userA", Description: "simple project"}
+	expProj5 := []QProject{qPr, qPr2, qPr3}
+	expProj6 := []QProject{qPr3}
+	store.InsertProject("argo_uuid3", "ARGO3", created, modified, "userA", "simple project")
+	projectOut5, err := store.QueryProjects("", "")
+	suite.Equal(expProj5, projectOut5)
+	suite.Equal(nil, err)
+	projectOut6, err := store.QueryProjects("ARGO3", "argo_uuid2")
+	suite.Equal(expProj6, projectOut6)
+	suite.Equal(nil, err)
+	// Test queries by uuid
+	projectOut7, err := store.QueryProjects("", "argo_uuid2")
+	suite.Equal(expProj2, projectOut7)
+	suite.Equal(nil, err)
+	projectOut8, err := store.QueryProjects("", "foo_uuidNone")
+	suite.Equal(expProj4, projectOut8)
+	suite.Equal(errors.New("not found"), err)
+
 }
 
 func TestStoresTestSuite(t *testing.T) {

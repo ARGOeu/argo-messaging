@@ -30,9 +30,9 @@ func (suite *SubTestSuite) SetupTest() {
 }
 
 func (suite *SubTestSuite) TestCreate() {
-	mySub := New("ARGO", "test-sub", "topic1")
+	mySub := New("argo_uuid", "ARGO", "test-sub", "topic1")
 	suite.Equal("test-sub", mySub.Name)
-	suite.Equal("ARGO", mySub.Project)
+	suite.Equal("argo_uuid", mySub.ProjectUUID)
 	suite.Equal("/projects/ARGO/subscriptions/test-sub", mySub.FullName)
 	suite.Equal("/projects/ARGO/topics/topic1", mySub.FullTopic)
 }
@@ -60,13 +60,12 @@ func (suite *SubTestSuite) TestGetSubByName() {
 	cfgAPI := config.NewAPICfg()
 	cfgAPI.LoadStrJSON(suite.cfgStr)
 	store := stores.NewMockStore(cfgAPI.StoreHost, cfgAPI.StoreDB)
-	mySubs := Subscriptions{}
-	mySubs.LoadFromStore(store)
-	result := mySubs.GetSubByName("ARGO", "sub1")
-	expSub := New("ARGO", "sub1", "topic1")
+
+	result, _ := Find("argo_uuid", "sub1", store)
+	expSub := New("argo_uuid", "ARGO", "sub1", "topic1")
 	expSub.PushCfg.RetPol.PolicyType = ""
 	expSub.PushCfg.RetPol.Period = 0
-	suite.Equal(expSub, result)
+	suite.Equal(expSub, result.List[0])
 
 }
 
@@ -74,30 +73,28 @@ func (suite *SubTestSuite) TestHasProjectTopic() {
 	cfgAPI := config.NewAPICfg()
 	cfgAPI.LoadStrJSON(suite.cfgStr)
 	store := stores.NewMockStore(cfgAPI.StoreHost, cfgAPI.StoreDB)
-	mySubs := Subscriptions{}
-	mySubs.LoadFromStore(store)
 
-	suite.Equal(false, mySubs.HasSub("ARGO", "FOO"))
-	suite.Equal(true, mySubs.HasSub("ARGO", "sub1"))
+	suite.Equal(false, HasSub("argo_uuid", "FOO", store))
+	suite.Equal(true, HasSub("argo_uuid", "sub1", store))
 }
 
 func (suite *SubTestSuite) TestGetSubsByProject() {
 	cfgAPI := config.NewAPICfg()
 	cfgAPI.LoadStrJSON(suite.cfgStr)
-	mySubs := Subscriptions{}
+
 	store := stores.NewMockStore(cfgAPI.StoreHost, cfgAPI.StoreDB)
-	mySubs.LoadFromStore(store)
-	result := mySubs.GetSubsByProject("ARGO")
-	expSub1 := New("ARGO", "sub1", "topic1")
+
+	result, _ := Find("argo_uuid", "", store)
+	expSub1 := New("argo_uuid", "ARGO", "sub1", "topic1")
 	expSub1.PushCfg.RetPol.PolicyType = ""
 	expSub1.PushCfg.RetPol.Period = 0
-	expSub2 := New("ARGO", "sub2", "topic2")
+	expSub2 := New("argo_uuid", "ARGO", "sub2", "topic2")
 	expSub2.PushCfg.RetPol.PolicyType = ""
 	expSub2.PushCfg.RetPol.Period = 0
-	expSub3 := New("ARGO", "sub3", "topic3")
+	expSub3 := New("argo_uuid", "ARGO", "sub3", "topic3")
 	expSub3.PushCfg.RetPol.PolicyType = ""
 	expSub3.PushCfg.RetPol.Period = 0
-	expSub4 := New("ARGO", "sub4", "topic4")
+	expSub4 := New("argo_uuid", "ARGO", "sub4", "topic4")
 	expSub4.PushCfg.RetPol.PolicyType = "linear"
 	expSub4.PushCfg.RetPol.Period = 300
 	rp := RetryPolicy{"linear", 300}
@@ -113,19 +110,19 @@ func (suite *SubTestSuite) TestGetSubsByProject() {
 func (suite *SubTestSuite) TestLoadFromCfg() {
 	cfgAPI := config.NewAPICfg()
 	cfgAPI.LoadStrJSON(suite.cfgStr)
-	mySubs := Subscriptions{}
+
 	store := stores.NewMockStore(cfgAPI.StoreHost, cfgAPI.StoreDB)
-	mySubs.LoadFromStore(store)
-	expSub1 := New("ARGO", "sub1", "topic1")
+	results, _ := Find("argo_uuid", "", store)
+	expSub1 := New("argo_uuid", "ARGO", "sub1", "topic1")
 	expSub1.PushCfg.RetPol.PolicyType = ""
 	expSub1.PushCfg.RetPol.Period = 0
-	expSub2 := New("ARGO", "sub2", "topic2")
+	expSub2 := New("argo_uuid", "ARGO", "sub2", "topic2")
 	expSub2.PushCfg.RetPol.PolicyType = ""
 	expSub2.PushCfg.RetPol.Period = 0
-	expSub3 := New("ARGO", "sub3", "topic3")
+	expSub3 := New("argo_uuid", "ARGO", "sub3", "topic3")
 	expSub3.PushCfg.RetPol.PolicyType = ""
 	expSub3.PushCfg.RetPol.Period = 0
-	expSub4 := New("ARGO", "sub4", "topic4")
+	expSub4 := New("argo_uuid", "ARGO", "sub4", "topic4")
 	expSub4.PushCfg.RetPol.PolicyType = "linear"
 	expSub4.PushCfg.RetPol.Period = 300
 	rp := RetryPolicy{"linear", 300}
@@ -135,7 +132,7 @@ func (suite *SubTestSuite) TestLoadFromCfg() {
 	expSubs.List = append(expSubs.List, expSub2)
 	expSubs.List = append(expSubs.List, expSub3)
 	expSubs.List = append(expSubs.List, expSub4)
-	suite.Equal(expSubs, mySubs)
+	suite.Equal(expSubs, results)
 
 }
 
@@ -143,32 +140,30 @@ func (suite *SubTestSuite) TestRemoveSubStore() {
 
 	APIcfg := config.NewAPICfg()
 	APIcfg.LoadStrJSON(suite.cfgStr)
-	mySubs := Subscriptions{}
+
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
-	mySubs.LoadFromStore(store)
 
-	suite.Equal(true, mySubs.HasSub("ARGO", "sub1"))
+	suite.Equal(true, HasSub("argo_uuid", "sub1", store))
 
-	suite.Equal("not found", mySubs.RemoveSub("ARGO", "subFoo", store).Error())
-	suite.Equal(nil, mySubs.RemoveSub("ARGO", "sub1", store))
-	mySubs.LoadFromStore(store)
-	suite.Equal(false, mySubs.HasSub("ARGO", "sub1"))
+	suite.Equal("not found", RemoveSub("argo_uuid", "subFoo", store).Error())
+	suite.Equal(nil, RemoveSub("argo_uuid", "sub1", store))
+
+	suite.Equal(false, HasSub("ARGO", "sub1", store))
 }
 
 func (suite *SubTestSuite) TestCreateSubStore() {
 
 	APIcfg := config.NewAPICfg()
 	APIcfg.LoadStrJSON(suite.cfgStr)
-	mySubs := Subscriptions{}
-	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
-	mySubs.LoadFromStore(store)
 
-	sub, err := mySubs.CreateSub("ARGO", "sub1", "topic1", "", 0, 0, "linear", 300, store)
+	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
+
+	sub, err := CreateSub("argo_uuid", "sub1", "topic1", "", 0, 0, "linear", 300, store)
 	suite.Equal(Subscription{}, sub)
 	suite.Equal("exists", err.Error())
 
-	sub2, err2 := mySubs.CreateSub("ARGO", "subNew", "topicNew", "", 0, 0, "linear", 300, store)
-	expSub := New("ARGO", "subNew", "topicNew")
+	sub2, err2 := CreateSub("argo_uuid", "subNew", "topicNew", "", 0, 0, "linear", 300, store)
+	expSub := New("argo_uuid", "ARGO", "subNew", "topicNew")
 	suite.Equal(expSub, sub2)
 	suite.Equal(nil, err2)
 
@@ -177,9 +172,6 @@ func (suite *SubTestSuite) TestCreateSubStore() {
 func (suite *SubTestSuite) TestExtractFullTopic() {
 	APIcfg := config.NewAPICfg()
 	APIcfg.LoadStrJSON(suite.cfgStr)
-	mySubs := Subscriptions{}
-	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
-	mySubs.LoadFromStore(store)
 
 	project, topic, err := ExtractFullTopicRef("projects/ARGO/topics/topic1")
 	suite.Equal("ARGO", project)
@@ -201,11 +193,12 @@ func (suite *SubTestSuite) TestExtractFullTopic() {
 func (suite *SubTestSuite) TestExportJson() {
 	cfgAPI := config.NewAPICfg()
 	cfgAPI.LoadStrJSON(suite.cfgStr)
-	mySubs := Subscriptions{}
-	store := stores.NewMockStore(cfgAPI.StoreHost, cfgAPI.StoreDB)
-	mySubs.LoadFromStore(store)
 
-	outJSON, _ := mySubs.List[0].ExportJSON()
+	store := stores.NewMockStore(cfgAPI.StoreHost, cfgAPI.StoreDB)
+
+	res, _ := Find("argo_uuid", "sub1", store)
+
+	outJSON, _ := res.List[0].ExportJSON()
 	expJSON := `{
    "name": "/projects/ARGO/subscriptions/sub1",
    "topic": "/projects/ARGO/topics/topic1",
@@ -260,8 +253,8 @@ func (suite *SubTestSuite) TestExportJson() {
       }
    ]
 }`
-
-	outJSON2, _ := mySubs.ExportJSON()
+	results, _ := Find("argo_uuid", "", store)
+	outJSON2, _ := results.ExportJSON()
 	suite.Equal(expJSON2, outJSON2)
 
 }

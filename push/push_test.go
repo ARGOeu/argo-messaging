@@ -6,10 +6,10 @@ import (
 	"log"
 	"testing"
 
-	"github.com/stretchr/testify/suite"
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
 	"github.com/ARGOeu/argo-messaging/stores"
+	"github.com/stretchr/testify/suite"
 )
 
 type PushTestSuite struct {
@@ -41,17 +41,17 @@ func (suite *PushTestSuite) TestPusher() {
 	suite.Equal(false, pushMgr.isSet())
 	pushMgr = NewManager(&brk, str, sndr)
 	suite.Equal(true, pushMgr.isSet())
-	err := pushMgr.Add("ARGO", "tralala")
-	suite.Equal(errors.New("No sub found"), err)
-	err = pushMgr.Add("ARGO", "sub4")
+	err := pushMgr.Add("argo_uuid", "tralala")
+	suite.Equal(errors.New("not found"), err)
+	err = pushMgr.Add("argo_uuid", "sub4")
 	suite.Equal(nil, err)
-	p, err := pushMgr.Get("foo/bar")
+	p, err := pushMgr.Get("foo_uuid/bar")
 	suite.Equal(errors.New("not found"), err)
 	suite.Equal(true, p == nil)
-	p, err = pushMgr.Get("ARGO/sub4")
+	p, err = pushMgr.Get("argo_uuid/sub4")
 	suite.Equal(nil, err)
 	suite.Equal(0, p.id)
-	suite.Equal("ARGO", p.sub.Project)
+	suite.Equal("argo_uuid", p.sub.ProjectUUID)
 	suite.Equal("topic4", p.sub.Topic)
 	suite.Equal("/projects/ARGO/subscriptions/sub4", p.sub.FullName)
 	suite.Equal("/projects/ARGO/topics/topic4", p.sub.FullTopic)

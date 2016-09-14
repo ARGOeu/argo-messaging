@@ -4,14 +4,15 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/ARGOeu/argo-messaging/projects"
 	"github.com/ARGOeu/argo-messaging/stores"
 )
 
 // Topic struct to hold information for a given topic
 type Topic struct {
-	Project  string `json:"-"`
-	Name     string `json:"-"`
-	FullName string `json:"name"`
+	ProjectUUID string `json:"-"`
+	Name        string `json:"-"`
+	FullName    string `json:"name"`
 }
 
 // TopicACL holds the authorized users for a topic
@@ -24,32 +25,31 @@ type Topics struct {
 	List []Topic `json:"topics,omitempty"`
 }
 
+// Empty returns true if Topics has no items
+func (tl *Topics) Empty() bool {
+	return len(tl.List) <= 0
+}
+
 // New creates a new topic based on name
-func New(project string, name string) Topic {
-	pr := project // Projects as entities will be handled later.
-	ftn := "/projects/" + pr + "/topics/" + name
-	t := Topic{Project: pr, Name: name, FullName: ftn}
+func New(projectUUID string, projectName string, name string) Topic {
+	ftn := "/projects/" + projectName + "/topics/" + name
+	t := Topic{ProjectUUID: projectUUID, Name: name, FullName: ftn}
 	return t
 }
 
-// // LoadFromCfg returns all topics defined in configuration
-// func (tl *Topics) LoadFromCfg(cfg *config.APICfg) {
-// 	for _, value := range cfg.Topics {
-// 		nTopic := New(value)
-// 		tl.List = append(tl.List, nTopic)
-// 	}
-// }
-
-// LoadFromStore returns all subscriptions defined in store
-func (tl *Topics) LoadFromStore(store stores.Store) {
-
-	tl.List = []Topic{}
-	topics := store.QueryTopics()
+// Find searches and returns a specific topic or all topics of a given project
+func Find(projectUUID string, name string, store stores.Store) (Topics, error) {
+	result := Topics{}
+	topics, err := store.QueryTopics(projectUUID, name)
 	for _, item := range topics {
-		curTop := New(item.Project, item.Name)
-		tl.List = append(tl.List, curTop)
+		projectName := projects.GetNameByUUID(item.ProjectUUID, store)
+		if projectName == "" {
+			return result, errors.New("invalid project")
+		}
+		curTop := New(item.ProjectUUID, projectName, item.Name)
+		result.List = append(result.List, curTop)
 	}
-
+	return result, err
 }
 
 // ExportJSON exports whole Topic Structure as a json string
@@ -60,9 +60,9 @@ func (tp *Topic) ExportJSON() (string, error) {
 }
 
 // GetTopicACL returns an authorized list of users for the topic
-func GetTopicACL(project string, topic string, store stores.Store) (TopicACL, error) {
+func GetTopicACL(projectUUID string, topic string, store stores.Store) (TopicACL, error) {
 	result := TopicACL{}
-	topicACL, err := store.QueryACL(project, "topic", topic)
+	topicACL, err := store.QueryACL(projectUUID, "topic", topic)
 	if err != nil {
 		return result, err
 	}
@@ -83,9 +83,9 @@ func GetACLFromJSON(input []byte) (TopicACL, error) {
 }
 
 // ModACL is called to modify a topic's acl
-func ModACL(project string, name string, acl []string, store stores.Store) error {
+func ModACL(projectUUID string, name string, acl []string, store stores.Store) error {
 
-	return store.ModACL(project, "topics", name, acl)
+	return store.ModACL(projectUUID, "topics", name, acl)
 }
 
 // ExportJSON export topic acl body to json for use in http response
@@ -103,54 +103,41 @@ func (tl *Topics) ExportJSON() (string, error) {
 	return string(output[:]), err
 }
 
-// GetTopicByName returns a specific topic
-func (tl *Topics) GetTopicByName(project string, name string) Topic {
-	for _, value := range tl.List {
-		if (value.Project == project) && (value.Name == name) {
-			return value
-		}
-	}
-	return Topic{}
-}
-
-// GetTopicsByProject returns a specific topic
-func (tl *Topics) GetTopicsByProject(project string) Topics {
-	result := Topics{}
-	for _, value := range tl.List {
-		if value.Project == project {
-			result.List = append(result.List, value)
-		}
-	}
-
-	return result
-}
-
 // CreateTopic creates a new topic
-func (tl *Topics) CreateTopic(project string, name string, store stores.Store) (Topic, error) {
-	if tl.HasTopic(project, name) {
+func CreateTopic(projectUUID string, name string, store stores.Store) (Topic, error) {
+
+	if HasTopic(projectUUID, name, store) {
 		return Topic{}, errors.New("exists")
 	}
 
-	topicNew := New(project, name)
-	err := store.InsertTopic(project, name)
-	return topicNew, err
+	err := store.InsertTopic(projectUUID, name)
+	if err != nil {
+		return Topic{}, errors.New("backend error")
+	}
+
+	results, err := Find(projectUUID, name, store)
+
+	if len(results.List) != 1 {
+		return Topic{}, errors.New("backend error")
+	}
+
+	return results.List[0], err
 }
 
 // RemoveTopic removes an existing topic
-func (tl *Topics) RemoveTopic(project string, name string, store stores.Store) error {
-	if tl.HasTopic(project, name) == false {
+func RemoveTopic(projectUUID string, name string, store stores.Store) error {
+	if HasTopic(projectUUID, name, store) == false {
 		return errors.New("not found")
 	}
 
-	return store.RemoveTopic(project, name)
+	return store.RemoveTopic(projectUUID, name)
 }
 
 // HasTopic returns true if project & topic combination exist
-func (tl *Topics) HasTopic(project string, name string) bool {
-	res := tl.GetTopicByName(project, name)
-	if res.Name != "" {
+func HasTopic(projectUUID string, name string, store stores.Store) bool {
+	res, err := Find(projectUUID, name, store)
+	if len(res.List) > 0 && err == nil {
 		return true
 	}
-
 	return false
 }

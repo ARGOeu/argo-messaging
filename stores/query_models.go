@@ -1,8 +1,10 @@
 package stores
 
+import "time"
+
 // QSub are the results of the Qsub query
 type QSub struct {
-	Project      string `bson:"project"`
+	ProjectUUID  string `bson:"project_uuid"`
 	Name         string `bson:"name"`
 	Topic        string `bson:"topic"`
 	Offset       int64  `bson:"offset"`
@@ -17,6 +19,16 @@ type QSub struct {
 // QAcl holds a list of authorized users queried from topic or subscription collections
 type QAcl struct {
 	ACL []string `bson:"acl"`
+}
+
+// QProject are the results of the QProject query
+type QProject struct {
+	UUID        string    `bson:"uuid"`
+	Name        string    `bson:"name"`
+	CreatedOn   time.Time `bson:"created_on"`
+	ModifiedOn  time.Time `bson:"modified_on"`
+	CreatedBy   string    `bson:"created_by"`
+	Description string    `bson:"description"`
 }
 
 // QUser are the results of the QUser query
@@ -34,13 +46,8 @@ type QRole struct {
 	Roles []string `bson:"roles"`
 }
 
-// QProject are the results of the QProject query
-type QProject struct {
-	Name string `bson:"name"`
-}
-
 // QTopic are the results of the QTopic query
 type QTopic struct {
-	Project string `bson:"project"`
-	Name    string `bson:"name"`
+	ProjectUUID string `bson:"project_uuid"`
+	Name        string `bson:"name"`
 }
