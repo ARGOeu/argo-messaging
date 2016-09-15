@@ -38,6 +38,7 @@ func (suite *HandlerTestSuite) SetupTest() {
 }
 
 func (suite *HandlerTestSuite) TestValidation() {
+	// nameValidations
 	suite.Equal(true, validName("topic101"))
 	suite.Equal(true, validName("topic_101"))
 	suite.Equal(true, validName("topic_101_another_thing"))
@@ -48,6 +49,15 @@ func (suite *HandlerTestSuite) TestValidation() {
 	suite.Equal(false, validName("spaces are not valid"))
 	suite.Equal(false, validName("topic/A"))
 	suite.Equal(false, validName("topic/B"))
+
+	// ackID validations
+	suite.Equal(true, validAckID("ARGO", "sub101", "projects/ARGO/subscriptions/sub101:5"))
+	suite.Equal(false, validAckID("ARGO", "sub101", "projects/ARGO/subscriptions/sub101:aaa"))
+	suite.Equal(false, validAckID("ARGO", "sub101", "projects/FARGO/subscriptions/sub101:5"))
+	suite.Equal(false, validAckID("ARGO", "sub101", "projects/ARGO/subscriptions/subF00:5"))
+	suite.Equal(false, validAckID("ARGO", "sub101", "falsepath/ARGO/subscriptions/sub101:5"))
+	suite.Equal(true, validAckID("FOO", "BAR", "projects/FOO/subscriptions/BAR:11155"))
+	suite.Equal(false, validAckID("FOO", "BAR", "projects/FOO//subscriptions/BAR:11155"))
 
 }
 
