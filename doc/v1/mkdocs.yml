@@ -11,6 +11,8 @@ pages:
   - Messaging Backend - Apache Kafka: msg_backend.md
   - Messaging API flow: msg_flow.md
   - Authentication & Authorization: auth.md
+  - Publisher Guide: publisher.md
+#  - Consumer Guide: consumer.md
   - API Basic Information: api_basic.md
   - API Authentication: api_auth.md
   - API Topics: api_topics.md
