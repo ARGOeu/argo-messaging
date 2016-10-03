@@ -111,7 +111,15 @@ func WrapAuthenticate(hfn http.Handler) http.HandlerFunc {
 
 		refStr := context.Get(r, "str").(stores.Store)
 
-		roles, user := auth.Authenticate(urlVars["project"], urlValues.Get("key"), refStr)
+		projectUUID := projects.GetUUIDByName(urlVars["project"], refStr)
+		serviceUUID := projects.GetUUIDByName("SERVICE", refStr)
+
+		// Check first if service user
+		roles, user := auth.Authenticate(serviceUUID, urlValues.Get("key"), refStr)
+		if len(roles) <= 0 {
+			// if not then it's a normal user
+			roles, user = auth.Authenticate(projectUUID, urlValues.Get("key"), refStr)
+		}
 
 		if len(roles) > 0 {
 			context.Set(r, "auth_roles", roles)
