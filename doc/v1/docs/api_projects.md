@@ -11,8 +11,7 @@ GET "/v1/projects"
 ```
 
 ### Example request
-```
-json
+```json
 curl -X GET -H "Content-Type: application/json"
   "https://{URL}/v1/projects?key=S3CR3T"
 ```
@@ -23,7 +22,6 @@ If successful, the response contains a list of all available projects
 Success Response
 `200 OK`
 ```
-json
 {
  "projects": [
     {
@@ -65,8 +63,7 @@ POST "/v1/projects/{project_name}"
 
 
 ### Example request
-```
-json
+```json
 curl -X POST -H "Content-Type: application/json"
   "https://{URL}/v1/projects/PROJECT_NEW?key=S3CR3T"
 ```
@@ -76,8 +73,7 @@ If successful, the response contains information about the specific project
 
 Success Response
 `200 OK`
-```
-json
+```json
 {
    "name": "BRAND_NEW",
    "created_on": "2009-11-10T23:00:00Z",
@@ -100,16 +96,14 @@ POST "/v1/projects/{project_name}"
 - Project_name: Name of the project to create
 
 ### Post body:
-```
-json
+```json
 {
   "description" : "a simple description"
 }
 ```
 
 ### Example request
-```
-json
+```json
 curl -X POST -H "Content-Type: application/json"
  -d POSTDATA "https://{URL}/v1/projects/PROJECT_NEW?key=S3CR3T"
 ```
@@ -119,8 +113,7 @@ If successful, the response contains the newly created project
 
 Success Response
 `200 OK`
-```
-json
+```json
 {
  "name": "projects/PROJET_NEW"
 }
