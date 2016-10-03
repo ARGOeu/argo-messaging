@@ -209,11 +209,11 @@ func (mong *MongoStore) QueryACL(projectUUID string, resource string, name strin
 func (mong *MongoStore) QueryTopics(projectUUID string, name string) ([]QTopic, error) {
 
 	// By default return all topics of a given project
-	query := bson.M{"projectUUID": projectUUID}
+	query := bson.M{"project_uuid": projectUUID}
 
 	// If name is given return only the specific topic
 	if name != "" {
-		query = bson.M{"projectUUID": projectUUID, "name": name}
+		query = bson.M{"project_uuid": projectUUID, "name": name}
 	}
 
 	db := mong.Session.DB(mong.Database)
@@ -385,11 +385,11 @@ func (mong *MongoStore) RemoveResource(col string, res interface{}) error {
 func (mong *MongoStore) QuerySubs(projectUUID string, name string) ([]QSub, error) {
 
 	// By default return all topics of a given project
-	query := bson.M{"projectUUID": projectUUID}
+	query := bson.M{"project_uuid": projectUUID}
 
 	// If name is given return only the specific topic
 	if name != "" {
-		query = bson.M{"projectUUID": projectUUID, "name": name}
+		query = bson.M{"project_uuid": projectUUID, "name": name}
 	}
 
 	db := mong.Session.DB(mong.Database)
