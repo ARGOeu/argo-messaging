@@ -345,11 +345,11 @@ func (mong *MongoStore) ModACL(project string, resource string, name string, acl
 }
 
 // ModSubPush modifies the push configuration
-func (mong *MongoStore) ModSubPush(project string, name string, push string, rPolicy string, rPeriod int) error {
+func (mong *MongoStore) ModSubPush(projectUUID string, name string, push string, rPolicy string, rPeriod int) error {
 	db := mong.Session.DB(mong.Database)
 	c := db.C("subscriptions")
 
-	err := c.Update(bson.M{"project": project, "name": name}, bson.M{"$set": bson.M{"push_endpoint": push, "retry_policy": rPolicy, "retry_period": rPeriod}})
+	err := c.Update(bson.M{"project_uuid": projectUUID, "name": name}, bson.M{"$set": bson.M{"push_endpoint": push, "retry_policy": rPolicy, "retry_period": rPeriod}})
 	return err
 }
 
