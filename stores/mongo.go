@@ -52,6 +52,32 @@ func (mong *MongoStore) Initialize() {
 	log.Printf("%s\t%s\t%s: %s", "INFO", "STORE", "Connected to Mongo", mong.Server)
 }
 
+// QueryProjects queries the database for a specific project or a list of all projects
+func (mong *MongoStore) QueryProjects(name string, uuid string) ([]QProject, error) {
+
+	query := bson.M{}
+
+	if name != "" {
+		query = bson.M{"project": name}
+	} else if uuid != "" {
+		query = bson.M{"uuid": uuid}
+	}
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C("projects")
+	var results []QProject
+	err := c.Find(query).All(&results)
+	if err != nil {
+		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
+	}
+
+	if len(results) > 0 {
+		return results, nil
+	}
+
+	return results, errors.New("empty")
+}
+
 // UpdateSubPull updates next offset and sets timestamp for Ack
 func (mong *MongoStore) UpdateSubPull(name string, nextOff int64, ts string) {
 
@@ -68,14 +94,14 @@ func (mong *MongoStore) UpdateSubPull(name string, nextOff int64, ts string) {
 }
 
 // UpdateSubOffsetAck updates a subscription offset after Ack
-func (mong *MongoStore) UpdateSubOffsetAck(name string, offset int64, ts string) error {
+func (mong *MongoStore) UpdateSubOffsetAck(projectUUID string, name string, offset int64, ts string) error {
 
 	db := mong.Session.DB(mong.Database)
 	c := db.C("subscriptions")
 
 	// Get Info
 	res := QSub{}
-	err := c.Find(bson.M{"name": name}).One(&res)
+	err := c.Find(bson.M{"project_uuid": projectUUID, "name": name}).One(&res)
 
 	// check if no ack pending
 	if res.NextOffset == 0 {
@@ -109,12 +135,12 @@ func (mong *MongoStore) UpdateSubOffsetAck(name string, offset int64, ts string)
 }
 
 // UpdateSubOffset updates a subscription offset
-func (mong *MongoStore) UpdateSubOffset(name string, offset int64) {
+func (mong *MongoStore) UpdateSubOffset(projectUUID string, name string, offset int64) {
 
 	db := mong.Session.DB(mong.Database)
 	c := db.C("subscriptions")
 
-	doc := bson.M{"name": name}
+	doc := bson.M{"project_uuid": projectUUID, "name": name}
 	change := bson.M{"$set": bson.M{"offset": offset, "next_offset": 0, "pending_ack": ""}}
 	err := c.Update(doc, change)
 	if err != nil {
@@ -155,7 +181,7 @@ func (mong *MongoStore) HasUsers(project string, users []string) (bool, []string
 }
 
 // QueryACL queries topic or subscription for a list of authorized users
-func (mong *MongoStore) QueryACL(project string, resource string, name string) (QAcl, error) {
+func (mong *MongoStore) QueryACL(projectUUID string, resource string, name string) (QAcl, error) {
 	db := mong.Session.DB(mong.Database)
 	var results []QAcl
 	var c *mgo.Collection
@@ -167,7 +193,7 @@ func (mong *MongoStore) QueryACL(project string, resource string, name string) (
 		return QAcl{}, errors.New("wrong resource type")
 	}
 
-	err := c.Find(bson.M{"project": project, "name": name}).All(&results)
+	err := c.Find(bson.M{"project_uuid": projectUUID, "name": name}).All(&results)
 	if err != nil {
 		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
 	}
@@ -180,18 +206,26 @@ func (mong *MongoStore) QueryACL(project string, resource string, name string) (
 }
 
 // QueryTopics Query Subscription info from store
-func (mong *MongoStore) QueryTopics() []QTopic {
+func (mong *MongoStore) QueryTopics(projectUUID string, name string) ([]QTopic, error) {
+
+	// By default return all topics of a given project
+	query := bson.M{"projectUUID": projectUUID}
+
+	// If name is given return only the specific topic
+	if name != "" {
+		query = bson.M{"projectUUID": projectUUID, "name": name}
+	}
 
 	db := mong.Session.DB(mong.Database)
 	c := db.C("topics")
 	var results []QTopic
-	err := c.Find(bson.M{}).All(&results)
+	err := c.Find(query).All(&results)
 
 	if err != nil {
 		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
 	}
 
-	return results
+	return results, err
 }
 
 //HasResourceRoles returns the roles of a user in a project
@@ -238,12 +272,12 @@ func (mong *MongoStore) GetUserRoles(project string, token string) ([]string, st
 }
 
 // QueryOneSub queries and returns specific sub of project
-func (mong *MongoStore) QueryOneSub(project string, sub string) (QSub, error) {
+func (mong *MongoStore) QueryOneSub(projectUUID string, name string) (QSub, error) {
 
 	db := mong.Session.DB(mong.Database)
 	c := db.C("subscriptions")
 	var results []QSub
-	err := c.Find(bson.M{"project": project, "name": sub}).All(&results)
+	err := c.Find(bson.M{"project_uuid": projectUUID, "name": name}).All(&results)
 	if err != nil {
 		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
 	}
@@ -273,9 +307,15 @@ func (mong *MongoStore) HasProject(project string) bool {
 }
 
 // InsertTopic inserts a topic to the store
-func (mong *MongoStore) InsertTopic(project string, name string) error {
-	topic := QTopic{project, name}
+func (mong *MongoStore) InsertTopic(projectUUID string, name string) error {
+	topic := QTopic{ProjectUUID: projectUUID, Name: name}
 	return mong.InsertResource("topics", topic)
+}
+
+// InsertProject inserts a project to the store
+func (mong *MongoStore) InsertProject(uuid string, name string, createdOn time.Time, modifiedOn time.Time, createdBy string, description string) error {
+	project := QProject{UUID: uuid, Name: name, CreatedOn: createdOn, ModifiedOn: modifiedOn, CreatedBy: createdBy, Description: description}
+	return mong.InsertResource("projects", project)
 }
 
 // InsertSub inserts a subscription to the store
@@ -342,16 +382,24 @@ func (mong *MongoStore) RemoveResource(col string, res interface{}) error {
 }
 
 // QuerySubs Query Subscription info from store
-func (mong *MongoStore) QuerySubs() []QSub {
+func (mong *MongoStore) QuerySubs(projectUUID string, name string) ([]QSub, error) {
+
+	// By default return all topics of a given project
+	query := bson.M{"projectUUID": projectUUID}
+
+	// If name is given return only the specific topic
+	if name != "" {
+		query = bson.M{"projectUUID": projectUUID, "name": name}
+	}
 
 	db := mong.Session.DB(mong.Database)
 	c := db.C("subscriptions")
 	var results []QSub
-	err := c.Find(bson.M{}).All(&results)
+	err := c.Find(query).All(&results)
 	if err != nil {
 		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
 	}
-	return results
+	return results, err
 
 }
 

@@ -129,6 +129,10 @@
 			"Rev": "a979bdb3ad236b6a9f508e352e1202779149e8b6"
 		},
 		{
+			"ImportPath": "github.com/twinj/uuid",
+			"Rev": "70cac2bcd273ef6a371bb96cde363d28b68734c3"
+		},
+		{
 			"ImportPath": "gopkg.in/fsnotify.v1",
 			"Comment": "v1.2.9",
 			"Rev": "8611c35ab31c1c28aa903d33cf8b6e44a399b09e"

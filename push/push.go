@@ -37,13 +37,12 @@ type Manager struct {
 // LoadPushSubs is called during API initialization to retrieve available
 // push configured subs and activate them
 func (mgr *Manager) LoadPushSubs() {
-	// Retrieve available push subscriptions
-	subs := subscriptions.Subscriptions{}
-	subs.LoadPushSubs(mgr.store)
+
+	results := subscriptions.LoadPushSubs(mgr.store)
 
 	// Add all of them
-	for _, item := range subs.List {
-		mgr.Add(item.Project, item.Name)
+	for _, item := range results.List {
+		mgr.Add(item.ProjectUUID, item.Name)
 	}
 }
 
@@ -71,18 +70,18 @@ func (mgr *Manager) StopAll() error {
 func (p *Pusher) push(brk brokers.Broker, store stores.Store) {
 	log.Println("pid", p.id, "pushing")
 	// update sub details
-	subs := subscriptions.Subscriptions{}
-	subs.LoadOne(p.sub.Project, p.sub.Name, store)
+
+	subs, err := subscriptions.Find(p.sub.ProjectUUID, p.sub.Name, store)
 
 	// If subscription doesn't exist in store stop and remove it from manager
-	if len(subs.List) == 0 {
+	if err == nil && len(subs.List) == 0 {
 		p.stop <- 1
 		return
 	}
 	p.sub = subs.List[0]
 	// Init Received Message List
 
-	fullTopic := p.sub.Project + "." + p.sub.Topic
+	fullTopic := p.sub.ProjectUUID + "." + p.sub.Topic
 	msgs := brk.Consume(fullTopic, p.sub.Offset, true)
 	if len(msgs) > 0 {
 		// Generate push message template
@@ -95,7 +94,7 @@ func (p *Pusher) push(brk brokers.Broker, store stores.Store) {
 
 		if err == nil {
 			// Advance the offset
-			store.UpdateSubOffset(p.sub.Name, 1+p.sub.Offset)
+			store.UpdateSubOffset(p.sub.ProjectUUID, p.sub.Name, 1+p.sub.Offset)
 			log.Println("offset updated")
 		}
 	} else {
@@ -160,7 +159,7 @@ func (mgr *Manager) Remove(project string, sub string) error {
 		return nil
 	}
 
-	return errors.New("Not Found")
+	return errors.New("not Found")
 }
 
 // Restart a push subscription
@@ -180,7 +179,7 @@ func (mgr *Manager) Restart(project string, sub string) error {
 		return nil
 	}
 
-	return errors.New("Not Found")
+	return errors.New("not Found")
 }
 
 // Stop stops a push subscription
@@ -200,22 +199,26 @@ func (mgr *Manager) Stop(project string, sub string) error {
 		return nil
 	}
 
-	return errors.New("Not Found")
+	return errors.New("not Found")
 }
 
 // Refresh updates the subscription information from the database
-func (mgr *Manager) Refresh(project string, sub string) error {
+func (mgr *Manager) Refresh(projectUUID string, sub string) error {
 	// Check if mgr is set
 	if !mgr.isSet() {
 		return errors.New("Push Manager not set")
 	}
 
-	if p, err := mgr.Get(project + "/" + sub); err == nil {
-		subs := subscriptions.Subscriptions{}
-		err := subs.LoadOne(project, sub, mgr.store)
+	if p, err := mgr.Get(projectUUID + "/" + sub); err == nil {
+
+		subs, err := subscriptions.Find(projectUUID, sub, mgr.store)
 
 		if err != nil {
-			return errors.New("No sub found")
+			return errors.New("backend error")
+		}
+
+		if subs.Empty() {
+			return errors.New("Not Found")
 		}
 
 		p.endpoint = subs.List[0].PushCfg.Pend
@@ -224,21 +227,24 @@ func (mgr *Manager) Refresh(project string, sub string) error {
 		p.rate = time.Duration(p.retryPeriod) * time.Millisecond
 	}
 
-	return errors.New("Not Found")
+	return errors.New("not Found")
 }
 
 // Add a new push subscription
-func (mgr *Manager) Add(project string, subname string) error {
+func (mgr *Manager) Add(projectUUID string, subName string) error {
 	// Check if mgr is set
 	if !mgr.isSet() {
 		return errors.New("Push Manager not set")
 	}
 	// Check if subscription exists
-	subs := subscriptions.Subscriptions{}
-	err := subs.LoadOne(project, subname, mgr.store)
+	subs, err := subscriptions.Find(projectUUID, subName, mgr.store)
 
 	if err != nil {
-		return errors.New("No sub found")
+		return errors.New("Backend error")
+	}
+
+	if subs.Empty() {
+		return errors.New("not found")
 	}
 
 	// Create new pusher
@@ -253,7 +259,7 @@ func (mgr *Manager) Add(project string, subname string) error {
 	pushr.rate = time.Duration(pushr.retryPeriod) * time.Millisecond
 	pushr.sndr = mgr.sender
 	pushr.mgr = mgr
-	mgr.list[project+"/"+subname] = &pushr
+	mgr.list[projectUUID+"/"+subName] = &pushr
 	log.Println("Push Subscription Added")
 
 	return nil
@@ -280,7 +286,7 @@ func (mgr *Manager) Launch(project string, sub string) error {
 		return nil
 	}
 
-	return errors.New("Not Found")
+	return errors.New("not Found")
 }
 
 // Launch the pusher activity
@@ -307,9 +313,9 @@ func LinearActivity(p *Pusher, brk brokers.Broker, store stores.Store) error {
 				log.Println("pusher:", p.id, "Stoping...")
 				p.running = false
 				if halt == 2 {
-					p.mgr.Launch(p.sub.Project, p.sub.Name)
+					p.mgr.Launch(p.sub.ProjectUUID, p.sub.Name)
 				} else {
-					p.mgr.Remove(p.sub.Project, p.sub.Name)
+					p.mgr.Remove(p.sub.ProjectUUID, p.sub.Name)
 				}
 				return nil
 			}

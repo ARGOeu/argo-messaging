@@ -21,7 +21,104 @@ tags:
     description: Subscriptions under a given project
   - name: Topics
     description: Topics under a given project
+  - name: Projects
+    description: Projects available in the service
 paths:
+  /projects:
+    get:
+      summary: List subscriptions in a project
+      description: |
+        List all the available projects in the service
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+      tags:
+        - Projects
+      responses:
+        200:
+          description: An array of Projects
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Projects'
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
+
+  /projects/{PROJECT}:
+    get:
+      summary: Show a specific project
+      description: |
+        Shows a specific projects information
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+      tags:
+        - Projects
+      responses:
+        200:
+          description: A Project object
+          schema:
+            $ref: '#/definitions/Project'
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
+
+    post:
+      summary: Create a new project
+      description: |
+        Create a new project in the service
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: Project description
+          in: body
+          description: Extra project information such as description
+          required: true
+          schema:
+           type: object
+           properties:
+             description:
+               type: string
+      tags:
+        - Projects
+      responses:
+        200:
+          description: Returns the newly created project object
+          schema:
+            $ref: '#/definitions/Project'
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        409:
+          $ref: "#/responses/409"
+        500:
+          $ref: "#/responses/500"
+
   /projects/{PROJECT}/subscriptions:
     get:
       summary: List subscriptions in a project
@@ -40,9 +137,7 @@ paths:
         200:
           description: An array of subscriptions
           schema:
-            type: array
-            items:
-              $ref: '#/definitions/Subscription'
+            $ref: '#/definitions/Subscriptions'
         400:
           $ref: "#/responses/400"
         401:
@@ -53,6 +148,9 @@ paths:
           $ref: "#/responses/404"
         500:
           $ref: "#/responses/500"
+
+
+
 
   /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}:
     get:
@@ -75,7 +173,7 @@ paths:
         - Subscriptions
       responses:
         200:
-          description: An array of Subscriptions
+          description: A Subscription object
           schema:
             $ref: '#/definitions/Subscription'
         400:
@@ -390,9 +488,7 @@ paths:
         200:
           description: An array of topics
           schema:
-            type: array
-            items:
-              $ref: '#/definitions/Topic'
+            $ref: '#/definitions/Topics'
         400:
           $ref: "#/responses/400"
         401:
@@ -741,6 +837,22 @@ definitions:
         type: string
         description: Name of the topic
 
+  Topics:
+    type: object
+    properties:
+      topics:
+        type: array
+        items:
+          $ref: '#/definitions/Topic'
+
+  Subscriptions:
+    type: object
+    properties:
+      topics:
+        type: array
+        items:
+          $ref: '#/definitions/Subscriptions'
+
   Message:
     type: object
     properties:
@@ -783,6 +895,28 @@ definitions:
           publishTime:
             type: string
             description: publish datetime in ISO8601 string (+ns)
+
+  Projects:
+    type: object
+    properties:
+      projects:
+        type: array
+        items:
+          $ref: '#/definitions/Project'
+
+  Project:
+     type: object
+     properties:
+       name:
+        type: string
+       created_on:
+        type: string
+       modified_on:
+        type: string
+       created_by:
+        type: string
+       description:
+        type: string
 
 
   MessageIDs:

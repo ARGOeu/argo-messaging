@@ -11,6 +11,7 @@ import (
 
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
+	"github.com/ARGOeu/argo-messaging/projects"
 	"github.com/ARGOeu/argo-messaging/push"
 	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/gorilla/mux"
@@ -58,6 +59,139 @@ func (suite *HandlerTestSuite) TestValidation() {
 	suite.Equal(false, validAckID("ARGO", "sub101", "falsepath/ARGO/subscriptions/sub101:5"))
 	suite.Equal(true, validAckID("FOO", "BAR", "projects/FOO/subscriptions/BAR:11155"))
 	suite.Equal(false, validAckID("FOO", "BAR", "projects/FOO//subscriptions/BAR:11155"))
+
+}
+
+func (suite *HandlerTestSuite) TestProjectCreate() {
+
+	postJSON := `{
+	"description":"This is a newly created project"
+}`
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/projects/ARGONEW", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := push.Manager{}
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}", WrapMockAuthConfig(ProjectCreate, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	projOut, _ := projects.GetFromJSON([]byte(w.Body.String()))
+	suite.Equal("ARGONEW", projOut.Name)
+	// Check if the mock authenticated userA has been marked as the creator
+	suite.Equal("userA", projOut.CreatedBy)
+	suite.Equal("This is a newly created project", projOut.Description)
+}
+
+func (suite *HandlerTestSuite) TestProjectListAll() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "projects": [
+      {
+         "name": "ARGO",
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "userA",
+         "description": "simple project"
+      },
+      {
+         "name": "ARGO2",
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "userA",
+         "description": "simple project"
+      }
+   ]
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects", WrapConfig(ProjectListOne, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestProjectListOneNotFound() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGONAUFTS", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "error": {
+      "code": 404,
+      "message": "Project does not exist",
+      "status": "NOT_FOUND"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}", WrapConfig(ProjectListOne, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(404, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestProjectListOne() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "projects": [
+      {
+         "name": "ARGO",
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "userA",
+         "description": "simple project"
+      }
+   ]
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}", WrapConfig(ProjectListOne, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
 
 }
 
@@ -1013,7 +1147,7 @@ func (suite *HandlerTestSuite) TestSubAck() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:acknowledge", WrapConfig(SubAck, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:acknowledge", WrapMockAuthConfig(SubAck, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(400, w.Code)
 	suite.Equal(expJSON1, w.Body.String())

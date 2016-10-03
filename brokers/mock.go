@@ -86,7 +86,7 @@ func (b *MockBroker) Publish(topic string, msg messages.Message) (string, string
 	b.MsgList = append(b.MsgList, payload)
 	off := b.GetOffset(topic) - 1
 	msgID := strconv.FormatInt(off, 10)
-	return msgID, "ARGO.topic1", 0, int64(len(b.MsgList)), nil
+	return msgID, "argo_uuid.topic1", 0, int64(len(b.MsgList)), nil
 }
 
 // GetOffset returns a current topic's offset
