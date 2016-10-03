@@ -58,7 +58,7 @@ func (mong *MongoStore) QueryProjects(name string, uuid string) ([]QProject, err
 	query := bson.M{}
 
 	if name != "" {
-		query = bson.M{"project": name}
+		query = bson.M{"name": name}
 	} else if uuid != "" {
 		query = bson.M{"uuid": uuid}
 	}
@@ -253,7 +253,7 @@ func (mong *MongoStore) GetUserRoles(project string, token string) ([]string, st
 	db := mong.Session.DB(mong.Database)
 	c := db.C("users")
 	var results []QUser
-	err := c.Find(bson.M{"project": project, "token": token}).All(&results)
+	err := c.Find(bson.M{"project_uuid": project, "token": token}).All(&results)
 	if err != nil {
 		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
 	}
