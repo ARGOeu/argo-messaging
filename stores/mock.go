@@ -97,7 +97,7 @@ func (mk *MockStore) UpdateSubOffset(projectUUID string, name string, offset int
 }
 
 // ModSubPush modifies the subscription ack
-func (mk *MockStore) ModSubPush(project string, name string, push string, rPolicy string, rPeriod int) error {
+func (mk *MockStore) ModSubPush(projectUUID string, name string, push string, rPolicy string, rPeriod int) error {
 	return nil
 }
 
