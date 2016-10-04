@@ -62,6 +62,35 @@ func (suite *HandlerTestSuite) TestValidation() {
 
 }
 
+func (suite *HandlerTestSuite) TestProjectUpdate() {
+
+	postJSON := `{
+	"name":"NEWARGO",
+	"description":"time to change the description mates and the name"
+}`
+
+	req, err := http.NewRequest("PUT", "http://localhost:8080/v1/projects/ARGO", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := push.Manager{}
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}", WrapMockAuthConfig(ProjectUpdate, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	projOut, _ := projects.GetFromJSON([]byte(w.Body.String()))
+	suite.Equal("NEWARGO", projOut.Name)
+	// Check if the mock authenticated userA has been marked as the creator
+	suite.Equal("userA", projOut.CreatedBy)
+	suite.Equal("time to change the description mates and the name", projOut.Description)
+}
+
 func (suite *HandlerTestSuite) TestProjectCreate() {
 
 	postJSON := `{

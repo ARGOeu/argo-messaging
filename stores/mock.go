@@ -91,6 +91,27 @@ func (mk *MockStore) ModACL(projectUUID string, resource string, name string, ac
 	return errors.New("not found")
 }
 
+// UpdateProject updates project information
+func (mk *MockStore) UpdateProject(projectUUID string, name string, description string, modifiedOn time.Time) error {
+
+	for i, item := range mk.ProjectList {
+		if item.UUID == projectUUID {
+			if description != "" {
+				mk.ProjectList[i].Description = description
+			}
+			if name != "" {
+				mk.ProjectList[i].Name = name
+			}
+
+			mk.ProjectList[i].ModifiedOn = modifiedOn
+			return nil
+		}
+	}
+
+	return errors.New("not found")
+
+}
+
 // UpdateSubOffset updates the offset of the current subscription
 func (mk *MockStore) UpdateSubOffset(projectUUID string, name string, offset int64) {
 
@@ -136,7 +157,7 @@ func (mk *MockStore) UpdateSubOffsetAck(projectUUID string, name string, offset 
 }
 
 // QueryProjects function queries for a specific project or for a list of all projects
-func (mk *MockStore) QueryProjects(name string, uuid string) ([]QProject, error) {
+func (mk *MockStore) QueryProjects(uuid string, name string) ([]QProject, error) {
 	result := []QProject{}
 	if name == "" && uuid == "" {
 		result = mk.ProjectList

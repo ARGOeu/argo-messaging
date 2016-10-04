@@ -36,6 +36,22 @@ func (ps *Projects) ExportJSON() (string, error) {
 	return string(output[:]), err
 }
 
+// Empty returns true if projects list is empty
+func (ps *Projects) Empty() bool {
+	if ps.List == nil {
+		return true
+	}
+	return len(ps.List) <= 0
+}
+
+// One returns the first project if a projects list is not empty
+func (ps *Projects) One() Project {
+	if ps.Empty() == false {
+		return ps.List[0]
+	}
+	return Project{}
+}
+
 // GetFromJSON retrieves Project info From JSON string
 func GetFromJSON(input []byte) (Project, error) {
 	p := Project{}
@@ -50,10 +66,11 @@ func NewProject(uuid string, name string, createdOn time.Time, modifiedOn time.T
 
 // Find returns a specific project or a list of all available projects in the datastore.
 // To return all projects use an empty project string parameter
-func Find(name string, store stores.Store) (Projects, error) {
+func Find(uuid string, name string, store stores.Store) (Projects, error) {
 	result := Projects{}
 	// if project string empty, returns all projects
-	projects, err := store.QueryProjects(name,"")
+	projects, err := store.QueryProjects(uuid, name)
+
 	for _, item := range projects {
 		curProject := NewProject(item.UUID, item.Name, item.CreatedOn, item.ModifiedOn, item.CreatedBy, item.Description)
 		result.List = append(result.List, curProject)
@@ -63,44 +80,89 @@ func Find(name string, store stores.Store) (Projects, error) {
 }
 
 // GetNameByUUID queries projects by UUID and returns the project name. If not found, returns an empty string
-func GetNameByUUID(uuid string, store stores.Store) (string) {
+func GetNameByUUID(uuid string, store stores.Store) string {
 	result := ""
 	// if project string empty, returns all projects
-	projects, err := store.QueryProjects("",uuid)
+	projects, err := store.QueryProjects(uuid, "")
 	if len(projects) > 0 && err == nil {
 		result = projects[0].Name
 	}
 
-	return result;
+	return result
 }
 
-// GetNameByUUID queries projects by UUID and returns the project name. If not found, returns an empty string
-func GetUUIDByName(name string, store stores.Store) (string) {
+// GetUUIDByName queries project by name and returns the corresponding UUID
+func GetUUIDByName(name string, store stores.Store) string {
 	result := ""
 	// if project string empty, returns all projects
-	projects, err := store.QueryProjects(name,"")
+	projects, err := store.QueryProjects("", name)
 	if len(projects) > 0 && err == nil {
 		result = projects[0].UUID
 	}
-
-	return result;
+	return result
 }
 
+// ExistsWithName returns true if a project with name exists
+func ExistsWithName(name string, store stores.Store) bool {
+	result := false
+
+	projects, err := store.QueryProjects("", name)
+	if len(projects) > 0 && err == nil {
+		result = true
+	}
+
+	return result
+
+}
+
+// ExistsWithUUID return true if a project with uuid exists
+func ExistsWithUUID(uuid string, store stores.Store) bool {
+	result := false
+
+	projects, err := store.QueryProjects(uuid, "")
+	if len(projects) > 0 && err == nil {
+		result = true
+	}
+	return result
+}
 
 // HasProject if store contains a project with the specific name
 func HasProject(name string, store stores.Store) bool {
-	projects, _ := store.QueryProjects(name,"")
+	projects, _ := store.QueryProjects("", name)
 	return len(projects) > 0
+
 }
 
 // CreateProject creates a new project
 func CreateProject(uuid string, name string, createdOn time.Time, createdBy string, description string, store stores.Store) (Project, error) {
-	if HasProject(name, store) {
+	// check if project with the same name exists
+	if ExistsWithName(name, store) {
 		return Project{}, errors.New("exists")
 	}
 
-	projNew := NewProject(uuid, name, createdOn, createdOn, createdBy, description)
-	err := store.InsertProject(uuid, name, createdOn, createdOn, createdBy, description)
+	if err := store.InsertProject(uuid, name, createdOn, createdOn, createdBy, description); err != nil {
+		return Project{}, errors.New("backend error")
+	}
 
-	return projNew, err
+	// reflect stored object
+	stored, err := Find("", name, store)
+	return stored.One(), err
+}
+
+// UpdateProject creates a new project
+func UpdateProject(uuid string, name string, description string, modifiedOn time.Time, store stores.Store) (Project, error) {
+	// Project with uuid should exist to be updated
+
+	// check if project with the same name exists
+	if ExistsWithUUID(uuid, store) == false {
+		return Project{}, errors.New("not found")
+	}
+
+	if err := store.UpdateProject(uuid, name, description, modifiedOn); err != nil {
+		return Project{}, errors.New("backend error")
+	}
+
+	// reflect stored object
+	stored, err := Find(uuid, name, store)
+	return stored.One(), err
 }
