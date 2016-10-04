@@ -33,11 +33,11 @@ type QProject struct {
 
 // QUser are the results of the QUser query
 type QUser struct {
-	Name    string   `bson:"name"`
-	Email   string   `bson:"email"`
-	Project string   `bson:"project"`
-	Token   string   `bson:"token"`
-	Roles   []string `bson:"roles"`
+	Name        string   `bson:"name"`
+	Email       string   `bson:"email"`
+	ProjectUUID string   `bson:"project_uuid"`
+	Token       string   `bson:"token"`
+	Roles       []string `bson:"roles"`
 }
 
 // QRole holds roles resources relationships

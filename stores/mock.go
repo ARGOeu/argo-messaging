@@ -50,7 +50,7 @@ func (mk *MockStore) Close() {
 }
 
 // HasUsers accepts a user array of usernames and returns the not found
-func (mk *MockStore) HasUsers(project string, users []string) (bool, []string) {
+func (mk *MockStore) HasUsers(projectUUID string, users []string) (bool, []string) {
 
 	var notFound []string
 
@@ -74,7 +74,7 @@ func (mk *MockStore) HasUsers(project string, users []string) (bool, []string) {
 }
 
 // ModACL changes the acl in a function
-func (mk *MockStore) ModACL(project string, resource string, name string, acl []string) error {
+func (mk *MockStore) ModACL(projectUUID string, resource string, name string, acl []string) error {
 	newAcl := QAcl{ACL: acl}
 	if resource == "topics" {
 		if _, exists := mk.TopicsACL[name]; exists {
@@ -252,9 +252,9 @@ func (mk *MockStore) Clone() Store {
 }
 
 // GetUserRoles returns the roles of a user in a project
-func (mk *MockStore) GetUserRoles(project string, token string) ([]string, string) {
+func (mk *MockStore) GetUserRoles(projectUUID string, token string) ([]string, string) {
 	for _, item := range mk.UserList {
-		if item.Project == project && item.Token == token {
+		if item.ProjectUUID == projectUUID && item.Token == token {
 			return item.Roles, "userA"
 		}
 	}
@@ -283,9 +283,9 @@ func (mk *MockStore) HasResourceRoles(resource string, roles []string) bool {
 }
 
 // HasProject returns true if project exists in store
-func (mk *MockStore) HasProject(project string) bool {
+func (mk *MockStore) HasProject(name string) bool {
 	for _, item := range mk.ProjectList {
-		if item.Name == project {
+		if item.Name == name {
 			return true
 		}
 	}
@@ -301,8 +301,8 @@ func (mk *MockStore) InsertTopic(projectUUID string, name string) error {
 }
 
 // InsertSub inserts a new sub object to the store
-func (mk *MockStore) InsertSub(project string, name string, topic string, offset int64, ack int, push string, rPolicy string, rPeriod int) error {
-	sub := QSub{project, name, topic, offset, 0, "", push, ack, rPolicy, rPeriod}
+func (mk *MockStore) InsertSub(projectUUID string, name string, topic string, offset int64, ack int, push string, rPolicy string, rPeriod int) error {
+	sub := QSub{projectUUID, name, topic, offset, 0, "", push, ack, rPolicy, rPeriod}
 	mk.SubList = append(mk.SubList, sub)
 	return nil
 }
