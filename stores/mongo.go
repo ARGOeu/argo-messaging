@@ -150,13 +150,13 @@ func (mong *MongoStore) UpdateSubOffset(projectUUID string, name string, offset 
 }
 
 // HasUsers accepts a user array of usernames and returns the not found
-func (mong *MongoStore) HasUsers(project string, users []string) (bool, []string) {
+func (mong *MongoStore) HasUsers(projectUUID string, users []string) (bool, []string) {
 	db := mong.Session.DB(mong.Database)
 	var results []QUser
 	var notFound []string
 	c := db.C("users")
 
-	err := c.Find(bson.M{"project": project, "name": bson.M{"$in": users}}).All(&results)
+	err := c.Find(bson.M{"project_uuid": projectUUID, "name": bson.M{"$in": users}}).All(&results)
 	if err != nil {
 		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
 	}
@@ -248,12 +248,12 @@ func (mong *MongoStore) HasResourceRoles(resource string, roles []string) bool {
 }
 
 //GetUserRoles returns the roles of a user in a project
-func (mong *MongoStore) GetUserRoles(project string, token string) ([]string, string) {
+func (mong *MongoStore) GetUserRoles(projectUUID string, token string) ([]string, string) {
 
 	db := mong.Session.DB(mong.Database)
 	c := db.C("users")
 	var results []QUser
-	err := c.Find(bson.M{"project_uuid": project, "token": token}).All(&results)
+	err := c.Find(bson.M{"project_uuid": projectUUID, "token": token}).All(&results)
 	if err != nil {
 		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
 	}
@@ -290,12 +290,12 @@ func (mong *MongoStore) QueryOneSub(projectUUID string, name string) (QSub, erro
 }
 
 // HasProject Returns true if project exists
-func (mong *MongoStore) HasProject(project string) bool {
+func (mong *MongoStore) HasProject(name string) bool {
 
 	db := mong.Session.DB(mong.Database)
 	c := db.C("projects")
 	var results []QProject
-	err := c.Find(bson.M{}).All(&results)
+	err := c.Find(bson.M{"name": name}).All(&results)
 	if err != nil {
 		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
 	}
@@ -319,28 +319,28 @@ func (mong *MongoStore) InsertProject(uuid string, name string, createdOn time.T
 }
 
 // InsertSub inserts a subscription to the store
-func (mong *MongoStore) InsertSub(project string, name string, topic string, offset int64, ack int, push string, rPolicy string, rPeriod int) error {
-	sub := QSub{project, name, topic, offset, 0, "", push, ack, rPolicy, rPeriod}
+func (mong *MongoStore) InsertSub(projectUUID string, name string, topic string, offset int64, ack int, push string, rPolicy string, rPeriod int) error {
+	sub := QSub{projectUUID, name, topic, offset, 0, "", push, ack, rPolicy, rPeriod}
 	return mong.InsertResource("subscriptions", sub)
 }
 
 // RemoveTopic removes a topic from the store
-func (mong *MongoStore) RemoveTopic(project string, name string) error {
-	topic := QTopic{project, name}
+func (mong *MongoStore) RemoveTopic(projectUUID string, name string) error {
+	topic := QTopic{projectUUID, name}
 	return mong.RemoveResource("topics", topic)
 }
 
 // RemoveSub removes a subscription from the store
-func (mong *MongoStore) RemoveSub(project string, name string) error {
-	sub := bson.M{"project": project, "name": name}
+func (mong *MongoStore) RemoveSub(projectUUID string, name string) error {
+	sub := bson.M{"project_uuid": projectUUID, "name": name}
 	return mong.RemoveResource("subscriptions", sub)
 }
 
 // ModACL modifies the push configuration
-func (mong *MongoStore) ModACL(project string, resource string, name string, acl []string) error {
+func (mong *MongoStore) ModACL(projectUUID string, resource string, name string, acl []string) error {
 	db := mong.Session.DB(mong.Database)
 	c := db.C(resource)
-	err := c.Update(bson.M{"project": project, "name": name}, bson.M{"$set": bson.M{"acl": acl}})
+	err := c.Update(bson.M{"project_uuid": projectUUID, "name": name}, bson.M{"$set": bson.M{"acl": acl}})
 	return err
 }
 
