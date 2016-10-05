@@ -379,6 +379,7 @@ func ProjectListOne(w http.ResponseWriter, r *http.Request) {
 	results, err := projects.Find("", urlProject, refStr)
 
 	if err != nil {
+
 		if err.Error() == "not found" {
 			respondErr(w, 404, "Project does not exist", "NOT_FOUND")
 			return

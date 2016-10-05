@@ -176,16 +176,25 @@ func RemoveProject(uuid string, store stores.Store) error {
 
 	// Remove project it self
 	if err := store.RemoveProject(uuid); err != nil {
+		if err.Error() == "not found" {
+			return err
+		}
 		return errors.New("backend error")
 	}
 
 	// Remove topics attached to this project
 	if err := store.RemoveProjectTopics(uuid); err != nil {
+		if err.Error() == "not found" {
+			return err
+		}
 		return errors.New("backend error")
 	}
 
 	// Remove subscriptions attached to this project
 	if err := store.RemoveProjectSubs(uuid); err != nil {
+		if err.Error() == "not found" {
+			return err
+		}
 		return errors.New("backend error")
 	}
 
