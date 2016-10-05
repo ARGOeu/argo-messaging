@@ -80,6 +80,7 @@ func (qUsr *QUser) getProjectRoles(projectUUID string) []string {
 	}
 
 	// if Service admin add this also to the roles regardless of the project
+
 	if len(qUsr.ServiceRoles) > 0 {
 		result = append(result, qUsr.ServiceRoles...)
 	}

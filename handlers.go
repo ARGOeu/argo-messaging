@@ -435,7 +435,11 @@ func UserCreate(w http.ResponseWriter, r *http.Request) {
 	uuid := uuid.NewV4().String() // generate a new uuid to attach to the new project
 	token, err := auth.GenToken() // generate a new user token
 	// Get Result Object
+<<<<<<< HEAD
 	res, err := auth.CreateUser(uuid, urlUser, postBody.Projects, token, postBody.Email, postBody.ServiceRoles, refStr)
+=======
+	res, err := auth.CreateUser(uuid, urlUser, postBody.Projects, token, postBody.Email, postBody.ServiceAdmin, refStr)
+>>>>>>> ARGO-514 API Call to create user
 
 	if err != nil {
 		if err.Error() == "exists" {

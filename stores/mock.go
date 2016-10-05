@@ -292,6 +292,7 @@ func (mk *MockStore) Initialize() {
 	// populate Users
 	qRole := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"admin", "member"}}}
 	qUsr := QUser{"uuid0", qRole, "Test", "S3CR3T", "Test@test.com", []string{}}
+
 	mk.UserList = append(mk.UserList, qUsr)
 
 	qRoleConsumer := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"consumer"}}}

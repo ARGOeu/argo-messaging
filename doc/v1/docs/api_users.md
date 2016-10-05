@@ -174,7 +174,11 @@ POST "/v1/users/{user_name}"
     }
  ],
  "email": "foo-email",
+<<<<<<< HEAD
  "service_roles":[]
+=======
+ "service_admin":false
+>>>>>>> ARGO-514 API Call to create user
 }
 ```
 
@@ -182,7 +186,11 @@ POST "/v1/users/{user_name}"
 - user_name: Name of the user
 - projects: A list of Projects & associated roles that the user has on those projects
 - email: User's email
+<<<<<<< HEAD
 - service_roles: A list of service-wide roles. An example of service-wide role is `service_admin` which can manage projects or other users
+=======
+- service_admin: A boolean value to denote if the user is a Service Admin or not. Service admins are service-wide users that are allowed to manage projects and other users
+>>>>>>> ARGO-514 API Call to create user
 
 ### Example request
 ```
