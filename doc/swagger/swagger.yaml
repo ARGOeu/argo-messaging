@@ -119,6 +119,48 @@ paths:
         500:
           $ref: "#/responses/500"
 
+    put:
+      summary: Update an existing project
+      description: |
+        Update information on an existing project
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: Project information (name,description)
+          in: body
+          description: Extra project information such as description
+          required: true
+          schema:
+           type: object
+           properties:
+             name:
+               type: string
+             description:
+               type: string
+      tags:
+        - Projects
+      responses:
+        200:
+          description: Returns the updated project
+          schema:
+            $ref: '#/definitions/Project'
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        409:
+          $ref: "#/responses/409"
+        500:
+          $ref: "#/responses/500"
+
   /projects/{PROJECT}/subscriptions:
     get:
       summary: List subscriptions in a project

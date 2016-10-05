@@ -335,7 +335,7 @@ func ProjectListOne(w http.ResponseWriter, r *http.Request) {
 	refStr := context.Get(r, "str").(stores.Store)
 
 	// Get Results Object
-	res, err := projects.Find("", urlProject, refStr)
+	results, err := projects.Find("", urlProject, refStr)
 
 	if err != nil {
 		if err.Error() == "not found" {
@@ -349,6 +349,7 @@ func ProjectListOne(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Output result to JSON
+	res := results.One()
 	resJSON, err := res.ExportJSON()
 
 	if err != nil {
