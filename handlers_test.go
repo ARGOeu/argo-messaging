@@ -153,7 +153,7 @@ func (suite *HandlerTestSuite) TestProjectListAll() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects", WrapConfig(ProjectListOne, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects", WrapConfig(ProjectListAll, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -198,15 +198,11 @@ func (suite *HandlerTestSuite) TestProjectListOne() {
 	}
 
 	expResp := `{
-   "projects": [
-      {
-         "name": "ARGO",
-         "created_on": "2009-11-10T23:00:00Z",
-         "modified_on": "2009-11-10T23:00:00Z",
-         "created_by": "userA",
-         "description": "simple project"
-      }
-   ]
+   "name": "ARGO",
+   "created_on": "2009-11-10T23:00:00Z",
+   "modified_on": "2009-11-10T23:00:00Z",
+   "created_by": "userA",
+   "description": "simple project"
 }`
 
 	cfgKafka := config.NewAPICfg()
