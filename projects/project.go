@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 
+	"time"
+
 	"github.com/ARGOeu/argo-messaging/stores"
 )
-
-import "time"
 
 // Project is the struct that holds Project information
 type Project struct {
@@ -70,6 +70,7 @@ func Find(uuid string, name string, store stores.Store) (Projects, error) {
 	result := Projects{}
 	// if project string empty, returns all projects
 	projects, err := store.QueryProjects(uuid, name)
+
 	for _, item := range projects {
 		curProject := NewProject(item.UUID, item.Name, item.CreatedOn, item.ModifiedOn, item.CreatedBy, item.Description)
 		result.List = append(result.List, curProject)
@@ -83,6 +84,7 @@ func GetNameByUUID(uuid string, store stores.Store) string {
 	result := ""
 	// if project string empty, returns all projects
 	projects, err := store.QueryProjects(uuid, "")
+
 	if len(projects) > 0 && err == nil {
 		result = projects[0].Name
 	}
@@ -103,6 +105,10 @@ func GetUUIDByName(name string, store stores.Store) string {
 
 // ExistsWithName returns true if a project with name exists
 func ExistsWithName(name string, store stores.Store) bool {
+	if name == "" {
+		return false
+	}
+
 	result := false
 
 	projects, err := store.QueryProjects("", name)
@@ -116,23 +122,31 @@ func ExistsWithName(name string, store stores.Store) bool {
 
 // ExistsWithUUID return true if a project with uuid exists
 func ExistsWithUUID(uuid string, store stores.Store) bool {
+	if uuid == "" {
+		return false
+	}
+
 	result := false
 
 	projects, err := store.QueryProjects(uuid, "")
 	if len(projects) > 0 && err == nil {
 		result = true
 	}
+
 	return result
 }
 
 // HasProject if store contains a project with the specific name
 func HasProject(name string, store stores.Store) bool {
 	projects, _ := store.QueryProjects("", name)
+
 	return len(projects) > 0
+
 }
 
 // CreateProject creates a new project
 func CreateProject(uuid string, name string, createdOn time.Time, createdBy string, description string, store stores.Store) (Project, error) {
+
 	// check if project with the same name exists
 	if ExistsWithName(name, store) {
 		return Project{}, errors.New("exists")
@@ -157,7 +171,7 @@ func UpdateProject(uuid string, name string, description string, modifiedOn time
 	}
 
 	if err := store.UpdateProject(uuid, name, description, modifiedOn); err != nil {
-		return Project{}, errors.New("backend error")
+		return Project{}, err
 	}
 
 	// reflect stored object
@@ -176,27 +190,34 @@ func RemoveProject(uuid string, store stores.Store) error {
 
 	// Remove project it self
 	if err := store.RemoveProject(uuid); err != nil {
+
 		if err.Error() == "not found" {
 			return err
 		}
+
 		return errors.New("backend error")
 	}
 
 	// Remove topics attached to this project
 	if err := store.RemoveProjectTopics(uuid); err != nil {
+
 		if err.Error() == "not found" {
 			return err
 		}
+
 		return errors.New("backend error")
 	}
 
 	// Remove subscriptions attached to this project
 	if err := store.RemoveProjectSubs(uuid); err != nil {
+
 		if err.Error() == "not found" {
 			return err
 		}
+
 		return errors.New("backend error")
 	}
 
 	return nil
+
 }

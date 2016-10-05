@@ -64,6 +64,9 @@ func NewRouting(cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *p
 
 // Global list populated with default routes
 var defaultRoutes = []APIRoute{
+	{"users:list", "GET", "/users", UserListAll},
+	{"users:show", "GET", "/users/{user}", UserListOne},
+	{"users:create", "POST", "/users/{user}", UserCreate},
 	{"projects:list", "GET", "/projects", ProjectListAll},
 	{"projects:show", "GET", "/projects/{project}", ProjectListOne},
 	{"projects:create", "POST", "/projects/{project}", ProjectCreate},
