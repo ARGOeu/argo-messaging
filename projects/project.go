@@ -70,7 +70,6 @@ func Find(uuid string, name string, store stores.Store) (Projects, error) {
 	result := Projects{}
 	// if project string empty, returns all projects
 	projects, err := store.QueryProjects(uuid, name)
-
 	for _, item := range projects {
 		curProject := NewProject(item.UUID, item.Name, item.CreatedOn, item.ModifiedOn, item.CreatedBy, item.Description)
 		result.List = append(result.List, curProject)
@@ -130,7 +129,6 @@ func ExistsWithUUID(uuid string, store stores.Store) bool {
 func HasProject(name string, store stores.Store) bool {
 	projects, _ := store.QueryProjects("", name)
 	return len(projects) > 0
-
 }
 
 // CreateProject creates a new project
@@ -165,4 +163,31 @@ func UpdateProject(uuid string, name string, description string, modifiedOn time
 	// reflect stored object
 	stored, err := Find(uuid, name, store)
 	return stored.One(), err
+}
+
+// RemoveProject removes project
+func RemoveProject(uuid string, store stores.Store) error {
+	// Project with uuid should exist to be updated
+
+	// check if project with the same name exists
+	if ExistsWithUUID(uuid, store) == false {
+		return errors.New("not found")
+	}
+
+	// Remove project it self
+	if err := store.RemoveProject(uuid); err != nil {
+		return errors.New("backend error")
+	}
+
+	// Remove topics attached to this project
+	if err := store.RemoveProjectTopics(uuid); err != nil {
+		return errors.New("backend error")
+	}
+
+	// Remove subscriptions attached to this project
+	if err := store.RemoveProjectSubs(uuid); err != nil {
+		return errors.New("backend error")
+	}
+
+	return nil
 }

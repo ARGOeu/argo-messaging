@@ -22,7 +22,10 @@ If successful, the response contains a list of all available projects
 Success Response
 `200 OK`
 
-```json
+
+```
+json
+
 {
  "projects": [
     {
@@ -50,12 +53,14 @@ Success Response
 }
 ```
 
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors
+
 
 ## [GET] Manage Projects - List a specific project
 This request lists information about a specific project
 
 ### Request
-
 ```
 GET "/v1/projects/{project_name}"
 ```
@@ -66,8 +71,9 @@ GET "/v1/projects/{project_name}"
 
 ### Example request
 ```
+
 curl -X GET -H "Content-Type: application/json"
-  "https://{URL}/v1/projects/PROJECT_NEW?key=S3CR3T"
+  "https://{URL}/v1/projects/BRAND_NEW?key=S3CR3T"
 ```
 
 ### Responses  
@@ -76,7 +82,9 @@ If successful, the response contains information about the specific project
 Success Response
 `200 OK`
 
-```json
+```
+json
+>>>>>>> ARGO-510 Implement API Call to create projects
 {
    "name": "BRAND_NEW",
    "created_on": "2009-11-10T23:00:00Z",
@@ -86,10 +94,14 @@ Success Response
 }
 ```
 
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors
+
 ## [POST] Manage Projects - Create new project
 This request creates a new project with the given project_name with a POST request
 
 ### Request
+
 ```
 POST "/v1/projects/{project_name}"
 ```
@@ -106,6 +118,7 @@ POST "/v1/projects/{project_name}"
 ```
 
 ### Example request
+
 
 ```
 curl -X POST -H "Content-Type: application/json"
@@ -170,6 +183,33 @@ Success Response
  "description": "description project updated"
 }
 ```
+
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors
+
+
+## [DELETE] Manage Projects - Delete Project
+This request deletes a specific project
+
+### Request
+```json
+DELETE "/v1/projects/{project_name}"
+```
+
+### Where
+- Project_name: Name of the project to delete
+
+### Example request
+
+```json
+curl -X DELETE -H "Content-Type: application/json"  
+-d '' "https://{URL}/v1/projects/EGI?key=S3CR3T"
+```
+
+### Responses  
+
+Success Response
+Code: `200 OK`, Empty response if successful.
 
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors

@@ -62,6 +62,28 @@ func (suite *HandlerTestSuite) TestValidation() {
 
 }
 
+func (suite *HandlerTestSuite) TestProjectDelete() {
+
+	req, err := http.NewRequest("DELETE", "http://localhost:8080/v1/projects/ARGO", nil)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := ""
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}", WrapConfig(ProjectDelete, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+}
+
 func (suite *HandlerTestSuite) TestProjectUpdate() {
 
 	postJSON := `{
@@ -153,7 +175,9 @@ func (suite *HandlerTestSuite) TestProjectListAll() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
+
 	router.HandleFunc("/v1/projects", WrapConfig(ProjectListAll, cfgKafka, &brk, str, &mgr))
+
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())

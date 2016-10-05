@@ -335,6 +335,19 @@ func (mk *MockStore) InsertProject(uuid string, name string, createdOn time.Time
 	return nil
 }
 
+// RemoveProject removes an existing project
+func (mk *MockStore) RemoveProject(uuid string) error {
+	for i, project := range mk.ProjectList {
+		if project.UUID == uuid {
+			// found item at i, remove it using index
+			mk.ProjectList = append(mk.ProjectList[:i], mk.ProjectList[i+1:]...)
+			return nil
+		}
+	}
+
+	return errors.New("not found")
+}
+
 // RemoveTopic removes an existing topic
 func (mk *MockStore) RemoveTopic(projectUUID string, name string) error {
 	for i, topic := range mk.TopicList {
@@ -345,6 +358,44 @@ func (mk *MockStore) RemoveTopic(projectUUID string, name string) error {
 		}
 	}
 
+	return errors.New("not found")
+}
+
+// RemoveProjectTopics removes all topics belonging to a specific project uuid
+func (mk *MockStore) RemoveProjectTopics(projectUUID string) error {
+	found := false
+	newList := []QTopic{}
+	for _, topic := range mk.TopicList {
+		if topic.ProjectUUID != projectUUID {
+			// found item at i, remove it using index
+			newList = append(newList, topic)
+		} else {
+			found = true
+		}
+	}
+	mk.TopicList = newList
+	if found {
+		return nil
+	}
+	return errors.New("not found")
+}
+
+// RemoveProjectSubs removes all existing subs belonging to a specific project uuid
+func (mk *MockStore) RemoveProjectSubs(projectUUID string) error {
+	found := false
+	newList := []QSub{}
+	for _, sub := range mk.SubList {
+		if sub.ProjectUUID != projectUUID {
+			// found item at i, remove it using index
+			newList = append(newList, sub)
+		} else {
+			found = true
+		}
+	}
+	mk.SubList = newList
+	if found {
+		return nil
+	}
 	return errors.New("not found")
 }
 

@@ -48,6 +48,7 @@ func (suite *ProjectsTestSuite) TestProjects() {
 	pNew, err := Find("", "BRAND_NEW", store)
 
 	suite.Equal(expNew.List[0], reflect)
+
 	suite.Equal(expNew, pNew)
 	suite.Equal(nil, err)
 
@@ -55,6 +56,7 @@ func (suite *ProjectsTestSuite) TestProjects() {
 	suite.Equal("BRAND_NEW", GetNameByUUID("uuid_new", store))
 
 	pAllNew, err := Find("", "", store)
+
 	suite.Equal(expAllNew, pAllNew)
 	suite.Equal(nil, err)
 
@@ -157,6 +159,18 @@ func (suite *ProjectsTestSuite) TestProjects() {
 	outAllUpdJSON, _ := pAllUpdated.ExportJSON()
 
 	suite.Equal(expUpdJSON, outAllUpdJSON)
+
+	// Test removing project
+	RemoveProject("argo_uuid", store)
+	pRemoved, err := Find("argo_uuid", "", store)
+	suite.Equal(Projects{}, pRemoved)
+	suite.Equal(errors.New("not found"), err)
+	// Check to see that also projects topics and subscriptions have been removed from the store
+
+	resTop, _ := store.QueryTopics("argo_uuid", "")
+	suite.Equal([]stores.QTopic{}, resTop)
+	resSub, _ := store.QuerySubs("argo_uuid", "")
+	suite.Equal([]stores.QSub{}, resSub)
 
 }
 
