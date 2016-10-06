@@ -77,7 +77,7 @@ func (mong *MongoStore) QueryProjects(uuid string, name string) ([]QProject, err
 		return results, nil
 	}
 
-	return results, errors.New("empty")
+	return results, errors.New("not found")
 }
 
 // UpdateProject updates project information
@@ -344,25 +344,25 @@ func (mong *MongoStore) InsertSub(projectUUID string, name string, topic string,
 
 // RemoveProjectTopics removes all topics related to a project UUID
 func (mong *MongoStore) RemoveProjectTopics(projectUUID string) error {
-	topicMatch := QTopic{ProjectUUID: projectUUID}
+	topicMatch := bson.M{"project_uuid": projectUUID}
 	return mong.RemoveAll("topics", topicMatch)
 }
 
 // RemoveProjectSubs removes all subscriptions related to a project UUID
 func (mong *MongoStore) RemoveProjectSubs(projectUUID string) error {
-	subMatch := QSub{ProjectUUID: projectUUID}
+	subMatch := bson.M{"project_uuid": projectUUID}
 	return mong.RemoveAll("subscriptions", subMatch)
 }
 
 // RemoveProject removes a project from the store
 func (mong *MongoStore) RemoveProject(uuid string) error {
-	project := QProject{UUID: uuid}
+	project := bson.M{"uuid": uuid}
 	return mong.RemoveResource("projects", project)
 }
 
 // RemoveTopic removes a topic from the store
 func (mong *MongoStore) RemoveTopic(projectUUID string, name string) error {
-	topic := QTopic{projectUUID, name}
+	topic := bson.M{"project_uuid": projectUUID, "name": name}
 	return mong.RemoveResource("topics", topic)
 }
 
@@ -405,14 +405,11 @@ func (mong *MongoStore) InsertResource(col string, res interface{}) error {
 
 // RemoveAll removes all  occurences matched with a resource from the store
 func (mong *MongoStore) RemoveAll(col string, res interface{}) error {
-
+	log.Println("DEBUG\tGot into the remove all: ", col, res)
 	db := mong.Session.DB(mong.Database)
 	c := db.C(col)
 
 	_, err := c.RemoveAll(res)
-	if err != nil {
-		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
-	}
 
 	return err
 }
@@ -423,10 +420,7 @@ func (mong *MongoStore) RemoveResource(col string, res interface{}) error {
 	db := mong.Session.DB(mong.Database)
 	c := db.C(col)
 
-	err := c.Remove(res)
-	if err != nil {
-		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
-	}
+	err := c.Remove(res) // if not found mgo returns error string "not found"
 
 	return err
 }
