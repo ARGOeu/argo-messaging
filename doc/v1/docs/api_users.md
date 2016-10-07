@@ -10,10 +10,6 @@ This request lists all available users in the service
 GET "/v1/users"
 ```
 
-
-
-
-
 ### Example request
 ```
 curl -X GET -H "Content-Type: application/json"
@@ -25,6 +21,7 @@ If successful, the response contains a list of all available users in the servic
 
 Success Response
 `200 OK`
+
 ```json
 {
  "users": [
@@ -111,6 +108,7 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 
 ## [GET] Manage Users - List a specific user
 This request lists information about a specific user in the service
+
 ### Request
 ```
 POST "/v1/users/{user_name}"
@@ -118,7 +116,6 @@ POST "/v1/users/{user_name}"
 
 ### Where
 - user_name: Name of the user
-
 
 ### Example request
 ```
@@ -131,6 +128,7 @@ If successful, the response contains information about the specific user
 
 Success Response
 `200 OK`
+
 ```json
 {
  "projects": [
