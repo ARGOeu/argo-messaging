@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ARGOeu/argo-messaging/auth"
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
 	"github.com/ARGOeu/argo-messaging/projects"
@@ -59,6 +60,168 @@ func (suite *HandlerTestSuite) TestValidation() {
 	suite.Equal(false, validAckID("ARGO", "sub101", "falsepath/ARGO/subscriptions/sub101:5"))
 	suite.Equal(true, validAckID("FOO", "BAR", "projects/FOO/subscriptions/BAR:11155"))
 	suite.Equal(false, validAckID("FOO", "BAR", "projects/FOO//subscriptions/BAR:11155"))
+
+}
+
+func (suite *HandlerTestSuite) TestUserCreate() {
+
+	postJSON := `{
+	"email":"email@foo.com",
+	"projects":[{"project_uuid":"argo_uuid","roles":["admin","viewer"]}]
+}`
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/users/USERNEW", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := push.Manager{}
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/users/{user}", WrapMockAuthConfig(UserCreate, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	usrOut, _ := auth.GetUserFromJSON([]byte(w.Body.String()))
+
+	suite.Equal("USERNEW", usrOut.Name)
+	// Check if the mock authenticated userA has been marked as the creator
+	suite.Equal("email@foo.com", usrOut.Email)
+	//suite.Equal([]string{"admin", "viewer"}, usrOut.Projects[0].Role)
+}
+
+func (suite *HandlerTestSuite) TestUserListOne() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/users/UserA", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "projects": [
+      {
+         "project_uuid": "argo_uuid",
+         "roles": [
+            "admin",
+            "member"
+         ]
+      }
+   ],
+   "name": "UserA",
+   "token": "S3CR3T1",
+   "email": "foo-email"
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/users/{user}", WrapConfig(UserListOne, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestUserListAll() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/users", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "users": [
+      {
+         "projects": [
+            {
+               "project_uuid": "argo_uuid",
+               "roles": [
+                  "admin",
+                  "member"
+               ]
+            }
+         ],
+         "name": "Test",
+         "token": "S3CR3T",
+         "email": "Test@test.com"
+      },
+      {
+         "projects": [
+            {
+               "project_uuid": "argo_uuid",
+               "roles": [
+                  "admin",
+                  "member"
+               ]
+            }
+         ],
+         "name": "UserA",
+         "token": "S3CR3T1",
+         "email": "foo-email"
+      },
+      {
+         "projects": [
+            {
+               "project_uuid": "argo_uuid",
+               "roles": [
+                  "admin",
+                  "member"
+               ]
+            }
+         ],
+         "name": "UserB",
+         "token": "S3CR3T2",
+         "email": "foo-email"
+      },
+      {
+         "projects": [
+            {
+               "project_uuid": "argo_uuid",
+               "roles": [
+                  "consumer"
+               ]
+            }
+         ],
+         "name": "UserX",
+         "token": "S3CR3T3",
+         "email": "foo-email"
+      },
+      {
+         "projects": [
+            {
+               "project_uuid": "argo_uuid",
+               "roles": [
+                  "producer"
+               ]
+            }
+         ],
+         "name": "UserZ",
+         "token": "S3CR3T4",
+         "email": "foo-email"
+      }
+   ]
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/users", WrapConfig(UserListAll, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
 
 }
 

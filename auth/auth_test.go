@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/ARGOeu/argo-messaging/stores"
@@ -14,9 +15,9 @@ type AuthTestSuite struct {
 func (suite *AuthTestSuite) TestAuth() {
 
 	store := stores.NewMockStore("mockhost", "mockbase")
-	authen01, user01 := Authenticate("ARGO", "S3CR3T", store)
-	authen02, user02 := Authenticate("ARGO", "falseSECRET", store)
-	suite.Equal("userA", user01)
+	authen01, user01 := Authenticate("argo_uuid", "S3CR3T1", store)
+	authen02, user02 := Authenticate("argo_uuid", "falseSECRET", store)
+	suite.Equal("UserA", user01)
 	suite.Equal("", user02)
 	suite.Equal([]string{"admin", "member"}, authen01)
 	suite.Equal([]string{}, authen02)
@@ -102,6 +103,110 @@ func (suite *AuthTestSuite) TestAuth() {
 	v, err = AreValidUsers("ARGO", []string{"UserA", "UserB"}, store)
 	suite.Equal(true, v)
 	suite.Equal(nil, err)
+
+	// Test Find Method
+	expUserList := `{
+   "users": [
+      {
+         "projects": [
+            {
+               "project_uuid": "argo_uuid",
+               "roles": [
+                  "admin",
+                  "member"
+               ]
+            }
+         ],
+         "name": "Test",
+         "token": "S3CR3T",
+         "email": "Test@test.com"
+      },
+      {
+         "projects": [
+            {
+               "project_uuid": "argo_uuid",
+               "roles": [
+                  "admin",
+                  "member"
+               ]
+            }
+         ],
+         "name": "UserA",
+         "token": "S3CR3T1",
+         "email": "foo-email"
+      },
+      {
+         "projects": [
+            {
+               "project_uuid": "argo_uuid",
+               "roles": [
+                  "admin",
+                  "member"
+               ]
+            }
+         ],
+         "name": "UserB",
+         "token": "S3CR3T2",
+         "email": "foo-email"
+      },
+      {
+         "projects": [
+            {
+               "project_uuid": "argo_uuid",
+               "roles": [
+                  "consumer"
+               ]
+            }
+         ],
+         "name": "UserX",
+         "token": "S3CR3T3",
+         "email": "foo-email"
+      },
+      {
+         "projects": [
+            {
+               "project_uuid": "argo_uuid",
+               "roles": [
+                  "producer"
+               ]
+            }
+         ],
+         "name": "UserZ",
+         "token": "S3CR3T4",
+         "email": "foo-email"
+      }
+   ]
+}`
+	users, _ := FindUsers("argo_uuid", "", "", store)
+	outUserList, _ := users.ExportJSON()
+	suite.Equal(expUserList, outUserList)
+	fmt.Println(outUserList)
+
+	suite.Equal(true, ExistsWithName("UserA", store))
+	suite.Equal(false, ExistsWithName("userA", store))
+	suite.Equal(true, ExistsWithName("UserB", store))
+	suite.Equal(true, ExistsWithUUID("uuid1", store))
+	suite.Equal(false, ExistsWithUUID("foouuuid", store))
+	suite.Equal(true, ExistsWithUUID("uuid2", store))
+
+	suite.Equal("UserA", GetNameByUUID("uuid1", store))
+	suite.Equal("UserB", GetNameByUUID("uuid2", store))
+	suite.Equal("UserX", GetNameByUUID("uuid3", store))
+	suite.Equal("UserZ", GetNameByUUID("uuid4", store))
+
+	suite.Equal("uuid1", GetUUIDByName("UserA", store))
+	suite.Equal("uuid2", GetUUIDByName("UserB", store))
+	suite.Equal("uuid3", GetUUIDByName("UserX", store))
+	suite.Equal("uuid4", GetUUIDByName("UserZ", store))
+
+	// Test TokenGeneration
+	tk1, _ := GenToken()
+	tk2, _ := GenToken()
+	tk3, _ := GenToken()
+
+	suite.Equal(false, tk1 == tk2)
+	suite.Equal(false, tk1 == tk3)
+	suite.Equal(false, tk2 == tk3)
 
 }
 

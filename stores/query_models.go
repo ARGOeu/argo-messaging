@@ -33,10 +33,17 @@ type QProject struct {
 
 // QUser are the results of the QUser query
 type QUser struct {
-	Name        string   `bson:"name"`
-	Email       string   `bson:"email"`
+	UUID         string          `bson:"uuid"`
+	Projects     []QProjectRoles `bson:"projects"`
+	Name         string          `bson:"name"`
+	Token        string          `bson:"token"`
+	Email        string          `bson:"email"`
+	ServiceRoles []string        `bson:"service_roles"`
+}
+
+//QProjectRoles include information about projects and roles that user has
+type QProjectRoles struct {
 	ProjectUUID string   `bson:"project_uuid"`
-	Token       string   `bson:"token"`
 	Roles       []string `bson:"roles"`
 }
 
@@ -50,4 +57,32 @@ type QRole struct {
 type QTopic struct {
 	ProjectUUID string `bson:"project_uuid"`
 	Name        string `bson:"name"`
+}
+
+func (qUsr *QUser) isInProject(projectUUID string) bool {
+	for _, item := range qUsr.Projects {
+		if item.ProjectUUID == projectUUID {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (qUsr *QUser) getProjectRoles(projectUUID string) []string {
+
+	result := []string{}
+
+	for _, item := range qUsr.Projects {
+		if item.ProjectUUID == projectUUID {
+			result = item.Roles
+		}
+	}
+
+	// if Service admin add this also to the roles regardless of the project
+	if len(qUsr.ServiceRoles) > 0 {
+		result = append(result, qUsr.ServiceRoles...)
+	}
+
+	return result
 }

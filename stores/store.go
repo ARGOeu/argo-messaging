@@ -9,11 +9,13 @@ type Store interface {
 	QueryTopics(projectUUID string, name string) ([]QTopic, error)
 	RemoveTopic(projectUUID string, name string) error
 	RemoveSub(projectUUID string, name string) error
+	QueryUsers(projectUUID string, uuid string, name string) ([]QUser, error)
 	QueryProjects(uuid string, name string) ([]QProject, error)
 	UpdateProject(projectUUID string, name string, description string, modifiedOn time.Time) error
 	RemoveProject(uuid string) error
 	RemoveProjectTopics(projectUUID string) error
 	RemoveProjectSubs(projectUUID string) error
+	InsertUser(uuid string, projects []QProjectRoles, name string, token string, email string, serviceRoles []string) error
 	InsertProject(uuid string, name string, createdOn time.Time, modifiedOn time.Time, createdBy string, description string) error
 	InsertTopic(projectUUID string, name string) error
 	InsertSub(projectUUID string, name string, topic string, offest int64, ack int, push string, rPolicy string, rPeriod int) error

@@ -49,6 +49,38 @@ func (mk *MockStore) Close() {
 	mk.Session = false
 }
 
+// InsertUser inserts a new user to the store
+func (mk *MockStore) InsertUser(uuid string, projects []QProjectRoles, name string, token string, email string, serviceRoles []string) error {
+	user := QUser{UUID: uuid, Name: name, Email: email, Projects: projects, Token: token, ServiceRoles: serviceRoles}
+	mk.UserList = append(mk.UserList, user)
+	return nil
+}
+
+// UpdateUser updates user information
+func (mk *MockStore) UpdateUser(uuid string, projects []QProjectRoles, name string, token string, email string, serviceAdmin bool) error {
+
+	for i, item := range mk.UserList {
+		if item.UUID == uuid {
+			if projects != nil {
+				if len(projects) > 0 {
+					mk.UserList[i].Projects = projects
+				}
+			}
+			if name != "" {
+				mk.UserList[i].Name = name
+			}
+			if email != "" {
+				mk.UserList[i].Email = email
+			}
+
+			return nil
+		}
+	}
+
+	return errors.New("not found")
+
+}
+
 // HasUsers accepts a user array of usernames and returns the not found
 func (mk *MockStore) HasUsers(projectUUID string, users []string) (bool, []string) {
 
@@ -158,6 +190,7 @@ func (mk *MockStore) UpdateSubOffsetAck(projectUUID string, name string, offset 
 
 // QueryProjects function queries for a specific project or for a list of all projects
 func (mk *MockStore) QueryProjects(uuid string, name string) ([]QProject, error) {
+
 	result := []QProject{}
 	if name == "" && uuid == "" {
 		result = mk.ProjectList
@@ -171,6 +204,43 @@ func (mk *MockStore) QueryProjects(uuid string, name string) ([]QProject, error)
 	} else if uuid != "" {
 		for _, item := range mk.ProjectList {
 			if item.UUID == uuid {
+				result = append(result, item)
+				break
+			}
+		}
+	}
+
+	if len(result) > 0 {
+		return result, nil
+	}
+
+	return result, errors.New("not found")
+
+}
+
+// QueryUsers queries the datastore for user information
+func (mk *MockStore) QueryUsers(projectUUID string, uuid string, name string) ([]QUser, error) {
+	result := []QUser{}
+
+	if name == "" && uuid == "" && projectUUID == "" {
+		for _, item := range mk.UserList {
+			result = append(result, item)
+		}
+	} else if name == "" && uuid == "" && projectUUID != "" {
+		for _, item := range mk.UserList {
+			if item.isInProject(projectUUID) {
+				result = append(result, item)
+			}
+		}
+	} else if uuid != "" {
+		for _, item := range mk.UserList {
+			if item.UUID == uuid {
+				result = append(result, item)
+			}
+		}
+	} else if name != "" {
+		for _, item := range mk.UserList {
+			if item.Name == name {
 				result = append(result, item)
 				break
 			}
@@ -220,13 +290,17 @@ func (mk *MockStore) Initialize() {
 	mk.ProjectList = append(mk.ProjectList, qPr2)
 
 	// populate Users
-	qUsr := QUser{"Test", "Test@test.com", "ARGO", "S3CR3T", []string{"admin", "member"}}
+	qRole := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"admin", "member"}}}
+	qUsr := QUser{"uuid0", qRole, "Test", "S3CR3T", "Test@test.com", []string{}}
 	mk.UserList = append(mk.UserList, qUsr)
 
-	mk.UserList = append(mk.UserList, QUser{"UserA", "foo-email", "ARGO", "S3CR3T", []string{"admin", "member"}})
-	mk.UserList = append(mk.UserList, QUser{"UserB", "foo-email", "ARGO", "S3CR3T", []string{"admin", "member"}})
-	mk.UserList = append(mk.UserList, QUser{"UserX", "foo-email", "ARGO", "S3CR3T", []string{"consumer", "member"}})
-	mk.UserList = append(mk.UserList, QUser{"UserZ", "foo-email", "ARGO", "S3CR3T", []string{"producer", "member"}})
+	qRoleConsumer := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"consumer"}}}
+	qRoleProducer := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"producer"}}}
+
+	mk.UserList = append(mk.UserList, QUser{"uuid1", qRole, "UserA", "S3CR3T1", "foo-email", []string{}})
+	mk.UserList = append(mk.UserList, QUser{"uuid2", qRole, "UserB", "S3CR3T2", "foo-email", []string{}})
+	mk.UserList = append(mk.UserList, QUser{"uuid3", qRoleConsumer, "UserX", "S3CR3T3", "foo-email", []string{}})
+	mk.UserList = append(mk.UserList, QUser{"uuid4", qRoleProducer, "UserZ", "S3CR3T4", "foo-email", []string{}})
 
 	qRole1 := QRole{"topics:list_all", []string{"admin", "reader", "publisher"}}
 	qRole2 := QRole{"topics:publish", []string{"admin", "publisher"}}
@@ -275,8 +349,10 @@ func (mk *MockStore) Clone() Store {
 // GetUserRoles returns the roles of a user in a project
 func (mk *MockStore) GetUserRoles(projectUUID string, token string) ([]string, string) {
 	for _, item := range mk.UserList {
-		if item.ProjectUUID == projectUUID && item.Token == token {
-			return item.Roles, "userA"
+
+		if item.Token == token {
+			return item.getProjectRoles(projectUUID), item.Name
+
 		}
 	}
 

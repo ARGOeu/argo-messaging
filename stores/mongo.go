@@ -87,14 +87,26 @@ func (mong *MongoStore) UpdateProject(projectUUID string, name string, descripti
 	c := db.C("projects")
 
 	doc := bson.M{"uuid": projectUUID}
-	pr := QProject{Name: name, Description: description, ModifiedOn: modifiedOn}
-
-	change := bson.M{"$set": pr}
-
-	err := c.Update(doc, change)
+	results, err := mong.QueryProjects(projectUUID, "")
 	if err != nil {
-		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
+		return err
 	}
+
+	curPr := results[0]
+	curPr.ModifiedOn = modifiedOn // modifiedOn should always be updated
+
+	if name != "" {
+		curPr.Name = name
+	}
+
+	if description != "" {
+		curPr.Description = description
+	}
+
+	change := bson.M{"$set": curPr}
+
+	err = c.Update(doc, change)
+
 	return err
 
 }
@@ -226,10 +238,45 @@ func (mong *MongoStore) QueryACL(projectUUID string, resource string, name strin
 	return QAcl{}, errors.New("not found")
 }
 
+// QueryUsers queries user(s) information belonging to a project
+func (mong *MongoStore) QueryUsers(projectUUID string, uuid string, name string) ([]QUser, error) {
+
+	// By default return all users
+	query := bson.M{}
+	// If project UUID is given return users that belong to the project
+	if projectUUID != "" {
+		query = bson.M{"project_uuid": projectUUID}
+		if uuid != "" {
+			query = bson.M{"project_uuid": projectUUID, "uuid": name}
+		} else if name != "" {
+			query = bson.M{"project_uuid": projectUUID, "name": name}
+		}
+	} else {
+		if uuid != "" {
+			query = bson.M{"uuid": name}
+		} else if name != "" {
+			query = bson.M{"name": name}
+		}
+	}
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C("users")
+	var results []QUser
+	err := c.Find(query).All(&results)
+
+	if err != nil {
+		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
+	}
+
+	return results, err
+}
+
 // QueryTopics Query Subscription info from store
 func (mong *MongoStore) QueryTopics(projectUUID string, name string) ([]QTopic, error) {
 
+	// By default return all topics of a given project
 	query := bson.M{"project_uuid": projectUUID}
+
 	// If name is given return only the specific topic
 	if name != "" {
 		query = bson.M{"project_uuid": projectUUID, "name": name}
@@ -271,7 +318,9 @@ func (mong *MongoStore) GetUserRoles(projectUUID string, token string) ([]string
 	db := mong.Session.DB(mong.Database)
 	c := db.C("users")
 	var results []QUser
-	err := c.Find(bson.M{"project_uuid": projectUUID, "token": token}).All(&results)
+
+	err := c.Find(bson.M{"token": token}).All(&results)
+
 	if err != nil {
 		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
 	}
@@ -285,7 +334,8 @@ func (mong *MongoStore) GetUserRoles(projectUUID string, token string) ([]string
 
 	}
 
-	return results[0].Roles, results[0].Name
+	// Search the found user for project roles
+	return results[0].getProjectRoles(projectUUID), results[0].Name
 
 }
 
@@ -328,6 +378,12 @@ func (mong *MongoStore) HasProject(name string) bool {
 func (mong *MongoStore) InsertTopic(projectUUID string, name string) error {
 	topic := QTopic{ProjectUUID: projectUUID, Name: name}
 	return mong.InsertResource("topics", topic)
+}
+
+// InsertUser inserts a new user to the store
+func (mong *MongoStore) InsertUser(uuid string, projects []QProjectRoles, name string, token string, email string, serviceRoles []string) error {
+	user := QUser{UUID: uuid, Name: name, Email: email, Token: token, Projects: projects, ServiceRoles: serviceRoles}
+	return mong.InsertResource("users", user)
 }
 
 // InsertProject inserts a project to the store
@@ -405,7 +461,6 @@ func (mong *MongoStore) InsertResource(col string, res interface{}) error {
 
 // RemoveAll removes all  occurences matched with a resource from the store
 func (mong *MongoStore) RemoveAll(col string, res interface{}) error {
-	log.Println("DEBUG\tGot into the remove all: ", col, res)
 	db := mong.Session.DB(mong.Database)
 	c := db.C(col)
 

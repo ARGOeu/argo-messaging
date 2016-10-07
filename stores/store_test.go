@@ -37,8 +37,8 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal(false, store.HasProject("FOO"))
 
 	// Test user
-	roles01, _ := store.GetUserRoles("ARGO", "S3CR3T")
-	roles02, _ := store.GetUserRoles("ARGO", "SecretKey")
+	roles01, _ := store.GetUserRoles("argo_uuid", "S3CR3T")
+	roles02, _ := store.GetUserRoles("argo_uuid", "SecretKey")
 	suite.Equal([]string{"admin", "member"}, roles01)
 	suite.Equal([]string{}, roles02)
 
@@ -147,7 +147,6 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal(expProj1, projectOut1)
 	suite.Equal(nil, err)
 	projectOut2, err := store.QueryProjects("", "ARGO2")
-
 	suite.Equal(expProj2, projectOut2)
 	suite.Equal(nil, err)
 	projectOut3, err := store.QueryProjects("", "")
@@ -155,6 +154,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal(nil, err)
 
 	projectOut4, err := store.QueryProjects("", "FOO")
+
 	suite.Equal(expProj4, projectOut4)
 	suite.Equal(errors.New("not found"), err)
 	// Test insert project
@@ -165,6 +165,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 	projectOut5, err := store.QueryProjects("", "")
 	suite.Equal(expProj5, projectOut5)
 	suite.Equal(nil, err)
+
 	projectOut6, err := store.QueryProjects("argo_uuid2", "ARGO3")
 	suite.Equal(expProj6, projectOut6)
 	suite.Equal(nil, err)
@@ -204,6 +205,27 @@ func (suite *StoreTestSuite) TestMockStore() {
 	resProj, err := store.QueryProjects("argo_uuid", "")
 	suite.Equal([]QProject{}, resProj)
 	suite.Equal(errors.New("not found"), err)
+
+	// Test Insert User
+	qRoleAdmin1 := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"adming"}}}
+	qRoles := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"admin"}}, QProjectRoles{"argo_uuid2", []string{"admin", "viewer"}}}
+	expUsr10 := QUser{"user_uuid10", qRoleAdmin1, "newUser1", "A3B94A94V3A", "fake@email.com", []string{}}
+	expUsr11 := QUser{"user_uuid11", qRoles, "newUser2", "BX312Z34NLQ", "fake@email.com", []string{}}
+	store.InsertUser("user_uuid10", qRoleAdmin1, "newUser1", "A3B94A94V3A", "fake@email.com", []string{})
+	store.InsertUser("user_uuid11", qRoles, "newUser2", "BX312Z34NLQ", "fake@email.com", []string{})
+	usr10, _ := store.QueryUsers("argo_uuid", "user_uuid10", "")
+	usr11, _ := store.QueryUsers("argo_uuid", "", "newUser2")
+
+	suite.Equal(expUsr10, usr10[0])
+	suite.Equal(expUsr11, usr11[0])
+
+	rolesA, usernameA := store.GetUserRoles("argo_uuid", "BX312Z34NLQ")
+	rolesB, usernameB := store.GetUserRoles("argo_uuid2", "BX312Z34NLQ")
+	suite.Equal("newUser2", usernameA)
+	suite.Equal("newUser2", usernameB)
+
+	suite.Equal([]string{"admin"}, rolesA)
+	suite.Equal([]string{"admin", "viewer"}, rolesB)
 
 }
 

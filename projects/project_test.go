@@ -40,6 +40,7 @@ func (suite *ProjectsTestSuite) TestProjects() {
 
 	// Create new project
 	itemNew := NewProject("uuid_new", "BRAND_NEW", tm, tm, "userA", "brand new project")
+
 	reflect, err := CreateProject("uuid_new", "BRAND_NEW", tm, "userA", "brand new project", store)
 
 	expNew := Projects{List: []Project{itemNew}}
@@ -48,7 +49,6 @@ func (suite *ProjectsTestSuite) TestProjects() {
 	pNew, err := Find("", "BRAND_NEW", store)
 
 	suite.Equal(expNew.List[0], reflect)
-
 	suite.Equal(expNew, pNew)
 	suite.Equal(nil, err)
 

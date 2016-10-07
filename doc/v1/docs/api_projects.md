@@ -23,8 +23,7 @@ Success Response
 `200 OK`
 
 
-```
-json
+```json
 
 {
  "projects": [
@@ -71,7 +70,6 @@ GET "/v1/projects/{project_name}"
 
 ### Example request
 ```
-
 curl -X GET -H "Content-Type: application/json"
   "https://{URL}/v1/projects/BRAND_NEW?key=S3CR3T"
 ```
@@ -82,9 +80,7 @@ If successful, the response contains information about the specific project
 Success Response
 `200 OK`
 
-```
-json
->>>>>>> ARGO-510 Implement API Call to create projects
+```json
 {
    "name": "BRAND_NEW",
    "created_on": "2009-11-10T23:00:00Z",
@@ -133,7 +129,7 @@ Success Response
 
 ```json
 {
- "name": "projects/PROJET_NEW",
+ "name": "PROJET_NEW"
  "created_on": "2009-11-10T23:00:00Z",
  "modified_on": "2009-11-10T23:00:00Z",
  "created_by": "userA",
@@ -170,13 +166,13 @@ curl -X PUT -H "Content-Type: application/json"
 ```
 
 ### Responses  
-If successful, the response contains the newly created project
+If successful, the response contains the newly updated
 
 Success Response
 `200 OK`
 ```json
 {
- "name": "projects/PROJET_NEW_UPDATED",
+ "name": "PROJET_NEW_UPDATED",
  "created_on": "2009-11-10T23:00:00Z",
  "modified_on": "2009-11-13T23:00:00Z",
  "created_by": "userA",
