@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/ARGOeu/argo-messaging/stores"
@@ -110,7 +109,7 @@ func (suite *AuthTestSuite) TestAuth() {
       {
          "projects": [
             {
-               "project_uuid": "argo_uuid",
+               "project": "ARGO",
                "roles": [
                   "admin",
                   "member"
@@ -124,7 +123,7 @@ func (suite *AuthTestSuite) TestAuth() {
       {
          "projects": [
             {
-               "project_uuid": "argo_uuid",
+               "project": "ARGO",
                "roles": [
                   "admin",
                   "member"
@@ -138,7 +137,7 @@ func (suite *AuthTestSuite) TestAuth() {
       {
          "projects": [
             {
-               "project_uuid": "argo_uuid",
+               "project": "ARGO",
                "roles": [
                   "admin",
                   "member"
@@ -152,7 +151,7 @@ func (suite *AuthTestSuite) TestAuth() {
       {
          "projects": [
             {
-               "project_uuid": "argo_uuid",
+               "project": "ARGO",
                "roles": [
                   "consumer"
                ]
@@ -165,7 +164,7 @@ func (suite *AuthTestSuite) TestAuth() {
       {
          "projects": [
             {
-               "project_uuid": "argo_uuid",
+               "project": "ARGO",
                "roles": [
                   "producer"
                ]
@@ -180,7 +179,6 @@ func (suite *AuthTestSuite) TestAuth() {
 	users, _ := FindUsers("argo_uuid", "", "", store)
 	outUserList, _ := users.ExportJSON()
 	suite.Equal(expUserList, outUserList)
-	fmt.Println(outUserList)
 
 	suite.Equal(true, ExistsWithName("UserA", store))
 	suite.Equal(false, ExistsWithName("userA", store))
@@ -208,6 +206,51 @@ func (suite *AuthTestSuite) TestAuth() {
 	suite.Equal(false, tk1 == tk3)
 	suite.Equal(false, tk2 == tk3)
 
+	expUsrJSON := `{
+   "projects": [
+      {
+         "project": "ARGO",
+         "roles": [
+            "consumer"
+         ]
+      }
+   ],
+   "name": "johndoe",
+   "token": "johndoe@fake.email.foo",
+   "email": "TOK3N",
+   "service_roles": [
+      "service_admin"
+   ]
+}`
+
+	// Test Create
+	CreateUser("uuid12", "johndoe", []ProjectRoles{ProjectRoles{Project: "ARGO", Roles: []string{"consumer"}}}, "johndoe@fake.email.foo", "TOK3N", []string{"service_admin"}, store)
+	usrs, _ := FindUsers("", "uuid12", "", store)
+	usrJSON, _ := usrs.List[0].ExportJSON()
+	suite.Equal(expUsrJSON, usrJSON)
+
+	// Test Update
+	expUpdate := `{
+   "projects": [
+      {
+         "project": "ARGO",
+         "roles": [
+            "consumer"
+         ]
+      }
+   ],
+   "name": "johnny_doe",
+   "token": "johndoe@fake.email.foo",
+   "email": "TOK3N",
+   "service_roles": [
+      "consumer",
+      "producer"
+   ]
+}`
+	UpdateUser("uuid12", "johnny_doe", nil, "", []string{"consumer", "producer"}, store)
+	usrUpd, _ := FindUsers("", "uuid12", "", store)
+	usrUpdJSON, _ := usrUpd.List[0].ExportJSON()
+	suite.Equal(expUpdate, usrUpdJSON)
 }
 
 func TestAuthTestSuite(t *testing.T) {

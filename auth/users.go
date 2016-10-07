@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/ARGOeu/argo-messaging/projects"
 	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/ARGOeu/argo-messaging/subscriptions"
 	"github.com/ARGOeu/argo-messaging/topics"
@@ -24,8 +25,8 @@ type User struct {
 
 // ProjectRoles is the struct that hold project and role information of the user
 type ProjectRoles struct {
-	ProjectUUID string   `json:"project_uuid"`
-	Roles       []string `json:"roles"`
+	Project string   `json:"project"`
+	Roles   []string `json:"roles"`
 }
 
 // Users holds a list of available users
@@ -78,10 +79,12 @@ func FindUsers(projectUUID string, uuid string, name string, store stores.Store)
 	result := Users{}
 
 	users, err := store.QueryUsers(projectUUID, uuid, name)
+
 	for _, item := range users {
 		pRoles := []ProjectRoles{}
 		for _, pItem := range item.Projects {
-			pRoles = append(pRoles, ProjectRoles{ProjectUUID: pItem.ProjectUUID, Roles: pItem.Roles})
+			prName := projects.GetNameByUUID(pItem.ProjectUUID, store)
+			pRoles = append(pRoles, ProjectRoles{Project: prName, Roles: pItem.Roles})
 		}
 		curUser := NewUser(item.UUID, pRoles, item.Name, item.Token, item.Email, item.ServiceRoles)
 		result.List = append(result.List, curUser)
@@ -143,8 +146,64 @@ func GetUUIDByName(name string, store stores.Store) string {
 	return result
 }
 
+// UpdateUserToken updates an existing user's token
+func UpdateUserToken(uuid string, token string, store stores.Store) (User, error) {
+	if err := store.UpdateUserToken(uuid, token); err != nil {
+		return User{}, err
+	}
+	// reflect stored object
+	stored, err := FindUsers("", uuid, "", store)
+	return stored.One(), err
+}
+
+// UpdateUser updates an existing user's information
+func UpdateUser(uuid string, name string, projectList []ProjectRoles, email string, serviceRoles []string, store stores.Store) (User, error) {
+
+	prList := []stores.QProjectRoles{}
+
+	validRoles := store.GetAllRoles()
+
+	if projectList != nil {
+		for _, item := range projectList {
+			prUUID := projects.GetUUIDByName(item.Project, store)
+			// If project name doesn't reflect a uuid, then is non existent
+			if prUUID == "" {
+				return User{}, errors.New("invalid project: " + item.Project)
+			}
+
+			// Check roles
+
+			for _, roleItem := range item.Roles {
+				if IsRoleValid(roleItem, validRoles) == false {
+					return User{}, errors.New("invalid role: " + roleItem)
+				}
+			}
+			prList = append(prList, stores.QProjectRoles{ProjectUUID: prUUID, Roles: item.Roles})
+		}
+
+	} else {
+		prList = nil
+	}
+
+	if serviceRoles != nil {
+		for _, roleItem := range serviceRoles {
+			if IsRoleValid(roleItem, validRoles) == false {
+				return User{}, errors.New("invalid role: " + roleItem)
+			}
+		}
+	}
+
+	if err := store.UpdateUser(uuid, prList, name, email, serviceRoles); err != nil {
+		return User{}, err
+	}
+
+	// reflect stored object
+	stored, err := FindUsers("", uuid, "", store)
+	return stored.One(), err
+}
+
 // CreateUser creates a new user
-func CreateUser(uuid string, name string, projects []ProjectRoles, token string, email string, serviceRoles []string, store stores.Store) (User, error) {
+func CreateUser(uuid string, name string, projectList []ProjectRoles, token string, email string, serviceRoles []string, store stores.Store) (User, error) {
 	// check if project with the same name exists
 	if ExistsWithName(name, store) {
 		return User{}, errors.New("exists")
@@ -152,8 +211,21 @@ func CreateUser(uuid string, name string, projects []ProjectRoles, token string,
 
 	// Prep project roles for datastore insert
 	prList := []stores.QProjectRoles{}
-	for _, item := range projects {
-		prList = append(prList, stores.QProjectRoles{ProjectUUID: item.ProjectUUID, Roles: item.Roles})
+	for _, item := range projectList {
+		prUUID := projects.GetUUIDByName(item.Project, store)
+		// If project name doesn't reflect a uuid, then is non existent
+		if prUUID == "" {
+			return User{}, errors.New("invalid project: " + item.Project)
+		}
+
+		// Check roles
+		validRoles := store.GetAllRoles()
+		for _, roleItem := range item.Roles {
+			if IsRoleValid(roleItem, validRoles) == false {
+				return User{}, errors.New("invalid role: " + roleItem)
+			}
+		}
+		prList = append(prList, stores.QProjectRoles{ProjectUUID: prUUID, Roles: item.Roles})
 	}
 
 	if err := store.InsertUser(uuid, prList, name, token, email, serviceRoles); err != nil {
@@ -195,6 +267,16 @@ func IsConsumer(roles []string) bool {
 		}
 	}
 
+	return false
+}
+
+// IsRoleValid checks if a role is a valid against a list of valid roles
+func IsRoleValid(role string, validRoles []string) bool {
+	for _, roleItem := range validRoles {
+		if roleItem == role {
+			return true
+		}
+	}
 	return false
 }
 

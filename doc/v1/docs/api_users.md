@@ -28,7 +28,7 @@ Success Response
     {
        "projects": [
           {
-             "project_uuid": "argo_uuid",
+            "project": "ARGO",
              "roles": [
                 "admin",
                 "member"
@@ -43,7 +43,7 @@ Success Response
     {
        "projects": [
           {
-             "project_uuid": "argo_uuid",
+            "project": "ARGO",
              "roles": [
                 "admin",
                 "member"
@@ -58,7 +58,7 @@ Success Response
     {
        "projects": [
           {
-             "project_uuid": "argo_uuid",
+            "project": "ARGO",
              "roles": [
                 "admin",
                 "member"
@@ -73,7 +73,7 @@ Success Response
     {
        "projects": [
           {
-             "project_uuid": "argo_uuid",
+            "project": "ARGO",
              "roles": [
                 "consumer"
              ]
@@ -87,7 +87,7 @@ Success Response
     {
        "projects": [
           {
-             "project_uuid": "argo_uuid",
+             "project": "ARGO",
              "roles": [
                 "producer"
              ]
@@ -96,7 +96,7 @@ Success Response
        "name": "UserZ",
        "token": "S3CR3T4",
        "email": "foo-email",
-       "service_admin":false
+       "service_roles":[]
     }
  ]
 }
@@ -133,7 +133,7 @@ Success Response
 {
  "projects": [
     {
-       "project_uuid": "argo_uuid",
+       "project_uuid": "ARGO",
        "roles": [
           "admin",
           "member"
@@ -164,7 +164,7 @@ POST "/v1/users/{user_name}"
 {
  "projects": [
     {
-       "project_uuid": "argo_uuid",
+       "project": "ARGO",
        "roles": [
           "admin",
           "member"
@@ -198,7 +198,7 @@ Success Response
 {
  "projects": [
     {
-       "project_uuid": "argo_uuid",
+       "project": "ARGO",
        "roles": [
           "admin",
           "member"
@@ -208,7 +208,114 @@ Success Response
  "name": "USERNEW",
  "token": "R4ND0MT0K3N",
  "email": "foo-email",
- "service_admin":false
+ "service_roles":[]
+}
+```
+
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors
+
+## [PUT] Manage Users - Update a user
+This request updates an existing user's information
+
+### Request
+```json
+PUT "/v1/users/{user_name}"
+```
+
+### Put body:
+```json
+{
+ "projects": [
+    {
+       "project": "ARGO2",
+       "roles": [
+          "admin",
+          "member"
+       ]
+    }
+ ],
+ "name": "CHANGED_NAME",
+ "email": "foo-email",
+ "service_roles":[]
+}
+```
+
+### Where
+- user_name: Name of the user
+- projects: A list of Projects & associated roles that the user has on those projects
+- email: User's email
+- service_roles: A list of service-wide roles. An example of service-wide role is `service_admin` which can manage projects or other users
+
+### Example request
+```
+json
+curl -X POST -H "Content-Type: application/json"
+ -d PUTDATA "https://{URL}/v1/projects/ARGO/users/USERNEW?key=S3CR3T"
+```
+
+### Responses  
+If successful, the response contains the newly created project
+
+Success Response
+`200 OK`
+```json
+{
+ "projects": [
+    {
+       "project": "ARGO2",
+       "roles": [
+          "admin",
+          "member"
+       ]
+    }
+ ],
+ "name": "CHANGED_NAME",
+ "token": "R4ND0MT0K3N",
+ "email": "foo-email",
+ "service_roles":[]
+}
+```
+
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors
+
+## [POST] Manage Users - Refresh token
+This request refreshes an existing user's token
+### Request
+
+```json
+POST "/v1/users/{user_name}:refreshToken"
+```
+
+
+### Example request
+```
+json
+curl -X POST -H "Content-Type: application/json"
+ "https://{URL}/v1/projects/ARGO/users/USER2:refreshToken?key=S3CR3T"
+```
+
+### Responses  
+If successful, the response contains the newly created project
+
+Success Response
+`200 OK`
+```json
+{
+ "projects": [
+    {
+       "project": "ARGO",
+       "roles": [
+          "admin",
+          "member"
+       ]
+    }
+ ],
+ "name": "USER2",
+ "token": "NEWRANDOMTOKEN",
+ "email": "foo-email",
+ "service_roles":[]
 }
 ```
 

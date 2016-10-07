@@ -56,15 +56,34 @@ func (mk *MockStore) InsertUser(uuid string, projects []QProjectRoles, name stri
 	return nil
 }
 
+//GetAllRoles returns a list of all available roles
+func (mk *MockStore) GetAllRoles() []string {
+	return []string{"service_admin", "admin", "project_admin", "viewer", "consumer", "producer"}
+}
+
+// UpdateUserToken updates user's token
+func (mk *MockStore) UpdateUserToken(uuid string, token string) error {
+	for i, item := range mk.UserList {
+		if item.UUID == uuid {
+			mk.UserList[i].Token = token
+			return nil
+		}
+	}
+
+	return errors.New("not found")
+
+}
+
 // UpdateUser updates user information
-func (mk *MockStore) UpdateUser(uuid string, projects []QProjectRoles, name string, token string, email string, serviceAdmin bool) error {
+func (mk *MockStore) UpdateUser(uuid string, projects []QProjectRoles, name string, email string, serviceRoles []string) error {
 
 	for i, item := range mk.UserList {
 		if item.UUID == uuid {
 			if projects != nil {
-				if len(projects) > 0 {
-					mk.UserList[i].Projects = projects
-				}
+				mk.UserList[i].Projects = projects
+			}
+			if serviceRoles != nil {
+				mk.UserList[i].ServiceRoles = serviceRoles
 			}
 			if name != "" {
 				mk.UserList[i].Name = name
@@ -292,6 +311,7 @@ func (mk *MockStore) Initialize() {
 	// populate Users
 	qRole := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"admin", "member"}}}
 	qUsr := QUser{"uuid0", qRole, "Test", "S3CR3T", "Test@test.com", []string{}}
+
 	mk.UserList = append(mk.UserList, qUsr)
 
 	qRoleConsumer := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"consumer"}}}

@@ -207,7 +207,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal(errors.New("not found"), err)
 
 	// Test Insert User
-	qRoleAdmin1 := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"adming"}}}
+	qRoleAdmin1 := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"admin"}}}
 	qRoles := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"admin"}}, QProjectRoles{"argo_uuid2", []string{"admin", "viewer"}}}
 	expUsr10 := QUser{"user_uuid10", qRoleAdmin1, "newUser1", "A3B94A94V3A", "fake@email.com", []string{}}
 	expUsr11 := QUser{"user_uuid11", qRoles, "newUser2", "BX312Z34NLQ", "fake@email.com", []string{}}
@@ -227,6 +227,11 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal([]string{"admin"}, rolesA)
 	suite.Equal([]string{"admin", "viewer"}, rolesB)
 
+	// Test Update User
+	usrUpdated := QUser{"user_uuid11", qRoles, "updated_name", "BX312Z34NLQ", "fake@email.com", []string{"service_admin"}}
+	store.UpdateUser("user_uuid11", nil, "updated_name", "", []string{"service_admin"})
+	usr11, _ = store.QueryUsers("", "user_uuid11", "")
+	suite.Equal(usrUpdated, usr11[0])
 }
 
 func TestStoresTestSuite(t *testing.T) {
