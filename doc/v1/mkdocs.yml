@@ -15,6 +15,7 @@ pages:
 #  - Consumer Guide: consumer.md
   - API Basic Information: api_basic.md
   - API Authentication: api_auth.md
+  - API Users: api_users.md
   - API Projects: api_projects.md
   - API Topics: api_topics.md
   - API Subscriptions: api_subs.md

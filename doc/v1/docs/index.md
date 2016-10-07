@@ -13,6 +13,7 @@
 ## API Calls  
 
 - [Authentication](api_auth.md)
+- [Users](api_users.md)
 - [Projects](api_projects.md)
 - [Topics](api_topics.md)
 - [Subscriptions](api_subs.md)
