@@ -277,8 +277,10 @@ paths:
                  $ref: "#/definitions/ProjectRoles"
              email:
                type: string
-             service_admin:
-               type: boolean
+             service_roles:
+               type: array
+               items:
+                 type: string
       tags:
         - Users
       responses:
@@ -294,6 +296,82 @@ paths:
           $ref: "#/responses/403"
         409:
           $ref: "#/responses/409"
+        500:
+          $ref: "#/responses/500"
+
+    put:
+      summary: Update a user
+      description: |
+        Updates an existing user's information
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: USER
+          in: path
+          description: Name of the user
+          required: true
+          type: string
+        - name: User information
+          in: body
+          description: Extra user information such as roles and email
+          required: false
+          schema:
+           type: object
+           properties:
+             projects:
+               type: array
+               items:
+                 $ref: "#/definitions/ProjectRoles"
+             email:
+               type: string
+             service_roles:
+               type: array
+               items:
+                 type: string
+      tags:
+        - Users
+      responses:
+        200:
+          description: Returns the modified user
+          schema:
+            $ref: '#/definitions/User'
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        409:
+          $ref: "#/responses/409"
+        500:
+          $ref: "#/responses/500"
+
+  /users/{USER}:refreshToken:
+    post:
+      summary: Refreshes the token of an existing user
+      description: |
+        The user's token is refreshed
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: USER
+          in: path
+          description: Name of the user
+          required: true
+          type: string
+      tags:
+        - Users
+      responses:
+        200:
+          description: A User object with new token
+          schema:
+            $ref: '#/definitions/User'
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
         500:
           $ref: "#/responses/500"
 
@@ -1115,13 +1193,15 @@ definitions:
         type: string
        email:
         type: string
-       service_admin:
-        type: string
+       service_roles:
+        type: array
+        items:
+          type: string
 
   ProjectRoles:
       type: object
       properties:
-        project_uuid:
+        project:
           type: string
         roles:
           type: array

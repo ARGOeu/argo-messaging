@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ARGOeu/argo-messaging/auth"
@@ -400,6 +401,117 @@ func ProjectListOne(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// RefreshToken (POST) refreshes user's token
+func RefreshToken(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+	urlUser := urlVars["user"]
+
+	// Grab context references
+	refStr := context.Get(r, "str").(stores.Store)
+
+	// Get Result Object
+	userUUID := auth.GetUUIDByName(urlUser, refStr)
+	token, err := auth.GenToken() // generate a new user token
+
+	res, err := auth.UpdateUserToken(userUUID, token, refStr)
+
+	if err != nil {
+		if err.Error() == "not found" {
+			respondErr(w, 403, "User not found", "NOT_FOUND")
+			return
+		}
+
+		respondErr(w, 500, err.Error(), "INTERNAL")
+		return
+	}
+
+	// Output result to JSON
+	resJSON, err := res.ExportJSON()
+	if err != nil {
+		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL")
+		return
+	}
+
+	// Write response
+	output = []byte(resJSON)
+	respondOK(w, output)
+
+}
+
+// UserUpdate (PUT) updates the user information
+func UserUpdate(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+	urlUser := urlVars["user"]
+
+	// Grab context references
+	refStr := context.Get(r, "str").(stores.Store)
+
+	// Read POST JSON body
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		respondErr(w, 400, "Invalid Request body", "INVALID_ARGUMENT")
+		return
+	}
+
+	// Parse pull options
+	postBody, err := auth.GetUserFromJSON(body)
+	if err != nil {
+		respondErr(w, 400, "Invalid User Arguments", "INVALID_ARGUMENT")
+		return
+	}
+
+	// Get Result Object
+	userUUID := auth.GetUUIDByName(urlUser, refStr)
+	res, err := auth.UpdateUser(userUUID, postBody.Name, postBody.Projects, postBody.Email, postBody.ServiceRoles, refStr)
+
+	if err != nil {
+		if err.Error() == "not found" {
+			respondErr(w, 403, "User not found", "NOT_FOUND")
+			return
+		}
+		// In case of invalid project or role in post body
+		if strings.HasPrefix(err.Error(), "invalid") {
+			respondErr(w, 400, err.Error(), "INVALID_ARGUMENT")
+			return
+		}
+
+		respondErr(w, 500, err.Error(), "INTERNAL")
+		return
+	}
+
+	// Output result to JSON
+	resJSON, err := res.ExportJSON()
+	if err != nil {
+		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL")
+		return
+	}
+
+	// Write response
+	output = []byte(resJSON)
+	respondOK(w, output)
+
+}
+
 // UserCreate (POST) creates a new user inside a project
 func UserCreate(w http.ResponseWriter, r *http.Request) {
 
@@ -435,11 +547,7 @@ func UserCreate(w http.ResponseWriter, r *http.Request) {
 	uuid := uuid.NewV4().String() // generate a new uuid to attach to the new project
 	token, err := auth.GenToken() // generate a new user token
 	// Get Result Object
-<<<<<<< HEAD
 	res, err := auth.CreateUser(uuid, urlUser, postBody.Projects, token, postBody.Email, postBody.ServiceRoles, refStr)
-=======
-	res, err := auth.CreateUser(uuid, urlUser, postBody.Projects, token, postBody.Email, postBody.ServiceAdmin, refStr)
->>>>>>> ARGO-514 API Call to create user
 
 	if err != nil {
 		if err.Error() == "exists" {

@@ -93,6 +93,69 @@ func (suite *HandlerTestSuite) TestUserCreate() {
 	//suite.Equal([]string{"admin", "viewer"}, usrOut.Projects[0].Role)
 }
 
+func (suite *HandlerTestSuite) TestRefreshToken() {
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/users/UserZ:refreshToken", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := push.Manager{}
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/users/{user}:refreshToken", WrapMockAuthConfig(RefreshToken, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	userOut, _ := auth.GetUserFromJSON([]byte(w.Body.String()))
+	suite.NotEqual("S3CR3T", userOut.Token)
+}
+
+func (suite *HandlerTestSuite) TestUserUpdate() {
+
+	expJSON := `{
+   "projects": [
+      {
+         "project": "ARGO",
+         "roles": [
+            "producer"
+         ]
+      }
+   ],
+   "name": "UPDATED_NAME",
+   "token": "S3CR3T4",
+   "email": "foo-email",
+   "service_roles": [
+      "service_admin"
+   ]
+}`
+
+	postJSON := `{
+	"name":"UPDATED_NAME",
+	"service_roles":["service_admin"]
+}`
+
+	req, err := http.NewRequest("PUT", "http://localhost:8080/v1/users/UserZ", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := push.Manager{}
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/users/{user}", WrapMockAuthConfig(UserUpdate, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expJSON, w.Body.String())
+}
+
 func (suite *HandlerTestSuite) TestUserListOne() {
 
 	req, err := http.NewRequest("GET", "http://localhost:8080/v1/users/UserA", nil)
@@ -103,7 +166,7 @@ func (suite *HandlerTestSuite) TestUserListOne() {
 	expResp := `{
    "projects": [
       {
-         "project_uuid": "argo_uuid",
+         "project": "ARGO",
          "roles": [
             "admin",
             "member"
@@ -142,7 +205,7 @@ func (suite *HandlerTestSuite) TestUserListAll() {
       {
          "projects": [
             {
-               "project_uuid": "argo_uuid",
+               "project": "ARGO",
                "roles": [
                   "admin",
                   "member"
@@ -156,7 +219,7 @@ func (suite *HandlerTestSuite) TestUserListAll() {
       {
          "projects": [
             {
-               "project_uuid": "argo_uuid",
+               "project": "ARGO",
                "roles": [
                   "admin",
                   "member"
@@ -170,7 +233,7 @@ func (suite *HandlerTestSuite) TestUserListAll() {
       {
          "projects": [
             {
-               "project_uuid": "argo_uuid",
+               "project": "ARGO",
                "roles": [
                   "admin",
                   "member"
@@ -184,7 +247,7 @@ func (suite *HandlerTestSuite) TestUserListAll() {
       {
          "projects": [
             {
-               "project_uuid": "argo_uuid",
+               "project": "ARGO",
                "roles": [
                   "consumer"
                ]
@@ -197,7 +260,7 @@ func (suite *HandlerTestSuite) TestUserListAll() {
       {
          "projects": [
             {
-               "project_uuid": "argo_uuid",
+               "project": "ARGO",
                "roles": [
                   "producer"
                ]

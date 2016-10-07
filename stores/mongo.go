@@ -2,6 +2,7 @@ package stores
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"time"
 
@@ -104,6 +105,59 @@ func (mong *MongoStore) UpdateProject(projectUUID string, name string, descripti
 	}
 
 	change := bson.M{"$set": curPr}
+
+	err = c.Update(doc, change)
+
+	return err
+
+}
+
+// UpdateUserToken updates user's token
+func (mong *MongoStore) UpdateUserToken(uuid string, token string) error {
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C("users")
+
+	doc := bson.M{"uuid": uuid}
+	change := bson.M{"$set": bson.M{"token": token}}
+
+	err := c.Update(doc, change)
+
+	return err
+
+}
+
+// UpdateUser updates user information
+func (mong *MongoStore) UpdateUser(uuid string, projects []QProjectRoles, name string, email string, serviceRoles []string) error {
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C("users")
+
+	doc := bson.M{"uuid": uuid}
+	results, err := mong.QueryUsers("", uuid, "")
+	if err != nil {
+		return err
+	}
+
+	curUsr := results[0]
+
+	if name != "" {
+		curUsr.Name = name
+	}
+
+	if email != "" {
+		curUsr.Email = email
+	}
+
+	if projects != nil {
+		curUsr.Projects = projects
+	}
+
+	if serviceRoles != nil {
+		curUsr.ServiceRoles = serviceRoles
+	}
+
+	change := bson.M{"$set": curUsr}
 
 	err = c.Update(doc, change)
 
@@ -247,15 +301,16 @@ func (mong *MongoStore) QueryUsers(projectUUID string, uuid string, name string)
 	if projectUUID != "" {
 		query = bson.M{"project_uuid": projectUUID}
 		if uuid != "" {
-			query = bson.M{"project_uuid": projectUUID, "uuid": name}
+			query = bson.M{"project_uuid": projectUUID, "uuid": uuid}
 		} else if name != "" {
 			query = bson.M{"project_uuid": projectUUID, "name": name}
 		}
 	} else {
 		if uuid != "" {
-			query = bson.M{"uuid": name}
+			query = bson.M{"uuid": uuid}
 		} else if name != "" {
 			query = bson.M{"name": name}
+
 		}
 	}
 
@@ -263,6 +318,7 @@ func (mong *MongoStore) QueryUsers(projectUUID string, uuid string, name string)
 	c := db.C("users")
 	var results []QUser
 	err := c.Find(query).All(&results)
+	fmt.Println("query:", query)
 
 	if err != nil {
 		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
@@ -310,6 +366,19 @@ func (mong *MongoStore) HasResourceRoles(resource string, roles []string) bool {
 
 	return false
 
+}
+
+//GetAllRoles returns a list of all available roles
+func (mong *MongoStore) GetAllRoles() []string {
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C("roles")
+	var results []string
+	err := c.Find(nil).Distinct("roles", &results)
+	if err != nil {
+		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
+	}
+	return results
 }
 
 //GetUserRoles returns the roles of a user in a project

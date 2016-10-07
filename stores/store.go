@@ -10,6 +10,8 @@ type Store interface {
 	RemoveTopic(projectUUID string, name string) error
 	RemoveSub(projectUUID string, name string) error
 	QueryUsers(projectUUID string, uuid string, name string) ([]QUser, error)
+	UpdateUser(uuid string, projects []QProjectRoles, name string, email string, serviceRoles []string) error
+	UpdateUserToken(uuid string, token string) error
 	QueryProjects(uuid string, name string) ([]QProject, error)
 	UpdateProject(projectUUID string, name string, description string, modifiedOn time.Time) error
 	RemoveProject(uuid string) error
@@ -31,6 +33,7 @@ type Store interface {
 	ModSubPush(projectUUID string, name string, push string, rPolicy string, rPeriod int) error
 	QueryACL(projectUUID string, resource string, name string) (QAcl, error)
 	ModACL(projectUUID string, resource string, name string, acl []string) error
+	GetAllRoles() []string
 	Clone() Store
 	Close()
 }
