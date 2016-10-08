@@ -91,44 +91,44 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal(sb, eSubList[0])
 
 	// Query ACLS
-	ExpectedACL01 := QAcl{[]string{"userA", "userB"}}
-	QAcl01, _ := store.QueryACL("ARGO", "topic", "topic1")
+	ExpectedACL01 := QAcl{[]string{"uuid1", "uuid2"}}
+	QAcl01, _ := store.QueryACL("argo_uuid", "topic", "topic1")
 	suite.Equal(ExpectedACL01, QAcl01)
 
-	ExpectedACL02 := QAcl{[]string{"userA", "userB", "userD"}}
-	QAcl02, _ := store.QueryACL("ARGO", "topic", "topic2")
+	ExpectedACL02 := QAcl{[]string{"uuid1", "uuid2", "uuid4"}}
+	QAcl02, _ := store.QueryACL("argo_uuid", "topic", "topic2")
 	suite.Equal(ExpectedACL02, QAcl02)
 
-	ExpectedACL03 := QAcl{[]string{"userC"}}
-	QAcl03, _ := store.QueryACL("ARGO", "topic", "topic3")
+	ExpectedACL03 := QAcl{[]string{"uuid3"}}
+	QAcl03, _ := store.QueryACL("argo_uuid", "topic", "topic3")
 	suite.Equal(ExpectedACL03, QAcl03)
 
-	ExpectedACL04 := QAcl{[]string{"userA", "userB"}}
-	QAcl04, _ := store.QueryACL("ARGO", "subscription", "sub1")
+	ExpectedACL04 := QAcl{[]string{"uuid1", "uuid2"}}
+	QAcl04, _ := store.QueryACL("argo_uuid", "subscription", "sub1")
 	suite.Equal(ExpectedACL04, QAcl04)
 
-	ExpectedACL05 := QAcl{[]string{"userA", "userC"}}
-	QAcl05, _ := store.QueryACL("ARGO", "subscription", "sub2")
+	ExpectedACL05 := QAcl{[]string{"uuid1", "uuid3"}}
+	QAcl05, _ := store.QueryACL("argo_uuid", "subscription", "sub2")
 	suite.Equal(ExpectedACL05, QAcl05)
 
-	ExpectedACL06 := QAcl{[]string{"userD", "userB", "userA"}}
-	QAcl06, _ := store.QueryACL("ARGO", "subscription", "sub3")
+	ExpectedACL06 := QAcl{[]string{"uuid4", "uuid2", "uuid1"}}
+	QAcl06, _ := store.QueryACL("argo_uuid", "subscription", "sub3")
 	suite.Equal(ExpectedACL06, QAcl06)
 
-	ExpectedACL07 := QAcl{[]string{"userB", "userD"}}
-	QAcl07, _ := store.QueryACL("ARGO", "subscription", "sub4")
+	ExpectedACL07 := QAcl{[]string{"uuid2", "uuid4"}}
+	QAcl07, _ := store.QueryACL("argo_uuid", "subscription", "sub4")
 	suite.Equal(ExpectedACL07, QAcl07)
 
-	QAcl08, err08 := store.QueryACL("ARGO", "subscr", "sub4ss")
+	QAcl08, err08 := store.QueryACL("argo_uuid", "subscr", "sub4ss")
 	suite.Equal(QAcl{}, QAcl08)
 	suite.Equal(errors.New("not found"), err08)
 
 	//Check has users
-	allFound, notFound := store.HasUsers("ARGO", []string{"UserA", "UserB", "FooUser"})
+	allFound, notFound := store.HasUsers("argo_uuid", []string{"UserA", "UserB", "FooUser"})
 	suite.Equal(false, allFound)
 	suite.Equal([]string{"FooUser"}, notFound)
 
-	allFound, notFound = store.HasUsers("ARGO", []string{"UserA", "UserB"})
+	allFound, notFound = store.HasUsers("argo_uuid", []string{"UserA", "UserB"})
 	suite.Equal(true, allFound)
 	suite.Equal([]string(nil), notFound)
 

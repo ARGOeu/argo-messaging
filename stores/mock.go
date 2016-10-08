@@ -127,12 +127,12 @@ func (mk *MockStore) HasUsers(projectUUID string, users []string) (bool, []strin
 // ModACL changes the acl in a function
 func (mk *MockStore) ModACL(projectUUID string, resource string, name string, acl []string) error {
 	newAcl := QAcl{ACL: acl}
-	if resource == "topics" {
+	if resource == "topic" {
 		if _, exists := mk.TopicsACL[name]; exists {
 			mk.TopicsACL[name] = newAcl
 			return nil
 		}
-	} else if resource == "subscriptions" {
+	} else if resource == "subscription" {
 		if _, exists := mk.SubsACL[name]; exists {
 			mk.SubsACL[name] = newAcl
 			return nil
@@ -327,14 +327,14 @@ func (mk *MockStore) Initialize() {
 	mk.RoleList = append(mk.RoleList, qRole1)
 	mk.RoleList = append(mk.RoleList, qRole2)
 
-	qTopicACL01 := QAcl{[]string{"userA", "userB"}}
-	qTopicACL02 := QAcl{[]string{"userA", "userB", "userD"}}
-	qTopicACL03 := QAcl{[]string{"userC"}}
+	qTopicACL01 := QAcl{[]string{"uuid1", "uuid2"}}
+	qTopicACL02 := QAcl{[]string{"uuid1", "uuid2", "uuid4"}}
+	qTopicACL03 := QAcl{[]string{"uuid3"}}
 
-	qSubACL01 := QAcl{[]string{"userA", "userB"}}
-	qSubACL02 := QAcl{[]string{"userA", "userC"}}
-	qSubACL03 := QAcl{[]string{"userD", "userB", "userA"}}
-	qSubACL04 := QAcl{[]string{"userB", "userD"}}
+	qSubACL01 := QAcl{[]string{"uuid1", "uuid2"}}
+	qSubACL02 := QAcl{[]string{"uuid1", "uuid3"}}
+	qSubACL03 := QAcl{[]string{"uuid4", "uuid2", "uuid1"}}
+	qSubACL04 := QAcl{[]string{"uuid2", "uuid4"}}
 
 	mk.TopicsACL = make(map[string]QAcl)
 	mk.SubsACL = make(map[string]QAcl)

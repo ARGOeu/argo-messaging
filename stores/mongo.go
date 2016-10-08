@@ -83,7 +83,6 @@ func (mong *MongoStore) QueryProjects(uuid string, name string) ([]QProject, err
 
 // UpdateProject updates project information
 func (mong *MongoStore) UpdateProject(projectUUID string, name string, description string, modifiedOn time.Time) error {
-
 	db := mong.Session.DB(mong.Database)
 	c := db.C("projects")
 
@@ -97,6 +96,12 @@ func (mong *MongoStore) UpdateProject(projectUUID string, name string, descripti
 	curPr.ModifiedOn = modifiedOn // modifiedOn should always be updated
 
 	if name != "" {
+		// Check if name is going to change and if that name already exists
+		if name != curPr.Name {
+			if sameRes, _ := mong.QueryProjects("", name); len(sameRes) > 0 {
+				return errors.New("invalid project name change, name already exists")
+			}
+		}
 		curPr.Name = name
 	}
 
@@ -129,7 +134,6 @@ func (mong *MongoStore) UpdateUserToken(uuid string, token string) error {
 
 // UpdateUser updates user information
 func (mong *MongoStore) UpdateUser(uuid string, projects []QProjectRoles, name string, email string, serviceRoles []string) error {
-
 	db := mong.Session.DB(mong.Database)
 	c := db.C("users")
 
@@ -142,6 +146,12 @@ func (mong *MongoStore) UpdateUser(uuid string, projects []QProjectRoles, name s
 	curUsr := results[0]
 
 	if name != "" {
+		// Check if name is going to change and if that name already exists
+		if name != curUsr.Name {
+			if sameRes, _ := mong.QueryUsers("", "", name); len(sameRes) > 0 {
+				return errors.New("invalid user name change, name already exists")
+			}
+		}
 		curUsr.Name = name
 	}
 
@@ -243,7 +253,7 @@ func (mong *MongoStore) HasUsers(projectUUID string, users []string) (bool, []st
 	var notFound []string
 	c := db.C("users")
 
-	err := c.Find(bson.M{"project_uuid": projectUUID, "name": bson.M{"$in": users}}).All(&results)
+	err := c.Find(bson.M{"projects": bson.M{"$elemMatch": bson.M{"project_uuid": projectUUID}}, "name": bson.M{"$in": users}}).All(&results)
 	if err != nil {
 		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
 	}
@@ -269,6 +279,7 @@ func (mong *MongoStore) HasUsers(projectUUID string, users []string) (bool, []st
 
 // QueryACL queries topic or subscription for a list of authorized users
 func (mong *MongoStore) QueryACL(projectUUID string, resource string, name string) (QAcl, error) {
+
 	db := mong.Session.DB(mong.Database)
 	var results []QAcl
 	var c *mgo.Collection
@@ -281,6 +292,9 @@ func (mong *MongoStore) QueryACL(projectUUID string, resource string, name strin
 	}
 
 	err := c.Find(bson.M{"project_uuid": projectUUID, "name": name}).All(&results)
+	fmt.Println("**** DEBUG \t\t", projectUUID, name)
+	fmt.Printf("**** DEBUG \t\t%+v", results)
+
 	if err != nil {
 		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
 	}
@@ -318,7 +332,6 @@ func (mong *MongoStore) QueryUsers(projectUUID string, uuid string, name string)
 	c := db.C("users")
 	var results []QUser
 	err := c.Find(query).All(&results)
-	fmt.Println("query:", query)
 
 	if err != nil {
 		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())

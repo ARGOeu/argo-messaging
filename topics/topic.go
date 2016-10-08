@@ -15,11 +15,6 @@ type Topic struct {
 	FullName    string `json:"name"`
 }
 
-// TopicACL holds the authorized users for a topic
-type TopicACL struct {
-	AuthUsers []string `json:"authorized_users"`
-}
-
 // Topics holds a list of Topic items
 type Topics struct {
 	List []Topic `json:"topics,omitempty"`
@@ -56,44 +51,6 @@ func Find(projectUUID string, name string, store stores.Store) (Topics, error) {
 func (tp *Topic) ExportJSON() (string, error) {
 
 	output, err := json.MarshalIndent(tp, "", "   ")
-	return string(output[:]), err
-}
-
-// GetTopicACL returns an authorized list of users for the topic
-func GetTopicACL(projectUUID string, topic string, store stores.Store) (TopicACL, error) {
-	result := TopicACL{}
-	topicACL, err := store.QueryACL(projectUUID, "topic", topic)
-	if err != nil {
-		return result, err
-	}
-	for _, item := range topicACL.ACL {
-		result.AuthUsers = append(result.AuthUsers, item)
-	}
-	return result, err
-}
-
-// GetACLFromJSON retrieves TopicACL info from JSON
-func GetACLFromJSON(input []byte) (TopicACL, error) {
-	s := TopicACL{}
-	err := json.Unmarshal([]byte(input), &s)
-	if s.AuthUsers == nil {
-		return s, errors.New("wrong argument")
-	}
-	return s, err
-}
-
-// ModACL is called to modify a topic's acl
-func ModACL(projectUUID string, name string, acl []string, store stores.Store) error {
-
-	return store.ModACL(projectUUID, "topics", name, acl)
-}
-
-// ExportJSON export topic acl body to json for use in http response
-func (tAcl *TopicACL) ExportJSON() (string, error) {
-	if tAcl.AuthUsers == nil {
-		tAcl.AuthUsers = make([]string, 0)
-	}
-	output, err := json.MarshalIndent(tAcl, "", "   ")
 	return string(output[:]), err
 }
 

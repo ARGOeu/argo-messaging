@@ -182,6 +182,16 @@ POST "/v1/users/{user_name}"
 - email: User's email
 - service_roles: A list of service-wide roles. An example of service-wide role is `service_admin` which can manage projects or other users
 
+##### Available Roles
+ARGO Messaging Service has the following predefined project roles:
+- project_admin
+- admin
+- viewer
+- consumer
+- producer
+and the following service-wide role:
+- service_admin
+
 ### Example request
 ```
 json
@@ -246,6 +256,16 @@ PUT "/v1/users/{user_name}"
 - projects: A list of Projects & associated roles that the user has on those projects
 - email: User's email
 - service_roles: A list of service-wide roles. An example of service-wide role is `service_admin` which can manage projects or other users
+
+##### Available Roles
+ARGO Messaging Service has the following predefined project roles:
+- project_admin
+- admin
+- viewer
+- consumer
+- producer
+and the following service-wide role:
+- service_admin
 
 ### Example request
 ```

@@ -9,8 +9,6 @@ import (
 
 	"github.com/ARGOeu/argo-messaging/projects"
 	"github.com/ARGOeu/argo-messaging/stores"
-	"github.com/ARGOeu/argo-messaging/subscriptions"
-	"github.com/ARGOeu/argo-messaging/topics"
 )
 
 // User is the struct that holds user information
@@ -139,6 +137,7 @@ func GetNameByUUID(uuid string, store stores.Store) string {
 func GetUUIDByName(name string, store stores.Store) string {
 	result := ""
 	users, err := store.QueryUsers("", "", name)
+
 	if len(users) > 0 && err == nil {
 		result = users[0].UUID
 	}
@@ -281,8 +280,8 @@ func IsRoleValid(role string, validRoles []string) bool {
 }
 
 // AreValidUsers accepts a user array of usernames and checks if users exist in the store
-func AreValidUsers(project string, users []string, store stores.Store) (bool, error) {
-	found, notFound := store.HasUsers(project, users)
+func AreValidUsers(projectUUID string, users []string, store stores.Store) (bool, error) {
+	found, notFound := store.HasUsers(projectUUID, users)
 	if found {
 		return true, nil
 	}
@@ -303,16 +302,9 @@ func AreValidUsers(project string, users []string, store stores.Store) (bool, er
 
 // PerResource  (for topics and subscriptions)
 func PerResource(project string, resType string, resName string, user string, store stores.Store) bool {
-	if resType == "topic" {
-		tACL, _ := topics.GetTopicACL(project, resName, store)
-		for _, item := range tACL.AuthUsers {
-			if item == user {
-				return true
-			}
-		}
-	} else if resType == "subscription" {
-		sACL, _ := subscriptions.GetSubACL(project, resName, store)
-		for _, item := range sACL.AuthUsers {
+	if resType == "topic" || resType == "subscription" {
+		acl, _ := GetACL(project, resType, resName, store)
+		for _, item := range acl.AuthUsers {
 			if item == user {
 				return true
 			}
