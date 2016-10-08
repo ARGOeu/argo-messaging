@@ -111,62 +111,6 @@ func (suite *TopicTestSuite) TestExportJson() {
 
 }
 
-func (suite *TopicTestSuite) TestTopicACL() {
-	expJSON01 := `{
-   "authorized_users": [
-      "userA",
-      "userB"
-   ]
-}`
-
-	expJSON02 := `{
-   "authorized_users": [
-      "userA",
-      "userB",
-      "userD"
-   ]
-}`
-
-	expJSON03 := `{
-   "authorized_users": [
-      "userC"
-   ]
-}`
-
-	expJSON04 := `{
-   "authorized_users": []
-}`
-
-	APIcfg := config.NewAPICfg()
-	APIcfg.LoadStrJSON(suite.cfgStr)
-
-	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
-
-	tACL, _ := GetTopicACL("ARGO", "topic1", store)
-	outJSON, _ := tACL.ExportJSON()
-	suite.Equal(expJSON01, outJSON)
-
-	tACL2, _ := GetTopicACL("ARGO", "topic2", store)
-	outJSON2, _ := tACL2.ExportJSON()
-	suite.Equal(expJSON02, outJSON2)
-
-	tACL3, _ := GetTopicACL("ARGO", "topic3", store)
-	outJSON3, _ := tACL3.ExportJSON()
-	suite.Equal(expJSON03, outJSON3)
-
-	tACL4 := TopicACL{}
-	outJSON4, _ := tACL4.ExportJSON()
-	suite.Equal(expJSON04, outJSON4)
-
-	// Test topics empty method
-	tpc1, _ := Find("argo_uuid", "FooTopic", store)
-	suite.Equal(true, tpc1.Empty())
-
-	tpc2, _ := Find("argo_uuid", "", store)
-	suite.Equal(false, tpc2.Empty())
-
-}
-
 func TestTopicsTestSuite(t *testing.T) {
 	suite.Run(t, new(TopicTestSuite))
 }

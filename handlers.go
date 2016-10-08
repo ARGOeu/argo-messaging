@@ -57,13 +57,18 @@ func WrapValidate(hfn http.HandlerFunc) http.HandlerFunc {
 func WrapMockAuthConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *push.Manager) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
+		urlVars := mux.Vars(r)
+
 		nStr := str.Clone()
 		defer nStr.Close()
+
+		projectUUID := projects.GetUUIDByName(urlVars["project"], nStr)
+		context.Set(r, "auth_project_uuid", projectUUID)
 		context.Set(r, "brk", brk)
 		context.Set(r, "str", nStr)
 		context.Set(r, "mgr", mgr)
 		context.Set(r, "auth_resource", cfg.ResAuth)
-		context.Set(r, "auth_user", "userA")
+		context.Set(r, "auth_user", "UserA")
 		context.Set(r, "auth_roles", []string{"publisher", "consumer"})
 		hfn.ServeHTTP(w, r)
 
@@ -113,18 +118,14 @@ func WrapAuthenticate(hfn http.Handler) http.HandlerFunc {
 		refStr := context.Get(r, "str").(stores.Store)
 
 		projectUUID := projects.GetUUIDByName(urlVars["project"], refStr)
-		serviceUUID := projects.GetUUIDByName("SERVICE", refStr)
-
-		// Check first if service user
-		roles, user := auth.Authenticate(serviceUUID, urlValues.Get("key"), refStr)
-		if len(roles) <= 0 {
-			// if not then it's a normal user
-			roles, user = auth.Authenticate(projectUUID, urlValues.Get("key"), refStr)
-		}
+		roles, user := auth.Authenticate(projectUUID, urlValues.Get("key"), refStr)
 
 		if len(roles) > 0 {
+			userUUID := auth.GetUUIDByName(user, refStr)
 			context.Set(r, "auth_roles", roles)
 			context.Set(r, "auth_user", user)
+			context.Set(r, "auth_user_uuid", userUUID)
+			context.Set(r, "auth_project_uuid", projectUUID)
 			hfn.ServeHTTP(w, r)
 		} else {
 			respondErr(w, 401, "Unauthorized", "UNAUTHORIZED")
@@ -163,15 +164,12 @@ func ProjectDelete(w http.ResponseWriter, r *http.Request) {
 	charset := "utf-8"
 	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
 
-	// Grab url path variables
-	urlVars := mux.Vars(r)
-
 	// Grab context references
 	refStr := context.Get(r, "str").(stores.Store)
 	refMgr := context.Get(r, "mgr").(*push.Manager)
 	// Get Result Object
 	// Get project UUID First to use as reference
-	projectUUID := projects.GetUUIDByName(urlVars["project"], refStr)
+	projectUUID := context.Get(r, "auth_project_uuid").(string)
 	// RemoveProject removes also attached subs and topics from the datastore
 	err := projects.RemoveProject(projectUUID, refStr)
 	if err != nil {
@@ -203,13 +201,9 @@ func ProjectUpdate(w http.ResponseWriter, r *http.Request) {
 	charset := "utf-8"
 	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
 
-	// Grab url path variables
-	urlVars := mux.Vars(r)
-	urlProject := urlVars["project"]
-
 	// Grab context references
 	refStr := context.Get(r, "str").(stores.Store)
-
+	projectUUID := context.Get(r, "auth_project_uuid").(string)
 	// Read POST JSON body
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -226,12 +220,17 @@ func ProjectUpdate(w http.ResponseWriter, r *http.Request) {
 
 	modified := time.Now()
 	// Get Result Object
-	projectUUID := projects.GetUUIDByName(urlProject, refStr)
+
 	res, err := projects.UpdateProject(projectUUID, postBody.Name, postBody.Description, modified, refStr)
 
 	if err != nil {
 		if err.Error() == "not found" {
 			respondErr(w, 403, "Project not found", "NOT_FOUND")
+			return
+		}
+
+		if strings.HasPrefix(err.Error(), "invalid") {
+			respondErr(w, 400, err.Error(), "INVALID_ARGUMENT")
 			return
 		}
 
@@ -485,11 +484,14 @@ func UserUpdate(w http.ResponseWriter, r *http.Request) {
 	res, err := auth.UpdateUser(userUUID, postBody.Name, postBody.Projects, postBody.Email, postBody.ServiceRoles, refStr)
 
 	if err != nil {
+
+		// In case of invalid project or role in post body
+
 		if err.Error() == "not found" {
 			respondErr(w, 403, "User not found", "NOT_FOUND")
 			return
 		}
-		// In case of invalid project or role in post body
+
 		if strings.HasPrefix(err.Error(), "invalid") {
 			respondErr(w, 400, err.Error(), "INVALID_ARGUMENT")
 			return
@@ -672,7 +674,7 @@ func SubAck(w http.ResponseWriter, r *http.Request) {
 
 	// Grab context references
 	refStr := context.Get(r, "str").(stores.Store)
-
+	projectUUID := context.Get(r, "auth_project_uuid").(string)
 	// Read POST JSON body
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -693,7 +695,6 @@ func SubAck(w http.ResponseWriter, r *http.Request) {
 
 	// Check if sub exists
 
-	projectUUID := projects.GetUUIDByName(urlVars["project"], refStr)
 	if subscriptions.HasSub(projectUUID, urlVars["subscription"], refStr) == false {
 		respondErr(w, 404, "Subscription does not exist", "NOT_FOUND")
 		return
@@ -731,7 +732,6 @@ func SubAck(w http.ResponseWriter, r *http.Request) {
 	t := time.Now()
 	ts := t.Format(zSec)
 
-	projectUUID = projects.GetUUIDByName(urlVars["project"], refStr)
 	err = refStr.UpdateSubOffsetAck(projectUUID, urlVars["subscription"], int64(off+1), ts)
 	if err != nil {
 
@@ -769,8 +769,8 @@ func SubListOne(w http.ResponseWriter, r *http.Request) {
 
 	// Grab context references
 	refStr := context.Get(r, "str").(stores.Store)
+	projectUUID := context.Get(r, "auth_project_uuid").(string)
 
-	projectUUID := projects.GetUUIDByName(urlVars["project"], refStr)
 	results, err := subscriptions.Find(projectUUID, urlVars["subscription"], refStr)
 
 	if err != nil {
@@ -814,10 +814,10 @@ func TopicDelete(w http.ResponseWriter, r *http.Request) {
 
 	// Grab context references
 	refStr := context.Get(r, "str").(stores.Store)
+	projectUUID := context.Get(r, "auth_project_uuid").(string)
 
 	// Get Result Object
-	// Get project UUID First to use as reference
-	projectUUID := projects.GetUUIDByName(urlVars["project"], refStr)
+
 	err := topics.RemoveTopic(projectUUID, urlVars["topic"], refStr)
 	if err != nil {
 		if err.Error() == "not found" {
@@ -851,9 +851,9 @@ func SubDelete(w http.ResponseWriter, r *http.Request) {
 	// Grab context references
 	refStr := context.Get(r, "str").(stores.Store)
 	refMgr := context.Get(r, "mgr").(*push.Manager)
+	projectUUID := context.Get(r, "auth_project_uuid").(string)
 
 	// Get Result Object
-	projectUUID := projects.GetUUIDByName(urlVars["project"], refStr)
 	err := subscriptions.RemoveSub(projectUUID, urlVars["subscription"], refStr)
 
 	if err != nil {
@@ -887,6 +887,8 @@ func TopicModACL(w http.ResponseWriter, r *http.Request) {
 
 	// Grab url path variables
 	urlVars := mux.Vars(r)
+	// Get Result Object
+	urlTopic := urlVars["topic"]
 
 	// Read POST JSON body
 	body, err := ioutil.ReadAll(r.Body)
@@ -896,7 +898,7 @@ func TopicModACL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse pull options
-	postBody, err := topics.GetACLFromJSON(body)
+	postBody, err := auth.GetACLFromJSON(body)
 	if err != nil {
 		respondErr(w, 400, "Invalid Topic ACL Arguments", "INVALID_ARGUMENT")
 		return
@@ -904,19 +906,17 @@ func TopicModACL(w http.ResponseWriter, r *http.Request) {
 
 	// Grab context references
 	refStr := context.Get(r, "str").(stores.Store)
-
-	// Get Result Object
-	subName := urlVars["topic"]
-	project := urlVars["project"]
+	// Get project UUID First to use as reference
+	projectUUID := context.Get(r, "auth_project_uuid").(string)
 
 	// check if user list contain valid users for the given project
-	_, err = auth.AreValidUsers(project, postBody.AuthUsers, refStr)
+	_, err = auth.AreValidUsers(projectUUID, postBody.AuthUsers, refStr)
 	if err != nil {
 		respondErr(w, 404, err.Error(), "NOT_FOUND")
 		return
 	}
 
-	err = topics.ModACL(project, subName, postBody.AuthUsers, refStr)
+	err = auth.ModACL(projectUUID, "topic", urlTopic, postBody.AuthUsers, refStr)
 
 	if err != nil {
 
@@ -946,6 +946,8 @@ func SubModACL(w http.ResponseWriter, r *http.Request) {
 
 	// Grab url path variables
 	urlVars := mux.Vars(r)
+	// Get Result Object
+	urlSub := urlVars["subscription"]
 
 	// Read POST JSON body
 	body, err := ioutil.ReadAll(r.Body)
@@ -955,7 +957,7 @@ func SubModACL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse pull options
-	postBody, err := subscriptions.GetACLFromJSON(body)
+	postBody, err := auth.GetACLFromJSON(body)
 	if err != nil {
 		respondErr(w, 400, "Invalid Subscription ACL Arguments", "INVALID_ARGUMENT")
 		return
@@ -963,19 +965,17 @@ func SubModACL(w http.ResponseWriter, r *http.Request) {
 
 	// Grab context references
 	refStr := context.Get(r, "str").(stores.Store)
-
-	// Get Result Object
-	subName := urlVars["subscription"]
-	project := urlVars["project"]
+	// Get project UUID First to use as reference
+	projectUUID := context.Get(r, "auth_project_uuid").(string)
 
 	// check if user list contain valid users for the given project
-	_, err = auth.AreValidUsers(project, postBody.AuthUsers, refStr)
+	_, err = auth.AreValidUsers(projectUUID, postBody.AuthUsers, refStr)
 	if err != nil {
 		respondErr(w, 404, err.Error(), "NOT_FOUND")
 		return
 	}
 
-	err = subscriptions.ModACL(project, subName, postBody.AuthUsers, refStr)
+	err = auth.ModACL(projectUUID, "subscription", urlSub, postBody.AuthUsers, refStr)
 
 	if err != nil {
 
@@ -1005,8 +1005,12 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 
 	// Grab url path variables
 	urlVars := mux.Vars(r)
+	subName := urlVars["subscription"]
+	project := urlVars["project"]
 
 	refMgr := context.Get(r, "mgr").(*push.Manager)
+	// Get project UUID First to use as reference
+	projectUUID := context.Get(r, "auth_project_uuid").(string)
 
 	// Read POST JSON body
 	body, err := ioutil.ReadAll(r.Body)
@@ -1041,10 +1045,6 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 	refStr := context.Get(r, "str").(stores.Store)
 
 	// Get Result Object
-	subName := urlVars["subscription"]
-	project := urlVars["project"]
-
-	projectUUID := projects.GetUUIDByName(urlVars["project"], refStr)
 	res, err := subscriptions.Find(projectUUID, subName, refStr)
 
 	if err != nil {
@@ -1111,6 +1111,7 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 	refStr := context.Get(r, "str").(stores.Store)
 	refBrk := context.Get(r, "brk").(brokers.Broker)
 	refMgr := context.Get(r, "mgr").(*push.Manager)
+	projectUUID := context.Get(r, "auth_project_uuid").(string)
 
 	// Read POST JSON body
 	body, err := ioutil.ReadAll(r.Body)
@@ -1133,8 +1134,6 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get project UUID First to use as reference
-	projectUUID := projects.GetUUIDByName(urlVars["project"], refStr)
 	if topics.HasTopic(projectUUID, tName, refStr) == false {
 		respondErr(w, 404, "Topic doesn't exist", "NOT_FOUND")
 		return
@@ -1208,10 +1207,9 @@ func TopicCreate(w http.ResponseWriter, r *http.Request) {
 
 	// Grab context references
 	refStr := context.Get(r, "str").(stores.Store)
+	projectUUID := context.Get(r, "auth_project_uuid").(string)
 
 	// Get Result Object
-	// Get project UUID First to use as reference
-	projectUUID := projects.GetUUIDByName(urlVars["project"], refStr)
 	res, err := topics.CreateTopic(projectUUID, urlVars["topic"], refStr)
 	if err != nil {
 		if err.Error() == "exists" {
@@ -1251,9 +1249,8 @@ func TopicListOne(w http.ResponseWriter, r *http.Request) {
 
 	// Grab context references
 	refStr := context.Get(r, "str").(stores.Store)
+	projectUUID := context.Get(r, "auth_project_uuid").(string)
 
-	// Get project UUID First to use as reference
-	projectUUID := projects.GetUUIDByName(urlVars["project"], refStr)
 	results, err := topics.Find(projectUUID, urlVars["topic"], refStr)
 
 	if err != nil {
@@ -1294,12 +1291,14 @@ func TopicACL(w http.ResponseWriter, r *http.Request) {
 
 	// Grab url path variables
 	urlVars := mux.Vars(r)
+	urlTopic := urlVars["topic"]
 
 	// Grab context references
 	refStr := context.Get(r, "str").(stores.Store)
 
-	// Get Result Object
-	res, err := topics.GetTopicACL(urlVars["project"], urlVars["topic"], refStr)
+	// Get project UUID First to use as reference
+	projectUUID := context.Get(r, "auth_project_uuid").(string)
+	res, err := auth.GetACL(projectUUID, "topic", urlTopic, refStr)
 
 	// If not found
 	if err != nil {
@@ -1333,12 +1332,14 @@ func SubACL(w http.ResponseWriter, r *http.Request) {
 
 	// Grab url path variables
 	urlVars := mux.Vars(r)
+	urlSub := urlVars["subscription"]
 
 	// Grab context references
 	refStr := context.Get(r, "str").(stores.Store)
 
-	// Get Result Object
-	res, err := subscriptions.GetSubACL(urlVars["project"], urlVars["subscription"], refStr)
+	// Get project UUID First to use as reference
+	projectUUID := context.Get(r, "auth_project_uuid").(string)
+	res, err := auth.GetACL(projectUUID, "subscription", urlSub, refStr)
 
 	// If not found
 	if err != nil {
@@ -1370,13 +1371,10 @@ func SubListAll(w http.ResponseWriter, r *http.Request) {
 	charset := "utf-8"
 	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
 
-	// Grab url path variables
-	urlVars := mux.Vars(r)
-
 	// Grab context references
 	refStr := context.Get(r, "str").(stores.Store)
+	projectUUID := context.Get(r, "auth_project_uuid").(string)
 
-	projectUUID := projects.GetUUIDByName(urlVars["project"], refStr)
 	res, err := subscriptions.Find(projectUUID, "", refStr)
 	if err != nil {
 		respondErr(w, 500, "Backend error", "INTERNAL_SERVER_ERROR")
@@ -1406,14 +1404,10 @@ func TopicListAll(w http.ResponseWriter, r *http.Request) {
 	charset := "utf-8"
 	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
 
-	// Grab url path variables
-	urlVars := mux.Vars(r)
-
 	// Grab context references
 	refStr := context.Get(r, "str").(stores.Store)
+	projectUUID := context.Get(r, "auth_project_uuid").(string)
 
-	// Get project UUID First to use as reference
-	projectUUID := projects.GetUUIDByName(urlVars["project"], refStr)
 	res, err := topics.Find(projectUUID, "", refStr)
 	if err != nil {
 		respondErr(w, 500, "Backend error", "INTERNAL_SERVER_ERROR")
@@ -1444,6 +1438,7 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 
 	// Get url path variables
 	urlVars := mux.Vars(r)
+	urlTopic := urlVars["topic"]
 
 	// Grab context references
 
@@ -1452,9 +1447,9 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 	refUser := context.Get(r, "auth_user").(string)
 	refRoles := context.Get(r, "auth_roles").([]string)
 	refAuthResource := context.Get(r, "auth_resource").(bool)
-
 	// Get project UUID First to use as reference
-	projectUUID := projects.GetUUIDByName(urlVars["project"], refStr)
+	projectUUID := context.Get(r, "auth_project_uuid").(string)
+
 	// Check if Project/Topic exist
 	if topics.HasTopic(projectUUID, urlVars["topic"], refStr) == false {
 		respondErr(w, 404, "Topic doesn't exist", "NOT_FOUND")
@@ -1466,7 +1461,8 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 	// - if user has only publisher role
 
 	if refAuthResource && auth.IsPublisher(refRoles) {
-		if auth.PerResource(urlVars["project"], "topic", urlVars["topic"], refUser, refStr) == false {
+
+		if auth.PerResource(projectUUID, "topic", urlTopic, refUser, refStr) == false {
 			respondErr(w, 403, "Access to this resource is forbidden", "FORBIDDEN")
 			return
 		}
@@ -1492,7 +1488,7 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 	// For each message in message list
 	for _, msg := range msgList.Msgs {
 		// Get offset and set it as msg
-		fullTopic := projectUUID + "." + urlVars["topic"]
+		fullTopic := projectUUID + "." + urlTopic
 
 		msgID, rTop, _, _, err := refBrk.Publish(fullTopic, msg)
 
@@ -1539,6 +1535,8 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 
 	// Get url path variables
 	urlVars := mux.Vars(r)
+	urlProject := urlVars["project"]
+	urlSub := urlVars["subscription"]
 
 	// Grab context references
 	refBrk := context.Get(r, "brk").(brokers.Broker)
@@ -1548,9 +1546,9 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	refAuthResource := context.Get(r, "auth_resource").(bool)
 
 	// Get project UUID First to use as reference
-	projectUUID := projects.GetUUIDByName(urlVars["project"], refStr)
+	projectUUID := context.Get(r, "auth_project_uuid").(string)
 	// Check if sub exists
-	if subscriptions.HasSub(projectUUID, urlVars["subscription"], refStr) == false {
+	if subscriptions.HasSub(projectUUID, urlSub, refStr) == false {
 		respondErr(w, 404, "Subscription doesn't exist", "NOT_FOUND")
 		return
 	}
@@ -1559,7 +1557,7 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	// - if enabled in config
 	// - if user has only consumer role
 	if refAuthResource && auth.IsConsumer(refRoles) {
-		if auth.PerResource(urlVars["project"], "subscription", urlVars["subscription"], refUser, refStr) == false {
+		if auth.PerResource(urlProject, "subscription", urlSub, refUser, refStr) == false {
 			respondErr(w, 403, "Access to this resource is forbidden", "FORBIDDEN")
 			return
 		}
@@ -1583,7 +1581,7 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	recList := messages.RecList{}
 
 	// Get the subscription info
-	results, err := subscriptions.Find(projectUUID, urlVars["subscription"], refStr)
+	results, err := subscriptions.Find(projectUUID, urlSub, refStr)
 	if err != nil {
 		respondErr(w, 500, "Backend error", "INTERNAL_SERVER_ERROR")
 		return
@@ -1607,7 +1605,7 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 		limit = 0
 	}
 
-	ackPrefix := "projects/" + urlVars["project"] + "/subscriptions/" + urlVars["subscription"] + ":"
+	ackPrefix := "projects/" + urlProject + "/subscriptions/" + urlSub + ":"
 
 	for i, msg := range msgs {
 		if limit > 0 && i >= limit {
