@@ -50,24 +50,24 @@ func (suite *AuthTestSuite) TestAuth() {
 	// topic3: userC
 
 	// Check authorization per topic for userA
-	suite.Equal(true, PerResource("argo_uuid", "topic", "topic1", "UserA", store))
-	suite.Equal(true, PerResource("argo_uuid", "topic", "topic2", "UserA", store))
-	suite.Equal(false, PerResource("argo_uuid", "topic", "topic3", "UserA", store))
+	suite.Equal(true, PerResource("argo_uuid", "topics", "topic1", "UserA", store))
+	suite.Equal(true, PerResource("argo_uuid", "topics", "topic2", "UserA", store))
+	suite.Equal(false, PerResource("argo_uuid", "topics", "topic3", "UserA", store))
 
 	// Check authorization per topic for userB
-	suite.Equal(true, PerResource("argo_uuid", "topic", "topic1", "UserB", store))
-	suite.Equal(true, PerResource("argo_uuid", "topic", "topic2", "UserB", store))
-	suite.Equal(false, PerResource("argo_uuid", "topic", "topic3", "UserB", store))
+	suite.Equal(true, PerResource("argo_uuid", "topics", "topic1", "UserB", store))
+	suite.Equal(true, PerResource("argo_uuid", "topics", "topic2", "UserB", store))
+	suite.Equal(false, PerResource("argo_uuid", "topics", "topic3", "UserB", store))
 
 	// Check authorization per topic for userC
-	suite.Equal(false, PerResource("argo_uuid", "topic", "topic1", "UserX", store))
-	suite.Equal(false, PerResource("argo_uuid", "topic", "topic2", "UserX", store))
-	suite.Equal(true, PerResource("argo_uuid", "topic", "topic3", "UserX", store))
+	suite.Equal(false, PerResource("argo_uuid", "topics", "topic1", "UserX", store))
+	suite.Equal(false, PerResource("argo_uuid", "topics", "topic2", "UserX", store))
+	suite.Equal(true, PerResource("argo_uuid", "topics", "topic3", "UserX", store))
 
 	// Check authorization per topic for userD
-	suite.Equal(false, PerResource("argo_uuid", "topic", "topic1", "UserZ", store))
-	suite.Equal(true, PerResource("argo_uuid", "topic", "topic2", "UserZ", store))
-	suite.Equal(false, PerResource("argo_uuid", "topic", "topic3", "UserZ", store))
+	suite.Equal(false, PerResource("argo_uuid", "topics", "topic1", "UserZ", store))
+	suite.Equal(true, PerResource("argo_uuid", "topics", "topic2", "UserZ", store))
+	suite.Equal(false, PerResource("argo_uuid", "topics", "topic3", "UserZ", store))
 
 	// Check user authorization per subscription
 	//
@@ -77,26 +77,26 @@ func (suite *AuthTestSuite) TestAuth() {
 	// sub4: userB, userD
 
 	// Check authorization per subscription for userA
-	suite.Equal(true, PerResource("argo_uuid", "subscription", "sub1", "UserA", store))
-	suite.Equal(true, PerResource("argo_uuid", "subscription", "sub2", "UserA", store))
-	suite.Equal(true, PerResource("argo_uuid", "subscription", "sub3", "UserA", store))
-	suite.Equal(false, PerResource("argo_uuid", "subscription", "sub4", "UserA", store))
+	suite.Equal(true, PerResource("argo_uuid", "subscriptions", "sub1", "UserA", store))
+	suite.Equal(true, PerResource("argo_uuid", "subscriptions", "sub2", "UserA", store))
+	suite.Equal(true, PerResource("argo_uuid", "subscriptions", "sub3", "UserA", store))
+	suite.Equal(false, PerResource("argo_uuid", "subscriptions", "sub4", "UserA", store))
 
 	// Check authorization per subscription for userB
-	suite.Equal(true, PerResource("argo_uuid", "subscription", "sub1", "UserB", store))
-	suite.Equal(false, PerResource("argo_uuid", "subscription", "sub2", "UserB", store))
-	suite.Equal(true, PerResource("argo_uuid", "subscription", "sub3", "UserB", store))
-	suite.Equal(true, PerResource("argo_uuid", "subscription", "sub4", "UserB", store))
+	suite.Equal(true, PerResource("argo_uuid", "subscriptions", "sub1", "UserB", store))
+	suite.Equal(false, PerResource("argo_uuid", "subscriptions", "sub2", "UserB", store))
+	suite.Equal(true, PerResource("argo_uuid", "subscriptions", "sub3", "UserB", store))
+	suite.Equal(true, PerResource("argo_uuid", "subscriptions", "sub4", "UserB", store))
 	// Check authorization per subscription for userC
-	suite.Equal(false, PerResource("argo_uuid", "subscription", "sub1", "UserX", store))
-	suite.Equal(true, PerResource("argo_uuid", "subscription", "sub2", "UserX", store))
-	suite.Equal(false, PerResource("argo_uuid", "subscription", "sub3", "UserX", store))
-	suite.Equal(false, PerResource("argo_uuid", "subscription", "sub4", "UserX", store))
+	suite.Equal(false, PerResource("argo_uuid", "subscriptions", "sub1", "UserX", store))
+	suite.Equal(true, PerResource("argo_uuid", "subscriptions", "sub2", "UserX", store))
+	suite.Equal(false, PerResource("argo_uuid", "subscriptions", "sub3", "UserX", store))
+	suite.Equal(false, PerResource("argo_uuid", "subscriptions", "sub4", "UserX", store))
 	// Check authorization per subscription for userD
-	suite.Equal(false, PerResource("argo_uuid", "subscription", "sub1", "UserZ", store))
-	suite.Equal(false, PerResource("argo_uuid", "subscription", "sub2", "UserZ", store))
-	suite.Equal(true, PerResource("argo_uuid", "subscription", "sub3", "UserZ", store))
-	suite.Equal(true, PerResource("argo_uuid", "subscription", "sub4", "UserZ", store))
+	suite.Equal(false, PerResource("argo_uuid", "subscriptions", "sub1", "UserZ", store))
+	suite.Equal(false, PerResource("argo_uuid", "subscriptions", "sub2", "UserZ", store))
+	suite.Equal(true, PerResource("argo_uuid", "subscriptions", "sub3", "UserZ", store))
+	suite.Equal(true, PerResource("argo_uuid", "subscriptions", "sub4", "UserZ", store))
 
 	suite.Equal(true, IsConsumer([]string{"consumer"}))
 	suite.Equal(true, IsConsumer([]string{"consumer", "publisher"}))
@@ -305,19 +305,19 @@ func (suite *AuthTestSuite) TestSubACL() {
 
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
 
-	sACL, _ := GetACL("argo_uuid", "subscription", "sub1", store)
+	sACL, _ := GetACL("argo_uuid", "subscriptions", "sub1", store)
 	outJSON, _ := sACL.ExportJSON()
 	suite.Equal(expJSON01, outJSON)
 
-	sACL2, _ := GetACL("argo_uuid", "subscription", "sub2", store)
+	sACL2, _ := GetACL("argo_uuid", "subscriptions", "sub2", store)
 	outJSON2, _ := sACL2.ExportJSON()
 	suite.Equal(expJSON02, outJSON2)
 
-	sACL3, _ := GetACL("argo_uuid", "subscription", "sub3", store)
+	sACL3, _ := GetACL("argo_uuid", "subscriptions", "sub3", store)
 	outJSON3, _ := sACL3.ExportJSON()
 	suite.Equal(expJSON03, outJSON3)
 
-	sACL4, _ := GetACL("argo_uuid", "subscription", "sub4", store)
+	sACL4, _ := GetACL("argo_uuid", "subscriptions", "sub4", store)
 	outJSON4, _ := sACL4.ExportJSON()
 	suite.Equal(expJSON04, outJSON4)
 
@@ -358,15 +358,15 @@ func (suite *AuthTestSuite) TestTopicACL() {
 
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
 
-	tACL, _ := GetACL("argo_uuid", "topic", "topic1", store)
+	tACL, _ := GetACL("argo_uuid", "topics", "topic1", store)
 	outJSON, _ := tACL.ExportJSON()
 	suite.Equal(expJSON01, outJSON)
 
-	tACL2, _ := GetACL("argo_uuid", "topic", "topic2", store)
+	tACL2, _ := GetACL("argo_uuid", "topics", "topic2", store)
 	outJSON2, _ := tACL2.ExportJSON()
 	suite.Equal(expJSON02, outJSON2)
 
-	tACL3, _ := GetACL("argo_uuid", "topic", "topic3", store)
+	tACL3, _ := GetACL("argo_uuid", "topics", "topic3", store)
 	outJSON3, _ := tACL3.ExportJSON()
 	suite.Equal(expJSON03, outJSON3)
 

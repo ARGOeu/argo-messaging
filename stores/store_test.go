@@ -92,31 +92,31 @@ func (suite *StoreTestSuite) TestMockStore() {
 
 	// Query ACLS
 	ExpectedACL01 := QAcl{[]string{"uuid1", "uuid2"}}
-	QAcl01, _ := store.QueryACL("argo_uuid", "topic", "topic1")
+	QAcl01, _ := store.QueryACL("argo_uuid", "topics", "topic1")
 	suite.Equal(ExpectedACL01, QAcl01)
 
 	ExpectedACL02 := QAcl{[]string{"uuid1", "uuid2", "uuid4"}}
-	QAcl02, _ := store.QueryACL("argo_uuid", "topic", "topic2")
+	QAcl02, _ := store.QueryACL("argo_uuid", "topics", "topic2")
 	suite.Equal(ExpectedACL02, QAcl02)
 
 	ExpectedACL03 := QAcl{[]string{"uuid3"}}
-	QAcl03, _ := store.QueryACL("argo_uuid", "topic", "topic3")
+	QAcl03, _ := store.QueryACL("argo_uuid", "topics", "topic3")
 	suite.Equal(ExpectedACL03, QAcl03)
 
 	ExpectedACL04 := QAcl{[]string{"uuid1", "uuid2"}}
-	QAcl04, _ := store.QueryACL("argo_uuid", "subscription", "sub1")
+	QAcl04, _ := store.QueryACL("argo_uuid", "subscriptions", "sub1")
 	suite.Equal(ExpectedACL04, QAcl04)
 
 	ExpectedACL05 := QAcl{[]string{"uuid1", "uuid3"}}
-	QAcl05, _ := store.QueryACL("argo_uuid", "subscription", "sub2")
+	QAcl05, _ := store.QueryACL("argo_uuid", "subscriptions", "sub2")
 	suite.Equal(ExpectedACL05, QAcl05)
 
 	ExpectedACL06 := QAcl{[]string{"uuid4", "uuid2", "uuid1"}}
-	QAcl06, _ := store.QueryACL("argo_uuid", "subscription", "sub3")
+	QAcl06, _ := store.QueryACL("argo_uuid", "subscriptions", "sub3")
 	suite.Equal(ExpectedACL06, QAcl06)
 
 	ExpectedACL07 := QAcl{[]string{"uuid2", "uuid4"}}
-	QAcl07, _ := store.QueryACL("argo_uuid", "subscription", "sub4")
+	QAcl07, _ := store.QueryACL("argo_uuid", "subscriptions", "sub4")
 	suite.Equal(ExpectedACL07, QAcl07)
 
 	QAcl08, err08 := store.QueryACL("argo_uuid", "subscr", "sub4ss")

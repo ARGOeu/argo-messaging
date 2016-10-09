@@ -916,7 +916,7 @@ func TopicModACL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = auth.ModACL(projectUUID, "topic", urlTopic, postBody.AuthUsers, refStr)
+	err = auth.ModACL(projectUUID, "topics", urlTopic, postBody.AuthUsers, refStr)
 
 	if err != nil {
 
@@ -975,7 +975,7 @@ func SubModACL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = auth.ModACL(projectUUID, "subscription", urlSub, postBody.AuthUsers, refStr)
+	err = auth.ModACL(projectUUID, "subscriptions", urlSub, postBody.AuthUsers, refStr)
 
 	if err != nil {
 
@@ -1298,7 +1298,7 @@ func TopicACL(w http.ResponseWriter, r *http.Request) {
 
 	// Get project UUID First to use as reference
 	projectUUID := context.Get(r, "auth_project_uuid").(string)
-	res, err := auth.GetACL(projectUUID, "topic", urlTopic, refStr)
+	res, err := auth.GetACL(projectUUID, "topics", urlTopic, refStr)
 
 	// If not found
 	if err != nil {
@@ -1339,7 +1339,7 @@ func SubACL(w http.ResponseWriter, r *http.Request) {
 
 	// Get project UUID First to use as reference
 	projectUUID := context.Get(r, "auth_project_uuid").(string)
-	res, err := auth.GetACL(projectUUID, "subscription", urlSub, refStr)
+	res, err := auth.GetACL(projectUUID, "subscriptions", urlSub, refStr)
 
 	// If not found
 	if err != nil {
@@ -1462,7 +1462,7 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 
 	if refAuthResource && auth.IsPublisher(refRoles) {
 
-		if auth.PerResource(projectUUID, "topic", urlTopic, refUser, refStr) == false {
+		if auth.PerResource(projectUUID, "topics", urlTopic, refUser, refStr) == false {
 			respondErr(w, 403, "Access to this resource is forbidden", "FORBIDDEN")
 			return
 		}
@@ -1557,7 +1557,7 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	// - if enabled in config
 	// - if user has only consumer role
 	if refAuthResource && auth.IsConsumer(refRoles) {
-		if auth.PerResource(urlProject, "subscription", urlSub, refUser, refStr) == false {
+		if auth.PerResource(urlProject, "subscriptions", urlSub, refUser, refStr) == false {
 			respondErr(w, 403, "Access to this resource is forbidden", "FORBIDDEN")
 			return
 		}

@@ -21,11 +21,11 @@ type MockStore struct {
 
 // QueryACL Topic/Subscription ACL
 func (mk *MockStore) QueryACL(projectUUID string, resource string, name string) (QAcl, error) {
-	if resource == "topic" {
+	if resource == "topics" {
 		if _, exists := mk.TopicsACL[name]; exists {
 			return mk.TopicsACL[name], nil
 		}
-	} else if resource == "subscription" {
+	} else if resource == "subscriptions" {
 		if _, exists := mk.SubsACL[name]; exists {
 			return mk.SubsACL[name], nil
 		}
@@ -127,12 +127,12 @@ func (mk *MockStore) HasUsers(projectUUID string, users []string) (bool, []strin
 // ModACL changes the acl in a function
 func (mk *MockStore) ModACL(projectUUID string, resource string, name string, acl []string) error {
 	newAcl := QAcl{ACL: acl}
-	if resource == "topic" {
+	if resource == "topics" {
 		if _, exists := mk.TopicsACL[name]; exists {
 			mk.TopicsACL[name] = newAcl
 			return nil
 		}
-	} else if resource == "subscription" {
+	} else if resource == "subscriptions" {
 		if _, exists := mk.SubsACL[name]; exists {
 			mk.SubsACL[name] = newAcl
 			return nil

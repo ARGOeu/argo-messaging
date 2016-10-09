@@ -302,7 +302,9 @@ func AreValidUsers(projectUUID string, users []string, store stores.Store) (bool
 
 // PerResource  (for topics and subscriptions)
 func PerResource(project string, resType string, resName string, user string, store stores.Store) bool {
-	if resType == "topic" || resType == "subscription" {
+
+	if resType == "topics" || resType == "subscriptions" {
+
 		acl, _ := GetACL(project, resType, resName, store)
 		for _, item := range acl.AuthUsers {
 			if item == user {
