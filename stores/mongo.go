@@ -2,7 +2,6 @@ package stores
 
 import (
 	"errors"
-	"fmt"
 	"log"
 	"time"
 
@@ -283,17 +282,13 @@ func (mong *MongoStore) QueryACL(projectUUID string, resource string, name strin
 	db := mong.Session.DB(mong.Database)
 	var results []QAcl
 	var c *mgo.Collection
-	if resource == "topic" {
-		c = db.C("topics")
-	} else if resource == "subscription" {
-		c = db.C("subscriptions")
-	} else {
+	if resource != "topics" && resource != "subscriptions" {
 		return QAcl{}, errors.New("wrong resource type")
 	}
 
+	c = db.C(resource)
+
 	err := c.Find(bson.M{"project_uuid": projectUUID, "name": name}).All(&results)
-	fmt.Println("**** DEBUG \t\t", projectUUID, name)
-	fmt.Printf("**** DEBUG \t\t%+v", results)
 
 	if err != nil {
 		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
@@ -513,7 +508,13 @@ func (mong *MongoStore) RemoveSub(projectUUID string, name string) error {
 // ModACL modifies the push configuration
 func (mong *MongoStore) ModACL(projectUUID string, resource string, name string, acl []string) error {
 	db := mong.Session.DB(mong.Database)
+
+	if resource != "topics" && resource != "subscriptions" {
+		return errors.New("wrong resource type")
+	}
+
 	c := db.C(resource)
+
 	err := c.Update(bson.M{"project_uuid": projectUUID, "name": name}, bson.M{"$set": bson.M{"acl": acl}})
 	return err
 }

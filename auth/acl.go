@@ -34,11 +34,13 @@ func GetACLFromJSON(input []byte) (ACL, error) {
 // ModACL is called to modify an acl
 func ModACL(projectUUID string, resourceType string, resourceName string, acl []string, store stores.Store) error {
 	// Transform user name to user uuid
+
 	userUUIDs := []string{}
 	for _, username := range acl {
 		userUUID := GetUUIDByName(username, store)
 		userUUIDs = append(userUUIDs, userUUID)
 	}
+
 	return store.ModACL(projectUUID, resourceType, resourceName, userUUIDs)
 }
 
