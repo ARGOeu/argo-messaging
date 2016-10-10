@@ -232,6 +232,12 @@ func (suite *StoreTestSuite) TestMockStore() {
 	store.UpdateUser("user_uuid11", nil, "updated_name", "", []string{"service_admin"})
 	usr11, _ = store.QueryUsers("", "user_uuid11", "")
 	suite.Equal(usrUpdated, usr11[0])
+
+	// Test Remove User
+	store.RemoveUser("user_uuid11")
+	usr11, err = store.QueryUsers("", "user_uuid11", "")
+	suite.Equal(errors.New("not found"), err)
+
 }
 
 func TestStoresTestSuite(t *testing.T) {

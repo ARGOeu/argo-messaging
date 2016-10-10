@@ -12,6 +12,7 @@ type Store interface {
 	QueryUsers(projectUUID string, uuid string, name string) ([]QUser, error)
 	UpdateUser(uuid string, projects []QProjectRoles, name string, email string, serviceRoles []string) error
 	UpdateUserToken(uuid string, token string) error
+	RemoveUser(uuid string) error
 	QueryProjects(uuid string, name string) ([]QProject, error)
 	UpdateProject(projectUUID string, name string, description string, modifiedOn time.Time) error
 	RemoveProject(uuid string) error

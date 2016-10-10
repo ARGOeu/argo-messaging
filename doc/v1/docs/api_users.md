@@ -307,6 +307,8 @@ This request refreshes an existing user's token
 ```json
 POST "/v1/users/{user_name}:refreshToken"
 ```
+### Where
+- user_name: Name of the user
 
 
 ### Example request
@@ -338,6 +340,35 @@ Success Response
  "service_roles":[]
 }
 ```
+
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors
+
+## [POST] Manage Users - Delete User
+This request deletes an existing user
+### Request
+
+```json
+DELETE "/v1/users/{user_name}"
+```
+
+### Where
+- user_name: Name of the user
+
+
+### Example request
+```
+json
+curl -X DELETE -H "Content-Type: application/json"
+ "https://{URL}/v1/projects/ARGO/users/USER2?key=S3CR3T"
+```
+
+### Responses  
+If successful, the response returns empty
+
+Success Response
+`200 OK`
+
 
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors

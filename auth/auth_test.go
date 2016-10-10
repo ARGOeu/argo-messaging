@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"errors"
 	"io/ioutil"
 	"log"
 	"testing"
@@ -131,7 +132,8 @@ func (suite *AuthTestSuite) TestAuth() {
          ],
          "name": "Test",
          "token": "S3CR3T",
-         "email": "Test@test.com"
+         "email": "Test@test.com",
+         "service_roles": []
       },
       {
          "projects": [
@@ -145,7 +147,8 @@ func (suite *AuthTestSuite) TestAuth() {
          ],
          "name": "UserA",
          "token": "S3CR3T1",
-         "email": "foo-email"
+         "email": "foo-email",
+         "service_roles": []
       },
       {
          "projects": [
@@ -159,7 +162,8 @@ func (suite *AuthTestSuite) TestAuth() {
          ],
          "name": "UserB",
          "token": "S3CR3T2",
-         "email": "foo-email"
+         "email": "foo-email",
+         "service_roles": []
       },
       {
          "projects": [
@@ -172,7 +176,8 @@ func (suite *AuthTestSuite) TestAuth() {
          ],
          "name": "UserX",
          "token": "S3CR3T3",
-         "email": "foo-email"
+         "email": "foo-email",
+         "service_roles": []
       },
       {
          "projects": [
@@ -185,10 +190,12 @@ func (suite *AuthTestSuite) TestAuth() {
          ],
          "name": "UserZ",
          "token": "S3CR3T4",
-         "email": "foo-email"
+         "email": "foo-email",
+         "service_roles": []
       }
    ]
 }`
+
 	users, _ := FindUsers("argo_uuid", "", "", store)
 	outUserList, _ := users.ExportJSON()
 	suite.Equal(expUserList, outUserList)
@@ -264,6 +271,11 @@ func (suite *AuthTestSuite) TestAuth() {
 	usrUpd, _ := FindUsers("", "uuid12", "", store)
 	usrUpdJSON, _ := usrUpd.List[0].ExportJSON()
 	suite.Equal(expUpdate, usrUpdJSON)
+
+	RemoveUser("uuid12", store)
+	_, err = FindUsers("", "uuid12", "", store)
+	suite.Equal(errors.New("not found"), err)
+
 }
 
 func (suite *AuthTestSuite) TestSubACL() {

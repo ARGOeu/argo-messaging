@@ -499,6 +499,12 @@ func (mong *MongoStore) RemoveTopic(projectUUID string, name string) error {
 	return mong.RemoveResource("topics", topic)
 }
 
+// RemoveUser removes a user entry from the store
+func (mong *MongoStore) RemoveUser(uuid string) error {
+	user := bson.M{"uuid": uuid}
+	return mong.RemoveResource("users", user)
+}
+
 // RemoveSub removes a subscription from the store
 func (mong *MongoStore) RemoveSub(projectUUID string, name string) error {
 	sub := bson.M{"project_uuid": projectUUID, "name": name}

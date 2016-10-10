@@ -457,6 +457,19 @@ func (mk *MockStore) RemoveTopic(projectUUID string, name string) error {
 	return errors.New("not found")
 }
 
+// RemoveUser removes an existing user
+func (mk *MockStore) RemoveUser(uuid string) error {
+	for i, user := range mk.UserList {
+		if user.UUID == uuid {
+			// found item at i, remove it using index
+			mk.UserList = append(mk.UserList[:i], mk.UserList[i+1:]...)
+			return nil
+		}
+	}
+
+	return errors.New("not found")
+}
+
 // RemoveProjectTopics removes all topics belonging to a specific project uuid
 func (mk *MockStore) RemoveProjectTopics(projectUUID string) error {
 	found := false

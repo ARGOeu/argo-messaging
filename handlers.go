@@ -658,6 +658,41 @@ func UserListAll(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// UserDelete (DEL) deletes an existing user
+func UserDelete(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab context references
+	refStr := context.Get(r, "str").(stores.Store)
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+	urlUser := urlVars["user"]
+
+	userUUID := auth.GetUUIDByName(urlUser, refStr)
+
+	err := auth.RemoveUser(userUUID, refStr)
+	if err != nil {
+		if err.Error() == "not found" {
+			respondErr(w, 404, "User doesn't exist", "NOT_FOUND")
+			return
+		}
+
+		respondErr(w, 500, err.Error(), "INTERNAL")
+		return
+	}
+
+	// Write empty response if anything ok
+	respondOK(w, output)
+
+}
+
 // SubAck (GET) one subscription
 func SubAck(w http.ResponseWriter, r *http.Request) {
 
