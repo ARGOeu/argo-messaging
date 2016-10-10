@@ -111,7 +111,7 @@ This request lists information about a specific user in the service
 
 ### Request
 ```
-POST "/v1/users/{user_name}"
+GET "/v1/users/{user_name}"
 ```
 
 ### Where
@@ -119,7 +119,7 @@ POST "/v1/users/{user_name}"
 
 ### Example request
 ```
-curl -X POST -H "Content-Type: application/json"
+curl -X GET -H "Content-Type: application/json"
   "https://{URL}/v1/users/UserA?key=S3CR3T"
 ```
 
@@ -184,13 +184,14 @@ POST "/v1/users/{user_name}"
 
 ##### Available Roles
 ARGO Messaging Service has the following predefined project roles:
-- project_admin
-- admin
-- viewer
-- consumer
-- producer
+
+ - project_admin: 
+ - admin
+ - viewer
+ - consumer
+ - producer
 and the following service-wide role:
-- service_admin
+ - service_admin: a super admin that manages projects, users, and topics, subscriptions of all projects.
 
 ### Example request
 ```
@@ -279,6 +280,7 @@ If successful, the response contains the newly created project
 
 Success Response
 `200 OK`
+
 ```json
 {
  "projects": [
@@ -323,6 +325,7 @@ If successful, the response contains the newly created project
 
 Success Response
 `200 OK`
+
 ```json
 {
  "projects": [
@@ -344,7 +347,7 @@ Success Response
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
 
-## [POST] Manage Users - Delete User
+## [DELETE] Manage Users - Delete User
 This request deletes an existing user
 ### Request
 
@@ -357,8 +360,7 @@ DELETE "/v1/users/{user_name}"
 
 
 ### Example request
-```
-json
+``` json
 curl -X DELETE -H "Content-Type: application/json"
  "https://{URL}/v1/projects/ARGO/users/USER2?key=S3CR3T"
 ```
