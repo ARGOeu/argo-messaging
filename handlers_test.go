@@ -175,7 +175,8 @@ func (suite *HandlerTestSuite) TestUserListOne() {
    ],
    "name": "UserA",
    "token": "S3CR3T1",
-   "email": "foo-email"
+   "email": "foo-email",
+   "service_roles": []
 }`
 
 	cfgKafka := config.NewAPICfg()
@@ -214,7 +215,8 @@ func (suite *HandlerTestSuite) TestUserListAll() {
          ],
          "name": "Test",
          "token": "S3CR3T",
-         "email": "Test@test.com"
+         "email": "Test@test.com",
+         "service_roles": []
       },
       {
          "projects": [
@@ -228,7 +230,8 @@ func (suite *HandlerTestSuite) TestUserListAll() {
          ],
          "name": "UserA",
          "token": "S3CR3T1",
-         "email": "foo-email"
+         "email": "foo-email",
+         "service_roles": []
       },
       {
          "projects": [
@@ -242,7 +245,8 @@ func (suite *HandlerTestSuite) TestUserListAll() {
          ],
          "name": "UserB",
          "token": "S3CR3T2",
-         "email": "foo-email"
+         "email": "foo-email",
+         "service_roles": []
       },
       {
          "projects": [
@@ -255,7 +259,8 @@ func (suite *HandlerTestSuite) TestUserListAll() {
          ],
          "name": "UserX",
          "token": "S3CR3T3",
-         "email": "foo-email"
+         "email": "foo-email",
+         "service_roles": []
       },
       {
          "projects": [
@@ -268,7 +273,8 @@ func (suite *HandlerTestSuite) TestUserListAll() {
          ],
          "name": "UserZ",
          "token": "S3CR3T4",
-         "email": "foo-email"
+         "email": "foo-email",
+         "service_roles": []
       }
    ]
 }`
@@ -285,6 +291,51 @@ func (suite *HandlerTestSuite) TestUserListAll() {
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestUserDelete() {
+
+	req, err := http.NewRequest("DELETE", "http://localhost:8080/v1/users/UserA", nil)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := ""
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/users/{user}", WrapMockAuthConfig(UserDelete, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+	// Search the deleted user
+
+	req, err = http.NewRequest("GET", "http://localhost:8080/v1/users/UserA", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp2 := `{
+   "error": {
+      "code": 404,
+      "message": "User does not exist",
+      "status": "NOT_FOUND"
+   }
+}`
+
+	router = mux.NewRouter().StrictSlash(true)
+	w = httptest.NewRecorder()
+	router.HandleFunc("/v1/users/{user}", WrapMockAuthConfig(UserListOne, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(404, w.Code)
+	suite.Equal(expResp2, w.Body.String())
 
 }
 

@@ -345,6 +345,37 @@ paths:
         500:
           $ref: "#/responses/500"
 
+    delete:
+      summary: Delete an existing user
+      description: |
+        Deletes an existing user
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: USER
+          in: path
+          description: Name of the user
+          required: true
+          type: string
+
+      tags:
+        - Users
+      responses:
+        200:
+          description: Empty response if user is succesfully deleted
+          schema:
+            $ref: '#/definitions/User'
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        409:
+          $ref: "#/responses/409"
+        500:
+          $ref: "#/responses/500"
+
+
   /users/{USER}:refreshToken:
     post:
       summary: Refreshes the token of an existing user

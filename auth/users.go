@@ -14,11 +14,11 @@ import (
 // User is the struct that holds user information
 type User struct {
 	UUID         string         `json:"-"`
-	Projects     []ProjectRoles `json:"projects,omitempty"`
+	Projects     []ProjectRoles `json:"projects"`
 	Name         string         `json:"name"`
-	Token        string         `json:"token,omitempty"`
-	Email        string         `json:"email,omitempty"`
-	ServiceRoles []string       `json:"service_roles,omitempty"`
+	Token        string         `json:"token"`
+	Email        string         `json:"email"`
+	ServiceRoles []string       `json:"service_roles"`
 }
 
 // ProjectRoles is the struct that hold project and role information of the user
@@ -267,6 +267,11 @@ func IsConsumer(roles []string) bool {
 	}
 
 	return false
+}
+
+// RemoveUser removes an existing user
+func RemoveUser(uuid string, store stores.Store) error {
+	return store.RemoveUser(uuid)
 }
 
 // IsRoleValid checks if a role is a valid against a list of valid roles
