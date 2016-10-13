@@ -1,29 +1,25 @@
 # Initial Project and user management
 
-ARGO Messaging Service configuration includes the `service_token` parameter. Administrators can use this
-feature to define and use an access token for initial project and user configuration.
-
-## Available Roles
-ARGO Messaging Service has the following predefined project roles:
-
-| Role | Description |
-|------|-------------|
-| project_admin  | Users that have the `project_admin` role are assigned to projects which are able to modify or delete. Also they are able to manage resources such as topics and subscriptions (CRUD) and also manage ACLs on those resources as well |
-| consumer | Users that have the `consumer` role are only able to pull messages from subscriptions that are authorized to use (based on ACLs)
-| publisher | Users that have the `publisher` role are only able to publish messages on topics that are authorized to use (based on ACLs)
-
-and the following service-wide role:
-
-| Role | Description |
-|------|-------------|
-| service_admin  | Users with `service_admin` role operate service wide. They are able to create, modify and delete projects. Also they are able to create, modify and delete users and assign them to projects.  
-
+This document describes some of the more advanced setup you may need to do while configuring and deploying the ARGO Messaging Service.
 
 ## A typical quick-start scenario
 
-After a fresh install of the argo-messaging , the `service_token` configuration parameter can be used to create the first `service_admin` user of the service
+After a fresh install of the ARGO Messaging Service, the steps you need to follow are:
+
+ - Configure `service_token`: to enable the service.
+ - Create a service_admin user: to start managing the service.
+ - Create a project: Project entities is used as a basis of organizing and isolating groups of users & resources
+ - Create a project_admin user: Users that have the project_admin have, by default, all capabilities in their project. They can also manage resources such as topics and subscriptions (CRUD) and also manage ACLs (users) on those resources as well.
+ - Create a topic: The main resource that is scoped in a project, and can hold messages.
+ - Create a subscription: A subscription is the main resource from which users consume messages. 
+ - Create users for the new resources: Usually a project has  publisher and consumer accounts for clients that either are authorized to publish or consume messages. 
+
+## Configure `service_token`
+
+ARGO Messaging Service configuration includes the `service_token` parameter. This `service_token` configuration parameter can be used to create the first `service_admin` user of the service
 
 First a service token must be defined in the config.json as such:
+```
 {
   "bind_ip":"",
   "port":8080,
@@ -35,21 +31,30 @@ First a service token must be defined in the config.json as such:
   "per_resource_auth":"true",
   "service_token":"S3CR3T"
 }
-
+```
 The service token in this example has the value: `S3CR3T`
+This `service_token` is authorized for all available actions (projects,users,topics,subscriptions).
 
-Now even though no user has been initialized in the service, the administrator can use the ARGO-Messaging api with token `S3CR3T` as an api key in each request. The token is authorized for all available actions (projects,users,topics,subscriptions).
+In order to enable the use of this `service_token` you must restart the service. 
 
-### Generate a service_admin user
+```
+service argo-messaging restart
+```
 
-The service_token is intended to be used for the first initialization of the API. Then a user with a service_admin role can be defined. The service_admin will be able to further define projects and other users.
+## Create a service_admin user
 
-Using the service_token an admin can create a new service_admin user by calling:
+The service_token is intended to be used for the first initialization of the API. The first thing the service needs is a user with all possible capabilities, which is a `service_admin`.
+Now even though no user has been initialized in the service, the administrator can use the ARGO Messaging API Call with service_token `S3CR3T` to create the user. 
+The service_admin will be able to further define projects and other users.
+
+Using the service_token an admin can create a new service_admin user with the username `demo_service_admin` by calling:
 
 ```
 POST https://{URL}/v1/users/demo_service_admin?key=S3CR3T
 ```
+
 with the following POST BODY:
+
 ```json
 {
    "email":"sadmin@mail.example.foo",
@@ -57,7 +62,7 @@ with the following POST BODY:
 }
 ```
 
-It is important that the user has the "service_admin" role defined in the service_roles list in order to be a service_admin.
+It is important to mention that the user has the **"service_admin"** role defined in the service_roles list in order to be a service_admin.
 
 The response:
 ```json
@@ -72,11 +77,13 @@ The response:
 }
 ```
 
-The generated token `904c56cc6e2b1955dbd98ace80a45be8238432fc` can be used to authenticate as the user `demo_service_admin` and create the first project.
+The generated token `904c56cc6e2b1955dbd98ace80a45be8238432fc` can be used to authenticate the new user.
+For more details visit the [API Users](api_users.md) to see all possible actions for users.
 
-### Create the first project named DEMO
 
-Using the `demo_service_admin` account, the user will create the first project (named 'DEMO') by issuing:
+## Create a project
+
+Using the `demo_service_admin` account, the user can create the first project (ex named 'DEMO') by issuing:
 
 ```
 POST https://{URL}/v1/projects/DEMO?key=904c56cc6e2b1955dbd98ace80a45be8238432fc
@@ -98,10 +105,12 @@ and the response:
   "description": "my first demo project"
 }
 ```
+Response informs that the project has been indeed `created_by` the `demo_service_admin` user.
 
-Response informs that the project has been indeed `created_by` the `demo_service_admin` user
+For more details visit the [API Projects](api_projects.md) to see all possible actions for projects.
 
-### Create a project_admin user in project DEMO
+
+## Create a project_admin
 
 Service_admin users are not attached to specific projects. Instead each project should have a `project_admin` user that will manage topics, subscriptions and ACLs on those resources. To create a `project_admin` user in project `DEMO`, the user `demo_service_admin` will issue:
 
@@ -135,7 +144,59 @@ The response:
 }
 ```
 
-### Create a consumer user and a publisher user in project DEMO
+For more details visit the [API Users](api_users.md) to see all possible actions for users.
+
+## Create a topic 
+
+Service_admin users don't manage resources such as topics/subscriptions. Instead in each project the project_admin is eligible for creating (and managing) topics and subscriptions. To create a new topic (named `topic101`) as `admin_DEMO` user in project `DEMO` the user issues:
+
+```
+PUT https://{URL}/v1/projects/DEMO/topics/topic101?key=6311196665befcc1523b8e013979347b8780254c
+```
+
+with response:
+```
+{
+  "name": "/projects/DEMO/topics/topic101"
+}
+```
+
+Notice that the token used in api `key` changes to that of the `admin_DEMO` user
+
+For more details visit the [API Topics](api_topics.md) to see all possible actions for topics.
+
+
+## Create a subscription
+
+To create a new subscription (named `sub101`) to topic `topic101` of project `DEMO` the `admin_DEMO` user issues:
+
+```
+PUT https://{URL}/v1/projects/DEMO/subscriptions/subs101?key=6311196665befcc1523b8e013979347b8780254c
+```
+with POST Body:
+```
+{
+   "topic":"projects/DEMO/topic/topic101"
+}
+```
+
+and response:
+```
+{
+  "name": "/projects/DEMO/subscriptions/sub101",
+  "topic": "/projects/DEMO/topics/topic101",
+  "pushConfig": {
+    "pushEndpoint": "",
+    "retryPolicy": {}
+  },
+  "ackDeadlineSeconds": 10
+}
+```
+
+For more details visit the [API Subscriptions](api_subs.md) to see all possible actions for Subscriptions.
+
+
+## Create users for the new resources
 
 Usually a project will have also publisher and consumer accounts for clients that either are authorized to publish or consume messages. The user `demo_service_admin` can create a `publisher_DEMO` and `consumer_DEMO` for project `DEMO` as such:
 
@@ -180,6 +241,7 @@ with POST Body:
    "email":"democonsumer@mail.example.foo",
    "projects":[{"project":"DEMO","roles":["consumer"]}]
 }
+```
 
 resulting in response:
 ```json
@@ -198,52 +260,10 @@ resulting in response:
   "service_roles": []
 }
 ```
+For more details visit the [API Users](api_users.md) to see all possible actions for users.
 
-### Create a topic in project DEMO as project_admin
 
-Service_admin users don't manage resources such as topics/subscriptions. Instead in each project the project_admin is eligible for creating (and managing) topics and subscriptions. To create a new topic (named `topic101`) as `admin_DEMO` user in project `DEMO` the user issues:
-
-```
-PUT https://{URL}/v1/projects/DEMO/topics/topic101?key=6311196665befcc1523b8e013979347b8780254c
-```
-
-with response:
-```
-{
-  "name": "/projects/DEMO/topics/topic101"
-}
-```
-
-Notice that the token used in api `key` changes to that of the `admin_DEMO` user
-
-### Create a subscription in project DEMO as project_admin
-
-To create a new subscription (named `sub101`) to topic `topic101` of project `DEMO` the `admin_DEMO` user issues:
-
-```
-PUT https://{URL}/v1/projects/DEMO/subscriptions/subs101?key=6311196665befcc1523b8e013979347b8780254c
-```
-with POST Body:
-```
-{
-   "topic":"projects/DEMO/topic/topic101"
-}
-```
-
-and response:
-```
-{
-  "name": "/projects/DEMO/subscriptions/sub101",
-  "topic": "/projects/DEMO/topics/topic101",
-  "pushConfig": {
-    "pushEndpoint": "",
-    "retryPolicy": {}
-  },
-  "ackDeadlineSeconds": 10
-}
-```
-
-### Modify topic ACL to give access to publisher
+###  Modify topic ACL to give access to publisher
 
 In order to give access to user `publisher_DEMO` to topic `topic101`, the user `admin_DEMO` must modify the topic's ACL as such:
 
