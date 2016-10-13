@@ -30,7 +30,7 @@ Success Response
           {
             "project": "ARGO",
              "roles": [
-                "project_admin",
+                "project_admin"
              ]
           }
        ],
@@ -44,7 +44,7 @@ Success Response
           {
             "project": "ARGO",
              "roles": [
-                "project_admin",
+                "project_admin"
              ]
           }
        ],
@@ -58,7 +58,7 @@ Success Response
           {
             "project": "ARGO",
              "roles": [
-                "project_admin",
+                "project_admin"
              ]
           }
        ],
@@ -132,7 +132,7 @@ Success Response
     {
        "project_uuid": "ARGO",
        "roles": [
-          "project_admin",
+          "project_admin"
        ]
     }
  ],
@@ -162,7 +162,7 @@ POST "/v1/users/{user_name}"
     {
        "project": "ARGO",
        "roles": [
-          "project_admin",
+          "project_admin"
        ]
     }
  ],
@@ -211,7 +211,7 @@ Success Response
     {
        "project": "ARGO",
        "roles": [
-          "project_admin",
+          "project_admin"
        ]
     }
  ],
@@ -240,7 +240,7 @@ PUT "/v1/users/{user_name}"
     {
        "project": "ARGO2",
        "roles": [
-          "project_admin",
+          "project_admin"
        ]
     }
  ],
@@ -276,7 +276,7 @@ Success Response
     {
        "project": "ARGO2",
        "roles": [
-          "project_admin",
+          "project_admin"
        ]
     }
  ],
@@ -320,7 +320,7 @@ Success Response
     {
        "project": "ARGO",
        "roles": [
-          "project_admin",
+          "project_admin"
        ]
     }
  ],
