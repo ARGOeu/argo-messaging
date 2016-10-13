@@ -85,6 +85,7 @@ func WrapConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Broker, st
 		context.Set(r, "str", nStr)
 		context.Set(r, "mgr", mgr)
 		context.Set(r, "auth_resource", cfg.ResAuth)
+		context.Set(r, "auth_service_token", cfg.ServiceToken)
 		hfn.ServeHTTP(w, r)
 
 	})
@@ -116,8 +117,20 @@ func WrapAuthenticate(hfn http.Handler) http.HandlerFunc {
 		urlValues := r.URL.Query()
 
 		refStr := context.Get(r, "str").(stores.Store)
+		serviceToken := context.Get(r, "auth_service_token").(string)
 
 		projectUUID := projects.GetUUIDByName(urlVars["project"], refStr)
+
+		// Check first if service token is used
+		if serviceToken != "" && serviceToken == urlValues.Get("key") {
+			context.Set(r, "auth_roles", []string{})
+			context.Set(r, "auth_user", "")
+			context.Set(r, "auth_user_uuid", "")
+			context.Set(r, "auth_project_uuid", projectUUID)
+			hfn.ServeHTTP(w, r)
+			return
+		}
+
 		roles, user := auth.Authenticate(projectUUID, urlValues.Get("key"), refStr)
 
 		if len(roles) > 0 {
@@ -138,8 +151,17 @@ func WrapAuthenticate(hfn http.Handler) http.HandlerFunc {
 func WrapAuthorize(hfn http.Handler, routeName string) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
+		urlValues := r.URL.Query()
+
 		refStr := context.Get(r, "str").(stores.Store)
 		refRoles := context.Get(r, "auth_roles").([]string)
+		serviceToken := context.Get(r, "auth_service_token").(string)
+
+		// Check first if service token is used
+		if serviceToken != "" && serviceToken == urlValues.Get("key") {
+			hfn.ServeHTTP(w, r)
+			return
+		}
 
 		if auth.Authorize(routeName, refRoles, refStr) {
 			hfn.ServeHTTP(w, r)

@@ -22,7 +22,8 @@ func (suite *ConfigTestSuite) SetupTest() {
 		"store_db":"argo_msg",
 		"certificate":"/etc/pki/tls/certs/localhost.crt",
 		"certificate_key":"/etc/pki/tls/private/localhost.key",
-		"per_resource_auth":"true"
+		"per_resource_auth":"true",
+		"service_token":"S3CR3T"
 	}`
 
 	log.SetOutput(ioutil.Discard)
@@ -47,6 +48,7 @@ func (suite *ConfigTestSuite) TestLoadConfiguration() {
 	suite.Equal("/etc/pki/tls/certs/localhost.crt", APIcfg.Cert)
 	suite.Equal("/etc/pki/tls/private/localhost.key", APIcfg.CertKey)
 	suite.Equal(true, APIcfg.ResAuth)
+	suite.Equal("S3CR3T", APIcfg.ServiceToken)
 }
 
 func (suite *ConfigTestSuite) TestLoadStringJSON() {

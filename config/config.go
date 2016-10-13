@@ -15,14 +15,15 @@ import (
 // APICfg holds kafka configuration
 type APICfg struct {
 	// values
-	BindIP    string
-	Port      int
-	ZooHosts  []string
-	StoreHost string
-	StoreDB   string
-	Cert      string
-	CertKey   string
-	ResAuth   bool
+	BindIP       string
+	Port         int
+	ZooHosts     []string
+	StoreHost    string
+	StoreDB      string
+	Cert         string
+	CertKey      string
+	ResAuth      bool
+	ServiceToken string
 }
 
 // NewAPICfg creates a new kafka configuration object
@@ -103,6 +104,8 @@ func (cfg *APICfg) Load() {
 	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - certificate_key", cfg.CertKey)
 	cfg.ResAuth = viper.GetBool("per_resource_auth")
 	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - per_resource_auth", cfg.CertKey)
+	cfg.ServiceToken = viper.GetString("service_token")
+	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - service_token", cfg.ServiceToken)
 
 }
 
@@ -127,5 +130,7 @@ func (cfg *APICfg) LoadStrJSON(input string) {
 	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - certificate_key", cfg.CertKey)
 	cfg.ResAuth = viper.GetBool("per_resource_auth")
 	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - per_resource_auth", cfg.CertKey)
+	cfg.ServiceToken = viper.GetString("service_token")
+	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - service_token", cfg.ServiceToken)
 
 }

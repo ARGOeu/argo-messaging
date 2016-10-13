@@ -22,7 +22,8 @@ The ARGO Messaging Service main configuration file is config.json. An example co
   "store_db":"argo_msg",
   "certificate":"/etc/pki/tls/certs/localhost.crt",
   "certificate_key":"/etc/pki/tls/private/localhost.key",
-  "per_resource_auth":true
+  "per_resource_auth":true,
+  "service_token":"S0M3T0K3N"
 }
 ```
 
@@ -38,5 +39,6 @@ store_db | Database name used on the datastore server
 certificate | path to the node's TLS certificate file
 certificate_key | path to the certificate's private key
 per_resource_auth | enable authorization per resource (topic/subscription)
+service_token | (optional) If set, enables full service-wide access to the api to initialize projects,users and resources  
 
 **Location of config.json**: API will look first for config.json locally in the folder where the executable runs and then in the ` /etc/argo-messaging/`  location.
