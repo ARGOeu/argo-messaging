@@ -89,7 +89,7 @@ Success Response
           {
              "project": "ARGO",
              "roles": [
-                "producer"
+                "publisher"
              ]
           }
        ],
@@ -182,16 +182,21 @@ POST "/v1/users/{user_name}"
 - email: User's email
 - service_roles: A list of service-wide roles. An example of service-wide role is `service_admin` which can manage projects or other users
 
+
 ##### Available Roles
 ARGO Messaging Service has the following predefined project roles:
 
- - project_admin: 
- - admin
- - viewer
- - consumer
- - producer
+| Role | Description |
+|------|-------------|
+| project_admin  | Users that have the `project_admin` role are assigned to projects which are able to modify or delete. Also they are able to manage resources such as topics and subscriptions (CRUD) and also manage ACLs on those resources as well |
+| consumer | Users that have the `consumer` role are only able to pull messages from subscriptions that are authorized to use (based on ACLs)
+| publisher | Users that have the `publisher` role are only able to publish messages on topics that are authorized to use (based on ACLs)
+
 and the following service-wide role:
- - service_admin: a super admin that manages projects, users, and topics, subscriptions of all projects.
+
+| Role | Description |
+|------|-------------|
+| service_admin  | Users with `service_admin` role operate service wide. They are able to create, modify and delete projects. Also they are able to create, modify and delete users and assign them to projects.  
 
 ### Example request
 ```
@@ -258,15 +263,6 @@ PUT "/v1/users/{user_name}"
 - email: User's email
 - service_roles: A list of service-wide roles. An example of service-wide role is `service_admin` which can manage projects or other users
 
-##### Available Roles
-ARGO Messaging Service has the following predefined project roles:
-- project_admin
-- admin
-- viewer
-- consumer
-- producer
-and the following service-wide role:
-- service_admin
 
 ### Example request
 ```

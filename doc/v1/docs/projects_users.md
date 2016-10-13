@@ -3,6 +3,21 @@
 ARGO Messaging Service configuration includes the `service_token` parameter. Administrators can use this
 feature to define and use an access token for initial project and user configuration.
 
+## Available Roles
+ARGO Messaging Service has the following predefined project roles:
+
+| Role | Description |
+|------|-------------|
+| project_admin  | Users that have the `project_admin` role are assigned to projects which are able to modify or delete. Also they are able to manage resources such as topics and subscriptions (CRUD) and also manage ACLs on those resources as well |
+| consumer | Users that have the `consumer` role are only able to pull messages from subscriptions that are authorized to use (based on ACLs)
+| publisher | Users that have the `publisher` role are only able to publish messages on topics that are authorized to use (based on ACLs)
+
+and the following service-wide role:
+
+| Role | Description |
+|------|-------------|
+| service_admin  | Users with `service_admin` role operate service wide. They are able to create, modify and delete projects. Also they are able to create, modify and delete users and assign them to projects.  
+
 
 ## A typical quick-start scenario
 
@@ -120,7 +135,7 @@ The response:
 }
 ```
 
-### Create a consumer user and a producer user in project DEMO
+### Create a consumer user and a publisher user in project DEMO
 
 Usually a project will have also publisher and consumer accounts for clients that either are authorized to publish or consume messages. The user `demo_service_admin` can create a `publisher_DEMO` and `consumer_DEMO` for project `DEMO` as such:
 
