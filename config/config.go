@@ -59,8 +59,8 @@ func (cfg *APICfg) GetZooList() []string {
 
 	peerList := []string{}
 
-	for brID := range brIDs {
-		data, _, err := zConn.Get("/brokers/ids/" + strconv.Itoa(brID))
+	for _, brID := range brIDs {
+		data, _, err := zConn.Get("/brokers/ids/" + brID)
 		if err != nil {
 			panic(err)
 		}
