@@ -18,6 +18,7 @@ type APICfg struct {
 	BindIP       string
 	Port         int
 	ZooHosts     []string
+	KafkaZnode   string //The Zookeeper znode used by Kafka
 	StoreHost    string
 	StoreDB      string
 	Cert         string
@@ -52,7 +53,7 @@ func (cfg *APICfg) GetZooList() []string {
 	if err != nil {
 		panic(err)
 	}
-	brIDs, _, err := zConn.Children("/brokers/ids")
+	brIDs, _, err := zConn.Children(cfg.KafkaZnode + "/brokers/ids")
 	if err != nil {
 		panic(err)
 	}
@@ -60,7 +61,7 @@ func (cfg *APICfg) GetZooList() []string {
 	peerList := []string{}
 
 	for _, brID := range brIDs {
-		data, _, err := zConn.Get("/brokers/ids/" + brID)
+		data, _, err := zConn.Get(cfg.KafkaZnode + "/brokers/ids/" + brID)
 		if err != nil {
 			panic(err)
 		}
@@ -94,6 +95,8 @@ func (cfg *APICfg) Load() {
 	log.Printf("%s\t%s\t%s:%d", "INFO", "CONFIG", "Parameter Loaded - port", cfg.Port)
 	cfg.ZooHosts = viper.GetStringSlice("zookeeper_hosts")
 	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - zookeeper_hosts", cfg.ZooHosts)
+	cfg.KafkaZnode = viper.GetString("kafka_znode")
+	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - store_host", cfg.KafkaZnode)
 	cfg.StoreHost = viper.GetString("store_host")
 	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - store_host", cfg.StoreHost)
 	cfg.StoreDB = viper.GetString("store_db")
@@ -120,6 +123,8 @@ func (cfg *APICfg) LoadStrJSON(input string) {
 	log.Printf("%s\t%s\t%s:%d", "INFO", "CONFIG", "Parameter Loaded - port", cfg.Port)
 	cfg.ZooHosts = viper.GetStringSlice("zookeeper_hosts")
 	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - zookeeper_hosts", cfg.ZooHosts)
+	cfg.KafkaZnode = viper.GetString("kafka_znode")
+	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - store_host", cfg.KafkaZnode)
 	cfg.StoreHost = viper.GetString("store_host")
 	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - store_host", cfg.StoreHost)
 	cfg.StoreDB = viper.GetString("store_db")

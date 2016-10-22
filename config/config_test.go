@@ -18,6 +18,7 @@ func (suite *ConfigTestSuite) SetupTest() {
 	  "bind_ip":"",
 	  "port":8080,
 		"zookeeper_hosts":["localhost"],
+		"kafka_znode":"/argo-messaging",
 		"store_host":"localhost",
 		"store_db":"argo_msg",
 		"certificate":"/etc/pki/tls/certs/localhost.crt",
@@ -34,6 +35,7 @@ func (suite *ConfigTestSuite) TestLoadConfiguration() {
 	suite.Equal([]string(nil), APIcfg.ZooHosts)
 	APIcfg.Load()
 	suite.Equal([]string{"localhost"}, APIcfg.ZooHosts)
+	suite.Equal("", APIcfg.KafkaZnode)
 	suite.Equal("localhost", APIcfg.StoreHost)
 	suite.Equal("argo_msg", APIcfg.StoreDB)
 	suite.Equal(8080, APIcfg.Port)
@@ -41,6 +43,7 @@ func (suite *ConfigTestSuite) TestLoadConfiguration() {
 	// test "LOAD" param
 	APIcfg2 := NewAPICfg("LOAD")
 	suite.Equal([]string{"localhost"}, APIcfg2.ZooHosts)
+	suite.Equal("", APIcfg2.KafkaZnode)
 	suite.Equal("localhost", APIcfg2.StoreHost)
 	suite.Equal("argo_msg", APIcfg2.StoreDB)
 	suite.Equal(8080, APIcfg.Port)
@@ -55,6 +58,7 @@ func (suite *ConfigTestSuite) TestLoadStringJSON() {
 	APIcfg := NewAPICfg()
 	APIcfg.LoadStrJSON(suite.cfgStr)
 	suite.Equal([]string{"localhost"}, APIcfg.ZooHosts)
+	suite.Equal("/argo-messaging", APIcfg.KafkaZnode)
 	suite.Equal("localhost", APIcfg.StoreHost)
 	suite.Equal("argo_msg", APIcfg.StoreDB)
 	suite.Equal(8080, APIcfg.Port)
