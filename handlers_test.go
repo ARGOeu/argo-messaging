@@ -29,6 +29,7 @@ func (suite *HandlerTestSuite) SetupTest() {
 	"bind_ip":"",
 	"port":8080,
 	"zookeeper_hosts":["localhost"],
+	"kafka_znode":"",
 	"store_host":"localhost",
 	"store_db":"argo_msg",
 	"certificate":"/etc/pki/tls/certs/localhost.crt",
