@@ -17,8 +17,8 @@ func (suite *ProjectsTestSuite) TestProjects() {
 	store := stores.NewMockStore("mockhost", "mockbase")
 	tm := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
 
-	item1 := NewProject("argo_uuid", "ARGO", tm, tm, "userA", "simple project")
-	item2 := NewProject("argo_uuid2", "ARGO2", tm, tm, "userA", "simple project")
+	item1 := NewProject("argo_uuid", "ARGO", tm, tm, "UserA", "simple project")
+	item2 := NewProject("argo_uuid2", "ARGO2", tm, tm, "UserA", "simple project")
 	ep1 := Projects{List: []Project{item1}}
 	ep2 := Projects{List: []Project{item2}}
 	ep3 := Projects{List: []Project{item1, item2}}
@@ -39,9 +39,9 @@ func (suite *ProjectsTestSuite) TestProjects() {
 	suite.Equal(errors.New("not found"), err)
 
 	// Create new project
-	itemNew := NewProject("uuid_new", "BRAND_NEW", tm, tm, "userA", "brand new project")
+	itemNew := NewProject("uuid_new", "BRAND_NEW", tm, tm, "UserA", "brand new project")
 
-	reflect, err := CreateProject("uuid_new", "BRAND_NEW", tm, "userA", "brand new project", store)
+	reflect, err := CreateProject("uuid_new", "BRAND_NEW", tm, "uuid1", "brand new project", store)
 
 	expNew := Projects{List: []Project{itemNew}}
 	expAllNew := Projects{List: []Project{item1, item2, itemNew}}
@@ -67,21 +67,21 @@ func (suite *ProjectsTestSuite) TestProjects() {
          "name": "ARGO",
          "created_on": "2009-11-10T23:00:00Z",
          "modified_on": "2009-11-10T23:00:00Z",
-         "created_by": "userA",
+         "created_by": "UserA",
          "description": "simple project"
       },
       {
          "name": "ARGO2",
          "created_on": "2009-11-10T23:00:00Z",
          "modified_on": "2009-11-10T23:00:00Z",
-         "created_by": "userA",
+         "created_by": "UserA",
          "description": "simple project"
       },
       {
          "name": "BRAND_NEW",
          "created_on": "2009-11-10T23:00:00Z",
          "modified_on": "2009-11-10T23:00:00Z",
-         "created_by": "userA",
+         "created_by": "UserA",
          "description": "brand new project"
       }
    ]
@@ -134,21 +134,21 @@ func (suite *ProjectsTestSuite) TestProjects() {
          "name": "NEW_ARGO",
          "created_on": "2009-11-10T23:00:00Z",
          "modified_on": "2009-11-10T23:00:00Z",
-         "created_by": "userA",
+         "created_by": "UserA",
          "description": "a new description and name for  project"
       },
       {
          "name": "ARGO2",
          "created_on": "2009-11-10T23:00:00Z",
          "modified_on": "2009-11-10T23:00:00Z",
-         "created_by": "userA",
+         "created_by": "UserA",
          "description": "this project has only description changed"
       },
       {
          "name": "ONLY_NAME_CHANGED",
          "created_on": "2009-11-10T23:00:00Z",
          "modified_on": "2009-11-10T23:00:00Z",
-         "created_by": "userA",
+         "created_by": "UserA",
          "description": "brand new project"
       }
    ]

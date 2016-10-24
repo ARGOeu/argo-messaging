@@ -73,7 +73,13 @@ func Find(uuid string, name string, store stores.Store) (Projects, error) {
 	projects, err := store.QueryProjects(uuid, name)
 
 	for _, item := range projects {
-		curProject := NewProject(item.UUID, item.Name, item.CreatedOn, item.ModifiedOn, item.CreatedBy, item.Description)
+		// Get Username from user uuid
+		username := ""
+		usr, err := store.QueryUsers("", item.CreatedBy, "")
+		if err == nil {
+			username = usr[0].Name
+		}
+		curProject := NewProject(item.UUID, item.Name, item.CreatedOn, item.ModifiedOn, username, item.Description)
 		result.List = append(result.List, curProject)
 	}
 
