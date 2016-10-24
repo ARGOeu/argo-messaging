@@ -190,6 +190,9 @@ func (msgIDs *MsgIDs) ExportJSON() (string, error) {
 
 // ExportJSON exports whole msgId  Structure as a json string
 func (recList *RecList) ExportJSON() (string, error) {
+	if recList.RecMsgs == nil {
+		recList.RecMsgs = []RecMsg{}
+	}
 	output, err := json.MarshalIndent(recList, "", "   ")
 	return string(output[:]), err
 }
