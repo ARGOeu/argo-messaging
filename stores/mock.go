@@ -303,8 +303,8 @@ func (mk *MockStore) Initialize() {
 	// populate Projects
 	created := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
 	modified := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
-	qPr := QProject{UUID: "argo_uuid", Name: "ARGO", CreatedOn: created, ModifiedOn: modified, CreatedBy: "userA", Description: "simple project"}
-	qPr2 := QProject{UUID: "argo_uuid2", Name: "ARGO2", CreatedOn: created, ModifiedOn: modified, CreatedBy: "userA", Description: "simple project"}
+	qPr := QProject{UUID: "argo_uuid", Name: "ARGO", CreatedOn: created, ModifiedOn: modified, CreatedBy: "uuid1", Description: "simple project"}
+	qPr2 := QProject{UUID: "argo_uuid2", Name: "ARGO2", CreatedOn: created, ModifiedOn: modified, CreatedBy: "uuid1", Description: "simple project"}
 	mk.ProjectList = append(mk.ProjectList, qPr)
 	mk.ProjectList = append(mk.ProjectList, qPr2)
 

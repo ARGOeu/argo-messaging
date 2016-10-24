@@ -69,6 +69,7 @@ func WrapMockAuthConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Br
 		context.Set(r, "mgr", mgr)
 		context.Set(r, "auth_resource", cfg.ResAuth)
 		context.Set(r, "auth_user", "UserA")
+		context.Set(r, "auth_user_uuid", "uuid1")
 		context.Set(r, "auth_roles", []string{"publisher", "consumer"})
 		hfn.ServeHTTP(w, r)
 
@@ -290,7 +291,7 @@ func ProjectCreate(w http.ResponseWriter, r *http.Request) {
 
 	// Grab context references
 	refStr := context.Get(r, "str").(stores.Store)
-	refUser := context.Get(r, "auth_user").(string)
+	refUserUUID := context.Get(r, "auth_user_uuid").(string)
 
 	// Read POST JSON body
 	body, err := ioutil.ReadAll(r.Body)
@@ -307,10 +308,9 @@ func ProjectCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	uuid := uuid.NewV4().String() // generate a new uuid to attach to the new project
-	user := refUser               // log current authenticated user as the creator
 	created := time.Now()
 	// Get Result Object
-	res, err := projects.CreateProject(uuid, urlProject, created, user, postBody.Description, refStr)
+	res, err := projects.CreateProject(uuid, urlProject, created, refUserUUID, postBody.Description, refStr)
 
 	if err != nil {
 		if err.Error() == "exists" {

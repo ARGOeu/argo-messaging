@@ -387,7 +387,7 @@ func (suite *HandlerTestSuite) TestProjectUpdate() {
 	projOut, _ := projects.GetFromJSON([]byte(w.Body.String()))
 	suite.Equal("NEWARGO", projOut.Name)
 	// Check if the mock authenticated userA has been marked as the creator
-	suite.Equal("userA", projOut.CreatedBy)
+	suite.Equal("UserA", projOut.CreatedBy)
 	suite.Equal("time to change the description mates and the name", projOut.Description)
 }
 
@@ -432,14 +432,14 @@ func (suite *HandlerTestSuite) TestProjectListAll() {
          "name": "ARGO",
          "created_on": "2009-11-10T23:00:00Z",
          "modified_on": "2009-11-10T23:00:00Z",
-         "created_by": "userA",
+         "created_by": "UserA",
          "description": "simple project"
       },
       {
          "name": "ARGO2",
          "created_on": "2009-11-10T23:00:00Z",
          "modified_on": "2009-11-10T23:00:00Z",
-         "created_by": "userA",
+         "created_by": "UserA",
          "description": "simple project"
       }
    ]
@@ -503,7 +503,7 @@ func (suite *HandlerTestSuite) TestProjectListOne() {
    "name": "ARGO",
    "created_on": "2009-11-10T23:00:00Z",
    "modified_on": "2009-11-10T23:00:00Z",
-   "created_by": "userA",
+   "created_by": "UserA",
    "description": "simple project"
 }`
 
