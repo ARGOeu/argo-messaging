@@ -11,12 +11,12 @@ import (
 
 // Project is the struct that holds Project information
 type Project struct {
-	UUID        string    `json:"-"`
-	Name        string    `json:"name,omitempty"`
-	CreatedOn   time.Time `json:"created_on,omitempty"`
-	ModifiedOn  time.Time `json:"modified_on,omitempty"`
-	CreatedBy   string    `json:"created_by,omitempty"`
-	Description string    `json:"description,omitempty"`
+	UUID        string `json:"-"`
+	Name        string `json:"name,omitempty"`
+	CreatedOn   string `json:"created_on,omitempty"`
+	ModifiedOn  string `json:"modified_on,omitempty"`
+	CreatedBy   string `json:"created_by,omitempty"`
+	Description string `json:"description,omitempty"`
 }
 
 // Projects holds a list of available projects
@@ -61,7 +61,8 @@ func GetFromJSON(input []byte) (Project, error) {
 
 // NewProject accepts parameters and creates a new project
 func NewProject(uuid string, name string, createdOn time.Time, modifiedOn time.Time, createdBy string, description string) Project {
-	return Project{UUID: uuid, Name: name, CreatedOn: createdOn, ModifiedOn: modifiedOn, CreatedBy: createdBy, Description: description}
+	zuluForm := "2006-01-02T15:04:05Z"
+	return Project{UUID: uuid, Name: name, CreatedOn: createdOn.Format(zuluForm), ModifiedOn: modifiedOn.Format(zuluForm), CreatedBy: createdBy, Description: description}
 }
 
 // Find returns a specific project or a list of all available projects in the datastore.

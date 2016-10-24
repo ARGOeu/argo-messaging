@@ -106,7 +106,10 @@ func (suite *ProjectsTestSuite) TestProjects() {
   "modified_on": "2009-11-10T23:00:00Z",
   "description":"another description"
   }`
-	expGen02 := Project{CreatedOn: tm, ModifiedOn: tm, Description: "another description"}
+
+	zuluForm := "2006-01-02T15:04:05Z"
+
+	expGen02 := Project{CreatedOn: tm.Format(zuluForm), ModifiedOn: tm.Format(zuluForm), Description: "another description"}
 
 	prGen02, err := GetFromJSON([]byte(prJSON2))
 	suite.Equal(expGen02, prGen02)
