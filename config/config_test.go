@@ -5,7 +5,7 @@ import (
 	"log"
 	"testing"
 
-	"github.com/ARGOeu/argo-messaging/Godeps/_workspace/src/github.com/stretchr/testify/suite"
+	"github.com/stretchr/testify/suite"
 )
 
 type ConfigTestSuite struct {
@@ -14,47 +14,58 @@ type ConfigTestSuite struct {
 }
 
 func (suite *ConfigTestSuite) SetupTest() {
-	suite.cfgStr = `
-	{
-	  "broker_host":"localhost:9092",
+	suite.cfgStr = `{
+	  "bind_ip":"",
+	  "port":8080,
+		"zookeeper_hosts":["localhost"],
+		"kafka_znode":"/argo-messaging",
 		"store_host":"localhost",
 		"store_db":"argo_msg",
-		"use_authorization":true,
-		"use_authentication":true
-	}
-	`
+		"certificate":"/etc/pki/tls/certs/localhost.crt",
+		"certificate_key":"/etc/pki/tls/private/localhost.key",
+		"per_resource_auth":"true",
+		"service_token":"S3CR3T"
+	}`
 
 	log.SetOutput(ioutil.Discard)
 }
 
 func (suite *ConfigTestSuite) TestLoadConfiguration() {
 	APIcfg := NewAPICfg()
-	suite.Equal("", APIcfg.BrokerHost)
+	suite.Equal([]string(nil), APIcfg.ZooHosts)
 	APIcfg.Load()
-	suite.Equal("localhost:9092", APIcfg.BrokerHost)
+	suite.Equal([]string{"localhost"}, APIcfg.ZooHosts)
+	suite.Equal("", APIcfg.KafkaZnode)
 	suite.Equal("localhost", APIcfg.StoreHost)
 	suite.Equal("argo_msg", APIcfg.StoreDB)
-	suite.Equal(true, APIcfg.Authen)
-	suite.Equal(true, APIcfg.Author)
+	suite.Equal(8080, APIcfg.Port)
 
 	// test "LOAD" param
 	APIcfg2 := NewAPICfg("LOAD")
-	suite.Equal("localhost:9092", APIcfg2.BrokerHost)
+	suite.Equal([]string{"localhost"}, APIcfg2.ZooHosts)
+	suite.Equal("", APIcfg2.KafkaZnode)
 	suite.Equal("localhost", APIcfg2.StoreHost)
 	suite.Equal("argo_msg", APIcfg2.StoreDB)
-	suite.Equal(true, APIcfg2.Authen)
-	suite.Equal(true, APIcfg2.Author)
-
+	suite.Equal(8080, APIcfg.Port)
+	suite.Equal("", APIcfg.BindIP)
+	suite.Equal("/etc/pki/tls/certs/localhost.crt", APIcfg.Cert)
+	suite.Equal("/etc/pki/tls/private/localhost.key", APIcfg.CertKey)
+	suite.Equal(true, APIcfg.ResAuth)
+	suite.Equal("S3CR3T", APIcfg.ServiceToken)
 }
 
 func (suite *ConfigTestSuite) TestLoadStringJSON() {
 	APIcfg := NewAPICfg()
 	APIcfg.LoadStrJSON(suite.cfgStr)
-	suite.Equal("localhost:9092", APIcfg.BrokerHost)
+	suite.Equal([]string{"localhost"}, APIcfg.ZooHosts)
+	suite.Equal("/argo-messaging", APIcfg.KafkaZnode)
 	suite.Equal("localhost", APIcfg.StoreHost)
 	suite.Equal("argo_msg", APIcfg.StoreDB)
-	suite.Equal(true, APIcfg.Authen)
-	suite.Equal(true, APIcfg.Author)
+	suite.Equal(8080, APIcfg.Port)
+	suite.Equal("", APIcfg.BindIP)
+	suite.Equal("/etc/pki/tls/certs/localhost.crt", APIcfg.Cert)
+	suite.Equal("/etc/pki/tls/private/localhost.key", APIcfg.CertKey)
+	suite.Equal(true, APIcfg.ResAuth)
 }
 
 func TestConfigTestSuite(t *testing.T) {

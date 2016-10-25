@@ -6,7 +6,9 @@ import (
 
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
+	"github.com/ARGOeu/argo-messaging/push"
 	"github.com/ARGOeu/argo-messaging/stores"
+	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
 )
 
@@ -25,11 +27,11 @@ type APIRoute struct {
 }
 
 // NewRouting creates a new routing object including mux.Router and routes definitions
-func NewRouting(cfg *config.APICfg, brk brokers.Broker, str stores.Store, routes []APIRoute) *API {
+func NewRouting(cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *push.Manager, routes []APIRoute) *API {
 	// Create the api Object
 	ar := API{}
 	// Create a new router and reference him in API object
-	ar.Router = mux.NewRouter().StrictSlash(true)
+	ar.Router = mux.NewRouter().StrictSlash(false)
 	// reference routes input in API object too keep info centralized
 	ar.Routes = routes
 
@@ -42,30 +44,17 @@ func NewRouting(cfg *config.APICfg, brk brokers.Broker, str stores.Store, routes
 
 		handler = WrapLog(handler, route.Name)
 
-		if cfg.Author && cfg.Authen {
+		handler = WrapAuthorize(handler, route.Name)
+		handler = WrapAuthenticate(handler)
 
-			handler = WrapAuthorize(handler, route.Name)
-		}
-
-		if cfg.Authen {
-
-			handler = WrapAuthenticate(handler)
-		}
-		handler = WrapConfig(handler, cfg, brk, str)
+		handler = WrapValidate(handler)
+		handler = WrapConfig(handler, cfg, brk, str, mgr)
 
 		ar.Router.
 			PathPrefix("/v1").
 			Methods(route.Method).
 			Path(route.Path).
-			Handler(handler)
-	}
-
-	if cfg.Authen {
-		log.Printf("INFO\tAPI\tAPI Authentication mechanism enabled")
-	}
-
-	if cfg.Author {
-		log.Printf("INFO\tAPI\tAPI Authorization mechanism enabled")
+			Handler(context.ClearHandler(handler))
 	}
 
 	log.Printf("INFO\tAPI\tAPI Router initialized! Ready to start listening...")
@@ -75,10 +64,31 @@ func NewRouting(cfg *config.APICfg, brk brokers.Broker, str stores.Store, routes
 
 // Global list populated with default routes
 var defaultRoutes = []APIRoute{
+	{"users:list", "GET", "/users", UserListAll},
+	{"users:show", "GET", "/users/{user}", UserListOne},
+	{"users:refreshToken", "POST", "/users/{user}:refreshToken", RefreshToken},
+	{"users:create", "POST", "/users/{user}", UserCreate},
+	{"users:update", "PUT", "/users/{user}", UserUpdate},
+	{"users:delete", "DELETE", "/users/{user}", UserDelete},
+	{"projects:list", "GET", "/projects", ProjectListAll},
+	{"projects:show", "GET", "/projects/{project}", ProjectListOne},
+	{"projects:create", "POST", "/projects/{project}", ProjectCreate},
+	{"projects:update", "PUT", "/projects/{project}", ProjectUpdate},
+	{"projects:delete", "DELETE", "/projects/{project}", ProjectDelete},
 	{"subscriptions:list", "GET", "/projects/{project}/subscriptions", SubListAll},
+	{"subscriptions:acl", "GET", "/projects/{project}/subscriptions/{subscription}:acl", SubACL},
 	{"subscriptions:show", "GET", "/projects/{project}/subscriptions/{subscription}", SubListOne},
+	{"subscriptions:create", "PUT", "/projects/{project}/subscriptions/{subscription}", SubCreate},
+	{"subscriptions:delete", "DELETE", "/projects/{project}/subscriptions/{subscription}", SubDelete},
 	{"subscriptions:pull", "POST", "/projects/{project}/subscriptions/{subscription}:pull", SubPull},
+	{"subscriptions:acknowledge", "POST", "/projects/{project}/subscriptions/{subscription}:acknowledge", SubAck},
+	{"subscriptions:modifyPushConfig", "POST", "/projects/{project}/subscriptions/{subscription}:modifyPushConfig", SubModPush},
+	{"subscriptions:modifyAcl", "POST", "/projects/{project}/subscriptions/{subscription}:modifyAcl", SubModACL},
 	{"topics:list", "GET", "/projects/{project}/topics", TopicListAll},
+	{"topics:acl", "GET", "/projects/{project}/topics/{topic}:acl", TopicACL},
 	{"topics:show", "GET", "/projects/{project}/topics/{topic}", TopicListOne},
+	{"topics:create", "PUT", "/projects/{project}/topics/{topic}", TopicCreate},
+	{"topics:delete", "DELETE", "/projects/{project}/topics/{topic}", TopicDelete},
 	{"topics:publish", "POST", "/projects/{project}/topics/{topic}:publish", TopicPublish},
+	{"topics:modifyAcl", "POST", "/projects/{project}/topics/{topic}:modifyAcl", TopicModACL},
 }

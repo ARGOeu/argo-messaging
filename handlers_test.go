@@ -7,9 +7,13 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
+	"github.com/ARGOeu/argo-messaging/auth"
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
+	"github.com/ARGOeu/argo-messaging/projects"
+	"github.com/ARGOeu/argo-messaging/push"
 	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/suite"
@@ -22,11 +26,620 @@ type HandlerTestSuite struct {
 
 func (suite *HandlerTestSuite) SetupTest() {
 	suite.cfgStr = `{
-		"broker_host":"localhost:9092",
-		"store_host":"localhost",
-		"store_db":"argo_msg"
+	"bind_ip":"",
+	"port":8080,
+	"zookeeper_hosts":["localhost"],
+	"kafka_znode":"",
+	"store_host":"localhost",
+	"store_db":"argo_msg",
+	"certificate":"/etc/pki/tls/certs/localhost.crt",
+	"certificate_key":"/etc/pki/tls/private/localhost.key",
+	"per_resource_auth":"true"
 	}`
+
 	log.SetOutput(ioutil.Discard)
+}
+
+func (suite *HandlerTestSuite) TestValidation() {
+	// nameValidations
+	suite.Equal(true, validName("topic101"))
+	suite.Equal(true, validName("topic_101"))
+	suite.Equal(true, validName("topic_101_another_thing"))
+	suite.Equal(true, validName("topic___343_random"))
+	suite.Equal(true, validName("topic_dc1cc538-1361-4317-a235-0bf383d4a69f"))
+	suite.Equal(false, validName("topic_dc1cc538.1361-4317-a235-0bf383d4a69f"))
+	suite.Equal(false, validName("topic.not.valid"))
+	suite.Equal(false, validName("spaces are not valid"))
+	suite.Equal(false, validName("topic/A"))
+	suite.Equal(false, validName("topic/B"))
+
+	// ackID validations
+	suite.Equal(true, validAckID("ARGO", "sub101", "projects/ARGO/subscriptions/sub101:5"))
+	suite.Equal(false, validAckID("ARGO", "sub101", "projects/ARGO/subscriptions/sub101:aaa"))
+	suite.Equal(false, validAckID("ARGO", "sub101", "projects/FARGO/subscriptions/sub101:5"))
+	suite.Equal(false, validAckID("ARGO", "sub101", "projects/ARGO/subscriptions/subF00:5"))
+	suite.Equal(false, validAckID("ARGO", "sub101", "falsepath/ARGO/subscriptions/sub101:5"))
+	suite.Equal(true, validAckID("FOO", "BAR", "projects/FOO/subscriptions/BAR:11155"))
+	suite.Equal(false, validAckID("FOO", "BAR", "projects/FOO//subscriptions/BAR:11155"))
+
+}
+
+func (suite *HandlerTestSuite) TestUserCreate() {
+
+	postJSON := `{
+	"email":"email@foo.com",
+	"projects":[{"project_uuid":"argo_uuid","roles":["admin","viewer"]}]
+}`
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/users/USERNEW", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := push.Manager{}
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/users/{user}", WrapMockAuthConfig(UserCreate, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	usrOut, _ := auth.GetUserFromJSON([]byte(w.Body.String()))
+
+	suite.Equal("USERNEW", usrOut.Name)
+	// Check if the mock authenticated userA has been marked as the creator
+	suite.Equal("email@foo.com", usrOut.Email)
+	//suite.Equal([]string{"admin", "viewer"}, usrOut.Projects[0].Role)
+}
+
+func (suite *HandlerTestSuite) TestRefreshToken() {
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/users/UserZ:refreshToken", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := push.Manager{}
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/users/{user}:refreshToken", WrapMockAuthConfig(RefreshToken, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	userOut, _ := auth.GetUserFromJSON([]byte(w.Body.String()))
+	suite.NotEqual("S3CR3T", userOut.Token)
+}
+
+func (suite *HandlerTestSuite) TestUserUpdate() {
+
+	expJSON := `{
+   "projects": [
+      {
+         "project": "ARGO",
+         "roles": [
+            "producer"
+         ]
+      }
+   ],
+   "name": "UPDATED_NAME",
+   "token": "S3CR3T4",
+   "email": "foo-email",
+   "service_roles": [
+      "service_admin"
+   ]
+}`
+
+	postJSON := `{
+	"name":"UPDATED_NAME",
+	"service_roles":["service_admin"]
+}`
+
+	req, err := http.NewRequest("PUT", "http://localhost:8080/v1/users/UserZ", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := push.Manager{}
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/users/{user}", WrapMockAuthConfig(UserUpdate, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expJSON, w.Body.String())
+}
+
+func (suite *HandlerTestSuite) TestUserListOne() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/users/UserA", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "projects": [
+      {
+         "project": "ARGO",
+         "roles": [
+            "admin",
+            "member"
+         ]
+      }
+   ],
+   "name": "UserA",
+   "token": "S3CR3T1",
+   "email": "foo-email",
+   "service_roles": []
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/users/{user}", WrapMockAuthConfig(UserListOne, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestUserListAll() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/users", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "users": [
+      {
+         "projects": [
+            {
+               "project": "ARGO",
+               "roles": [
+                  "admin",
+                  "member"
+               ]
+            }
+         ],
+         "name": "Test",
+         "token": "S3CR3T",
+         "email": "Test@test.com",
+         "service_roles": []
+      },
+      {
+         "projects": [
+            {
+               "project": "ARGO",
+               "roles": [
+                  "admin",
+                  "member"
+               ]
+            }
+         ],
+         "name": "UserA",
+         "token": "S3CR3T1",
+         "email": "foo-email",
+         "service_roles": []
+      },
+      {
+         "projects": [
+            {
+               "project": "ARGO",
+               "roles": [
+                  "admin",
+                  "member"
+               ]
+            }
+         ],
+         "name": "UserB",
+         "token": "S3CR3T2",
+         "email": "foo-email",
+         "service_roles": []
+      },
+      {
+         "projects": [
+            {
+               "project": "ARGO",
+               "roles": [
+                  "consumer"
+               ]
+            }
+         ],
+         "name": "UserX",
+         "token": "S3CR3T3",
+         "email": "foo-email",
+         "service_roles": []
+      },
+      {
+         "projects": [
+            {
+               "project": "ARGO",
+               "roles": [
+                  "producer"
+               ]
+            }
+         ],
+         "name": "UserZ",
+         "token": "S3CR3T4",
+         "email": "foo-email",
+         "service_roles": []
+      }
+   ]
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/users", WrapMockAuthConfig(UserListAll, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestUserDelete() {
+
+	req, err := http.NewRequest("DELETE", "http://localhost:8080/v1/users/UserA", nil)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := ""
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/users/{user}", WrapMockAuthConfig(UserDelete, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+	// Search the deleted user
+
+	req, err = http.NewRequest("GET", "http://localhost:8080/v1/users/UserA", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp2 := `{
+   "error": {
+      "code": 404,
+      "message": "User does not exist",
+      "status": "NOT_FOUND"
+   }
+}`
+
+	router = mux.NewRouter().StrictSlash(true)
+	w = httptest.NewRecorder()
+	router.HandleFunc("/v1/users/{user}", WrapMockAuthConfig(UserListOne, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(404, w.Code)
+	suite.Equal(expResp2, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestProjectDelete() {
+
+	req, err := http.NewRequest("DELETE", "http://localhost:8080/v1/projects/ARGO", nil)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := ""
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}", WrapMockAuthConfig(ProjectDelete, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+}
+
+func (suite *HandlerTestSuite) TestProjectUpdate() {
+
+	postJSON := `{
+	"name":"NEWARGO",
+	"description":"time to change the description mates and the name"
+}`
+
+	req, err := http.NewRequest("PUT", "http://localhost:8080/v1/projects/ARGO", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := push.Manager{}
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}", WrapMockAuthConfig(ProjectUpdate, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	projOut, _ := projects.GetFromJSON([]byte(w.Body.String()))
+	suite.Equal("NEWARGO", projOut.Name)
+	// Check if the mock authenticated userA has been marked as the creator
+	suite.Equal("UserA", projOut.CreatedBy)
+	suite.Equal("time to change the description mates and the name", projOut.Description)
+}
+
+func (suite *HandlerTestSuite) TestProjectCreate() {
+
+	postJSON := `{
+	"description":"This is a newly created project"
+}`
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/projects/ARGONEW", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := push.Manager{}
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}", WrapMockAuthConfig(ProjectCreate, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	projOut, _ := projects.GetFromJSON([]byte(w.Body.String()))
+	suite.Equal("ARGONEW", projOut.Name)
+	// Check if the mock authenticated userA has been marked as the creator
+	suite.Equal("UserA", projOut.CreatedBy)
+	suite.Equal("This is a newly created project", projOut.Description)
+}
+
+func (suite *HandlerTestSuite) TestProjectListAll() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "projects": [
+      {
+         "name": "ARGO",
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "UserA",
+         "description": "simple project"
+      },
+      {
+         "name": "ARGO2",
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "UserA",
+         "description": "simple project"
+      }
+   ]
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+
+	router.HandleFunc("/v1/projects", WrapMockAuthConfig(ProjectListAll, cfgKafka, &brk, str, &mgr))
+
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestProjectListOneNotFound() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGONAUFTS", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "error": {
+      "code": 404,
+      "message": "Project does not exist",
+      "status": "NOT_FOUND"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}", WrapMockAuthConfig(ProjectListOne, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(404, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestProjectListOne() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "name": "ARGO",
+   "created_on": "2009-11-10T23:00:00Z",
+   "modified_on": "2009-11-10T23:00:00Z",
+   "created_by": "UserA",
+   "description": "simple project"
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}", WrapMockAuthConfig(ProjectListOne, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestSubCreate() {
+
+	postJSON := `{
+	"topic":"projects/ARGO/topics/topic1"
+}`
+
+	req, err := http.NewRequest("PUT", "http://localhost:8080/v1/projects/ARGO/subscriptions/subNew", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "name": "/projects/ARGO/subscriptions/subNew",
+   "topic": "/projects/ARGO/topics/topic1",
+   "pushConfig": {
+      "pushEndpoint": "",
+      "retryPolicy": {}
+   },
+   "ackDeadlineSeconds": 10
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := push.Manager{}
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubCreate, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestSubCreateExists() {
+
+	postJSON := `{
+	"topic":"projects/ARGO/topics/topic1"
+}`
+
+	req, err := http.NewRequest("PUT", "http://localhost:8080/v1/projects/ARGO/subscriptions/sub1", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "error": {
+      "code": 409,
+      "message": "Subscription already exists",
+      "status": "ALREADY_EXISTS"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubCreate, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(409, w.Code)
+	suite.Equal(expResp, w.Body.String())
+}
+
+func (suite *HandlerTestSuite) TestSubCreateErrorTopic() {
+
+	postJSON := `{
+	"topic":"projects/ARGO/topics/topicFoo"
+}`
+
+	req, err := http.NewRequest("PUT", "http://localhost:8080/v1/projects/ARGO/subscriptions/sub1", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "error": {
+      "code": 404,
+      "message": "Topic doesn't exist",
+      "status": "NOT_FOUND"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	mgr := push.Manager{}
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubCreate, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(404, w.Code)
+	suite.Equal(expResp, w.Body.String())
+}
+
+func (suite *HandlerTestSuite) TestSubDelete() {
+
+	req, err := http.NewRequest("DELETE", "http://localhost:8080/v1/projects/ARGO/subscriptions/sub1", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := ""
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	mgr := push.Manager{}
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubDelete, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
 }
 
 func (suite *HandlerTestSuite) TestSubListOne() {
@@ -40,21 +653,25 @@ func (suite *HandlerTestSuite) TestSubListOne() {
    "name": "/projects/ARGO/subscriptions/sub1",
    "topic": "/projects/ARGO/topics/topic1",
    "pushConfig": {
-      "pushEndpoint": ""
+      "pushEndpoint": "",
+      "retryPolicy": {}
    },
    "ackDeadlineSeconds": 10
 }`
 
 	cfgKafka := config.NewAPICfg()
 	cfgKafka.LoadStrJSON(suite.cfgStr)
+
 	brk := brokers.MockBroker{}
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapConfig(SubListOne, cfgKafka, &brk, str))
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubListOne, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
+
 }
 
 func (suite *HandlerTestSuite) TestSubListAll() {
@@ -70,7 +687,8 @@ func (suite *HandlerTestSuite) TestSubListAll() {
          "name": "/projects/ARGO/subscriptions/sub1",
          "topic": "/projects/ARGO/topics/topic1",
          "pushConfig": {
-            "pushEndpoint": ""
+            "pushEndpoint": "",
+            "retryPolicy": {}
          },
          "ackDeadlineSeconds": 10
       },
@@ -78,7 +696,8 @@ func (suite *HandlerTestSuite) TestSubListAll() {
          "name": "/projects/ARGO/subscriptions/sub2",
          "topic": "/projects/ARGO/topics/topic2",
          "pushConfig": {
-            "pushEndpoint": ""
+            "pushEndpoint": "",
+            "retryPolicy": {}
          },
          "ackDeadlineSeconds": 10
       },
@@ -86,7 +705,20 @@ func (suite *HandlerTestSuite) TestSubListAll() {
          "name": "/projects/ARGO/subscriptions/sub3",
          "topic": "/projects/ARGO/topics/topic3",
          "pushConfig": {
-            "pushEndpoint": ""
+            "pushEndpoint": "",
+            "retryPolicy": {}
+         },
+         "ackDeadlineSeconds": 10
+      },
+      {
+         "name": "/projects/ARGO/subscriptions/sub4",
+         "topic": "/projects/ARGO/topics/topic4",
+         "pushConfig": {
+            "pushEndpoint": "endpoint.foo",
+            "retryPolicy": {
+               "type": "linear",
+               "period": 300
+            }
          },
          "ackDeadlineSeconds": 10
       }
@@ -98,12 +730,145 @@ func (suite *HandlerTestSuite) TestSubListAll() {
 	brk := brokers.MockBroker{}
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
+	mgr := push.Manager{}
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/subscriptions", WrapConfig(SubListAll, cfgKafka, &brk, str))
+	router.HandleFunc("/v1/projects/{project}/subscriptions", WrapMockAuthConfig(SubListAll, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
 
+}
+
+func (suite *HandlerTestSuite) TestTopicDelete() {
+
+	req, err := http.NewRequest("DELETE", "http://localhost:8080/v1/projects/ARGO/topics/topic1", nil)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := ""
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapMockAuthConfig(TopicDelete, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+}
+
+func (suite *HandlerTestSuite) TestSubDeleteNotfound() {
+
+	req, err := http.NewRequest("DELETE", "http://localhost:8080/v1/projects/ARGO/subscriptions/subFoo", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "error": {
+      "code": 404,
+      "message": "Subscription doesn't exist",
+      "status": "NOT_FOUND"
+   }
+}`
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubDelete, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(404, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestTopicDeleteNotfound() {
+
+	req, err := http.NewRequest("DELETE", "http://localhost:8080/v1/projects/ARGO/topics/topicFoo", nil)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "error": {
+      "code": 404,
+      "message": "Topic doesn't exist",
+      "status": "NOT_FOUND"
+   }
+}`
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapMockAuthConfig(TopicDelete, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(404, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestTopicCreate() {
+
+	req, err := http.NewRequest("PUT", "http://localhost:8080/v1/projects/ARGO/topics/topicNew", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "name": "/projects/ARGO/topics/topicNew"
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapMockAuthConfig(TopicCreate, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+}
+
+func (suite *HandlerTestSuite) TestTopicCreateExists() {
+
+	req, err := http.NewRequest("PUT", "http://localhost:8080/v1/projects/ARGO/topics/topic1", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "error": {
+      "code": 409,
+      "message": "Topic already exists",
+      "status": "ALREADY_EXISTS"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapMockAuthConfig(TopicCreate, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(409, w.Code)
+	suite.Equal(expResp, w.Body.String())
 }
 
 func (suite *HandlerTestSuite) TestTopicListOne() {
@@ -123,10 +888,267 @@ func (suite *HandlerTestSuite) TestTopicListOne() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapConfig(TopicListOne, cfgKafka, &brk, str))
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapMockAuthConfig(TopicListOne, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
+}
+
+func (suite *HandlerTestSuite) TestTopicACL01() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/topics/topic1:acl", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "authorized_users": [
+      "UserA",
+      "UserB"
+   ]
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:acl", WrapMockAuthConfig(TopicACL, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestTopicACL02() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/topics/topic3:acl", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "authorized_users": [
+      "UserX"
+   ]
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:acl", WrapMockAuthConfig(TopicACL, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestModTopicACLWrong() {
+
+	postExp := `{"authorized_users":["UserX","UserFoo"]}`
+
+	expRes := `{
+   "error": {
+      "code": 404,
+      "message": "User(s): UserFoo do not exist",
+      "status": "NOT_FOUND"
+   }
+}`
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/projects/ARGO/topics/topic1:modAcl", bytes.NewBuffer([]byte(postExp)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:modAcl", WrapMockAuthConfig(TopicModACL, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(404, w.Code)
+	suite.Equal(expRes, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestModSubACLWrong() {
+
+	postExp := `{"authorized_users":["UserX","UserFoo"]}`
+
+	expRes := `{
+   "error": {
+      "code": 404,
+      "message": "User(s): UserFoo do not exist",
+      "status": "NOT_FOUND"
+   }
+}`
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/projects/ARGO/subscriptions/sub101:modAcl", bytes.NewBuffer([]byte(postExp)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modAcl", WrapMockAuthConfig(SubModACL, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(404, w.Code)
+	suite.Equal(expRes, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestModTopicACL01() {
+
+	postExp := `{"authorized_users":["UserX","UserZ"]}`
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/projects/ARGO/topics/topic1:modAcl", bytes.NewBuffer([]byte(postExp)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:modAcl", WrapMockAuthConfig(TopicModACL, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal("", w.Body.String())
+
+	req2, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/topics/topic1:acl", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:acl", WrapMockAuthConfig(TopicACL, cfgKafka, &brk, str, &mgr))
+	w2 := httptest.NewRecorder()
+	router.ServeHTTP(w2, req2)
+	suite.Equal(200, w2.Code)
+
+	expResp := `{
+   "authorized_users": [
+      "UserX",
+      "UserZ"
+   ]
+}`
+
+	suite.Equal(expResp, w2.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestModSubACL01() {
+
+	postExp := `{"authorized_users":["UserX","UserZ"]}`
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/projects/ARGO/subscription/sub1:modAcl", bytes.NewBuffer([]byte(postExp)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/subscription/{subscription}:modAcl", WrapMockAuthConfig(SubModACL, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal("", w.Body.String())
+
+	req2, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/subscription/sub1:acl", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	router.HandleFunc("/v1/projects/{project}/subscription/{subscription}:acl", WrapMockAuthConfig(SubACL, cfgKafka, &brk, str, &mgr))
+	w2 := httptest.NewRecorder()
+	router.ServeHTTP(w2, req2)
+	suite.Equal(200, w2.Code)
+
+	expResp := `{
+   "authorized_users": [
+      "UserX",
+      "UserZ"
+   ]
+}`
+
+	suite.Equal(expResp, w2.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestSubACL01() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/subscription/sub1:acl", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "authorized_users": [
+      "UserA",
+      "UserB"
+   ]
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/subscription/{subscription}:acl", WrapMockAuthConfig(SubACL, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestSubACL02() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/subscriptions/sub3:acl", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "authorized_users": [
+      "UserZ",
+      "UserB",
+      "UserA"
+   ]
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:acl", WrapMockAuthConfig(SubACL, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
 }
 
 func (suite *HandlerTestSuite) TestTopicListAll() {
@@ -156,7 +1178,8 @@ func (suite *HandlerTestSuite) TestTopicListAll() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/topics", WrapConfig(TopicListAll, cfgKafka, &brk, str))
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/topics", WrapMockAuthConfig(TopicListAll, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -168,12 +1191,11 @@ func (suite *HandlerTestSuite) TestPublish() {
 	postJSON := `{
   "messages": [
     {
-      "attributes": [
+      "attributes":
         {
-          "key": "foo",
-          "value": "bar"
+         "foo":"bar"
         }
-      ],
+      ,
       "data": "YmFzZTY0ZW5jb2RlZA=="
     }
   ]
@@ -185,7 +1207,7 @@ func (suite *HandlerTestSuite) TestPublish() {
 	}
 
 	expJSON := `{
-   "messageIDs": [
+   "messageIds": [
       "1"
    ]
 }`
@@ -196,7 +1218,8 @@ func (suite *HandlerTestSuite) TestPublish() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapConfig(TopicPublish, cfgKafka, &brk, str))
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapMockAuthConfig(TopicPublish, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expJSON, w.Body.String())
@@ -208,30 +1231,27 @@ func (suite *HandlerTestSuite) TestPublishMultiple() {
 	postJSON := `{
   "messages": [
     {
-      "attributes": [
+      "attributes":
         {
-          "key": "foo",
-          "value": "bar"
+          "foo":"bar"
         }
-      ],
+      ,
       "data": "YmFzZTY0ZW5jb2RlZA=="
     },
     {
-      "attributes": [
+      "attributes":
         {
-          "key": "foo2",
-          "value": "bar2"
+      		"foo2":"bar2"
         }
-      ],
+      ,
       "data": "YmFzZTY0ZW5jb2RlZA=="
     },
     {
-      "attributes": [
+      "attributes":
         {
-          "key": "foo2",
-          "value": "bar2"
+          "foo2":"bar2"
         }
-      ],
+      ,
       "data": "YmFzZTY0ZW5jb2RlZA=="
     }
   ]
@@ -243,7 +1263,7 @@ func (suite *HandlerTestSuite) TestPublishMultiple() {
 	}
 
 	expJSON := `{
-   "messageIDs": [
+   "messageIds": [
       "1",
       "2",
       "3"
@@ -253,11 +1273,12 @@ func (suite *HandlerTestSuite) TestPublishMultiple() {
 	cfgKafka := config.NewAPICfg()
 	cfgKafka.LoadStrJSON(suite.cfgStr)
 	brk := brokers.MockBroker{}
-	brk.Initialize(cfgKafka.BrokerHost)
+	brk.Initialize([]string{"localhost"})
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapConfig(TopicPublish, cfgKafka, &brk, str))
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapMockAuthConfig(TopicPublish, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expJSON, w.Body.String())
@@ -293,16 +1314,9 @@ func (suite *HandlerTestSuite) TestPublishError() {
 
 	expJSON := `{
    "error": {
-      "code": 500,
-      "message": "POST: Input JSON schema is not valid",
-      "errors": [
-         {
-            "message": "POST: Input JSON schema is not valid",
-            "domain": "global",
-            "reason": "backend"
-         }
-      ],
-      "status": "INTERNAL"
+      "code": 400,
+      "message": "Invalid Message Arguments",
+      "status": "INVALID_ARGUMENT"
    }
 }`
 
@@ -312,9 +1326,10 @@ func (suite *HandlerTestSuite) TestPublishError() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapConfig(TopicPublish, cfgKafka, &brk, str))
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapMockAuthConfig(TopicPublish, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
-	suite.Equal(500, w.Code)
+	suite.Equal(400, w.Code)
 	suite.Equal(expJSON, w.Body.String())
 
 }
@@ -352,15 +1367,8 @@ func (suite *HandlerTestSuite) TestPublishNoTopic() {
 	expJSON := `{
    "error": {
       "code": 404,
-      "message": "POST: Project/Topic combination: ARGO/FOO doesnt exist",
-      "errors": [
-         {
-            "message": "POST: Project/Topic combination: ARGO/FOO doesnt exist",
-            "domain": "global",
-            "reason": "backend"
-         }
-      ],
-      "status": "INTERNAL"
+      "message": "Topic doesn't exist",
+      "status": "NOT_FOUND"
    }
 }`
 
@@ -370,14 +1378,15 @@ func (suite *HandlerTestSuite) TestPublishNoTopic() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapConfig(TopicPublish, cfgKafka, &brk, str))
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapMockAuthConfig(TopicPublish, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(404, w.Code)
 	suite.Equal(expJSON, w.Body.String())
 
 }
 
-func (suite *HandlerTestSuite) TestSubPullAll() {
+func (suite *HandlerTestSuite) TestSubPullOne() {
 
 	postJSON := `{
   "maxMessages":"1"
@@ -391,14 +1400,12 @@ func (suite *HandlerTestSuite) TestSubPullAll() {
 	expJSON := `{
    "receivedMessages": [
       {
+         "ackId": "projects/ARGO/subscriptions/sub1:0",
          "message": {
             "messageId": "0",
-            "attributes": [
-               {
-                  "key": "foo",
-                  "value": "bar"
-               }
-            ],
+            "attributes": {
+               "foo": "bar"
+            },
             "data": "YmFzZTY0ZW5jb2RlZA==",
             "publishTime": "2016-02-24T11:55:09.786127994Z"
          }
@@ -409,15 +1416,99 @@ func (suite *HandlerTestSuite) TestSubPullAll() {
 	cfgKafka := config.NewAPICfg()
 	cfgKafka.LoadStrJSON(suite.cfgStr)
 	brk := brokers.MockBroker{}
-	brk.Initialize(cfgKafka.BrokerHost)
+	brk.Initialize([]string{"localhost"})
 	brk.PopulateThree() // Add three messages to the broker queue
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:pull", WrapConfig(SubPull, cfgKafka, &brk, str))
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:pull", WrapMockAuthConfig(SubPull, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expJSON, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestSubAck() {
+
+	postJSON := `{
+  "ackIds":["projects/ARGO/subscriptions/sub2:1"]
+}`
+
+	postJSON2 := `{
+"ackIds":["projects/ARGO/subscriptions/sub1:2"]
+}`
+
+	postJSON3 := `{
+"ackIds":["projects/ARGO/subscriptions/sub1:2"]
+}`
+
+	url := "http://localhost:8080/v1/projects/ARGO/subscriptions/sub1:acknowledge"
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expJSON1 := `{
+   "error": {
+      "code": 400,
+      "message": "Invalid ack id",
+      "status": "INVALID_ARGUMENT"
+   }
+}`
+
+	expJSON2 := `{
+   "error": {
+      "code": 408,
+      "message": "ack timeout",
+      "status": "TIMEOUT"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	brk.Initialize([]string{"localhost"})
+	brk.PopulateThree() // Add three messages to the broker queue
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:acknowledge", WrapMockAuthConfig(SubAck, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(400, w.Code)
+	suite.Equal(expJSON1, w.Body.String())
+
+	// grab sub1
+	zSec := "2006-01-02T15:04:05Z"
+	t := time.Now()
+	ts := t.Format(zSec)
+	str.SubList[0].PendingAck = ts
+	str.SubList[0].NextOffset = 3
+
+	req2, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(postJSON2)))
+	router2 := mux.NewRouter().StrictSlash(true)
+	w2 := httptest.NewRecorder()
+	mgr = push.Manager{}
+	router2.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:acknowledge", WrapMockAuthConfig(SubAck, cfgKafka, &brk, str, &mgr))
+	router2.ServeHTTP(w2, req2)
+	suite.Equal(200, w2.Code)
+	suite.Equal("{}", w2.Body.String())
+
+	// mess with the timeout
+	t2 := time.Now().Add(-11 * time.Second)
+	ts2 := t2.Format(zSec)
+	str.SubList[0].PendingAck = ts2
+	str.SubList[0].NextOffset = 4
+
+	req3, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(postJSON3)))
+	router3 := mux.NewRouter().StrictSlash(true)
+	w3 := httptest.NewRecorder()
+	mgr = push.Manager{}
+	router3.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:acknowledge", WrapMockAuthConfig(SubAck, cfgKafka, &brk, str, &mgr))
+	router3.ServeHTTP(w3, req3)
+	suite.Equal(408, w3.Code)
+	suite.Equal(expJSON2, w3.Body.String())
 
 }
 
@@ -435,34 +1526,28 @@ func (suite *HandlerTestSuite) TestSubError() {
 	expJSON := `{
    "error": {
       "code": 404,
-      "message": "POST: Project/subscription combination: ARGO/foo doesnt exist",
-      "errors": [
-         {
-            "message": "POST: Project/subscription combination: ARGO/foo doesnt exist",
-            "domain": "global",
-            "reason": "backend"
-         }
-      ],
-      "status": "INTERNAL"
+      "message": "Subscription doesn't exist",
+      "status": "NOT_FOUND"
    }
 }`
 
 	cfgKafka := config.NewAPICfg()
 	cfgKafka.LoadStrJSON(suite.cfgStr)
 	brk := brokers.MockBroker{}
-	brk.Initialize(cfgKafka.BrokerHost)
+	brk.Initialize([]string{"localhost"})
 	brk.PopulateThree() // Add three messages to the broker queue
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:pull", WrapConfig(SubPull, cfgKafka, &brk, str))
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:pull", WrapMockAuthConfig(SubPull, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(404, w.Code)
 	suite.Equal(expJSON, w.Body.String())
 
 }
 
-func (suite *HandlerTestSuite) TestSubPullOne() {
+func (suite *HandlerTestSuite) TestSubPullAll() {
 
 	postJSON := `{
 
@@ -476,40 +1561,34 @@ func (suite *HandlerTestSuite) TestSubPullOne() {
 	expJSON := `{
    "receivedMessages": [
       {
+         "ackId": "projects/ARGO/subscriptions/sub1:0",
          "message": {
             "messageId": "0",
-            "attributes": [
-               {
-                  "key": "foo",
-                  "value": "bar"
-               }
-            ],
+            "attributes": {
+               "foo": "bar"
+            },
             "data": "YmFzZTY0ZW5jb2RlZA==",
             "publishTime": "2016-02-24T11:55:09.786127994Z"
          }
       },
       {
+         "ackId": "projects/ARGO/subscriptions/sub1:1",
          "message": {
             "messageId": "1",
-            "attributes": [
-               {
-                  "key": "foo2",
-                  "value": "bar2"
-               }
-            ],
+            "attributes": {
+               "foo2": "bar2"
+            },
             "data": "YmFzZTY0ZW5jb2RlZA==",
             "publishTime": "2016-02-24T11:55:09.827678754Z"
          }
       },
       {
+         "ackId": "projects/ARGO/subscriptions/sub1:2",
          "message": {
             "messageId": "2",
-            "attributes": [
-               {
-                  "key": "foo2",
-                  "value": "bar2"
-               }
-            ],
+            "attributes": {
+               "foo2": "bar2"
+            },
             "data": "YmFzZTY0ZW5jb2RlZA==",
             "publishTime": "2016-02-24T11:55:09.830417467Z"
          }
@@ -520,15 +1599,169 @@ func (suite *HandlerTestSuite) TestSubPullOne() {
 	cfgKafka := config.NewAPICfg()
 	cfgKafka.LoadStrJSON(suite.cfgStr)
 	brk := brokers.MockBroker{}
-	brk.Initialize(cfgKafka.BrokerHost)
+	brk.Initialize([]string{"localhost"})
 	brk.PopulateThree() // Add three messages to the broker queue
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:pull", WrapConfig(SubPull, cfgKafka, &brk, str))
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:pull", WrapMockAuthConfig(SubPull, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expJSON, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestValidationInSubs() {
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	brk.Initialize([]string{"localhost"})
+	brk.PopulateThree() // Add three messages to the broker queue
+	str := stores.NewMockStore("whatever", "argo_mgs")
+
+	okResp := `{
+   "name": "/projects/ARGO/subscriptions/sub1",
+   "topic": "/projects/ARGO/topics/topic1",
+   "pushConfig": {
+      "pushEndpoint": "",
+      "retryPolicy": {}
+   },
+   "ackDeadlineSeconds": 10
+}`
+
+	invProject := `{
+   "error": {
+      "code": 400,
+      "message": "Invalid project name",
+      "status": "INVALID_ARGUMENT"
+   }
+}`
+
+	invSub := `{
+   "error": {
+      "code": 400,
+      "message": "Invalid subscription name",
+      "status": "INVALID_ARGUMENT"
+   }
+}`
+
+	urls := []string{
+		"http://localhost:8080/v1/projects/ARGO/subscriptions/sub1",
+		"http://localhost:8080/v1/projects/AR:GO/subscriptions/sub1",
+		"http://localhost:8080/v1/projects/ARGO/subscriptions/s,ub1",
+		"http://localhost:8080/v1/projects/AR,GO/subscriptions/s:ub1",
+	}
+
+	codes := []int(nil)
+	responses := []string(nil)
+
+	for _, url := range urls {
+		w := httptest.NewRecorder()
+		req, err := http.NewRequest("GET", url, bytes.NewBuffer([]byte("")))
+		router := mux.NewRouter().StrictSlash(true)
+		mgr := push.Manager{}
+		router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapValidate(WrapMockAuthConfig(SubListOne, cfgKafka, &brk, str, &mgr)))
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		router.ServeHTTP(w, req)
+		codes = append(codes, w.Code)
+		responses = append(responses, w.Body.String())
+
+	}
+
+	// First request is valid so response is ok
+	suite.Equal(200, codes[0])
+	suite.Equal(okResp, responses[0])
+
+	// Second request has invalid project name
+	suite.Equal(400, codes[1])
+	suite.Equal(invProject, responses[1])
+
+	// Third  request has invalid subscription name
+	suite.Equal(400, codes[2])
+	suite.Equal(invSub, responses[2])
+
+	// Fourth request has invalid project and subscription name, but project is caught first
+	suite.Equal(400, codes[3])
+	suite.Equal(invProject, responses[3])
+
+}
+
+func (suite *HandlerTestSuite) TestValidationInTopics() {
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	brk.Initialize([]string{"localhost"})
+	brk.PopulateThree() // Add three messages to the broker queue
+	str := stores.NewMockStore("whatever", "argo_mgs")
+
+	okResp := `{
+   "name": "/projects/ARGO/topics/topic1"
+}`
+	invProject := `{
+   "error": {
+      "code": 400,
+      "message": "Invalid project name",
+      "status": "INVALID_ARGUMENT"
+   }
+}`
+
+	invTopic := `{
+   "error": {
+      "code": 400,
+      "message": "Invalid topic name",
+      "status": "INVALID_ARGUMENT"
+   }
+}`
+
+	urls := []string{
+		"http://localhost:8080/v1/projects/ARGO/topics/topic1",
+		"http://localhost:8080/v1/projects/AR:GO/topics/topic1",
+		"http://localhost:8080/v1/projects/ARGO/topics/top,ic1",
+		"http://localhost:8080/v1/projects/AR,GO/topics/top:ic1",
+	}
+
+	codes := []int(nil)
+	responses := []string(nil)
+
+	for _, url := range urls {
+		w := httptest.NewRecorder()
+		req, err := http.NewRequest("GET", url, bytes.NewBuffer([]byte("")))
+		router := mux.NewRouter().StrictSlash(true)
+		mgr := push.Manager{}
+		router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapValidate(WrapMockAuthConfig(TopicListOne, cfgKafka, &brk, str, &mgr)))
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		router.ServeHTTP(w, req)
+		codes = append(codes, w.Code)
+		responses = append(responses, w.Body.String())
+
+	}
+
+	// First request is valid so response is ok
+	suite.Equal(200, codes[0])
+	suite.Equal(okResp, responses[0])
+
+	// Second request has invalid project name
+	suite.Equal(400, codes[1])
+	suite.Equal(invProject, responses[1])
+
+	// Third  request has invalid topic name
+	suite.Equal(400, codes[2])
+	suite.Equal(invTopic, responses[2])
+
+	// Fourth request has invalid project and topic names, but project is caught first
+	suite.Equal(400, codes[3])
+	suite.Equal(invProject, responses[3])
 
 }
 

@@ -1,5 +1,11 @@
 package brokers
 
+import (
+	"strconv"
+
+	"github.com/ARGOeu/argo-messaging/messages"
+)
+
 // MockBroker struct
 type MockBroker struct {
 	MsgList []string
@@ -9,12 +15,10 @@ type MockBroker struct {
 func (b *MockBroker) PopulateOne() {
 	msg1 := `{
   "messageId": "0",
-  "attributes": [
+  "attributes":
     {
-      "key": "foo",
-      "value": "bar"
-    }
-  ],
+      "foo":"bar"
+    },
   "data": "YmFzZTY0ZW5jb2RlZA==",
   "publishTime": "2016-02-24T11:55:09.786127994Z"
 }`
@@ -28,36 +32,30 @@ func (b *MockBroker) PopulateOne() {
 func (b *MockBroker) PopulateThree() {
 	msg1 := `{
   "messageId": "0",
-  "attributes": [
+  "attributes":
     {
-      "key": "foo",
-      "value": "bar"
-    }
-  ],
+      "foo":"bar"
+    },
   "data": "YmFzZTY0ZW5jb2RlZA==",
   "publishTime": "2016-02-24T11:55:09.786127994Z"
 }`
 
 	msg2 := `{
   "messageId": "1",
-  "attributes": [
+  "attributes":
     {
-      "key": "foo2",
-      "value": "bar2"
-    }
-  ],
+    	"foo2":"bar2"
+    },
   "data": "YmFzZTY0ZW5jb2RlZA==",
   "publishTime": "2016-02-24T11:55:09.827678754Z"
 }`
 
 	msg3 := `{
   "messageId": "2",
-  "attributes": [
+  "attributes":
     {
-      "key": "foo2",
-      "value": "bar2"
-    }
-  ],
+      "foo2":"bar2"
+    },
   "data": "YmFzZTY0ZW5jb2RlZA==",
   "publishTime": "2016-02-24T11:55:09.830417467Z"
 }`
@@ -78,14 +76,17 @@ func (b *MockBroker) InitConfig() {
 }
 
 // Initialize the broker struct
-func (b *MockBroker) Initialize(peer string) {
+func (b *MockBroker) Initialize(peers []string) {
 	b.MsgList = make([]string, 0)
 }
 
 // Publish function publish a message to the broker
-func (b *MockBroker) Publish(topic string, payload string) (string, int, int64) {
+func (b *MockBroker) Publish(topic string, msg messages.Message) (string, string, int, int64, error) {
+	payload, _ := msg.ExportJSON()
 	b.MsgList = append(b.MsgList, payload)
-	return "ARGO.topic1", 0, int64(len(b.MsgList))
+	off := b.GetOffset(topic) - 1
+	msgID := strconv.FormatInt(off, 10)
+	return msgID, "argo_uuid.topic1", 0, int64(len(b.MsgList)), nil
 }
 
 // GetOffset returns a current topic's offset
@@ -94,6 +95,6 @@ func (b *MockBroker) GetOffset(topic string) int64 {
 }
 
 // Consume function to consume a message from the broker
-func (b *MockBroker) Consume(topic string, offset int64) []string {
+func (b *MockBroker) Consume(topic string, offset int64, imm bool) []string {
 	return b.MsgList
 }

@@ -1,7 +1,11 @@
 {
-  "broker_host":"localhost:9092",
+  "bind_ip":"",
+  "port":8080,
+  "zookeeper_hosts":["localhost"],
   "store_host":"localhost",
   "store_db":"argo_msg",
-  "use_authorization":true,
-  "use_authentication":true
+  "certificate":"/etc/pki/tls/certs/localhost.crt",
+  "certificate_key":"/etc/pki/tls/private/localhost.key",
+  "per_resource_auth":"true",
+  "service_token":"S3CR3T"
 }
