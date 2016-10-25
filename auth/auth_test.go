@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"testing"
+	"time"
 
 	"github.com/ARGOeu/argo-messaging/config"
 	"github.com/ARGOeu/argo-messaging/stores"
@@ -133,7 +134,9 @@ func (suite *AuthTestSuite) TestAuth() {
          "name": "Test",
          "token": "S3CR3T",
          "email": "Test@test.com",
-         "service_roles": []
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z"
       },
       {
          "projects": [
@@ -148,7 +151,9 @@ func (suite *AuthTestSuite) TestAuth() {
          "name": "UserA",
          "token": "S3CR3T1",
          "email": "foo-email",
-         "service_roles": []
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z"
       },
       {
          "projects": [
@@ -163,7 +168,10 @@ func (suite *AuthTestSuite) TestAuth() {
          "name": "UserB",
          "token": "S3CR3T2",
          "email": "foo-email",
-         "service_roles": []
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "UserA"
       },
       {
          "projects": [
@@ -177,7 +185,10 @@ func (suite *AuthTestSuite) TestAuth() {
          "name": "UserX",
          "token": "S3CR3T3",
          "email": "foo-email",
-         "service_roles": []
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "UserA"
       },
       {
          "projects": [
@@ -191,7 +202,10 @@ func (suite *AuthTestSuite) TestAuth() {
          "name": "UserZ",
          "token": "S3CR3T4",
          "email": "foo-email",
-         "service_roles": []
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "UserA"
       }
    ]
 }`
@@ -240,11 +254,15 @@ func (suite *AuthTestSuite) TestAuth() {
    "email": "TOK3N",
    "service_roles": [
       "service_admin"
-   ]
+   ],
+   "created_on": "2009-11-10T23:00:00Z",
+   "modified_on": "2009-11-10T23:00:00Z"
 }`
 
+	tm := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
+
 	// Test Create
-	CreateUser("uuid12", "johndoe", []ProjectRoles{ProjectRoles{Project: "ARGO", Roles: []string{"consumer"}}}, "johndoe@fake.email.foo", "TOK3N", []string{"service_admin"}, store)
+	CreateUser("uuid12", "johndoe", []ProjectRoles{ProjectRoles{Project: "ARGO", Roles: []string{"consumer"}}}, "johndoe@fake.email.foo", "TOK3N", []string{"service_admin"}, tm, "", store)
 	usrs, _ := FindUsers("", "uuid12", "", store)
 	usrJSON, _ := usrs.List[0].ExportJSON()
 	suite.Equal(expUsrJSON, usrJSON)
@@ -265,9 +283,11 @@ func (suite *AuthTestSuite) TestAuth() {
    "service_roles": [
       "consumer",
       "producer"
-   ]
+   ],
+   "created_on": "2009-11-10T23:00:00Z",
+   "modified_on": "2009-11-10T23:00:00Z"
 }`
-	UpdateUser("uuid12", "johnny_doe", nil, "", []string{"consumer", "producer"}, store)
+	UpdateUser("uuid12", "johnny_doe", nil, "", []string{"consumer", "producer"}, tm, store)
 	usrUpd, _ := FindUsers("", "uuid12", "", store)
 	usrUpdJSON, _ := usrUpd.List[0].ExportJSON()
 	suite.Equal(expUpdate, usrUpdJSON)

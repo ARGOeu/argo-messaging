@@ -503,7 +503,8 @@ func UserUpdate(w http.ResponseWriter, r *http.Request) {
 
 	// Get Result Object
 	userUUID := auth.GetUUIDByName(urlUser, refStr)
-	res, err := auth.UpdateUser(userUUID, postBody.Name, postBody.Projects, postBody.Email, postBody.ServiceRoles, refStr)
+	modified := time.Now()
+	res, err := auth.UpdateUser(userUUID, postBody.Name, postBody.Projects, postBody.Email, postBody.ServiceRoles, modified, refStr)
 
 	if err != nil {
 
@@ -553,6 +554,7 @@ func UserCreate(w http.ResponseWriter, r *http.Request) {
 
 	// Grab context references
 	refStr := context.Get(r, "str").(stores.Store)
+	refUserUUID := context.Get(r, "auth_user_uuid").(string)
 
 	// Read POST JSON body
 	body, err := ioutil.ReadAll(r.Body)
@@ -570,8 +572,9 @@ func UserCreate(w http.ResponseWriter, r *http.Request) {
 
 	uuid := uuid.NewV4().String() // generate a new uuid to attach to the new project
 	token, err := auth.GenToken() // generate a new user token
+	created := time.Now()
 	// Get Result Object
-	res, err := auth.CreateUser(uuid, urlUser, postBody.Projects, token, postBody.Email, postBody.ServiceRoles, refStr)
+	res, err := auth.CreateUser(uuid, urlUser, postBody.Projects, token, postBody.Email, postBody.ServiceRoles, created, refUserUUID, refStr)
 
 	if err != nil {
 		if err.Error() == "exists" {

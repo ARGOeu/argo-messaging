@@ -28,49 +28,56 @@ Success Response
     {
        "projects": [
           {
-            "project": "ARGO",
+             "project": "ARGO",
              "roles": [
-                "project_admin"
+              "project_admin"
              ]
           }
        ],
        "name": "Test",
        "token": "S3CR3T",
        "email": "Test@test.com",
-       "service_roles":[]
+       "service_roles": [],
+       "created_on": "2009-11-10T23:00:00Z",
+       "modified_on": "2009-11-10T23:00:00Z"
     },
     {
        "projects": [
           {
-            "project": "ARGO",
+             "project": "ARGO",
              "roles": [
-                "project_admin"
+               "project_admin"
              ]
           }
        ],
        "name": "UserA",
        "token": "S3CR3T1",
        "email": "foo-email",
-       "service_roles":[]
+       "service_roles": [],
+       "created_on": "2009-11-10T23:00:00Z",
+       "modified_on": "2009-11-10T23:00:00Z"
     },
     {
        "projects": [
           {
-            "project": "ARGO",
+             "project": "ARGO",
              "roles": [
-                "project_admin"
+               "project_admin"
              ]
           }
        ],
        "name": "UserB",
        "token": "S3CR3T2",
        "email": "foo-email",
-       "service_roles":[]
+       "service_roles": [],
+       "created_on": "2009-11-10T23:00:00Z",
+       "modified_on": "2009-11-10T23:00:00Z",
+       "created_by": "UserA"
     },
     {
        "projects": [
           {
-            "project": "ARGO",
+             "project": "ARGO",
              "roles": [
                 "consumer"
              ]
@@ -79,7 +86,10 @@ Success Response
        "name": "UserX",
        "token": "S3CR3T3",
        "email": "foo-email",
-       "service_roles":[]
+       "service_roles": [],
+       "created_on": "2009-11-10T23:00:00Z",
+       "modified_on": "2009-11-10T23:00:00Z",
+       "created_by": "UserA"
     },
     {
        "projects": [
@@ -93,7 +103,10 @@ Success Response
        "name": "UserZ",
        "token": "S3CR3T4",
        "email": "foo-email",
-       "service_roles":[]
+       "service_roles": [],
+       "created_on": "2009-11-10T23:00:00Z",
+       "modified_on": "2009-11-10T23:00:00Z",
+       "created_by": "UserA"
     }
  ]
 }
@@ -139,7 +152,9 @@ Success Response
  "name": "UserA",
  "token": "S3CR3T1",
  "email": "foo-email",
- "service_roles":[]
+ "service_roles":[],
+ "created_on": "2009-11-10T23:00:00Z",
+ "modified_on": "2009-11-10T23:00:00Z"
 }
 ```
 
@@ -218,7 +233,10 @@ Success Response
  "name": "USERNEW",
  "token": "R4ND0MT0K3N",
  "email": "foo-email",
- "service_roles":[]
+ "service_roles":[],
+ "created_on": "2009-11-10T23:00:00Z",
+ "modified_on": "2009-11-10T23:00:00Z",
+ "created_by": "UserA"
 }
 ```
 
@@ -283,7 +301,10 @@ Success Response
  "name": "CHANGED_NAME",
  "token": "R4ND0MT0K3N",
  "email": "foo-email",
- "service_roles":[]
+ "service_roles":[],
+ "created_on": "2009-11-10T23:00:00Z",
+ "modified_on": "2009-11-11T10:00:00Z",
+ "created_by": "UserA"
 }
 ```
 
@@ -327,7 +348,10 @@ Success Response
  "name": "USER2",
  "token": "NEWRANDOMTOKEN",
  "email": "foo-email",
- "service_roles":[]
+ "service_roles":[],
+ "created_on": "2009-11-10T23:00:00Z",
+ "modified_on": "2009-11-11T12:00:00Z",
+ "created_by": "UserA"
 }
 ```
 

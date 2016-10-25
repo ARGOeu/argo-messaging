@@ -1228,6 +1228,12 @@ definitions:
         type: array
         items:
           type: string
+       created_on:
+        type: string
+       modified_on:
+        type: string
+       created_by:
+        type: string
 
   ProjectRoles:
       type: object
