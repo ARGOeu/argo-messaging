@@ -3,7 +3,7 @@
 
 Name: argo-messaging
 Summary: ARGO Messaging API for broker network
-Version: 0.9.2
+Version: 1.0.0
 Release: 1%{?dist}
 License: ASL 2.0
 Buildroot: %{_tmppath}/%{name}-buildroot
@@ -63,6 +63,8 @@ go clean
 %attr(0644,root,root) /usr/lib/systemd/system/argo-messaging.service
 
 %changelog
+* Tue Oct 25 2016 Themis Zamani <themiszamani@gmail.com> - 1.0.0-1%{?dist}
+- New RPM package release.
 * Thu Mar 24 2016 Themis Zamani <themiszamani@gmail.com> - 0.9.2-1%{?dist}
 - ARGO-375 - Added Authentication to Messaging API
 - ARGO-324 - Implemented Subscription pull method
