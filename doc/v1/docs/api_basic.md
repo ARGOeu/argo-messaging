@@ -44,3 +44,32 @@ per_resource_auth | enable authorization per resource (topic/subscription)
 service_token | (optional) If set, enables full service-wide access to the api to initialize projects,users and resources  
 
 **Location of config.json**: API will look first for config.json locally in the folder where the executable runs and then in the ` /etc/argo-messaging/`  location.
+
+
+## Command line parameters
+Apart from configuration file, argo-messaging service accepts configuration parameters in the command line. The list of the available command line parameters is displayed
+if the user issues
+```
+./argo-messaging-service --help
+```
+The available command line parameters are listed as follows:
+```
+--bind-ip string           ip address to listen to (default "localhost")
+--certificate string       certificate file *.crt (default "/etc/pki/tls/certs/localhost.crt")
+--certificate-key string   certificate key file *.key (default "/etc/pki/tls/private/localhost.key")
+--config-dir string        directory path to an alternative json config file
+--kafka-znode string       kafka zookeeper node name
+--per-resource-auth        enable per resource authentication (default true)
+--port int                 port number to listen to (default 8080)
+--service-key string       service token definition for immediate full api access
+--store-db string          datastore (mongodb) database name (default "argo_msg")
+--store-host string        datastore (mongodb) host (default "localhost")
+--zookeeper-hosts value    list of zookeeper hosts to connect to (default [localhost])
+```
+
+User can optionally specifiy an alternative configuration file directory with the use of the `--config-dir` parameter
+For example:
+```
+./argo-messaging-service --config-dir=/root/alternative/config/
+```
+The `/root/alternative/config/config.json` must exist
