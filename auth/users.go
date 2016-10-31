@@ -101,6 +101,10 @@ func FindUsers(projectUUID string, uuid string, name string, store stores.Store)
 		result.List = append(result.List, curUser)
 	}
 
+	if len(result.List) == 0 {
+		err = errors.New("not found")
+	}
+
 	return result, err
 }
 
