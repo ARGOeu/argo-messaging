@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	log "github.com/Sirupsen/logrus"
 
 	"github.com/ARGOeu/argo-messaging/auth"
 	"github.com/ARGOeu/argo-messaging/brokers"
@@ -100,11 +101,11 @@ func WrapLog(hfn http.Handler, name string) http.HandlerFunc {
 
 		hfn.ServeHTTP(w, r)
 
-		log.Printf(
-			"ACCESS\t%s\t%s\t%s\t%s",
-			r.Method,
-			r.RequestURI,
-			name,
+		log.Info(
+			"ACCESS", "\t",
+			r.Method, "\t",
+			r.RequestURI, "\t",
+			name, "\t",
 			time.Since(start),
 		)
 	})
@@ -1709,7 +1710,7 @@ func respondOK(w http.ResponseWriter, output []byte) {
 
 // respondErr is used to finalize response writer with proper error codes and error output
 func respondErr(w http.ResponseWriter, errCode int, errMsg string, status string) {
-	log.Printf("ERROR\t%d\t%s", errCode, errMsg)
+	log.Error(errCode, "\t", errMsg)
 	w.WriteHeader(errCode)
 	rt := APIErrorRoot{}
 	bd := APIErrorBody{}

@@ -2,7 +2,6 @@ package main
 
 import (
 	"crypto/tls"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/ARGOeu/argo-messaging/config"
 	"github.com/ARGOeu/argo-messaging/push"
 	"github.com/ARGOeu/argo-messaging/stores"
+	log "github.com/Sirupsen/logrus"
 )
 
 func main() {
@@ -44,7 +44,7 @@ func main() {
 	// Web service binds to server. Requests served over HTTPS.
 	err := server.ListenAndServeTLS(cfg.Cert, cfg.CertKey)
 	if err != nil {
-		log.Fatal("ERROR\tAPI\tListenAndServe:", err)
+		log.Fatal("API", "\t", "ListenAndServe:", err)
 	}
 
 }

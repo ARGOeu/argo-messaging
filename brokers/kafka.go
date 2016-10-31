@@ -1,10 +1,11 @@
 package brokers
 
 import (
-	"log"
 	"strconv"
 	"sync"
 	"time"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 import (
@@ -99,22 +100,22 @@ func (b *KafkaBroker) Initialize(peers []string) {
 	b.Client, err = sarama.NewClient(b.Servers, nil)
 	if err != nil {
 		// Should not reach here
-		log.Fatalf("%s\t%s\t%s", "FATAL", "BROKER", err.Error())
+		log.Fatal("BROKER", "\t", err.Error())
 	}
 
 	b.Producer, err = sarama.NewSyncProducer(b.Servers, b.Config)
 	if err != nil {
 		// Should not reach here
-		log.Fatalf("%s\t%s\t%s", "FATAL", "BROKER", err.Error())
+		log.Fatal("BROKER", "\t", err.Error())
 
 	}
 
 	b.Consumer, err = sarama.NewConsumer(b.Servers, nil)
 	if err != nil {
-		log.Fatalf("%s\t%s\t%s", "FATAL", "BROKER", err.Error())
+		log.Fatal("BROKER", "\t", err.Error())
 	}
 
-	log.Printf("%s\t%s\t%s:%s", "INFO", "BROKER", "Kafka Backend Initialized! Kafka node list", peers)
+	log.Info("BROKER", "\t", "Kafka Backend Initialized! Kafka node list", peers)
 
 }
 
@@ -166,7 +167,7 @@ func (b *KafkaBroker) Consume(topic string, offset int64, imm bool) []string {
 	// consumer, _ := sarama.NewConsumer(b.Servers, b.Config)
 
 	loff, err := b.Client.GetOffset(topic, 0, sarama.OffsetNewest)
-	log.Println("consuming topic:", topic, "with offset:", loff)
+	log.Debug("consuming topic:", topic, "with offset:", loff)
 	if err != nil {
 		panic(err)
 	}
@@ -179,7 +180,7 @@ func (b *KafkaBroker) Consume(topic string, offset int64, imm bool) []string {
 	partitionConsumer, err := b.Consumer.ConsumePartition(topic, 0, offset)
 
 	if err != nil {
-		log.Println("Partition already consumed aborting try")
+		log.Debug("Partition already consumed aborting try")
 		return []string{}
 	}
 

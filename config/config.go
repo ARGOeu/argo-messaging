@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log"
 	"strconv"
 	"time"
+
+	log "github.com/Sirupsen/logrus"
 
 	"github.com/samuel/go-zookeeper/zk"
 	"github.com/spf13/pflag"
@@ -26,6 +27,7 @@ type APICfg struct {
 	CertKey      string
 	ResAuth      bool
 	ServiceToken string
+	LogLevel     string
 }
 
 // NewAPICfg creates a new kafka configuration object
@@ -79,6 +81,30 @@ func (cfg *APICfg) GetZooList() []string {
 	return peerList
 }
 
+func setLogLevel(logLvl string) {
+
+	switch logLvl {
+	case "DEBUG":
+		log.SetLevel(log.DebugLevel)
+		break
+	case "INFO":
+		log.SetLevel(log.InfoLevel)
+		break
+	case "WARNING":
+		log.SetLevel(log.WarnLevel)
+		break
+	case "ERROR":
+		log.SetLevel(log.ErrorLevel)
+		break
+	case "FATAL":
+		log.SetLevel(log.FatalLevel)
+		break
+	default:
+		log.SetLevel(log.InfoLevel)
+	}
+
+}
+
 // LoadTest the configuration
 func (cfg *APICfg) LoadTest() {
 
@@ -93,26 +119,33 @@ func (cfg *APICfg) LoadTest() {
 	}
 
 	// Load Kafka configuration
+
+	// First check log level parameter and set logger
+	cfg.LogLevel = viper.GetString("log_level")
+	setLogLevel(cfg.LogLevel)
+	log.Info("CONFIG", "\t", "Parameter Loaded - log_level: ", cfg.LogLevel)
+	// Then load rest of the parameters
+
 	cfg.BindIP = viper.GetString("bind_ip")
-	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - bind_ip", cfg.BindIP)
+	log.Info("CONFIG", "\t", "Parameter Loaded - bind_ip: ", cfg.BindIP)
 	cfg.Port = viper.GetInt("port")
-	log.Printf("%s\t%s\t%s:%d", "INFO", "CONFIG", "Parameter Loaded - port", cfg.Port)
+	log.Info("CONFIG", "\t", "Parameter Loaded - port: ", cfg.Port)
 	cfg.ZooHosts = viper.GetStringSlice("zookeeper_hosts")
-	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - zookeeper_hosts", cfg.ZooHosts)
+	log.Info("CONFIG", "\t", "Parameter Loaded - zookeeper_hosts: ", cfg.ZooHosts)
 	cfg.KafkaZnode = viper.GetString("kafka_znode")
-	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - kafka_znode", cfg.KafkaZnode)
+	log.Info("CONFIG", "\t", "Parameter Loaded - kafka_znode: ", cfg.KafkaZnode)
 	cfg.StoreHost = viper.GetString("store_host")
-	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - store_host", cfg.StoreHost)
+	log.Info("CONFIG", "\t", "Parameter Loaded - store_host: ", cfg.StoreHost)
 	cfg.StoreDB = viper.GetString("store_db")
-	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - store_db", cfg.StoreDB)
+	log.Info("CONFIG", "\t", "Parameter Loaded - store_db: ", cfg.StoreDB)
 	cfg.Cert = viper.GetString("certificate")
-	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - certificate", cfg.Cert)
+	log.Info("CONFIG", "\t", "Parameter Loaded - certificate: ", cfg.Cert)
 	cfg.CertKey = viper.GetString("certificate_key")
-	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - certificate_key", cfg.CertKey)
+	log.Info("CONFIG", "\t", "Parameter Loaded - certificate_key: ", cfg.CertKey)
 	cfg.ResAuth = viper.GetBool("per_resource_auth")
-	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - per_resource_auth", cfg.CertKey)
+	log.Info("CONFIG", "\t", "Parameter Loaded - per_resource_auth: ", cfg.CertKey)
 	cfg.ServiceToken = viper.GetString("service_token")
-	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - service_token", cfg.ServiceToken)
+	log.Info("CONFIG", "\t", "Parameter Loaded - service_token: ", cfg.ServiceToken)
 
 }
 
@@ -122,6 +155,10 @@ func (cfg *APICfg) Load() {
 	var configPath *string
 
 	if pflag.Parsed() == false {
+
+		pflag.String("log-level", "INFO", "set the desired log level")
+		viper.BindPFlag("log_level", pflag.Lookup("log-level"))
+
 		pflag.String("bind-ip", "localhost", "ip address to listen to")
 		viper.BindPFlag("bind_ip", pflag.Lookup("bind-ip"))
 
@@ -171,27 +208,31 @@ func (cfg *APICfg) Load() {
 		panic(fmt.Errorf("Errod trying to read the configuration file: %s \n", err))
 	}
 
-	// Load Kafka configuration
+	// First check log level parameter and set logger
+	cfg.LogLevel = viper.GetString("log_level")
+	setLogLevel(cfg.LogLevel)
+	log.Info("CONFIG", "\t", "Parameter Loaded - log_level: ", cfg.LogLevel)
+	// Then load rest of the parameters
 	cfg.BindIP = viper.GetString("bind_ip")
-	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - bind_ip", cfg.BindIP)
+	log.Info("CONFIG", "\t", "Parameter Loaded - bind_ip: ", cfg.BindIP)
 	cfg.Port = viper.GetInt("port")
-	log.Printf("%s\t%s\t%s:%d", "INFO", "CONFIG", "Parameter Loaded - port", cfg.Port)
+	log.Info("CONFIG", "\t", "Parameter Loaded - port: ", cfg.Port)
 	cfg.ZooHosts = viper.GetStringSlice("zookeeper_hosts")
-	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - zookeeper_hosts", cfg.ZooHosts)
+	log.Info("CONFIG", "\t", "Parameter Loaded - zookeeper_hosts: ", cfg.ZooHosts)
 	cfg.KafkaZnode = viper.GetString("kafka_znode")
-	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - kafka_znode", cfg.KafkaZnode)
+	log.Info("CONFIG", "\t", "Parameter Loaded - kafka_znode: ", cfg.KafkaZnode)
 	cfg.StoreHost = viper.GetString("store_host")
-	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - store_host", cfg.StoreHost)
+	log.Info("CONFIG", "\t", "Parameter Loaded - store_host: ", cfg.StoreHost)
 	cfg.StoreDB = viper.GetString("store_db")
-	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - store_db", cfg.StoreDB)
+	log.Info("CONFIG", "\t", "Parameter Loaded - store_db: ", cfg.StoreDB)
 	cfg.Cert = viper.GetString("certificate")
-	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - certificate", cfg.Cert)
+	log.Info("CONFIG", "\t", "Parameter Loaded - certificate: ", cfg.Cert)
 	cfg.CertKey = viper.GetString("certificate_key")
-	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - certificate_key", cfg.CertKey)
+	log.Info("CONFIG", "\t", "Parameter Loaded - certificate_key: ", cfg.CertKey)
 	cfg.ResAuth = viper.GetBool("per_resource_auth")
-	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - per_resource_auth", cfg.CertKey)
+	log.Info("CONFIG", "\t", "Parameter Loaded - per_resource_auth: ", cfg.CertKey)
 	cfg.ServiceToken = viper.GetString("service_token")
-	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - service_token", cfg.ServiceToken)
+	log.Info("CONFIG", "\t", "Parameter Loaded - service_token: ", cfg.ServiceToken)
 
 }
 
@@ -201,24 +242,24 @@ func (cfg *APICfg) LoadStrJSON(input string) {
 	viper.ReadConfig(bytes.NewBuffer([]byte(input)))
 	// Load Kafka configuration
 	cfg.BindIP = viper.GetString("bind_ip")
-	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - bind_ip", cfg.BindIP)
+	log.Info("CONFIG", "\t", "Parameter Loaded - bind_ip", cfg.BindIP)
 	cfg.Port = viper.GetInt("port")
-	log.Printf("%s\t%s\t%s:%d", "INFO", "CONFIG", "Parameter Loaded - port", cfg.Port)
+	log.Info("CONFIG", "\t", "Parameter Loaded - port", cfg.Port)
 	cfg.ZooHosts = viper.GetStringSlice("zookeeper_hosts")
-	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - zookeeper_hosts", cfg.ZooHosts)
+	log.Info("CONFIG", "\t", "Parameter Loaded - zookeeper_hosts", cfg.ZooHosts)
 	cfg.KafkaZnode = viper.GetString("kafka_znode")
-	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - store_host", cfg.KafkaZnode)
+	log.Info("CONFIG", "\t", "Parameter Loaded - store_host", cfg.KafkaZnode)
 	cfg.StoreHost = viper.GetString("store_host")
-	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - store_host", cfg.StoreHost)
+	log.Info("CONFIG", "\t", "Parameter Loaded - store_host", cfg.StoreHost)
 	cfg.StoreDB = viper.GetString("store_db")
-	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - store_db", cfg.StoreDB)
+	log.Info("CONFIG", "\t", "Parameter Loaded - store_db", cfg.StoreDB)
 	cfg.Cert = viper.GetString("certificate")
-	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - certificate", cfg.Cert)
+	log.Info("CONFIG", "\t", "Parameter Loaded - certificate", cfg.Cert)
 	cfg.CertKey = viper.GetString("certificate_key")
-	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - certificate_key", cfg.CertKey)
+	log.Info("CONFIG", "\t", "Parameter Loaded - certificate_key", cfg.CertKey)
 	cfg.ResAuth = viper.GetBool("per_resource_auth")
-	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - per_resource_auth", cfg.CertKey)
+	log.Info("CONFIG", "\t", "Parameter Loaded - per_resource_auth", cfg.CertKey)
 	cfg.ServiceToken = viper.GetString("service_token")
-	log.Printf("%s\t%s\t%s:%s", "INFO", "CONFIG", "Parameter Loaded - service_token", cfg.ServiceToken)
+	log.Info("CONFIG", "\t", "Parameter Loaded - service_token", cfg.ServiceToken)
 
 }

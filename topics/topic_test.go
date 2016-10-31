@@ -2,8 +2,9 @@ package topics
 
 import (
 	"io/ioutil"
-	"log"
 	"testing"
+
+	log "github.com/Sirupsen/logrus"
 
 	"github.com/ARGOeu/argo-messaging/config"
 	"github.com/ARGOeu/argo-messaging/stores"
