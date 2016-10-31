@@ -3,8 +3,9 @@ package push
 import (
 	"errors"
 	"io/ioutil"
-	"log"
 	"testing"
+
+	log "github.com/Sirupsen/logrus"
 
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"

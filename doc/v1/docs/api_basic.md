@@ -24,7 +24,8 @@ The ARGO Messaging Service main configuration file is config.json. An example co
   "certificate":"/etc/pki/tls/certs/localhost.crt",
   "certificate_key":"/etc/pki/tls/private/localhost.key",
   "per_resource_auth":true,
-  "service_token":"S0M3T0K3N"
+  "service_token":"S0M3T0K3N",
+  "log_level":"INFO"
 }
 ```
 
@@ -41,7 +42,8 @@ store_db | Database name used on the datastore server
 certificate | path to the node's TLS certificate file
 certificate_key | path to the certificate's private key
 per_resource_auth | enable authorization per resource (topic/subscription)
-service_token | (optional) If set, enables full service-wide access to the api to initialize projects,users and resources  
+service_token | (optional) If set, enables full service-wide access to the api to initialize projects,users and resources
+log_level | set the desired log level (defaults to "INFO")
 
 **Location of config.json**: API will look first for config.json locally in the folder where the executable runs and then in the ` /etc/argo-messaging/`  location.
 
@@ -59,6 +61,7 @@ The available command line parameters are listed as follows:
 --certificate-key string   certificate key file *.key (default "/etc/pki/tls/private/localhost.key")
 --config-dir string        directory path to an alternative json config file
 --kafka-znode string       kafka zookeeper node name
+--log-level string         set the desired log level
 --per-resource-auth        enable per resource authentication (default true)
 --port int                 port number to listen to (default 8080)
 --service-key string       service token definition for immediate full api access

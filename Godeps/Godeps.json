@@ -14,6 +14,11 @@
 			"Rev": "d37c73f2b2bce85f7fa16b6a550d26c5372892ef"
 		},
 		{
+			"ImportPath": "github.com/Sirupsen/logrus",
+			"Comment": "v0.10.0-38-g3ec0642",
+			"Rev": "3ec0642a7fb6488f65b06f9040adc67e3990296a"
+		},
+		{
 			"ImportPath": "github.com/eapache/go-resiliency/breaker",
 			"Comment": "v1.0.0-4-gb86b1ec",
 			"Rev": "b86b1ec0dd4209a588dc1285cdd471e73525c0b3"
@@ -131,6 +136,10 @@
 		{
 			"ImportPath": "github.com/twinj/uuid",
 			"Rev": "70cac2bcd273ef6a371bb96cde363d28b68734c3"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/unix",
+			"Rev": "c200b10b5d5e122be351b67af224adc6128af5bf"
 		},
 		{
 			"ImportPath": "gopkg.in/fsnotify.v1",

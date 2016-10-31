@@ -2,8 +2,9 @@ package config
 
 import (
 	"io/ioutil"
-	"log"
 	"testing"
+
+	log "github.com/Sirupsen/logrus"
 
 	"github.com/stretchr/testify/suite"
 )

@@ -1,8 +1,9 @@
 package main
 
 import (
-	"log"
 	"net/http"
+
+	log "github.com/Sirupsen/logrus"
 
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
@@ -57,7 +58,7 @@ func NewRouting(cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *p
 			Handler(context.ClearHandler(handler))
 	}
 
-	log.Printf("INFO\tAPI\tAPI Router initialized! Ready to start listening...")
+	log.Info("API", "\t", "API Router initialized! Ready to start listening...")
 	// Return reference to API object
 	return &ar
 }

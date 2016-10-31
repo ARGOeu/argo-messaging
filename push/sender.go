@@ -3,9 +3,10 @@ package push
 import (
 	"bytes"
 	"errors"
-	"log"
 	"net/http"
 	"time"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 // Sender is inteface for sending messages to remote endpoints
@@ -38,8 +39,8 @@ func (hs *HTTPSender) Send(msg string, endpoint string) error {
 	var jsonStr = []byte(msg)
 	req, err := http.NewRequest("POST", endpoint, bytes.NewBuffer(jsonStr))
 	req.Header.Set("Content-Type", "application/json")
-	log.Println("Sending to endpoint:", endpoint)
-	log.Println("message contents:", msg)
+	log.Debug("Sending to endpoint:", endpoint)
+	log.Debug("message contents:", msg)
 
 	resp, err := hs.Client.Do(req)
 
@@ -47,7 +48,7 @@ func (hs *HTTPSender) Send(msg string, endpoint string) error {
 		if resp.StatusCode != 200 && resp.StatusCode != 201 && resp.StatusCode != 204 && resp.StatusCode != 102 {
 			err = errors.New("Endpoint Responded: not delivered")
 		}
-		log.Println("message Delivered")
+		log.Debug("message Delivered")
 	}
 
 	return err

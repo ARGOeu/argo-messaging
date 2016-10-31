@@ -3,9 +3,10 @@ package auth
 import (
 	"errors"
 	"io/ioutil"
-	"log"
 	"testing"
 	"time"
+
+	log "github.com/Sirupsen/logrus"
 
 	"github.com/ARGOeu/argo-messaging/config"
 	"github.com/ARGOeu/argo-messaging/stores"
