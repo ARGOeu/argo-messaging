@@ -132,7 +132,7 @@ func (mong *MongoStore) UpdateUserToken(uuid string, token string) error {
 }
 
 // UpdateUser updates user information
-func (mong *MongoStore) UpdateUser(uuid string, projects []QProjectRoles, name string, email string, serviceRoles []string) error {
+func (mong *MongoStore) UpdateUser(uuid string, projects []QProjectRoles, name string, email string, serviceRoles []string, modifiedOn time.Time) error {
 	db := mong.Session.DB(mong.Database)
 	c := db.C("users")
 
@@ -165,6 +165,8 @@ func (mong *MongoStore) UpdateUser(uuid string, projects []QProjectRoles, name s
 	if serviceRoles != nil {
 		curUsr.ServiceRoles = serviceRoles
 	}
+
+	curUsr.ModifiedOn = modifiedOn
 
 	change := bson.M{"$set": curUsr}
 
@@ -458,8 +460,8 @@ func (mong *MongoStore) InsertTopic(projectUUID string, name string) error {
 }
 
 // InsertUser inserts a new user to the store
-func (mong *MongoStore) InsertUser(uuid string, projects []QProjectRoles, name string, token string, email string, serviceRoles []string) error {
-	user := QUser{UUID: uuid, Name: name, Email: email, Token: token, Projects: projects, ServiceRoles: serviceRoles}
+func (mong *MongoStore) InsertUser(uuid string, projects []QProjectRoles, name string, token string, email string, serviceRoles []string, createdOn time.Time, modifiedOn time.Time, createdBy string) error {
+	user := QUser{UUID: uuid, Name: name, Email: email, Token: token, Projects: projects, ServiceRoles: serviceRoles, CreatedOn: createdOn, ModifiedOn: modifiedOn, CreatedBy: createdBy}
 	return mong.InsertResource("users", user)
 }
 

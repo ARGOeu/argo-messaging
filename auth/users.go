@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"time"
 
 	"github.com/ARGOeu/argo-messaging/projects"
 	"github.com/ARGOeu/argo-messaging/stores"
@@ -19,6 +20,9 @@ type User struct {
 	Token        string         `json:"token"`
 	Email        string         `json:"email"`
 	ServiceRoles []string       `json:"service_roles"`
+	CreatedOn    string         `json:"created_on,omitempty"`
+	ModifiedOn   string         `json:"modified_on,omitempty"`
+	CreatedBy    string         `json:"created_by,omitempty"`
 }
 
 // ProjectRoles is the struct that hold project and role information of the user
@@ -68,8 +72,9 @@ func GetUserFromJSON(input []byte) (User, error) {
 }
 
 // NewUser accepts parameters and creates a new user
-func NewUser(uuid string, projects []ProjectRoles, name string, token string, email string, serviceRoles []string) User {
-	return User{UUID: uuid, Projects: projects, Name: name, Token: token, Email: email, ServiceRoles: serviceRoles}
+func NewUser(uuid string, projects []ProjectRoles, name string, token string, email string, serviceRoles []string, createdOn time.Time, modifiedOn time.Time, createdBy string) User {
+	zuluForm := "2006-01-02T15:04:05Z"
+	return User{UUID: uuid, Projects: projects, Name: name, Token: token, Email: email, ServiceRoles: serviceRoles, CreatedOn: createdOn.Format(zuluForm), ModifiedOn: modifiedOn.Format(zuluForm), CreatedBy: createdBy}
 }
 
 // FindUsers returns a specific user or a list of all available users belonging to a  project in the datastore.
@@ -84,7 +89,15 @@ func FindUsers(projectUUID string, uuid string, name string, store stores.Store)
 			prName := projects.GetNameByUUID(pItem.ProjectUUID, store)
 			pRoles = append(pRoles, ProjectRoles{Project: prName, Roles: pItem.Roles})
 		}
-		curUser := NewUser(item.UUID, pRoles, item.Name, item.Token, item.Email, item.ServiceRoles)
+		// Get Username from user uuid
+		username := ""
+		if item.CreatedBy != "" {
+			usr, err := store.QueryUsers("", item.CreatedBy, "")
+			if err == nil && len(usr) > 0 {
+				username = usr[0].Name
+			}
+		}
+		curUser := NewUser(item.UUID, pRoles, item.Name, item.Token, item.Email, item.ServiceRoles, item.CreatedOn, item.ModifiedOn, username)
 		result.List = append(result.List, curUser)
 	}
 
@@ -156,7 +169,7 @@ func UpdateUserToken(uuid string, token string, store stores.Store) (User, error
 }
 
 // UpdateUser updates an existing user's information
-func UpdateUser(uuid string, name string, projectList []ProjectRoles, email string, serviceRoles []string, store stores.Store) (User, error) {
+func UpdateUser(uuid string, name string, projectList []ProjectRoles, email string, serviceRoles []string, modifiedOn time.Time, store stores.Store) (User, error) {
 
 	prList := []stores.QProjectRoles{}
 
@@ -192,7 +205,7 @@ func UpdateUser(uuid string, name string, projectList []ProjectRoles, email stri
 		}
 	}
 
-	if err := store.UpdateUser(uuid, prList, name, email, serviceRoles); err != nil {
+	if err := store.UpdateUser(uuid, prList, name, email, serviceRoles, modifiedOn); err != nil {
 		return User{}, err
 	}
 
@@ -202,7 +215,7 @@ func UpdateUser(uuid string, name string, projectList []ProjectRoles, email stri
 }
 
 // CreateUser creates a new user
-func CreateUser(uuid string, name string, projectList []ProjectRoles, token string, email string, serviceRoles []string, store stores.Store) (User, error) {
+func CreateUser(uuid string, name string, projectList []ProjectRoles, token string, email string, serviceRoles []string, createdOn time.Time, createdBy string, store stores.Store) (User, error) {
 	// check if project with the same name exists
 	if ExistsWithName(name, store) {
 		return User{}, errors.New("exists")
@@ -227,7 +240,7 @@ func CreateUser(uuid string, name string, projectList []ProjectRoles, token stri
 		prList = append(prList, stores.QProjectRoles{ProjectUUID: prUUID, Roles: item.Roles})
 	}
 
-	if err := store.InsertUser(uuid, prList, name, token, email, serviceRoles); err != nil {
+	if err := store.InsertUser(uuid, prList, name, token, email, serviceRoles, createdOn, createdOn, createdBy); err != nil {
 		return User{}, errors.New("backend error")
 	}
 

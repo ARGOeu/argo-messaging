@@ -117,23 +117,6 @@ func (suite *HandlerTestSuite) TestRefreshToken() {
 
 func (suite *HandlerTestSuite) TestUserUpdate() {
 
-	expJSON := `{
-   "projects": [
-      {
-         "project": "ARGO",
-         "roles": [
-            "producer"
-         ]
-      }
-   ],
-   "name": "UPDATED_NAME",
-   "token": "S3CR3T4",
-   "email": "foo-email",
-   "service_roles": [
-      "service_admin"
-   ]
-}`
-
 	postJSON := `{
 	"name":"UPDATED_NAME",
 	"service_roles":["service_admin"]
@@ -154,7 +137,11 @@ func (suite *HandlerTestSuite) TestUserUpdate() {
 	router.HandleFunc("/v1/users/{user}", WrapMockAuthConfig(UserUpdate, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
-	suite.Equal(expJSON, w.Body.String())
+	userOut, _ := auth.GetUserFromJSON([]byte(w.Body.String()))
+	suite.Equal("UPDATED_NAME", userOut.Name)
+	suite.Equal([]string{"service_admin"}, userOut.ServiceRoles)
+	suite.Equal("UserA", userOut.CreatedBy)
+
 }
 
 func (suite *HandlerTestSuite) TestUserListOne() {
@@ -177,7 +164,9 @@ func (suite *HandlerTestSuite) TestUserListOne() {
    "name": "UserA",
    "token": "S3CR3T1",
    "email": "foo-email",
-   "service_roles": []
+   "service_roles": [],
+   "created_on": "2009-11-10T23:00:00Z",
+   "modified_on": "2009-11-10T23:00:00Z"
 }`
 
 	cfgKafka := config.NewAPICfg()
@@ -217,7 +206,9 @@ func (suite *HandlerTestSuite) TestUserListAll() {
          "name": "Test",
          "token": "S3CR3T",
          "email": "Test@test.com",
-         "service_roles": []
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z"
       },
       {
          "projects": [
@@ -232,7 +223,9 @@ func (suite *HandlerTestSuite) TestUserListAll() {
          "name": "UserA",
          "token": "S3CR3T1",
          "email": "foo-email",
-         "service_roles": []
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z"
       },
       {
          "projects": [
@@ -247,7 +240,10 @@ func (suite *HandlerTestSuite) TestUserListAll() {
          "name": "UserB",
          "token": "S3CR3T2",
          "email": "foo-email",
-         "service_roles": []
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "UserA"
       },
       {
          "projects": [
@@ -261,7 +257,10 @@ func (suite *HandlerTestSuite) TestUserListAll() {
          "name": "UserX",
          "token": "S3CR3T3",
          "email": "foo-email",
-         "service_roles": []
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "UserA"
       },
       {
          "projects": [
@@ -275,7 +274,10 @@ func (suite *HandlerTestSuite) TestUserListAll() {
          "name": "UserZ",
          "token": "S3CR3T4",
          "email": "foo-email",
-         "service_roles": []
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "UserA"
       }
    ]
 }`

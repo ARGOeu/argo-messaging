@@ -39,6 +39,9 @@ type QUser struct {
 	Token        string          `bson:"token"`
 	Email        string          `bson:"email"`
 	ServiceRoles []string        `bson:"service_roles"`
+	CreatedOn    time.Time       `bson:"created_on"`
+	ModifiedOn   time.Time       `bson:"modified_on"`
+	CreatedBy    string          `bson:"created_by"`
 }
 
 //QProjectRoles include information about projects and roles that user has

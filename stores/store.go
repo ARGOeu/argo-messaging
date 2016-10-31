@@ -10,7 +10,7 @@ type Store interface {
 	RemoveTopic(projectUUID string, name string) error
 	RemoveSub(projectUUID string, name string) error
 	QueryUsers(projectUUID string, uuid string, name string) ([]QUser, error)
-	UpdateUser(uuid string, projects []QProjectRoles, name string, email string, serviceRoles []string) error
+	UpdateUser(uuid string, projects []QProjectRoles, name string, email string, serviceRoles []string, modifiedOn time.Time) error
 	UpdateUserToken(uuid string, token string) error
 	RemoveUser(uuid string) error
 	QueryProjects(uuid string, name string) ([]QProject, error)
@@ -18,7 +18,7 @@ type Store interface {
 	RemoveProject(uuid string) error
 	RemoveProjectTopics(projectUUID string) error
 	RemoveProjectSubs(projectUUID string) error
-	InsertUser(uuid string, projects []QProjectRoles, name string, token string, email string, serviceRoles []string) error
+	InsertUser(uuid string, projects []QProjectRoles, name string, token string, email string, serviceRoles []string, createdOn time.Time, modifiedOn time.Time, createdBy string) error
 	InsertProject(uuid string, name string, createdOn time.Time, modifiedOn time.Time, createdBy string, description string) error
 	InsertTopic(projectUUID string, name string) error
 	InsertSub(projectUUID string, name string, topic string, offest int64, ack int, push string, rPolicy string, rPeriod int) error

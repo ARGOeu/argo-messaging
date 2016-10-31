@@ -209,10 +209,10 @@ func (suite *StoreTestSuite) TestMockStore() {
 	// Test Insert User
 	qRoleAdmin1 := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"admin"}}}
 	qRoles := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"admin"}}, QProjectRoles{"argo_uuid2", []string{"admin", "viewer"}}}
-	expUsr10 := QUser{"user_uuid10", qRoleAdmin1, "newUser1", "A3B94A94V3A", "fake@email.com", []string{}}
-	expUsr11 := QUser{"user_uuid11", qRoles, "newUser2", "BX312Z34NLQ", "fake@email.com", []string{}}
-	store.InsertUser("user_uuid10", qRoleAdmin1, "newUser1", "A3B94A94V3A", "fake@email.com", []string{})
-	store.InsertUser("user_uuid11", qRoles, "newUser2", "BX312Z34NLQ", "fake@email.com", []string{})
+	expUsr10 := QUser{"user_uuid10", qRoleAdmin1, "newUser1", "A3B94A94V3A", "fake@email.com", []string{}, created, modified, "uuid1"}
+	expUsr11 := QUser{"user_uuid11", qRoles, "newUser2", "BX312Z34NLQ", "fake@email.com", []string{}, created, modified, "uuid1"}
+	store.InsertUser("user_uuid10", qRoleAdmin1, "newUser1", "A3B94A94V3A", "fake@email.com", []string{}, created, modified, "uuid1")
+	store.InsertUser("user_uuid11", qRoles, "newUser2", "BX312Z34NLQ", "fake@email.com", []string{}, created, modified, "uuid1")
 	usr10, _ := store.QueryUsers("argo_uuid", "user_uuid10", "")
 	usr11, _ := store.QueryUsers("argo_uuid", "", "newUser2")
 
@@ -228,8 +228,8 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal([]string{"admin", "viewer"}, rolesB)
 
 	// Test Update User
-	usrUpdated := QUser{"user_uuid11", qRoles, "updated_name", "BX312Z34NLQ", "fake@email.com", []string{"service_admin"}}
-	store.UpdateUser("user_uuid11", nil, "updated_name", "", []string{"service_admin"})
+	usrUpdated := QUser{"user_uuid11", qRoles, "updated_name", "BX312Z34NLQ", "fake@email.com", []string{"service_admin"}, created, modified, "uuid1"}
+	store.UpdateUser("user_uuid11", nil, "updated_name", "", []string{"service_admin"}, modified)
 	usr11, _ = store.QueryUsers("", "user_uuid11", "")
 	suite.Equal(usrUpdated, usr11[0])
 
