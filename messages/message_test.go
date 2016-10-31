@@ -3,7 +3,6 @@ package messages
 import (
 	b64 "encoding/base64"
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -66,8 +65,6 @@ func (suite *MsgTestSuite) TestLoadMsgJson() {
 	suite.Equal(expAttr, testMsg.Attr)
 	suite.Equal("aGVsbG8gd29ybGQh", testMsg.Data)
 
-	fmt.Println(testMsg.Data)
-
 }
 
 func (suite *MsgTestSuite) TestExportJson() {
@@ -88,7 +85,6 @@ func (suite *MsgTestSuite) TestExportJson() {
 	outJSON, err := testMsg.ExportJSON()
 	suite.Equal(nil, err)
 	suite.Equal(expJSON, outJSON)
-	fmt.Println(outJSON)
 
 }
 
