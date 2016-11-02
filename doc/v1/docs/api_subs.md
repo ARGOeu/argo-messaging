@@ -184,7 +184,7 @@ This request consumes messages from a subscription in a project with a POST requ
 ### Post body:
 ```json
 {
- "maxMessages": "1",
+ "maxMessages": "1"
 }
 ```
 
@@ -203,7 +203,7 @@ curl -X POST -H "Content-Type: application/json"
 
 ### post body:
 {
- "maxMessages": "1",
+ "maxMessages": "1"
 }
 
 ### Responses  
@@ -257,7 +257,9 @@ Messages retrieved from a pull subscription can be acknowledged by sending messa
 
 ### Example request
 
-`curl -X POST -H "Content-Type: application/json"  
+
+```
+curl -X POST -H "Content-Type: application/json"  
 -d POSTDATA http://{URL}/v1/projects/EGI/subscriptions/alert_engine:acknowledge?key=S3CR3T"
 ```
 
