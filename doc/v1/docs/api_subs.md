@@ -257,7 +257,9 @@ Messages retrieved from a pull subscription can be acknowledged by sending messa
 
 ### Example request
 
-`curl -X POST -H "Content-Type: application/json"  
+
+```
+curl -X POST -H "Content-Type: application/json"  
 -d POSTDATA http://{URL}/v1/projects/EGI/subscriptions/alert_engine:acknowledge?key=S3CR3T"
 ```
 
