@@ -239,6 +239,7 @@ func ProjectUpdate(w http.ResponseWriter, r *http.Request) {
 	postBody, err := projects.GetFromJSON(body)
 	if err != nil {
 		respondErr(w, 400, "Invalid Project Arguments", "INVALID_ARGUMENT")
+		log.Error(string(body[:]))
 		return
 	}
 
@@ -305,6 +306,7 @@ func ProjectCreate(w http.ResponseWriter, r *http.Request) {
 	postBody, err := projects.GetFromJSON(body)
 	if err != nil {
 		respondErr(w, 400, "Invalid Project Arguments", "INVALID_ARGUMENT")
+		log.Error(string(body[:]))
 		return
 	}
 
@@ -499,6 +501,7 @@ func UserUpdate(w http.ResponseWriter, r *http.Request) {
 	postBody, err := auth.GetUserFromJSON(body)
 	if err != nil {
 		respondErr(w, 400, "Invalid User Arguments", "INVALID_ARGUMENT")
+		log.Error(string(body[:]))
 		return
 	}
 
@@ -568,6 +571,7 @@ func UserCreate(w http.ResponseWriter, r *http.Request) {
 	postBody, err := auth.GetUserFromJSON(body)
 	if err != nil {
 		respondErr(w, 400, "Invalid User  Arguments", "INVALID_ARGUMENT")
+		log.Error(string(body[:]))
 		return
 	}
 
@@ -962,6 +966,7 @@ func TopicModACL(w http.ResponseWriter, r *http.Request) {
 	postBody, err := auth.GetACLFromJSON(body)
 	if err != nil {
 		respondErr(w, 400, "Invalid Topic ACL Arguments", "INVALID_ARGUMENT")
+		log.Error(string(body[:]))
 		return
 	}
 
@@ -1021,6 +1026,7 @@ func SubModACL(w http.ResponseWriter, r *http.Request) {
 	postBody, err := auth.GetACLFromJSON(body)
 	if err != nil {
 		respondErr(w, 400, "Invalid Subscription ACL Arguments", "INVALID_ARGUMENT")
+		log.Error(string(body[:]))
 		return
 	}
 
@@ -1084,6 +1090,7 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 	postBody, err := subscriptions.GetFromJSON(body)
 	if err != nil {
 		respondErr(w, 400, "Invalid Subscription Arguments", "INVALID_ARGUMENT")
+		log.Error(string(body[:]))
 		return
 	}
 
@@ -1185,6 +1192,7 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 	postBody, err := subscriptions.GetFromJSON(body)
 	if err != nil {
 		respondErr(w, 400, "Invalid Subscription Arguments", "INVALID_ARGUMENT")
+		log.Error(string(body[:]))
 		return
 	}
 
@@ -1540,6 +1548,7 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 	msgList, err := messages.LoadMsgListJSON(body)
 	if err != nil {
 		respondErr(w, 400, "Invalid Message Arguments", "INVALID_ARGUMENT")
+		log.Error(string(body[:]))
 		return
 	}
 
@@ -1635,6 +1644,7 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	pullInfo, err := subscriptions.GetPullOptionsJSON(body)
 	if err != nil {
 		respondErr(w, 400, "Pull Parameters Invalid", "INVALID_ARGUMENT")
+		log.Error(string(body[:]))
 		return
 	}
 
