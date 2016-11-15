@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strconv"
 	"time"
 
@@ -17,17 +18,20 @@ import (
 // APICfg holds kafka configuration
 type APICfg struct {
 	// values
-	BindIP       string
-	Port         int
-	ZooHosts     []string
-	KafkaZnode   string //The Zookeeper znode used by Kafka
-	StoreHost    string
-	StoreDB      string
-	Cert         string
-	CertKey      string
-	ResAuth      bool
-	ServiceToken string
-	LogLevel     string
+	BindIP        string
+	Port          int
+	ZooHosts      []string
+	KafkaZnode    string //The Zookeeper znode used by Kafka
+	StoreHost     string
+	StoreDB       string
+	Cert          string
+	CertKey       string
+	ResAuth       bool
+	ServiceToken  string
+	LogLevel      string
+	BigMsgLog     bool
+	BigMsgSizeT   int
+	BigMsgLogFile string
 }
 
 // NewAPICfg creates a new kafka configuration object
@@ -38,6 +42,17 @@ func NewAPICfg(params ...string) *APICfg {
 	for _, param := range params {
 		if param == "LOAD" {
 			cfg.Load()
+
+			if cfg.BigMsgLog {
+				// Create the secondary log file
+				if _, err := os.Stat(cfg.BigMsgLogFile); os.IsNotExist(err) {
+					f, err := os.Create(cfg.BigMsgLogFile)
+					if err != nil {
+						log.Error(err)
+					}
+					defer f.Close()
+				}
+			}
 			return &cfg
 		}
 		if param == "LOADTEST" {
@@ -146,6 +161,12 @@ func (cfg *APICfg) LoadTest() {
 	log.Info("CONFIG", "\t", "Parameter Loaded - per_resource_auth: ", cfg.CertKey)
 	cfg.ServiceToken = viper.GetString("service_token")
 	log.Info("CONFIG", "\t", "Parameter Loaded - service_token: ", cfg.ServiceToken)
+	cfg.BigMsgLog = viper.GetBool("big_msg_log")
+	log.Info("CONFIG", "\t", "Parameter Loaded - big_msg_size_threshold: ", cfg.BigMsgLog)
+	cfg.BigMsgSizeT = viper.GetInt("big_msg_size_threshold")
+	log.Info("CONFIG", "\t", "Parameter Loaded - big_msg_size_threshold: ", cfg.BigMsgSizeT)
+	cfg.BigMsgLogFile = viper.GetString("big_msg_log_file")
+	log.Info("CONFIG", "\t", "Parameter Loaded - big_msg_log_file: ", cfg.BigMsgLogFile)
 
 }
 
@@ -188,6 +209,15 @@ func (cfg *APICfg) Load() {
 
 		pflag.String("service-key", "", "service token definition for immediate full api access")
 		viper.BindPFlag("service_key", pflag.Lookup("service-key"))
+
+		pflag.Int("big-msg-size-threshold", -1, "big message size threshold (bytes)")
+		viper.BindPFlag("big_msg_size_threshold", pflag.Lookup("big-msg-size-threshold"))
+
+		pflag.String("big-msg-log-file", "", "Big msg log filename")
+		viper.BindPFlag("big_msg_log_file", pflag.Lookup("big-msg-log-file"))
+
+		pflag.Bool("big-msg-log", false, "Enable big message logging")
+		viper.BindPFlag("big_msg_log", pflag.Lookup("big-msg-log"))
 
 		configPath = pflag.String("config-dir", "", "directory path to an alternative json config file")
 
@@ -233,6 +263,12 @@ func (cfg *APICfg) Load() {
 	log.Info("CONFIG", "\t", "Parameter Loaded - per_resource_auth: ", cfg.CertKey)
 	cfg.ServiceToken = viper.GetString("service_token")
 	log.Info("CONFIG", "\t", "Parameter Loaded - service_token: ", cfg.ServiceToken)
+	cfg.BigMsgLog = viper.GetBool("big_msg_log")
+	log.Info("CONFIG", "\t", "Parameter Loaded - big_msg_size_threshold: ", cfg.BigMsgLog)
+	cfg.BigMsgSizeT = viper.GetInt("big_msg_size_threshold")
+	log.Info("CONFIG", "\t", "Parameter Loaded - big_msg_size_threshold: ", cfg.BigMsgSizeT)
+	cfg.BigMsgLogFile = viper.GetString("big_msg_log_file")
+	log.Info("CONFIG", "\t", "Parameter Loaded - big_msg_log_file: ", cfg.BigMsgLogFile)
 
 }
 
@@ -261,5 +297,11 @@ func (cfg *APICfg) LoadStrJSON(input string) {
 	log.Info("CONFIG", "\t", "Parameter Loaded - per_resource_auth", cfg.CertKey)
 	cfg.ServiceToken = viper.GetString("service_token")
 	log.Info("CONFIG", "\t", "Parameter Loaded - service_token", cfg.ServiceToken)
+	cfg.BigMsgLog = viper.GetBool("big_msg_log")
+	log.Info("CONFIG", "\t", "Parameter Loaded - big_msg_size_threshold: ", cfg.BigMsgLog)
+	cfg.BigMsgSizeT = viper.GetInt("big_msg_size_threshold")
+	log.Info("CONFIG", "\t", "Parameter Loaded - big_msg_size_threshold: ", cfg.BigMsgSizeT)
+	cfg.BigMsgLogFile = viper.GetString("big_msg_log_file")
+	log.Info("CONFIG", "\t", "Parameter Loaded - big_msg_log_file: ", cfg.BigMsgLogFile)
 
 }

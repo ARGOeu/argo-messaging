@@ -5,6 +5,7 @@ import (
 	b64 "encoding/base64"
 	"encoding/json"
 	"errors"
+	"os"
 	"sort"
 	"strings"
 )
@@ -180,6 +181,39 @@ func (pMsg *PushMsg) ExportJSON() (string, error) {
 func (msg *Message) ExportJSON() (string, error) {
 	output, err := json.MarshalIndent(msg, "", "   ")
 	return string(output[:]), err
+}
+
+// BigMsgWriteFile writes the whole message structure as json to file if the message
+// is bigger than a defined threshold in bytes
+func (msg *Message) BigMsgWriteFile(threshold int, filename string) error {
+
+	// if threshold is < 0 abort
+	if threshold < 0 {
+		return nil
+	}
+
+	outJSON, err := msg.ExportJSON()
+	if err != nil {
+		return err
+	}
+
+	// Check first if msg is bigger than threshold
+	bytes := []byte(outJSON)
+	// If byte length not bigger than threshold just return
+	if len(bytes) <= threshold {
+		return nil
+	}
+
+	// Open filename for appending the message in json
+	f, err := os.OpenFile(filename, os.O_APPEND|os.O_WRONLY, os.ModeAppend)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	_, err = f.WriteString(outJSON)
+	return err
+
 }
 
 // ExportJSON exports whole msgId  Structure as a json string

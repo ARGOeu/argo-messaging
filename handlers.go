@@ -72,6 +72,9 @@ func WrapMockAuthConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Br
 		context.Set(r, "auth_user", "UserA")
 		context.Set(r, "auth_user_uuid", "uuid1")
 		context.Set(r, "auth_roles", []string{"publisher", "consumer"})
+		context.Set(r, "big_msg_log", false)
+		context.Set(r, "big_msg_size_threshold", -1)
+		context.Set(r, "big_msg_log_file", "foo.log")
 		hfn.ServeHTTP(w, r)
 
 	})
@@ -88,6 +91,9 @@ func WrapConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Broker, st
 		context.Set(r, "mgr", mgr)
 		context.Set(r, "auth_resource", cfg.ResAuth)
 		context.Set(r, "auth_service_token", cfg.ServiceToken)
+		context.Set(r, "big_msg_log", cfg.BigMsgLog)
+		context.Set(r, "big_msg_size_threshold", cfg.BigMsgSizeT)
+		context.Set(r, "big_msg_log_file", cfg.BigMsgLogFile)
 		hfn.ServeHTTP(w, r)
 
 	})
@@ -1508,6 +1514,12 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 	refUser := context.Get(r, "auth_user").(string)
 	refRoles := context.Get(r, "auth_roles").([]string)
 	refAuthResource := context.Get(r, "auth_resource").(bool)
+
+	// Get BigMsg check related references
+	refBigMsg := context.Get(r, "big_msg_log").(bool)
+	refBigMsgT := context.Get(r, "big_msg_size_threshold").(int)
+	refBigMsgF := context.Get(r, "big_msg_log_file").(string)
+
 	// Get project UUID First to use as reference
 	projectUUID := context.Get(r, "auth_project_uuid").(string)
 
@@ -1550,6 +1562,14 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 	for _, msg := range msgList.Msgs {
 		// Get offset and set it as msg
 		fullTopic := projectUUID + "." + urlTopic
+
+		// if big message logging is enabled
+		if refBigMsg {
+			err := msg.BigMsgWriteFile(refBigMsgT, refBigMsgF)
+			if err != nil {
+				log.Error(err)
+			}
+		}
 
 		msgID, rTop, _, _, err := refBrk.Publish(fullTopic, msg)
 
