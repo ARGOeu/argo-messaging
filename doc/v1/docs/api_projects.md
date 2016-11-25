@@ -199,7 +199,7 @@ DELETE "/v1/projects/{project_name}"
 
 ```json
 curl -X DELETE -H "Content-Type: application/json"  
--d '' "https://{URL}/v1/projects/EGI?key=S3CR3T"
+ "https://{URL}/v1/projects/BRAND_NEW?key=S3CR3T"
 ```
 
 ### Responses  

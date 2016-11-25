@@ -13,13 +13,13 @@ This request creates a new subscription in a project with a PUT request
 ### Example request
 ```json
 curl -X PUT -H "Content-Type: application/json"  -d 'PUTBODY'
-	" https://{URL}/v1/projects/EGI/subscriptions/alert_engine ?key=S3CR3T"`
+ "https://{URL}/v1/projects/BRAND_NEW/subscriptions/alert_engine ?key=S3CR3T"`
 ```
 
 ### PUT  BODY
 ```json
 {
- "topic": "projects/EGI/topics/monitoring",
+ "topic": "projects/BRAND_NEW/topics/monitoring",
  "ack":10
 }
 ```
@@ -30,8 +30,8 @@ Success Response
 `200 OK`
 ```json
 {
- "name": "projects/EGI/subscriptions/alert_engine",
- "topic": "projects/EGI/topics/monitoring",
+ "name": "projects/BRAND_NEW/subscriptions/alert_engine",
+ "topic": "projects/BRAND_NEW/topics/monitoring",
  "ackDeadlineSeconds": 10  
 }
 ```
@@ -43,7 +43,7 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 
 This request lists all subscriptions  in a project with a GET  request
 ### Request
-`GET /v1/projects/{project_name}/subscriptions/`
+`GET /v1/projects/{project_name}/subscriptions`
 
 ### Where
 - Project_name: Name of the project to list the subscriptions
@@ -51,7 +51,7 @@ This request lists all subscriptions  in a project with a GET  request
 ### Example request
 ```json
 curl -X PUT -H "Content-Type: application/json"
-  -d '' " https://{URL}/v1/projects/EGI/subscriptions/?key=S3CR3T"
+  "https://{URL}/v1/projects/BRAND_NEW/subscriptions?key=S3CR3T"
 ```
 
 
@@ -62,8 +62,8 @@ Success Response
 ```json
  "subscriptions": [
  {
-  "name": "projects/EGI/subscriptions/alert_engine",
-  "topic": "projects/EGI/topics/monitoring",
+  "name": "projects/BRAND_NEW/subscriptions/alert_engine",
+  "topic": "projects/BRAND_NEW/topics/monitoring",
   "pushConfig": {},
   "ackDeadlineSeconds": 10
  }
@@ -77,7 +77,9 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 This request returns a list of authorized users to consume from the subscription
 
 ### Request
-`GET /v1/projects/{project_name}/subscriptions/{sub_name}:acl``
+```json
+GET /v1/projects/{project_name}/subscriptions/{sub_name}:acl
+```
 
 ### Where
 - Project_name: Name of the project to get
@@ -87,7 +89,7 @@ This request returns a list of authorized users to consume from the subscription
 
 ```json
 curl -H "Content-Type: application/json"  
--d '' " https://{URL}/v1/projects/EGI/subscriptions/subscription:acl?key=S3CR3T"`
+ "https://{URL}/v1/projects/BRAND_NEW/subscriptions/subscription:acl?key=S3CR3T"`
 ```
 
 ### Responses  
@@ -118,7 +120,7 @@ This request deletes a topic in a project with a DELETE request
 
 ```json
 curl -X DELETE -H "Content-Type: application/json"  
-http://{URL}/v1/projects/EGI/subscriptions/alert_engine?key=S3CR3T
+http://{URL}/v1/projects/BRAND_NEW/subscriptions/alert_engine?key=S3CR3T
 ```
 
 ### Responses  
@@ -137,7 +139,6 @@ This request modifies the push configuration of a subscription
 
 ### Post body:
 ```
-json
 {
   "pushConfig": {  "pushEndpoint": "",
                    "retryPolicy": { "type": "linear", "period": 300 }
@@ -153,12 +154,13 @@ json
 
 ### Example request
 
-`curl -X POST -H "Content-Type: application/json"  
--d POSTDATA http://{URL}/v1/projects/EGI/subscriptions/alert_engine:modifyPushConfig?key=S3CR3T"
-`
+```json
+curl -X POST -H "Content-Type: application/json"  
+-d POSTDATA http://{URL}/v1/projects/BRAND_NEW/subscriptions/alert_engine:modifyPushConfig?key=S3CR3T"
+```
 
 ### post body:
-```json
+```
 {
   "pushConfig": {"pushEndpoint": "host:example.com:8080/path/to/hook",
                  "retryPolicy":  { "type": "linear", "period": 300 }
@@ -198,7 +200,7 @@ This request consumes messages from a subscription in a project with a POST requ
 
 ```json
 curl -X POST -H "Content-Type: application/json"
-  -d POSTDATA https://{URL}/v1/projects/EGI/subscriptions/alert_engine:pull?key=S3CR3T"
+  -d POSTDATA https://{URL}/v1/projects/BRAND_NEW/subscriptions/alert_engine:pull?key=S3CR3T"
 ```
 
 ### post body:
@@ -260,7 +262,7 @@ Messages retrieved from a pull subscription can be acknowledged by sending messa
 
 ```
 curl -X POST -H "Content-Type: application/json"  
--d POSTDATA http://{URL}/v1/projects/EGI/subscriptions/alert_engine:acknowledge?key=S3CR3T"
+-d POSTDATA http://{URL}/v1/projects/BRAND_NEW/subscriptions/alert_engine:acknowledge?key=S3CR3T"
 ```
 
 ### post body:

@@ -18,7 +18,7 @@ PUT "/v1/projects/{project_name}/topics/{topic_name}"
 ### Example request
 ```json
 curl -X PUT -H "Content-Type: application/json"
- -d '' " https://{URL}/v1/projects/EGI/topics/monitoring?key=S3CR3T"
+ " https://{URL}/v1/projects/BRAND_NEW/topics/monitoring?key=S3CR3T"
 ```
 
 ### Responses  
@@ -29,7 +29,7 @@ Success Response
 `200 OK`
 ```json
 {
- "name": "projects/EGI/topics/monitoring"
+ "name": "projects/BRAND_NEW/topics/monitoring"
 }
 ```
 
@@ -53,7 +53,7 @@ DELETE "/v1/projects/{project_name}/topics/{topic_name}"
 
 ```json
 curl -X DELETE -H "Content-Type: application/json"  
--d '' "https://{URL}/v1/projects/EGI/topics/monitoring?key=S3CR3T"
+-d '' "https://{URL}/v1/projects/BRAND_NEW/topics/monitoring?key=S3CR3T"
 ```
 
 ### Responses  
@@ -80,7 +80,7 @@ GET "/v1/projects/{project_name}/topics/{topic_name}"
 
 ```json
 curl -H "Content-Type: application/json"  
--d '' " https://{URL}/v1/projects/EGI/topics/monitoring?key=S3CR3T"
+ "https://{URL}/v1/projects/BRAND_NEW/topics/monitoring?key=S3CR3T"
 ```
 
 ### Responses  
@@ -90,7 +90,7 @@ Success Response
 `200 OK`
 ```json
 {
- "name": "projects/EGI/topics/monitoring"
+ "name": "projects/BRAND_NEW/topics/monitoring"
 }
 ```
 
@@ -111,8 +111,8 @@ GET "/v1/projects/{project_name}/topics"
 ### Example request
 
 ```json
-curl -H "Content-Type: application/json"  
--d '' " https://{URL}/v1/projects/EGI/topics/?key=S3CR3T"`
+curl -H "Content-Type: application/json" 
+"https://{URL}/v1/projects/BRAND_NEW/topics/?key=S3CR3T"`
 ```
 
 ### Responses  
@@ -123,10 +123,10 @@ Success Response
 {
   "topics": [
     {
-      "name":"/project/EGI/topics/monitoring"
+      "name":"/project/BRAND_NEW/topics/monitoring"
     },
     {
-      "name":"/project/EGI/topics/accounting"
+      "name":"/project/BRAND_NEW/topics/accounting"
     },
      ]
 }
@@ -172,7 +172,7 @@ POST "/v1/projects/{project_name}/topics/{topic_name}:publish"
 
 ```json
 curl -X POST -H "Content-Type: application/json"  
--d { POSTDATA } "https://{URL}/v1/projects/EGI/topics/monitoring:publish?key=S3CR3T"
+-d { POSTDATA } "https://{URL}/v1/projects/BRAND_NEW/topics/monitoring:publish?key=S3CR3T"
 ```
 
 ### Responses  
@@ -207,7 +207,8 @@ GET "/v1/projects/{project_name}/topics/{topic_name}:acl"
 ### Example request
 
 ```json
-curl  -H "Content-Type: application/json" "https://{URL}/v1/projects/EGI/topics/monitoring:acl?key=S3CR3T"
+curl  -H "Content-Type: application/json" 
+"https://{URL}/v1/projects/BRAND_NEW/topics/monitoring:acl?key=S3CR3T"
 ```
 
 ### Responses  
@@ -254,7 +255,7 @@ POST "/v1/projects/{project_name}/topics/{topic_name}:modifyAcl"
 
 ```
 curl -X POST -H "Content-Type: application/json"  
--d { POSTDATA } "https://{URL}/v1/projects/EGI/topics/monitoring:modifyAcl?key=S3CR3T"
+-d { POSTDATA } "https://{URL}/v1/projects/BRAND_NEW/topics/monitoring:modifyAcl?key=S3CR3T"
 ```
 
 ### Responses  
