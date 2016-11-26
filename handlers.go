@@ -1618,7 +1618,7 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	// - if enabled in config
 	// - if user has only consumer role
 	if refAuthResource && auth.IsConsumer(refRoles) {
-		if auth.PerResource(urlProject, "subscriptions", urlSub, refUser, refStr) == false {
+		if auth.PerResource(projectUUID, "subscriptions", urlSub, refUser, refStr) == false {
 			respondErr(w, 403, "Access to this resource is forbidden", "FORBIDDEN")
 			return
 		}
