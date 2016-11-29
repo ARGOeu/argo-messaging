@@ -1,6 +1,10 @@
 package brokers
 
-import "github.com/ARGOeu/argo-messaging/messages"
+import (
+	"errors"
+
+	"github.com/ARGOeu/argo-messaging/messages"
+)
 
 // Broker  Encapsulates the generic broker interface
 type Broker interface {
@@ -8,6 +12,9 @@ type Broker interface {
 	Initialize(peers []string)
 	CloseConnections()
 	Publish(topic string, payload messages.Message) (string, string, int, int64, error)
-	GetOffset(topic string) int64
-	Consume(topic string, offset int64, imm bool) []string
+	GetMinOffset(topic string) int64
+	GetMaxOffset(topic string) int64
+	Consume(topic string, offset int64, imm bool) ([]string, error)
 }
+
+var ErrOffsetOff = errors.New("Offset is off")
