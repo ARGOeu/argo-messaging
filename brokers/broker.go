@@ -14,7 +14,7 @@ type Broker interface {
 	Publish(topic string, payload messages.Message) (string, string, int, int64, error)
 	GetMinOffset(topic string) int64
 	GetMaxOffset(topic string) int64
-	Consume(topic string, offset int64, imm bool) ([]string, error)
+	Consume(topic string, offset int64, imm bool, max int64) ([]string, error)
 }
 
 var ErrOffsetOff = errors.New("Offset is off")

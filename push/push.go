@@ -107,13 +107,13 @@ func (p *Pusher) push(brk brokers.Broker, store stores.Store) {
 	// Init Received Message List
 
 	fullTopic := p.sub.ProjectUUID + "." + p.sub.Topic
-	msgs, err := brk.Consume(fullTopic, p.sub.Offset, true)
+	msgs, err := brk.Consume(fullTopic, p.sub.Offset, true, 1)
 	if err != nil {
 		// If tracked offset is off, update it to the latest min offset
 		if err == brokers.ErrOffsetOff {
 			// Get Current Min Offset and advanced tracked one
 			p.sub.Offset = brk.GetMinOffset(fullTopic)
-			msgs, err = brk.Consume(fullTopic, p.sub.Offset, true)
+			msgs, err = brk.Consume(fullTopic, p.sub.Offset, true, 1)
 			if err != nil {
 				log.Error("Unable to consume after updating offset")
 				return
