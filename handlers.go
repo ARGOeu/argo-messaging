@@ -1665,10 +1665,19 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 
 	fullTopic := targSub.ProjectUUID + "." + targSub.Topic
 	retImm := false
+	max := 1
+
+	if pullInfo.MaxMsg != "" {
+		max, err = strconv.Atoi(pullInfo.MaxMsg)
+		if err != nil {
+			max = 1
+		}
+	}
+
 	if pullInfo.RetImm == "true" {
 		retImm = true
 	}
-	msgs, err := refBrk.Consume(fullTopic, targSub.Offset, retImm)
+	msgs, err := refBrk.Consume(fullTopic, targSub.Offset, retImm, int64(max))
 	if err != nil {
 		// If tracked offset is off
 		if err == brokers.ErrOffsetOff {
@@ -1677,7 +1686,7 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 			targSub.Offset = refBrk.GetMinOffset(fullTopic)
 			refStr.UpdateSubOffset(projectUUID, targSub.Name, targSub.Offset)
 			// Try again to consume
-			msgs, err = refBrk.Consume(fullTopic, targSub.Offset, retImm)
+			msgs, err = refBrk.Consume(fullTopic, targSub.Offset, retImm, int64(max))
 			// If still error respond and return
 			if err != nil {
 				respondErr(w, 500, "Cannot consume message", "INTERNAL_SERVER_ERROR")
@@ -1705,7 +1714,9 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 			respondErr(w, 500, "Message retrieved from broker network has invalid JSON Structure", "INTERNAL_SERVER_ERROR")
 			return
 		}
-
+		// calc the message id = message's kafka offset (read offst + msg position)
+		idOff := targSub.Offset + int64(i)
+		curMsg.ID = strconv.FormatInt(idOff, 10)
 		curRec := messages.RecMsg{AckID: ackPrefix + curMsg.ID, Msg: curMsg}
 		recList.RecMsgs = append(recList.RecMsgs, curRec)
 	}

@@ -167,15 +167,12 @@ func (b *KafkaBroker) GetMinOffset(topic string) int64 {
 }
 
 // Consume function to consume a message from the broker
-func (b *KafkaBroker) Consume(topic string, offset int64, imm bool) ([]string, error) {
+func (b *KafkaBroker) Consume(topic string, offset int64, imm bool, max int64) ([]string, error) {
 
 	b.lockForTopic(topic)
 
 	defer b.unlockForTopic(topic)
-	// Fetch offset
-
-	// consumer, _ := sarama.NewConsumer(b.Servers, b.Config)
-
+	// Fetch offsets
 	loff, err := b.Client.GetOffset(topic, 0, sarama.OffsetNewest)
 	if err != nil {
 		log.Error(err.Error())
@@ -232,12 +229,23 @@ ConsumerLoop:
 		case msg := <-partitionConsumer.Messages():
 
 			messages = append(messages, string(msg.Value[:]))
+
 			consumed++
-			if imm {
+
+			log.Debug(consumed)
+			log.Debug(msg)
+			// if we pass over the available messages and still want more
+
+			if consumed > max {
 				break ConsumerLoop
 			}
+
 			if offset+consumed > loff-1 {
-				break ConsumerLoop
+				// if returnImmediately is set dont wait for more
+				if imm {
+					break ConsumerLoop
+				}
+
 			}
 
 		}
