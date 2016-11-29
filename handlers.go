@@ -1211,7 +1211,7 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 	// Get current topic offset
 
 	fullTopic := tProject + "." + tName
-	curOff := refBrk.GetOffset(fullTopic)
+	curOff := refBrk.GetMaxOffset(fullTopic)
 
 	pushEnd := ""
 	rPolicy := ""
@@ -1668,8 +1668,26 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	if pullInfo.RetImm == "true" {
 		retImm = true
 	}
-	msgs := refBrk.Consume(fullTopic, targSub.Offset, retImm)
-
+	msgs, err := refBrk.Consume(fullTopic, targSub.Offset, retImm)
+	if err != nil {
+		// If tracked offset is off
+		if err == brokers.ErrOffsetOff {
+			log.Debug("Will increment now...")
+			// Increment tracked offset to current min offset
+			targSub.Offset = refBrk.GetMinOffset(fullTopic)
+			refStr.UpdateSubOffset(projectUUID, targSub.Name, targSub.Offset)
+			// Try again to consume
+			msgs, err = refBrk.Consume(fullTopic, targSub.Offset, retImm)
+			// If still error respond and return
+			if err != nil {
+				respondErr(w, 500, "Cannot consume message", "INTERNAL_SERVER_ERROR")
+				return
+			}
+		} else {
+			respondErr(w, 500, "Cannot consume message", "INTERNAL_SERVER_ERROR")
+			return
+		}
+	}
 	var limit int
 	limit, err = strconv.Atoi(pullInfo.MaxMsg)
 	if err != nil {
