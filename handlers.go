@@ -1209,8 +1209,8 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get current topic offset
-
-	fullTopic := tProject + "." + tName
+	tProjectUUID := projects.GetUUIDByName(tProject, refStr)
+	fullTopic := tProjectUUID + "." + tName
 	curOff := refBrk.GetMaxOffset(fullTopic)
 
 	pushEnd := ""
