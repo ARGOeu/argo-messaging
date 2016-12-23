@@ -232,11 +232,12 @@ ConsumerLoop:
 
 			consumed++
 
-			log.Debug(consumed)
+			log.Debug("consumed:" + string(consumed))
+			log.Debug("max:" + string(max))
 			log.Debug(msg)
 			// if we pass over the available messages and still want more
 
-			if consumed > max {
+			if consumed >= max {
 				break ConsumerLoop
 			}
 

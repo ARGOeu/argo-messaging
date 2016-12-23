@@ -178,17 +178,19 @@ func (mong *MongoStore) UpdateUser(uuid string, projects []QProjectRoles, name s
 }
 
 // UpdateSubPull updates next offset and sets timestamp for Ack
-func (mong *MongoStore) UpdateSubPull(name string, nextOff int64, ts string) {
+func (mong *MongoStore) UpdateSubPull(projectUUID string, name string, nextOff int64, ts string) error {
 
 	db := mong.Session.DB(mong.Database)
 	c := db.C("subscriptions")
 
-	doc := bson.M{"name": name}
+	doc := bson.M{"project_uuid": projectUUID, "name": name}
 	change := bson.M{"$set": bson.M{"next_offset": nextOff, "pending_ack": ts}}
 	err := c.Update(doc, change)
 	if err != nil {
 		log.Fatal("STORE", "\t", err.Error())
 	}
+
+	return err
 
 }
 
@@ -208,7 +210,7 @@ func (mong *MongoStore) UpdateSubOffsetAck(projectUUID string, name string, offs
 	}
 
 	// check if ack offset is wrong - wrong ack
-	if offset < res.Offset || offset > res.NextOffset {
+	if offset <= res.Offset || offset > res.NextOffset {
 		return errors.New("wrong ack")
 	}
 
@@ -222,7 +224,7 @@ func (mong *MongoStore) UpdateSubOffsetAck(projectUUID string, name string, offs
 		return errors.New("ack timeout")
 	}
 
-	doc := bson.M{"name": name}
+	doc := bson.M{"project_uuid": projectUUID, "name": name}
 	change := bson.M{"$set": bson.M{"offset": offset, "next_offset": 0, "pending_ack": ""}}
 	err = c.Update(doc, change)
 	if err != nil {

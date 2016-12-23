@@ -192,6 +192,12 @@ func (suite *StoreTestSuite) TestMockStore() {
 	prUp3, _ := store.QueryProjects("argo_uuid3", "")
 	suite.Equal(expPr3, prUp3[0])
 
+	// Test Sub Update Pull
+	err = store.UpdateSubPull("argo_uuid", "sub4", 4, "2016-10-11T12:00:35:15Z")
+	qSubUpd, err := store.QuerySubs("argo_uuid", "sub4")
+	var nxtOff int64 = 4
+	suite.Equal(qSubUpd[0].NextOffset, nxtOff)
+	suite.Equal("2016-10-11T12:00:35:15Z", qSubUpd[0].PendingAck)
 	// Test RemoveProjectTopics
 	store.RemoveProjectTopics("argo_uuid")
 	resTop, _ := store.QueryTopics("argo_uuid", "")

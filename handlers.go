@@ -1732,7 +1732,7 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	zSec := "2006-01-02T15:04:05Z"
 	t := time.Now()
 	ts := t.Format(zSec)
-	refStr.UpdateSubPull(targSub.Name, int64(len(recList.RecMsgs))+targSub.Offset, ts)
+	refStr.UpdateSubPull(targSub.ProjectUUID, targSub.Name, int64(len(recList.RecMsgs))+targSub.Offset, ts)
 
 	output = []byte(resJSON)
 	respondOK(w, output)

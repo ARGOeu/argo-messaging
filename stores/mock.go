@@ -277,7 +277,15 @@ func (mk *MockStore) QueryUsers(projectUUID string, uuid string, name string) ([
 }
 
 // UpdateSubPull updates next offset info after a pull
-func (mk *MockStore) UpdateSubPull(name string, offset int64, ts string) {
+func (mk *MockStore) UpdateSubPull(projectUUID string, name string, offset int64, ts string) error {
+	for i, item := range mk.SubList {
+		if item.ProjectUUID == projectUUID && item.Name == name {
+			mk.SubList[i].NextOffset = offset
+			mk.SubList[i].PendingAck = ts
+			return nil
+		}
+	}
+	return errors.New("not found")
 
 }
 
