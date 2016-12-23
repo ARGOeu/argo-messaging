@@ -29,7 +29,7 @@ type Store interface {
 	HasResourceRoles(resource string, roles []string) bool
 	GetUserRoles(projectUUID string, token string) ([]string, string)
 	UpdateSubOffset(projectUUID string, name string, offset int64)
-	UpdateSubPull(name string, offset int64, ts string)
+	UpdateSubPull(projectUUID string, name string, offset int64, ts string) error
 	UpdateSubOffsetAck(projectUUID string, name string, offset int64, ts string) error
 	ModSubPush(projectUUID string, name string, push string, rPolicy string, rPeriod int) error
 	QueryACL(projectUUID string, resource string, name string) (QAcl, error)
