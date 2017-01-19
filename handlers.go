@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"sort"
 	"strconv"
 	"strings"
@@ -1099,6 +1100,11 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 	rPeriod := 0
 	if postBody.PushCfg != (subscriptions.PushConfig{}) {
 		pushEnd = postBody.PushCfg.Pend
+		// Check if push endpoint is not a valid https:// endpoint
+		if !(isValidHTTPS(pushEnd)) {
+			respondErr(w, 400, "Push endpoint should be addressed by a valid https url", "INVALID_ARGUMENT")
+			return
+		}
 		rPolicy = postBody.PushCfg.RetPol.PolicyType
 		rPeriod = postBody.PushCfg.RetPol.Period
 		if rPolicy == "" {
@@ -1218,6 +1224,11 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 	rPeriod := 0
 	if postBody.PushCfg != (subscriptions.PushConfig{}) {
 		pushEnd = postBody.PushCfg.Pend
+		// Check if push endpoint is not a valid https:// endpoint
+		if !(isValidHTTPS(pushEnd)) {
+			respondErr(w, 400, "Push endpoint should be addressed by a valid https url", "INVALID_ARGUMENT")
+			return
+		}
 		rPolicy = postBody.PushCfg.RetPol.PolicyType
 		rPeriod = postBody.PushCfg.RetPol.Period
 		if rPolicy == "" {
@@ -1785,4 +1796,19 @@ type APIError struct {
 	Message string `json:"message"`
 	Domain  string `json:"domain"`
 	Reason  string `json:"reason"`
+}
+
+// IsValidHTTPS checks if a url string is valid https url
+func isValidHTTPS(urlStr string) bool {
+	u, err := url.ParseRequestURI(urlStr)
+	if err != nil {
+		return false
+	}
+	// If a valid url is in form without slashes after scheme consider it invalid.
+	// If a valid url doesn't have https as a scheme consider it invalid
+	if u.Host == "" || u.Scheme != "https" {
+		return false
+	}
+
+	return true
 }
