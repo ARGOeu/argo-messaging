@@ -172,7 +172,25 @@ func (mk *MockStore) UpdateSubOffset(projectUUID string, name string, offset int
 
 // ModSubPush modifies the subscription ack
 func (mk *MockStore) ModSubPush(projectUUID string, name string, push string, rPolicy string, rPeriod int) error {
-	return nil
+	for i, item := range mk.SubList {
+		if item.ProjectUUID == projectUUID {
+			if push != "" {
+				mk.SubList[i].PushEndpoint = push
+				mk.SubList[i].RetPolicy = "linear"
+				mk.SubList[i].RetPeriod = 300
+			}
+			if rPolicy != "" {
+				mk.SubList[i].RetPolicy = rPolicy
+			}
+			if rPeriod != 0 {
+				mk.SubList[i].RetPeriod = rPeriod
+			}
+
+			return nil
+		}
+	}
+
+	return errors.New("not found")
 }
 
 // UpdateSubOffsetAck updates the offset of the current subscription
