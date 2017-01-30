@@ -107,7 +107,7 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 
 
 ## [DELETE] Manage Subscriptions - Delete Subscriptions
-This request deletes a topic in a project with a DELETE request
+This request deletes a subscription in a project with a DELETE request
 
 ### Request
 `DELETE /v1/projects/{project_name}/subscriptions/{subscription_name}`
