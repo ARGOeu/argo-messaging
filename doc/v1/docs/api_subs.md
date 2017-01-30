@@ -246,7 +246,7 @@ Messages retrieved from a pull subscription can be acknowledged by sending messa
 {
   "ackIds": [
   "dQNNHlAbEGEIBE..."
- ],
+ ]
 
 }
 ```
@@ -270,8 +270,7 @@ curl -X POST -H "Content-Type: application/json"
 {
  "ackIds": [
   "dQNNHlAbEGEIBE..."
- ],
-
+ ]
 }
 ```
 
