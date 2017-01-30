@@ -246,7 +246,7 @@ Messages retrieved from a pull subscription can be acknowledged by sending messa
 {
   "ackIds": [
   "dQNNHlAbEGEIBE..."
- ],
+ ]
 
 }
 ```
