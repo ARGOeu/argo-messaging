@@ -25,5 +25,6 @@ pages:
     - API Subscriptions: api_subs.md
     - API Error Messages: api_errors.md
 - Q&A:
+    - General : qa_general_questions.md
     - Ruby : qa_ruby.md
 theme: readthedocs
