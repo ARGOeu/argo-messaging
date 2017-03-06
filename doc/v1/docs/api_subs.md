@@ -239,7 +239,7 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 
 
 ## [POST] Sending an ACK
-Messages retrieved from a pull subscription can be acknowledged by sending message with an array of ackIDs. In the current implementation, the service will retrieve the ackID corresponding to the highest message offset and will consider that message and all previous messages as acknowledged by the consumer.
+Messages retrieved from a pull subscription can be acknowledged by sending message with an array of ackIDs. 
 
 ### Request
 `POST /v1/projects/{project_name}/subscriptions/{subscription_name}:acknowledge`
