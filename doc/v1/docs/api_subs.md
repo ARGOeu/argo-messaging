@@ -20,7 +20,7 @@ curl -X PUT -H "Content-Type: application/json"  -d 'PUTBODY'
 ```json
 {
  "topic": "projects/BRAND_NEW/topics/monitoring",
- "ack":10
+ "ackDeadlineSeconds":10
 }
 ```
 
