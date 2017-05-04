@@ -91,6 +91,7 @@ func (b *KafkaBroker) Initialize(peers []string) {
 	b.createTopicLock = topicLock{}
 	b.consumeLock = make(map[string]*topicLock)
 	b.Config = sarama.NewConfig()
+	b.Config.Consumer.Fetch.Default = 1000000
 	b.Config.Producer.RequiredAcks = sarama.WaitForAll
 	b.Config.Producer.Retry.Max = 5
 	b.Servers = peers
@@ -110,7 +111,8 @@ func (b *KafkaBroker) Initialize(peers []string) {
 
 	}
 
-	b.Consumer, err = sarama.NewConsumer(b.Servers, nil)
+	b.Consumer, err = sarama.NewConsumer(b.Servers, b.Config)
+
 	if err != nil {
 		log.Fatal("BROKER", "\t", err.Error())
 	}
@@ -174,6 +176,7 @@ func (b *KafkaBroker) Consume(topic string, offset int64, imm bool, max int64) (
 	defer b.unlockForTopic(topic)
 	// Fetch offsets
 	loff, err := b.Client.GetOffset(topic, 0, sarama.OffsetNewest)
+
 	if err != nil {
 		log.Error(err.Error())
 	}
@@ -183,7 +186,7 @@ func (b *KafkaBroker) Consume(topic string, offset int64, imm bool, max int64) (
 		log.Error(err.Error())
 	}
 
-	log.Debug("consuming topic:", topic, " min_offset:", oldOff, " max_offset:", loff)
+	log.Debug("consuming topic:", topic, " min_offset:", oldOff, " max_offset:", loff, " current offset:", offset)
 
 	// If tracked offset is equal or bigger than topic offset means no new messages
 	if offset >= loff {
