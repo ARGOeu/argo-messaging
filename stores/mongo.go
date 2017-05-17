@@ -186,7 +186,7 @@ func (mong *MongoStore) UpdateSubPull(projectUUID string, name string, nextOff i
 	doc := bson.M{"project_uuid": projectUUID, "name": name}
 	change := bson.M{"$set": bson.M{"next_offset": nextOff, "pending_ack": ts}}
 	err := c.Update(doc, change)
-	if err != nil {
+	if err != nil && err != mgo.ErrNotFound {
 		log.Fatal("STORE", "\t", err.Error())
 	}
 
@@ -227,7 +227,7 @@ func (mong *MongoStore) UpdateSubOffsetAck(projectUUID string, name string, offs
 	doc := bson.M{"project_uuid": projectUUID, "name": name}
 	change := bson.M{"$set": bson.M{"offset": offset, "next_offset": 0, "pending_ack": ""}}
 	err = c.Update(doc, change)
-	if err != nil {
+	if err != nil && err != mgo.ErrNotFound {
 		log.Fatal("STORE", "\t", err.Error())
 	}
 
@@ -244,7 +244,7 @@ func (mong *MongoStore) UpdateSubOffset(projectUUID string, name string, offset 
 	doc := bson.M{"project_uuid": projectUUID, "name": name}
 	change := bson.M{"$set": bson.M{"offset": offset, "next_offset": 0, "pending_ack": ""}}
 	err := c.Update(doc, change)
-	if err != nil {
+	if err != nil && err != mgo.ErrNotFound {
 		log.Fatal("STORE", "\t", err.Error())
 	}
 
