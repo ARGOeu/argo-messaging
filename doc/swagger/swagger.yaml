@@ -615,7 +615,9 @@ paths:
         200:
           description: An empty response if Authorized User list is succesfully updated
           schema:
-            $ref: '#/definitions/AuthUsers'
+            type: string
+            default: ""
+            description: empty string
         400:
           $ref: "#/responses/400"
         401:
@@ -626,6 +628,85 @@ paths:
           $ref: "#/responses/404"
         500:
           $ref: "#/responses/500"
+
+  /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}:modifyOffset:
+    post:
+      summary: Modify Offset of a given subscription
+      description: |
+        Modify the Offset of a given subscription
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: SUBSCRIPTION
+          in: path
+          description: Name of the subscription
+          required: true
+          type: string
+        - name: Offset
+          in: body
+          description: Offset
+          required: true
+          schema:
+           $ref: '#/definitions/Offset'
+      tags:
+        - Subscriptions
+      responses:
+        200:
+          description: An empty response if Authorized User list is succesfully updated
+          schema:
+            type: string
+            default: ""
+            description: empty string
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
+
+  /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}:offsets:
+    get:
+      summary: Get min max and current offset of a subscription
+      description: |
+        Get min max and current offset of a subscription
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: SUBSCRIPTION
+          in: path
+          description: Name of the subscription
+          required: true
+          type: string
+      tags:
+        - Subscriptions
+      responses:
+        200:
+         description: A json representation of min, max and current offsets
+          schema:
+            $ref: '#/definitions/Offsets'
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
+
 
 
 
@@ -1104,6 +1185,28 @@ definitions:
         description: endpoint url for endpoint to push messages
       retryPolicy:
         $ref: '#/definitions/RetryPolicy'
+
+  Offset:
+    type: object
+    properties:
+      offset:
+       type: integer
+       description: offset number of current subscriptions
+
+  Offsets:
+    type: object
+    properties:
+      min:
+       type: integer
+       description: minimum offset
+      max:
+       type: integer
+       description: max offset
+      current:
+       type: integer
+       description: current offset
+
+
 
   RetryPolicy:
     type: object
