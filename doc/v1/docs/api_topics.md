@@ -111,7 +111,7 @@ GET "/v1/projects/{project_name}/topics"
 ### Example request
 
 ```json
-curl -H "Content-Type: application/json" 
+curl -H "Content-Type: application/json"
 "https://{URL}/v1/projects/BRAND_NEW/topics/?key=S3CR3T"`
 ```
 
@@ -193,7 +193,7 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 
 
 ## [GET] List ACL of a given topic
-The following request returns a list of authorized users (publishers) of a given topic. 
+The following request returns a list of authorized users (publishers) of a given topic.
 
 ### Request
 ```
@@ -207,7 +207,7 @@ GET "/v1/projects/{project_name}/topics/{topic_name}:acl"
 ### Example request
 
 ```json
-curl  -H "Content-Type: application/json" 
+curl  -H "Content-Type: application/json"
 "https://{URL}/v1/projects/BRAND_NEW/topics/monitoring:acl?key=S3CR3T"
 ```
 
@@ -276,4 +276,37 @@ If the to-be updated ACL contains users that are non-existent in the project the
 }
 ```
 
+Please refer to section [Errors](api_errors.md) to see all possible Errors
+
+## [GET] Topic Metrics
+The following request returns related metrics for the specific topic: for eg the number of published messages
+
+### Request
+```
+GET "/v1/projects/{project_name}/topics/{topic_name}:metrics"
+```
+
+### Where
+- Project_name: name of the project
+- topic_name: name of the topic
+
+### Example request
+
+```json
+curl  -H "Content-Type: application/json"
+"https://{URL}/v1/projects/BRAND_NEW/topics/monitoring:metrics?key=S3CR3T"
+```
+
+### Responses  
+If successful it returns the number of messages published in the specific topic.
+
+Success Response
+`200 OK`
+```
+{
+  "number_of_messages":4
+}
+```
+
+### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors

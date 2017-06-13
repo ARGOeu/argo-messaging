@@ -87,6 +87,7 @@ var defaultRoutes = []APIRoute{
 	{"subscriptions:modifyAcl", "POST", "/projects/{project}/subscriptions/{subscription}:modifyAcl", SubModACL},
 	{"topics:list", "GET", "/projects/{project}/topics", TopicListAll},
 	{"topics:acl", "GET", "/projects/{project}/topics/{topic}:acl", TopicACL},
+	{"topics:acl", "GET", "/projects/{project}/topics/{topic}:metrics", TopicMetrics},
 	{"topics:show", "GET", "/projects/{project}/topics/{topic}", TopicListOne},
 	{"topics:create", "PUT", "/projects/{project}/topics/{topic}", TopicCreate},
 	{"topics:delete", "DELETE", "/projects/{project}/topics/{topic}", TopicDelete},

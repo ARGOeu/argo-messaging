@@ -60,6 +60,7 @@ type QRole struct {
 type QTopic struct {
 	ProjectUUID string `bson:"project_uuid"`
 	Name        string `bson:"name"`
+	MsgNum      int64  `bson:"msg_num"`
 }
 
 func (qUsr *QUser) isInProject(projectUUID string) bool {

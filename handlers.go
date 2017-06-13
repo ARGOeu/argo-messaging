@@ -1314,6 +1314,67 @@ func TopicCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 // TopicListOne (GET) one topic
+func TopicMetrics(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+
+	// Grab context references
+	refStr := context.Get(r, "str").(stores.Store)
+	refRoles := context.Get(r, "auth_roles").([]string)
+	refUser := context.Get(r, "auth_user").(string)
+	refAuthResource := context.Get(r, "auth_resource").(bool)
+
+	urlTopic := urlVars["topic"]
+
+	projectUUID := context.Get(r, "auth_project_uuid").(string)
+
+	// Check Authorization per topic
+	// - if enabled in config
+	// - if user has only publisher role
+
+	if refAuthResource && auth.IsPublisher(refRoles) {
+
+		if auth.PerResource(projectUUID, "topics", urlTopic, refUser, refStr) == false {
+			respondErr(w, 403, "Access to this resource is forbidden", "FORBIDDEN")
+			return
+		}
+	}
+
+	results, err := topics.FindMetric(projectUUID, urlTopic, refStr)
+
+	if err != nil {
+		if err.Error() == "not found" {
+			respondErr(w, 404, "Topic does not exist", "NOT_FOUND")
+			return
+		}
+		respondErr(w, 500, "Backend error", "INTERNAL_SERVER_ERROR")
+	}
+
+	res := results
+
+	// Output result to JSON
+	resJSON, err := res.ExportJSON()
+	if err != nil {
+		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
+		return
+	}
+
+	// Write response
+	output = []byte(resJSON)
+	respondOK(w, output)
+
+}
+
+// TopicListOne (GET) one topic
 func TopicListOne(w http.ResponseWriter, r *http.Request) {
 
 	// Init output
@@ -1591,6 +1652,9 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 		// Append the MsgID of the successful published message to the msgIds list
 		msgIDs.IDs = append(msgIDs.IDs, msg.ID)
 	}
+
+	// increment topic number of message metric
+	refStr.IncrementTopicMsgNum(projectUUID, urlTopic, int64(len(msgList.Msgs)))
 
 	// Export the msgIDs
 	resJSON, err := msgIDs.ExportJSON()

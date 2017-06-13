@@ -41,6 +41,25 @@ func (suite *TopicTestSuite) TestGetTopicByName() {
 	suite.Equal(expTopic, myTopics.List[0])
 }
 
+func (suite *TopicTestSuite) TestGetTopicMetric() {
+	APIcfg := config.NewAPICfg()
+	APIcfg.LoadStrJSON(suite.cfgStr)
+	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
+	myTopics, _ := FindMetric("argo_uuid", "topic1", store)
+	expTopic := TopicMetrics{MsgNum: 0}
+	suite.Equal(expTopic, myTopics)
+}
+
+// Find searches and returns a specific topic metric
+func (suite *TopicTestSuite) TestGetTopicMetrcs() {
+	APIcfg := config.NewAPICfg()
+	APIcfg.LoadStrJSON(suite.cfgStr)
+	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
+	myTopics, _ := FindMetric("argo_uuid", "topic1", store)
+	expTopic := TopicMetrics{MsgNum: 0}
+	suite.Equal(expTopic, myTopics)
+}
+
 func (suite *TopicTestSuite) TestCreateTopicStore() {
 	APIcfg := config.NewAPICfg()
 	APIcfg.LoadStrJSON(suite.cfgStr)
