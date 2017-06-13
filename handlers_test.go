@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -569,7 +568,7 @@ func (suite *HandlerTestSuite) TestSubModPushConfigError() {
 	router.ServeHTTP(w, req)
 	suite.Equal(400, w.Code)
 	suite.Equal(expResp, w.Body.String())
-	fmt.Println(w.Body.String())
+
 }
 
 func (suite *HandlerTestSuite) TestSubModPushConfig() {
@@ -1078,6 +1077,30 @@ func (suite *HandlerTestSuite) TestTopicListOne() {
 	suite.Equal(expResp, w.Body.String())
 }
 
+func (suite *HandlerTestSuite) TestTopicMetrics() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/topics/topic1:metrics", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "number_of_messages": 0
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:metrics", WrapMockAuthConfig(TopicMetrics, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
 func (suite *HandlerTestSuite) TestTopicACL01() {
 
 	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/topics/topic1:acl", nil)

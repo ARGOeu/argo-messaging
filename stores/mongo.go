@@ -362,6 +362,21 @@ func (mong *MongoStore) QueryTopics(projectUUID string, name string) ([]QTopic, 
 	return results, err
 }
 
+// UpdateTopicMsgNumb
+func (mong *MongoStore) IncrementTopicMsgNum(projectUUID string, name string, num int64) error {
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C("topics")
+
+	doc := bson.M{"project_uuid": projectUUID, "name": name}
+	change := bson.M{"$inc": bson.M{"msg_num": num}}
+
+	err := c.Update(doc, change)
+
+	return err
+
+}
+
 //HasResourceRoles returns the roles of a user in a project
 func (mong *MongoStore) HasResourceRoles(resource string, roles []string) bool {
 
@@ -458,7 +473,7 @@ func (mong *MongoStore) HasProject(name string) bool {
 
 // InsertTopic inserts a topic to the store
 func (mong *MongoStore) InsertTopic(projectUUID string, name string) error {
-	topic := QTopic{ProjectUUID: projectUUID, Name: name}
+	topic := QTopic{ProjectUUID: projectUUID, Name: name, MsgNum: 0}
 	return mong.InsertResource("topics", topic)
 }
 

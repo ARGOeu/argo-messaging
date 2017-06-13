@@ -18,9 +18,9 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal("mockhost", store.Server)
 	suite.Equal("mockbase", store.Database)
 
-	eTopList := []QTopic{QTopic{"argo_uuid", "topic1"},
-		QTopic{"argo_uuid", "topic2"},
-		QTopic{"argo_uuid", "topic3"}}
+	eTopList := []QTopic{QTopic{"argo_uuid", "topic1", 0},
+		QTopic{"argo_uuid", "topic2", 0},
+		QTopic{"argo_uuid", "topic3", 0}}
 
 	eSubList := []QSub{QSub{"argo_uuid", "sub1", "topic1", 0, 0, "", "", 10, "linear", 300},
 		QSub{"argo_uuid", "sub2", "topic2", 0, 0, "", "", 10, "linear", 300},
@@ -55,10 +55,10 @@ func (suite *StoreTestSuite) TestMockStore() {
 	store.InsertTopic("argo_uuid", "topicFresh")
 	store.InsertSub("argo_uuid", "subFresh", "topicFresh", 0, 10, "", "linear", 300)
 
-	eTopList2 := []QTopic{QTopic{"argo_uuid", "topic1"},
-		QTopic{"argo_uuid", "topic2"},
-		QTopic{"argo_uuid", "topic3"},
-		QTopic{"argo_uuid", "topicFresh"}}
+	eTopList2 := []QTopic{QTopic{"argo_uuid", "topic1", 0},
+		QTopic{"argo_uuid", "topic2", 0},
+		QTopic{"argo_uuid", "topic3", 0},
+		QTopic{"argo_uuid", "topicFresh", 0}}
 
 	eSubList2 := []QSub{QSub{"argo_uuid", "sub1", "topic1", 0, 0, "", "", 10, "linear", 300},
 		QSub{"argo_uuid", "sub2", "topic2", 0, 0, "", "", 10, "linear", 300},

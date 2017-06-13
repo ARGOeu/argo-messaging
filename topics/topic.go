@@ -15,6 +15,10 @@ type Topic struct {
 	FullName    string `json:"name"`
 }
 
+type TopicMetrics struct {
+	MsgNum int64 `json:"number_of_messages"`
+}
+
 // Topics holds a list of Topic items
 type Topics struct {
 	List []Topic `json:"topics,omitempty"`
@@ -33,6 +37,21 @@ func New(projectUUID string, projectName string, name string) Topic {
 }
 
 // Find searches and returns a specific topic or all topics of a given project
+func FindMetric(projectUUID string, name string, store stores.Store) (TopicMetrics, error) {
+	result := TopicMetrics{MsgNum: 0}
+	topics, err := store.QueryTopics(projectUUID, name)
+	for _, item := range topics {
+		projectName := projects.GetNameByUUID(item.ProjectUUID, store)
+		if projectName == "" {
+			return result, errors.New("invalid project")
+		}
+
+		result.MsgNum = item.MsgNum
+	}
+	return result, err
+}
+
+// Find searches and returns a specific topic or all topics of a given project
 func Find(projectUUID string, name string, store stores.Store) (Topics, error) {
 	result := Topics{}
 	topics, err := store.QueryTopics(projectUUID, name)
@@ -45,6 +64,13 @@ func Find(projectUUID string, name string, store stores.Store) (Topics, error) {
 		result.List = append(result.List, curTop)
 	}
 	return result, err
+}
+
+// ExportJSON exports whole TopicMetrics Structure as a json string
+func (tp *TopicMetrics) ExportJSON() (string, error) {
+
+	output, err := json.MarshalIndent(tp, "", "   ")
+	return string(output[:]), err
 }
 
 // ExportJSON exports whole Topic Structure as a json string

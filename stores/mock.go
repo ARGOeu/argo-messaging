@@ -165,6 +165,19 @@ func (mk *MockStore) UpdateProject(projectUUID string, name string, description 
 
 }
 
+//IncrementTopicMsgNum increase topic number
+func (mk *MockStore) IncrementTopicMsgNum(projectUUID string, name string, num int64) error {
+
+	for i, item := range mk.TopicList {
+		if item.ProjectUUID == projectUUID && item.Name == name {
+			mk.TopicList[i].MsgNum += num
+			return nil
+		}
+	}
+
+	return errors.New("not found")
+}
+
 // UpdateSubOffset updates the offset of the current subscription
 func (mk *MockStore) UpdateSubOffset(projectUUID string, name string, offset int64) {
 
@@ -311,9 +324,9 @@ func (mk *MockStore) UpdateSubPull(projectUUID string, name string, offset int64
 func (mk *MockStore) Initialize() {
 
 	// populate topics
-	qtop1 := QTopic{"argo_uuid", "topic1"}
-	qtop2 := QTopic{"argo_uuid", "topic2"}
-	qtop3 := QTopic{"argo_uuid", "topic3"}
+	qtop1 := QTopic{"argo_uuid", "topic1", 0}
+	qtop2 := QTopic{"argo_uuid", "topic2", 0}
+	qtop3 := QTopic{"argo_uuid", "topic3", 0}
 	mk.TopicList = append(mk.TopicList, qtop1)
 	mk.TopicList = append(mk.TopicList, qtop2)
 	mk.TopicList = append(mk.TopicList, qtop3)
@@ -440,7 +453,7 @@ func (mk *MockStore) HasProject(name string) bool {
 
 // InsertTopic inserts a new topic object to the store
 func (mk *MockStore) InsertTopic(projectUUID string, name string) error {
-	topic := QTopic{ProjectUUID: projectUUID, Name: name}
+	topic := QTopic{ProjectUUID: projectUUID, Name: name, MsgNum: 0}
 	mk.TopicList = append(mk.TopicList, topic)
 	return nil
 }
