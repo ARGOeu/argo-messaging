@@ -864,6 +864,127 @@ func SubListOne(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// SubSetOffset (PUT) sets subscriptions current offset
+func SubSetOffset(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+	// Get Result Object
+	urlSub := urlVars["subscription"]
+
+	// Read POST JSON body
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		respondErr(w, 400, "Invalid Request body", "INVALID_ARGUMENT")
+		return
+	}
+
+	// Parse pull options
+	postBody, err := subscriptions.GetSetOffsetJSON(body)
+	if err != nil {
+		respondErr(w, 400, "Invalid Offset Argument", "INVALID_ARGUMENT")
+		log.Error(string(body[:]))
+		return
+	}
+
+	// Grab context references
+	refStr := context.Get(r, "str").(stores.Store)
+	refBrk := context.Get(r, "brk").(brokers.Broker)
+	// Get project UUID First to use as reference
+	projectUUID := context.Get(r, "auth_project_uuid").(string)
+
+	// Find Subscription
+	results, err := subscriptions.Find(projectUUID, urlVars["subscription"], refStr)
+
+	if err != nil {
+		respondErr(w, 500, "Backend Error", "INTERNAL_SERVER_ERROR")
+		return
+	}
+
+	// If not found
+	if results.Empty() {
+		respondErr(w, 404, "Subscription does not exist", "NOT_FOUND")
+		return
+	}
+	brk_topic := projectUUID + "." + results.List[0].Topic
+	min_offset := refBrk.GetMinOffset(brk_topic)
+	max_offset := refBrk.GetMaxOffset(brk_topic)
+
+	//Check if given offset is between min max
+	if postBody.Offset < min_offset || postBody.Offset > max_offset {
+		respondErr(w, 400, "Offset out of bounds", "INVALID_ARGUMENT")
+		log.Error(string(body[:]))
+	}
+
+	// Get subscription offsets
+
+	refStr.UpdateSubOffset(projectUUID, urlSub, postBody.Offset)
+
+	respondOK(w, output)
+
+}
+
+// SubGetOffsets (GET) gets offset metrics from a subscription
+func SubGetOffsets(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+
+	// Grab context references
+	refStr := context.Get(r, "str").(stores.Store)
+	refBrk := context.Get(r, "brk").(brokers.Broker)
+
+	projectUUID := context.Get(r, "auth_project_uuid").(string)
+
+	results, err := subscriptions.Find(projectUUID, urlVars["subscription"], refStr)
+
+	if err != nil {
+		respondErr(w, 500, "Backend Error", "INTERNAL_SERVER_ERROR")
+		return
+	}
+
+	// If not found
+	if results.Empty() {
+		respondErr(w, 404, "Subscription does not exist", "NOT_FOUND")
+		return
+	}
+
+	// Output result to JSON
+	brk_topic := projectUUID + "." + results.List[0].Topic
+	cur_offset := results.List[0].Offset
+	min_offset := refBrk.GetMinOffset(brk_topic)
+	max_offset := refBrk.GetMaxOffset(brk_topic)
+
+	// Create offset struct
+	offResult := subscriptions.Offsets{Current: cur_offset, Min: min_offset, Max: max_offset}
+	resJSON, err := offResult.ExportJSON()
+	if err != nil {
+		respondErr(w, 500, "Error exporting data", "INTERNAL_SERVER_ERROR")
+		return
+	}
+
+	// Write response
+	output = []byte(resJSON)
+	respondOK(w, output)
+
+}
+
 // TopicDelete (DEL) deletes an existing topic
 func TopicDelete(w http.ResponseWriter, r *http.Request) {
 

@@ -239,7 +239,7 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 
 
 ## [POST] Sending an ACK
-Messages retrieved from a pull subscription can be acknowledged by sending message with an array of ackIDs. 
+Messages retrieved from a pull subscription can be acknowledged by sending message with an array of ackIDs.
 
 ### Request
 `POST /v1/projects/{project_name}/subscriptions/{subscription_name}:acknowledge`
@@ -280,6 +280,92 @@ curl -X POST -H "Content-Type: application/json"
 ### Responses  
 Success Response
 `200 OK`
+
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors
+
+## [GET] Get Offsets
+This request returns the min, max and current offset of a subscription
+
+### Request
+`GET /v1/projects/{project_name}/subscriptions/{subscription_name}:Offsets`
+
+### Post body:
+```
+{
+  "max": 14,
+  "min": 0,
+  "current": 4
+}
+```
+
+### Where
+- Project_name: Name of the project
+- subscription_name: The subscription name to consume
+
+
+### Example request
+
+```json
+curl -X GET -H "Content-Type: application/json"  
+-d POSTDATA http://{URL}/v1/projects/BRAND_NEW/subscriptions/alert_engine:offsets?key=S3CR3T"
+```
+
+### post body:
+```
+{
+  "max": 14,
+  "min": 0,
+  "current": 4
+}
+```
+
+### Responses  
+
+Success Response
+Code: `200 OK`, Empty response if successful.
+
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors
+
+## [POST] Modify Offsets
+This request modifies the current offset of a subscription
+
+### Request
+`POST /v1/projects/{project_name}/subscriptions/{subscription_name}:modifyOFfset`
+
+### Post body:
+```
+{
+ "offset":3
+}
+```
+
+### Where
+- Project_name: Name of the project
+- subscription_name: The subscription name to consume
+- offset_config: an offset number in int64
+
+
+
+### Example request
+
+```json
+curl -X POST -H "Content-Type: application/json"  
+-d POSTDATA http://{URL}/v1/projects/BRAND_NEW/subscriptions/alert_engine:modifyOffset?key=S3CR3T"
+```
+
+### post body:
+```
+{
+  "offset":14
+}
+```
+
+### Responses  
+
+Success Response
+Code: `200 OK`, Empty response if successful.
 
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors

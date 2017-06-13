@@ -47,6 +47,18 @@ type SubPullOptions struct {
 	MaxMsg string `json:"maxMessages,omitempty"`
 }
 
+// SetOffset structure is used for input in set Offset Request
+type SetOffset struct {
+	Offset int64 `json:"offset"`
+}
+
+// Offsets is used as a json structure for show offsets Response
+type Offsets struct {
+	Max     int64 `json:"max"`
+	Min     int64 `json:"min"`
+	Current int64 `json:"current"`
+}
+
 // AckIDs utility struct
 type AckIDs struct {
 	IDs []string `json:"AckIds"`
@@ -60,6 +72,13 @@ func (sl *Subscriptions) Empty() bool {
 // GetAckFromJSON retrieves ack ids from json
 func GetAckFromJSON(input []byte) (AckIDs, error) {
 	s := AckIDs{}
+	err := json.Unmarshal([]byte(input), &s)
+	return s, err
+}
+
+// GetSetOffsetJSON retrieves set offset information
+func GetSetOffsetJSON(input []byte) (SetOffset, error) {
+	s := SetOffset{}
 	err := json.Unmarshal([]byte(input), &s)
 	return s, err
 }
@@ -85,6 +104,12 @@ func New(projectUUID string, projectName string, name string, topic string) Subs
 	ps := PushConfig{}
 	s := Subscription{ProjectUUID: projectUUID, Name: name, Topic: topic, FullName: fsn, FullTopic: ftn, PushCfg: ps, Ack: 10}
 	return s
+}
+
+// ExportJSON exports offsets structure as a json string
+func (offs *Offsets) ExportJSON() (string, error) {
+	output, err := json.MarshalIndent(offs, "", "   ")
+	return string(output[:]), err
 }
 
 // ExportJSON exports whole sub Structure as a json string
