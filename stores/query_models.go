@@ -14,6 +14,7 @@ type QSub struct {
 	Ack          int    `bson:"ack"`
 	RetPolicy    string `bson:"retry_policy"`
 	RetPeriod    int    `bson:"retry_period"`
+	MsgNum       int64  `bson:"msg_num"`
 }
 
 // QAcl holds a list of authorized users queried from topic or subscription collections

@@ -369,3 +369,35 @@ Code: `200 OK`, Empty response if successful.
 
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
+
+## [GET] Subscription Metrics
+The following request returns related metrics for the specific subscription: for eg the number of consumed messages
+
+### Request
+```
+GET "/v1/projects/{project_name}/subscriptions/{sub_name}:metrics"
+```
+
+### Where
+- Project_name: name of the project
+- sub_name: name of the subscription
+
+### Example request
+
+```json
+curl  -H "Content-Type: application/json"
+"https://{URL}/v1/projects/BRAND_NEW/subscriptions/monitoring:metrics?key=S3CR3T"
+```
+
+### Responses  
+If successful it returns the number of messages consumed in the specific subscription
+Success Response
+`200 OK`
+```
+{
+  "number_of_messages":12
+}
+```
+
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors

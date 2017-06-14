@@ -761,10 +761,16 @@ func SubAck(w http.ResponseWriter, r *http.Request) {
 
 	// Check if sub exists
 
-	if subscriptions.HasSub(projectUUID, urlVars["subscription"], refStr) == false {
-		respondErr(w, 404, "Subscription does not exist", "NOT_FOUND")
+	cur_sub, err := subscriptions.Find(projectUUID, subName, refStr)
+	if err != nil {
+		respondErr(w, 500, "Error handling acknowledgement", "INTERNAL_SERVER_ERROR")
 		return
 	}
+	if len(cur_sub.List) == 0 {
+		respondErr(w, 404, "Subscription doesn't exist", "NOT_FOUND")
+		return
+	}
+	old_off := cur_sub.List[0].Offset
 
 	// Get list of AckIDs
 	if postBody.IDs == nil {
@@ -809,6 +815,9 @@ func SubAck(w http.ResponseWriter, r *http.Request) {
 		respondErr(w, 400, err.Error(), "INTERNAL_SERVER_ERROR")
 		return
 	}
+
+	// increment subscrption number of message metric
+	refStr.IncrementSubMsgNum(projectUUID, subName, int64(off+1-old_off))
 
 	// Output result to JSON
 	resJSON := "{}"
@@ -1434,7 +1443,7 @@ func TopicCreate(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// TopicListOne (GET) one topic
+// TopicMetrics (GET) metrics for one topic
 func TopicMetrics(w http.ResponseWriter, r *http.Request) {
 
 	// Init output
@@ -1608,6 +1617,67 @@ func SubACL(w http.ResponseWriter, r *http.Request) {
 		respondErr(w, 404, "Subscription does not exist", "NOT_FOUND")
 		return
 	}
+
+	// Output result to JSON
+	resJSON, err := res.ExportJSON()
+	if err != nil {
+		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
+		return
+	}
+
+	// Write response
+	output = []byte(resJSON)
+	respondOK(w, output)
+
+}
+
+// SubMetrics (GET) metrics for one subscription
+func SubMetrics(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+
+	// Grab context references
+	refStr := context.Get(r, "str").(stores.Store)
+	refRoles := context.Get(r, "auth_roles").([]string)
+	refUser := context.Get(r, "auth_user").(string)
+	refAuthResource := context.Get(r, "auth_resource").(bool)
+
+	urlSub := urlVars["subscription"]
+
+	projectUUID := context.Get(r, "auth_project_uuid").(string)
+
+	// Check Authorization per topic
+	// - if enabled in config
+	// - if user has only publisher role
+
+	if refAuthResource && auth.IsConsumer(refRoles) {
+
+		if auth.PerResource(projectUUID, "subscriptions", urlSub, refUser, refStr) == false {
+			respondErr(w, 403, "Access to this resource is forbidden", "FORBIDDEN")
+			return
+		}
+	}
+
+	results, err := subscriptions.FindMetric(projectUUID, urlSub, refStr)
+
+	if err != nil {
+		if err.Error() == "not found" {
+			respondErr(w, 404, "Subscription does not exist", "NOT_FOUND")
+			return
+		}
+		respondErr(w, 500, "Backend error", "INTERNAL_SERVER_ERROR")
+	}
+
+	res := results
 
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()

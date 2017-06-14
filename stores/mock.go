@@ -165,12 +165,25 @@ func (mk *MockStore) UpdateProject(projectUUID string, name string, description 
 
 }
 
-//IncrementTopicMsgNum increase topic number
+//IncrementTopicMsgNum increase number of messages published in a topic
 func (mk *MockStore) IncrementTopicMsgNum(projectUUID string, name string, num int64) error {
 
 	for i, item := range mk.TopicList {
 		if item.ProjectUUID == projectUUID && item.Name == name {
 			mk.TopicList[i].MsgNum += num
+			return nil
+		}
+	}
+
+	return errors.New("not found")
+}
+
+//IncrementSubMsgNum increase number of messages pulled in a subscription
+func (mk *MockStore) IncrementSubMsgNum(projectUUID string, name string, num int64) error {
+
+	for i, item := range mk.SubList {
+		if item.ProjectUUID == projectUUID && item.Name == name {
+			mk.SubList[i].MsgNum += num
 			return nil
 		}
 	}
@@ -332,10 +345,10 @@ func (mk *MockStore) Initialize() {
 	mk.TopicList = append(mk.TopicList, qtop3)
 
 	// populate Subscriptions
-	qsub1 := QSub{"argo_uuid", "sub1", "topic1", 0, 0, "", "", 10, "linear", 300}
-	qsub2 := QSub{"argo_uuid", "sub2", "topic2", 0, 0, "", "", 10, "linear", 300}
-	qsub3 := QSub{"argo_uuid", "sub3", "topic3", 0, 0, "", "", 10, "linear", 300}
-	qsub4 := QSub{"argo_uuid", "sub4", "topic4", 0, 0, "", "endpoint.foo", 10, "linear", 300}
+	qsub1 := QSub{"argo_uuid", "sub1", "topic1", 0, 0, "", "", 10, "linear", 300, 0}
+	qsub2 := QSub{"argo_uuid", "sub2", "topic2", 0, 0, "", "", 10, "linear", 300, 0}
+	qsub3 := QSub{"argo_uuid", "sub3", "topic3", 0, 0, "", "", 10, "linear", 300, 0}
+	qsub4 := QSub{"argo_uuid", "sub4", "topic4", 0, 0, "", "endpoint.foo", 10, "linear", 300, 0}
 	mk.SubList = append(mk.SubList, qsub1)
 	mk.SubList = append(mk.SubList, qsub2)
 	mk.SubList = append(mk.SubList, qsub3)
@@ -460,7 +473,7 @@ func (mk *MockStore) InsertTopic(projectUUID string, name string) error {
 
 // InsertSub inserts a new sub object to the store
 func (mk *MockStore) InsertSub(projectUUID string, name string, topic string, offset int64, ack int, push string, rPolicy string, rPeriod int) error {
-	sub := QSub{projectUUID, name, topic, offset, 0, "", push, ack, rPolicy, rPeriod}
+	sub := QSub{projectUUID, name, topic, offset, 0, "", push, ack, rPolicy, rPeriod, 0}
 	mk.SubList = append(mk.SubList, sub)
 	return nil
 }

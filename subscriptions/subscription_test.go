@@ -70,6 +70,15 @@ func (suite *SubTestSuite) TestGetSubByName() {
 
 }
 
+func (suite *SubTestSuite) TestGetSubMetric() {
+	APIcfg := config.NewAPICfg()
+	APIcfg.LoadStrJSON(suite.cfgStr)
+	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
+	mySubM, _ := FindMetric("argo_uuid", "sub1", store)
+	expTopic := SubMetrics{MsgNum: 0}
+	suite.Equal(expTopic, mySubM)
+}
+
 func (suite *SubTestSuite) TestHasProjectTopic() {
 	cfgAPI := config.NewAPICfg()
 	cfgAPI.LoadStrJSON(suite.cfgStr)
