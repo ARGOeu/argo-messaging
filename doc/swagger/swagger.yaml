@@ -376,7 +376,7 @@ paths:
           $ref: "#/responses/500"
 
 
-  /users/{USER}:refreshToken:
+  /users/{USER}/:refreshToken:
     post:
       summary: Refreshes the token of an existing user
       description: |
@@ -551,7 +551,7 @@ paths:
         500:
           $ref: "#/responses/500"
 
-  /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}:acl:
+  /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}/:acl:
     get:
       summary: List ACL of a given subscription
       description: |
@@ -586,7 +586,7 @@ paths:
         500:
           $ref: "#/responses/500"
 
-  /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}:modifyAcl:
+  /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}/:modifyAcl:
     post:
       summary: Modify ACL of a given subscription
       description: |
@@ -629,7 +629,7 @@ paths:
         500:
           $ref: "#/responses/500"
 
-  /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}:modifyOffset:
+  /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}/:modifyOffset:
     post:
       summary: Modify Offset of a given subscription
       description: |
@@ -672,7 +672,7 @@ paths:
         500:
           $ref: "#/responses/500"
 
-  /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}:offsets:
+  /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}/:offsets:
     get:
       summary: Get min max and current offset of a subscription
       description: |
@@ -693,7 +693,7 @@ paths:
         - Subscriptions
       responses:
         200:
-         description: A json representation of min, max and current offsets
+          description: A json representation of min, max and current offsets
           schema:
             $ref: '#/definitions/Offsets'
         400:
@@ -710,7 +710,7 @@ paths:
 
 
 
-  /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}:pull:
+  /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}/:pull:
     post:
       summary: Pull Messages from an existing subscription
       description: |
@@ -751,7 +751,7 @@ paths:
         500:
           $ref: "#/responses/500"
 
-  /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}:acknowledge:
+  /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}/:acknowledge:
     post:
       summary: Acknowledge the succesfull delivery of pulled messages
       description: |
@@ -793,7 +793,7 @@ paths:
         500:
           $ref: "#/responses/500"
 
-  /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}:modifyPushConfig:
+  /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}/:modifyPushConfig:
     post:
       summary: Modify the push configuration options of the subscription
       description: |
@@ -833,6 +833,41 @@ paths:
           $ref: "#/responses/404"
         408:
           $ref: "#/responses/408"
+        500:
+          $ref: "#/responses/500"
+
+  /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}/:metrics:
+    get:
+      summary: List of metrics related to the specific subscription
+      description: |
+        Show a list of subscription's metrics like the number of messages published
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: SUBSCRIPTION
+          in: path
+          description: Name of the subscription
+          required: true
+          type: string
+      tags:
+        - Subscriptions
+      responses:
+        200:
+          description: Subscription metrics.
+          schema:
+            $ref: '#/definitions/SubMetrics'
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
         500:
           $ref: "#/responses/500"
 
@@ -977,7 +1012,7 @@ paths:
 
 
 
-  /projects/{PROJECT}/topics/{TOPIC}:publish:
+  /projects/{PROJECT}/topics/{TOPIC}/:publish:
     post:
       summary: List topics in a project
       description: |
@@ -1018,7 +1053,7 @@ paths:
         500:
           $ref: "#/responses/500"
 
-  /projects/{PROJECT}/topics/{TOPIC}:acl:
+  /projects/{PROJECT}/topics/{TOPIC}/:acl:
     get:
       summary: List ACL of a given topic
       description: |
@@ -1053,7 +1088,7 @@ paths:
         500:
           $ref: "#/responses/500"
 
-  /projects/{PROJECT}/topics/{TOPIC}:metrics:
+  /projects/{PROJECT}/topics/{TOPIC}/:metrics:
     get:
       summary: List of metrics related to the specific topic
       description: |
@@ -1088,7 +1123,7 @@ paths:
         500:
           $ref: "#/responses/500"
 
-  /projects/{PROJECT}/topics/{TOPIC}:modifyAcl:
+  /projects/{PROJECT}/topics/{TOPIC}/:modifyAcl:
     post:
       summary: Modify ACL of a given topic
       description: |
@@ -1170,7 +1205,11 @@ responses:
 
 definitions:
 
-
+  SubMetrics:
+    type: object
+    properties:
+      mumber_of_messages:
+        type: string
 
   TopicMetrics:
     type: object

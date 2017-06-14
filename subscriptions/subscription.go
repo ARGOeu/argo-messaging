@@ -30,6 +30,11 @@ type PushConfig struct {
 	RetPol RetryPolicy `json:"retryPolicy"`
 }
 
+// SubMetrics holds the subscription's metric details
+type SubMetrics struct {
+	MsgNum int64 `json:"number_of_messages"`
+}
+
 // RetryPolicy holds information on retry policies
 type RetryPolicy struct {
 	PolicyType string `json:"type,omitempty"`
@@ -62,6 +67,21 @@ type Offsets struct {
 // AckIDs utility struct
 type AckIDs struct {
 	IDs []string `json:"AckIds"`
+}
+
+// FindMetric returns the metric of a specific subscription
+func FindMetric(projectUUID string, name string, store stores.Store) (SubMetrics, error) {
+	result := SubMetrics{MsgNum: 0}
+	topics, err := store.QuerySubs(projectUUID, name)
+	for _, item := range topics {
+		projectName := projects.GetNameByUUID(item.ProjectUUID, store)
+		if projectName == "" {
+			return result, errors.New("invalid project")
+		}
+
+		result.MsgNum = item.MsgNum
+	}
+	return result, err
 }
 
 // Empty returns true if Subscriptions list has no items
@@ -104,6 +124,12 @@ func New(projectUUID string, projectName string, name string, topic string) Subs
 	ps := PushConfig{}
 	s := Subscription{ProjectUUID: projectUUID, Name: name, Topic: topic, FullName: fsn, FullTopic: ftn, PushCfg: ps, Ack: 10}
 	return s
+}
+
+// ExportJSON exports metrics as a json string
+func (offs *SubMetrics) ExportJSON() (string, error) {
+	output, err := json.MarshalIndent(offs, "", "   ")
+	return string(output[:]), err
 }
 
 // ExportJSON exports offsets structure as a json string

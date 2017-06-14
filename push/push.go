@@ -132,6 +132,8 @@ func (p *Pusher) push(brk brokers.Broker, store stores.Store) {
 		if err == nil {
 			// Advance the offset
 			store.UpdateSubOffset(p.sub.ProjectUUID, p.sub.Name, 1+p.sub.Offset)
+			// Update subscription's metrics
+			store.IncrementSubMsgNum(p.sub.ProjectUUID, p.sub.Name, int64(1))
 			log.Debug("offset updated")
 		}
 	} else {

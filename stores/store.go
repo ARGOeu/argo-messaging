@@ -22,6 +22,7 @@ type Store interface {
 	InsertProject(uuid string, name string, createdOn time.Time, modifiedOn time.Time, createdBy string, description string) error
 	InsertTopic(projectUUID string, name string) error
 	IncrementTopicMsgNum(projectUUID string, name string, num int64) error
+	IncrementSubMsgNum(projectUUID string, name string, num int64) error
 	InsertSub(projectUUID string, name string, topic string, offest int64, ack int, push string, rPolicy string, rPeriod int) error
 	HasProject(name string) bool
 	HasUsers(projectUUID string, users []string) (bool, []string)

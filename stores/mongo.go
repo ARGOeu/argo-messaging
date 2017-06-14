@@ -362,11 +362,26 @@ func (mong *MongoStore) QueryTopics(projectUUID string, name string) ([]QTopic, 
 	return results, err
 }
 
-// UpdateTopicMsgNumb
+// IncrementTopicMsgNum increments the number of messages published in a topic
 func (mong *MongoStore) IncrementTopicMsgNum(projectUUID string, name string, num int64) error {
 
 	db := mong.Session.DB(mong.Database)
 	c := db.C("topics")
+
+	doc := bson.M{"project_uuid": projectUUID, "name": name}
+	change := bson.M{"$inc": bson.M{"msg_num": num}}
+
+	err := c.Update(doc, change)
+
+	return err
+
+}
+
+// IncrementTopicMsgNum increments the number of messages pulled in a subscription
+func (mong *MongoStore) IncrementSubMsgNum(projectUUID string, name string, num int64) error {
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C("subscriptions")
 
 	doc := bson.M{"project_uuid": projectUUID, "name": name}
 	change := bson.M{"$inc": bson.M{"msg_num": num}}
@@ -491,7 +506,7 @@ func (mong *MongoStore) InsertProject(uuid string, name string, createdOn time.T
 
 // InsertSub inserts a subscription to the store
 func (mong *MongoStore) InsertSub(projectUUID string, name string, topic string, offset int64, ack int, push string, rPolicy string, rPeriod int) error {
-	sub := QSub{projectUUID, name, topic, offset, 0, "", push, ack, rPolicy, rPeriod}
+	sub := QSub{projectUUID, name, topic, offset, 0, "", push, ack, rPolicy, rPeriod, 0}
 	return mong.InsertResource("subscriptions", sub)
 }
 
