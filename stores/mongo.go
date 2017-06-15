@@ -377,7 +377,7 @@ func (mong *MongoStore) IncrementTopicMsgNum(projectUUID string, name string, nu
 
 }
 
-//IncrementTopicMsgNum increases the total number of bytes published in a topic
+//IncrementTopicBytes increases the total number of bytes published in a topic
 func (mong *MongoStore) IncrementTopicBytes(projectUUID string, name string, totalBytes int64) error {
 	db := mong.Session.DB(mong.Database)
 	c := db.C("topics")
@@ -403,6 +403,19 @@ func (mong *MongoStore) IncrementSubMsgNum(projectUUID string, name string, num 
 
 	return err
 
+}
+
+//IncrementSubMsgNum increases the total number of bytes consumed from a subscripion
+func (mong *MongoStore) IncrementSubBytes(projectUUID string, name string, totalBytes int64) error {
+	db := mong.Session.DB(mong.Database)
+	c := db.C("subscriptions")
+
+	doc := bson.M{"project_uuid": projectUUID, "name": name}
+	change := bson.M{"$inc": bson.M{"total_bytes": totalBytes}}
+
+	err := c.Update(doc, change)
+
+	return err
 }
 
 //HasResourceRoles returns the roles of a user in a project
@@ -501,7 +514,7 @@ func (mong *MongoStore) HasProject(name string) bool {
 
 // InsertTopic inserts a topic to the store
 func (mong *MongoStore) InsertTopic(projectUUID string, name string) error {
-	topic := QTopic{ProjectUUID: projectUUID, Name: name, MsgNum: 0}
+	topic := QTopic{ProjectUUID: projectUUID, Name: name, MsgNum: 0, TotalBytes: 0}
 	return mong.InsertResource("topics", topic)
 }
 
@@ -519,7 +532,7 @@ func (mong *MongoStore) InsertProject(uuid string, name string, createdOn time.T
 
 // InsertSub inserts a subscription to the store
 func (mong *MongoStore) InsertSub(projectUUID string, name string, topic string, offset int64, ack int, push string, rPolicy string, rPeriod int) error {
-	sub := QSub{projectUUID, name, topic, offset, 0, "", push, ack, rPolicy, rPeriod, 0}
+	sub := QSub{projectUUID, name, topic, offset, 0, "", push, ack, rPolicy, rPeriod, 0, 0}
 	return mong.InsertResource("subscriptions", sub)
 }
 

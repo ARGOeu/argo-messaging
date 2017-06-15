@@ -2,7 +2,7 @@
 swagger: '2.0'
 info:
   title: argo-messaging-api
-  description: "NEW SWAGGER VERSION DOESNT SUPPORT THE :ACTION LIKE (/{SUBSCRIPTION}:acknowledge). IN ORDER TO RENDER THE DOCUMENTATION WE ADDED A TRAILING SLASH (/{SUBSCRIPTION}/:acknowledge).  PLEASE REMOVE THE TRAILING SLASH BEFORE TESTING. ARGO is a lightweight service for Service Level Monitoring designed for medium and large sized e-Infrastructures. This swagger UI interface provides access to the specification of the ARGO messaging api, which can be used to produce or consume messages."
+  description: "ARGO is a lightweight service for Service Level Monitoring designed for medium and large sized e-Infrastructures. This swagger UI interface provides access to the specification of the ARGO messaging api, which can be used to produce or consume messages."
   version: "0.9.2"
   contact:
     name: ARGO Developers
@@ -1209,15 +1209,17 @@ definitions:
     type: object
     properties:
       mumber_of_messages:
-        type: string
+        type: integer
+      total_bytes:
+        type: integer
 
   TopicMetrics:
     type: object
     properties:
       mumber_of_messages:
-        type: string
+        type: integer
       total_bytes:
-        type: string
+        type: integer
 
   AuthUsers:
     type: object

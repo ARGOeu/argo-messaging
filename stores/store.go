@@ -23,6 +23,7 @@ type Store interface {
 	InsertTopic(projectUUID string, name string) error
 	IncrementTopicMsgNum(projectUUID string, name string, num int64) error
 	IncrementTopicBytes(projectUUID string, name string, totalBytes int64) error
+	IncrementSubBytes(projectUUID string, name string, totalBytes int64) error
 	IncrementSubMsgNum(projectUUID string, name string, num int64) error
 	InsertSub(projectUUID string, name string, topic string, offest int64, ack int, push string, rPolicy string, rPeriod int) error
 	HasProject(name string) bool

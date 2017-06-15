@@ -22,10 +22,10 @@ func (suite *StoreTestSuite) TestMockStore() {
 		QTopic{"argo_uuid", "topic2", 0, 0},
 		QTopic{"argo_uuid", "topic3", 0, 0}}
 
-	eSubList := []QSub{QSub{"argo_uuid", "sub1", "topic1", 0, 0, "", "", 10, "linear", 300, 0},
-		QSub{"argo_uuid", "sub2", "topic2", 0, 0, "", "", 10, "linear", 300, 0},
-		QSub{"argo_uuid", "sub3", "topic3", 0, 0, "", "", 10, "linear", 300, 0},
-		QSub{"argo_uuid", "sub4", "topic4", 0, 0, "", "endpoint.foo", 10, "linear", 300, 0}}
+	eSubList := []QSub{QSub{"argo_uuid", "sub1", "topic1", 0, 0, "", "", 10, "linear", 300, 0, 0},
+		QSub{"argo_uuid", "sub2", "topic2", 0, 0, "", "", 10, "linear", 300, 0, 0},
+		QSub{"argo_uuid", "sub3", "topic3", 0, 0, "", "", 10, "linear", 300, 0, 0},
+		QSub{"argo_uuid", "sub4", "topic4", 0, 0, "", "endpoint.foo", 10, "linear", 300, 0, 0}}
 
 	tpList, _ := store.QueryTopics("argo_uuid", "")
 	suite.Equal(eTopList, tpList)
@@ -60,11 +60,11 @@ func (suite *StoreTestSuite) TestMockStore() {
 		QTopic{"argo_uuid", "topic3", 0, 0},
 		QTopic{"argo_uuid", "topicFresh", 0, 0}}
 
-	eSubList2 := []QSub{QSub{"argo_uuid", "sub1", "topic1", 0, 0, "", "", 10, "linear", 300, 0},
-		QSub{"argo_uuid", "sub2", "topic2", 0, 0, "", "", 10, "linear", 300, 0},
-		QSub{"argo_uuid", "sub3", "topic3", 0, 0, "", "", 10, "linear", 300, 0},
-		QSub{"argo_uuid", "sub4", "topic4", 0, 0, "", "endpoint.foo", 10, "linear", 300, 0},
-		QSub{"argo_uuid", "subFresh", "topicFresh", 0, 0, "", "", 10, "linear", 300, 0}}
+	eSubList2 := []QSub{QSub{"argo_uuid", "sub1", "topic1", 0, 0, "", "", 10, "linear", 300, 0, 0},
+		QSub{"argo_uuid", "sub2", "topic2", 0, 0, "", "", 10, "linear", 300, 0, 0},
+		QSub{"argo_uuid", "sub3", "topic3", 0, 0, "", "", 10, "linear", 300, 0, 0},
+		QSub{"argo_uuid", "sub4", "topic4", 0, 0, "", "endpoint.foo", 10, "linear", 300, 0, 0},
+		QSub{"argo_uuid", "subFresh", "topicFresh", 0, 0, "", "", 10, "linear", 300, 0, 0}}
 
 	tpList, _ = store.QueryTopics("argo_uuid", "")
 	suite.Equal(eTopList2, tpList)

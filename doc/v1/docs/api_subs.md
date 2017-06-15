@@ -395,7 +395,8 @@ Success Response
 `200 OK`
 ```
 {
-  "number_of_messages":12
+  "number_of_messages":12,
+  "total_bytes":54
 }
 ```
 

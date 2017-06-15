@@ -134,6 +134,7 @@ func (p *Pusher) push(brk brokers.Broker, store stores.Store) {
 			store.UpdateSubOffset(p.sub.ProjectUUID, p.sub.Name, 1+p.sub.Offset)
 			// Update subscription's metrics
 			store.IncrementSubMsgNum(p.sub.ProjectUUID, p.sub.Name, int64(1))
+			store.IncrementSubBytes(p.sub.ProjectUUID, p.sub.Name, pMsg.Msg.Size())
 			log.Debug("offset updated")
 		}
 	} else {

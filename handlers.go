@@ -770,7 +770,6 @@ func SubAck(w http.ResponseWriter, r *http.Request) {
 		respondErr(w, 404, "Subscription doesn't exist", "NOT_FOUND")
 		return
 	}
-	old_off := cur_sub.List[0].Offset
 
 	// Get list of AckIDs
 	if postBody.IDs == nil {
@@ -815,9 +814,6 @@ func SubAck(w http.ResponseWriter, r *http.Request) {
 		respondErr(w, 400, err.Error(), "INTERNAL_SERVER_ERROR")
 		return
 	}
-
-	// increment subscrption number of message metric
-	refStr.IncrementSubMsgNum(projectUUID, subName, int64(off+1-old_off))
 
 	// Output result to JSON
 	resJSON := "{}"
@@ -1988,6 +1984,10 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 		curRec := messages.RecMsg{AckID: ackPrefix + curMsg.ID, Msg: curMsg}
 		recList.RecMsgs = append(recList.RecMsgs, curRec)
 	}
+
+	// increment subscrption number of message metric
+	refStr.IncrementSubMsgNum(projectUUID, urlSub, int64(len(msgs)))
+	refStr.IncrementSubBytes(projectUUID, urlSub, recList.TotalSize())
 
 	resJSON, err := recList.ExportJSON()
 
