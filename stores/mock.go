@@ -178,6 +178,18 @@ func (mk *MockStore) IncrementTopicMsgNum(projectUUID string, name string, num i
 	return errors.New("not found")
 }
 
+//IncrementTopicMsgNum increases the total number of bytes published in a topic
+func (mk *MockStore) IncrementTopicBytes(projectUUID string, name string, totalBytes int64) error {
+	for i, item := range mk.TopicList {
+		if item.ProjectUUID == projectUUID && item.Name == name {
+			mk.TopicList[i].TotalBytes += totalBytes
+			return nil
+		}
+	}
+
+	return errors.New("not found")
+}
+
 //IncrementSubMsgNum increase number of messages pulled in a subscription
 func (mk *MockStore) IncrementSubMsgNum(projectUUID string, name string, num int64) error {
 
@@ -337,9 +349,9 @@ func (mk *MockStore) UpdateSubPull(projectUUID string, name string, offset int64
 func (mk *MockStore) Initialize() {
 
 	// populate topics
-	qtop1 := QTopic{"argo_uuid", "topic1", 0}
-	qtop2 := QTopic{"argo_uuid", "topic2", 0}
-	qtop3 := QTopic{"argo_uuid", "topic3", 0}
+	qtop1 := QTopic{"argo_uuid", "topic1", 0, 0}
+	qtop2 := QTopic{"argo_uuid", "topic2", 0, 0}
+	qtop3 := QTopic{"argo_uuid", "topic3", 0, 0}
 	mk.TopicList = append(mk.TopicList, qtop1)
 	mk.TopicList = append(mk.TopicList, qtop2)
 	mk.TopicList = append(mk.TopicList, qtop3)

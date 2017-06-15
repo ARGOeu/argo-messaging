@@ -16,7 +16,8 @@ type Topic struct {
 }
 
 type TopicMetrics struct {
-	MsgNum int64 `json:"number_of_messages"`
+	MsgNum     int64 `json:"number_of_messages"`
+	TotalBytes int64 `json:"total_bytes"`
 }
 
 // Topics holds a list of Topic items
@@ -47,6 +48,7 @@ func FindMetric(projectUUID string, name string, store stores.Store) (TopicMetri
 		}
 
 		result.MsgNum = item.MsgNum
+		result.TotalBytes = item.TotalBytes
 	}
 	return result, err
 }

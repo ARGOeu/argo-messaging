@@ -62,6 +62,7 @@ type QTopic struct {
 	ProjectUUID string `bson:"project_uuid"`
 	Name        string `bson:"name"`
 	MsgNum      int64  `bson:"msg_num"`
+	TotalBytes  int64  `bson:"total_bytes"`
 }
 
 func (qUsr *QUser) isInProject(projectUUID string) bool {

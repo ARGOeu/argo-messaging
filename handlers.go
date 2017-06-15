@@ -1846,6 +1846,8 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 
 	// increment topic number of message metric
 	refStr.IncrementTopicMsgNum(projectUUID, urlTopic, int64(len(msgList.Msgs)))
+	// increment topic total bytes published
+	refStr.IncrementTopicBytes(projectUUID, urlTopic, msgList.TotalSize())
 
 	// Export the msgIDs
 	resJSON, err := msgIDs.ExportJSON()

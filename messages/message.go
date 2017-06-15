@@ -47,6 +47,38 @@ type MsgIDs struct {
 // Attributes representation as key/value
 type Attributes map[string]string
 
+//TotalSize returns the total bytesize of a message list
+func (msgL RecList) TotalSize() int64 {
+	sum := int64(0)
+	for _, msg := range msgL.RecMsgs {
+		// Convert data string to byte array
+		bt := []byte(msg.Msg.Data)
+		sum = sum + int64(len(bt))
+	}
+
+	return sum
+}
+
+//TotalSize returns the total bytesize of a message list
+func (msgL MsgList) TotalSize() int64 {
+	sum := int64(0)
+	for _, msg := range msgL.Msgs {
+		// Convert data string to byte array
+		bt := []byte(msg.Data)
+		sum = sum + int64(len(bt))
+	}
+
+	return sum
+}
+
+//Size returns the messages size in bytes
+func (msg Message) Size() int64 {
+	// Convert data string to byte array
+	bt := []byte(msg.Data)
+	size := int64(len(bt))
+	return size
+}
+
 // MarshalJSON generates json string for Attributes type
 func (attr Attributes) MarshalJSON() ([]byte, error) {
 	var buff bytes.Buffer
