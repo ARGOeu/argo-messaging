@@ -1209,15 +1209,17 @@ definitions:
     type: object
     properties:
       mumber_of_messages:
-        type: string
+        type: integer
+      total_bytes:
+        type: integer
 
   TopicMetrics:
     type: object
     properties:
       mumber_of_messages:
-        type: string
+        type: integer
       total_bytes:
-        type: string
+        type: integer
 
   AuthUsers:
     type: object

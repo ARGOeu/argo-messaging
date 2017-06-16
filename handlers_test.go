@@ -1085,7 +1085,8 @@ func (suite *HandlerTestSuite) TestSubMetrics() {
 	}
 
 	expResp := `{
-   "number_of_messages": 0
+   "number_of_messages": 0,
+   "total_bytes": 0
 }`
 
 	cfgKafka := config.NewAPICfg()

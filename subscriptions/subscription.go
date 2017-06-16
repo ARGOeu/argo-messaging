@@ -32,7 +32,8 @@ type PushConfig struct {
 
 // SubMetrics holds the subscription's metric details
 type SubMetrics struct {
-	MsgNum int64 `json:"number_of_messages"`
+	MsgNum     int64 `json:"number_of_messages"`
+	TotalBytes int64 `json:"total_bytes"`
 }
 
 // RetryPolicy holds information on retry policies
@@ -80,6 +81,7 @@ func FindMetric(projectUUID string, name string, store stores.Store) (SubMetrics
 		}
 
 		result.MsgNum = item.MsgNum
+		result.TotalBytes = item.TotalBytes
 	}
 	return result, err
 }

@@ -178,11 +178,23 @@ func (mk *MockStore) IncrementTopicMsgNum(projectUUID string, name string, num i
 	return errors.New("not found")
 }
 
-//IncrementTopicMsgNum increases the total number of bytes published in a topic
+//IncrementTopicBytes increases the total number of bytes published in a topic
 func (mk *MockStore) IncrementTopicBytes(projectUUID string, name string, totalBytes int64) error {
 	for i, item := range mk.TopicList {
 		if item.ProjectUUID == projectUUID && item.Name == name {
 			mk.TopicList[i].TotalBytes += totalBytes
+			return nil
+		}
+	}
+
+	return errors.New("not found")
+}
+
+//IncrementSubBytes increases the total number of bytes published in a subscription
+func (mk *MockStore) IncrementSubBytes(projectUUID string, name string, totalBytes int64) error {
+	for i, item := range mk.SubList {
+		if item.ProjectUUID == projectUUID && item.Name == name {
+			mk.SubList[i].TotalBytes += totalBytes
 			return nil
 		}
 	}
@@ -357,10 +369,10 @@ func (mk *MockStore) Initialize() {
 	mk.TopicList = append(mk.TopicList, qtop3)
 
 	// populate Subscriptions
-	qsub1 := QSub{"argo_uuid", "sub1", "topic1", 0, 0, "", "", 10, "linear", 300, 0}
-	qsub2 := QSub{"argo_uuid", "sub2", "topic2", 0, 0, "", "", 10, "linear", 300, 0}
-	qsub3 := QSub{"argo_uuid", "sub3", "topic3", 0, 0, "", "", 10, "linear", 300, 0}
-	qsub4 := QSub{"argo_uuid", "sub4", "topic4", 0, 0, "", "endpoint.foo", 10, "linear", 300, 0}
+	qsub1 := QSub{"argo_uuid", "sub1", "topic1", 0, 0, "", "", 10, "linear", 300, 0, 0}
+	qsub2 := QSub{"argo_uuid", "sub2", "topic2", 0, 0, "", "", 10, "linear", 300, 0, 0}
+	qsub3 := QSub{"argo_uuid", "sub3", "topic3", 0, 0, "", "", 10, "linear", 300, 0, 0}
+	qsub4 := QSub{"argo_uuid", "sub4", "topic4", 0, 0, "", "endpoint.foo", 10, "linear", 300, 0, 0}
 	mk.SubList = append(mk.SubList, qsub1)
 	mk.SubList = append(mk.SubList, qsub2)
 	mk.SubList = append(mk.SubList, qsub3)
@@ -478,14 +490,14 @@ func (mk *MockStore) HasProject(name string) bool {
 
 // InsertTopic inserts a new topic object to the store
 func (mk *MockStore) InsertTopic(projectUUID string, name string) error {
-	topic := QTopic{ProjectUUID: projectUUID, Name: name, MsgNum: 0}
+	topic := QTopic{ProjectUUID: projectUUID, Name: name, MsgNum: 0, TotalBytes: 0}
 	mk.TopicList = append(mk.TopicList, topic)
 	return nil
 }
 
 // InsertSub inserts a new sub object to the store
 func (mk *MockStore) InsertSub(projectUUID string, name string, topic string, offset int64, ack int, push string, rPolicy string, rPeriod int) error {
-	sub := QSub{projectUUID, name, topic, offset, 0, "", push, ack, rPolicy, rPeriod, 0}
+	sub := QSub{projectUUID, name, topic, offset, 0, "", push, ack, rPolicy, rPeriod, 0, 0}
 	mk.SubList = append(mk.SubList, sub)
 	return nil
 }
