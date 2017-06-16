@@ -298,13 +298,14 @@ curl  -H "Content-Type: application/json"
 ```
 
 ### Responses  
-If successful it returns the number of messages published in the specific topic.
+If successful it returns topic's related metrics (number of messages published and total bytes).
 
 Success Response
 `200 OK`
 ```
 {
-  "number_of_messages":4
+  "number_of_messages":4,
+  "total_bytes":54
 }
 ```
 

@@ -377,6 +377,19 @@ func (mong *MongoStore) IncrementTopicMsgNum(projectUUID string, name string, nu
 
 }
 
+//IncrementTopicMsgNum increases the total number of bytes published in a topic
+func (mong *MongoStore) IncrementTopicBytes(projectUUID string, name string, totalBytes int64) error {
+	db := mong.Session.DB(mong.Database)
+	c := db.C("topics")
+
+	doc := bson.M{"project_uuid": projectUUID, "name": name}
+	change := bson.M{"$inc": bson.M{"total_bytes": totalBytes}}
+
+	err := c.Update(doc, change)
+
+	return err
+}
+
 // IncrementTopicMsgNum increments the number of messages pulled in a subscription
 func (mong *MongoStore) IncrementSubMsgNum(projectUUID string, name string, num int64) error {
 
