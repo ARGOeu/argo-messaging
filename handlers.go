@@ -17,6 +17,7 @@ import (
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
 	"github.com/ARGOeu/argo-messaging/messages"
+	"github.com/ARGOeu/argo-messaging/metrics"
 	"github.com/ARGOeu/argo-messaging/projects"
 	"github.com/ARGOeu/argo-messaging/push"
 	"github.com/ARGOeu/argo-messaging/stores"
@@ -1430,6 +1431,65 @@ func TopicCreate(w http.ResponseWriter, r *http.Request) {
 	resJSON, err := res.ExportJSON()
 	if err != nil {
 		respondErr(w, 500, "Error Exporting Retrieved Data to JSON", "INTERNAL_SERVER_ERROR")
+		return
+	}
+
+	// Write response
+	output = []byte(resJSON)
+	respondOK(w, output)
+
+}
+
+// ProjectMetrics (GET) metrics for one project (number of topics)
+func ProjectMetrics(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+
+	// Grab context references
+	refStr := context.Get(r, "str").(stores.Store)
+	refRoles := context.Get(r, "auth_roles").([]string)
+	refUser := context.Get(r, "auth_user").(string)
+	refAuthResource := context.Get(r, "auth_resource").(bool)
+
+	urlProject := urlVars["project"]
+
+	projectUUID := context.Get(r, "auth_project_uuid").(string)
+
+	// Check Authorization per topic
+	// - if enabled in config
+	// - if user has only publisher role
+
+	numTopics := int64(0)
+	if refAuthResource && auth.IsPublisher(refRoles) {
+		numTopics2, err2 := metrics.GetProjectTopics(projectUUID, refStr)
+		if err2 != nil {
+			respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
+			return
+		}
+		numTopics = numTopics2
+	} else {
+		numTopics2, err2 := metrics.GetProjectTopicsACL(projectUUID, refUser, refStr)
+		if err2 != nil {
+			respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
+			return
+		}
+		numTopics = numTopics2
+	}
+	m1 := metrics.NewProjectTopics(urlProject, numTopics, metrics.GetTimeNowZulu())
+	res := metrics.NewMetricList(m1)
+	// Output result to JSON
+	resJSON, err := res.ExportJSON()
+	if err != nil {
+		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
 		return
 	}
 
