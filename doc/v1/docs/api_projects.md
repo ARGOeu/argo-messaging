@@ -230,7 +230,7 @@ curl  -H "Content-Type: application/json"
 ```
 
 ### Responses  
-If successful it returns topic's related metrics (number of messages published and total bytes).
+If successful it returns projects related metrics (number of topics, number of subscriptions).
 
 Success Response
 `200 OK`
@@ -245,14 +245,29 @@ Success Response
          "resource_name": "ARGO",
          "timeseries": [
             {
-               "timestamp": "2017-06-23T04:50:02Z",
+               "timestamp": "2017-06-23T05:47:13Z",
                "value": 3
             }
          ],
          "description": "Counter that displays the number of topics belonging to the specific project"
+      },
+      {
+         "metric": "project.number_of_subscriptions",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "project",
+         "resource_name": "ARGO",
+         "timeseries": [
+            {
+               "timestamp": "2017-06-23T05:47:13Z",
+               "value": 4
+            }
+         ],
+         "description": "Counter that displays the number of subscriptions belonging to the specific project"
       }
    ]
 }
+
 ```
 
 ### Errors

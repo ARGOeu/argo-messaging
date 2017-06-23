@@ -1469,6 +1469,7 @@ func ProjectMetrics(w http.ResponseWriter, r *http.Request) {
 	// - if user has only publisher role
 
 	numTopics := int64(0)
+	numSubs := int64(0)
 	if refAuthResource && auth.IsPublisher(refRoles) {
 		numTopics2, err2 := metrics.GetProjectTopics(projectUUID, refStr)
 		if err2 != nil {
@@ -1476,6 +1477,12 @@ func ProjectMetrics(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		numTopics = numTopics2
+		numSubs2, err2 := metrics.GetProjectSubs(projectUUID, refStr)
+		if err2 != nil {
+			respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
+			return
+		}
+		numSubs = numSubs2
 	} else {
 		numTopics2, err2 := metrics.GetProjectTopicsACL(projectUUID, refUser, refStr)
 		if err2 != nil {
@@ -1483,9 +1490,18 @@ func ProjectMetrics(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		numTopics = numTopics2
+		numSubs2, err2 := metrics.GetProjectSubsACL(projectUUID, refUser, refStr)
+		if err2 != nil {
+			respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
+			return
+		}
+		numSubs = numSubs2
 	}
 	m1 := metrics.NewProjectTopics(urlProject, numTopics, metrics.GetTimeNowZulu())
+	m2 := metrics.NewProjectSubs(urlProject, numSubs, metrics.GetTimeNowZulu())
 	res := metrics.NewMetricList(m1)
+	res.Metrics = append(res.Metrics, m2)
+
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
 	if err != nil {
