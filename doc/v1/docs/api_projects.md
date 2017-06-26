@@ -209,3 +209,51 @@ Code: `200 OK`, Empty response if successful.
 
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
+
+## [GET] Project Metrics
+The following request returns related metrics for the specific project: eg. the number of topics
+
+### Request
+```
+GET "/v1/projects/{project_name}:metrics"
+```
+
+### Where
+- Project_name: name of the project
+- topic_name: name of the topic
+
+### Example request
+
+```json
+curl  -H "Content-Type: application/json"
+"https://{URL}/v1/projects/BRAND_NEW:metrics?key=S3CR3T"
+```
+
+### Responses  
+If successful it returns topic's related metrics (number of messages published and total bytes).
+
+Success Response
+`200 OK`
+```
+{
+   "metrics": [
+      {
+         "metric": "project.number_of_topics",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "project",
+         "resource_name": "ARGO",
+         "timeseries": [
+            {
+               "timestamp": "2017-06-23T04:50:02Z",
+               "value": 3
+            }
+         ],
+         "description": "Counter that displays the number of topics belonging to the specific project"
+      }
+   ]
+}
+```
+
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors

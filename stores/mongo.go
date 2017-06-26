@@ -340,6 +340,27 @@ func (mong *MongoStore) QueryUsers(projectUUID string, uuid string, name string)
 	return results, err
 }
 
+//QueryTopicsByACL returns topics of a specific username
+func (mong *MongoStore) QueryTopicsByACL(projectUUID, user string) ([]QTopic, error) {
+	// By default return all topics of a given project
+	query := bson.M{"project_uuid": projectUUID}
+
+	// If name is given return only the specific topic
+	if user != "" {
+		query = bson.M{"project_uuid": projectUUID, "acl": user}
+	}
+	db := mong.Session.DB(mong.Database)
+	c := db.C("topics")
+	var results []QTopic
+	err := c.Find(query).All(&results)
+
+	if err != nil {
+		log.Fatal("STORE", "\t", err.Error())
+	}
+
+	return results, err
+}
+
 // QueryTopics Query Subscription info from store
 func (mong *MongoStore) QueryTopics(projectUUID string, name string) ([]QTopic, error) {
 
