@@ -6,6 +6,7 @@ import "time"
 type Store interface {
 	Initialize()
 	QueryTopicsByACL(projectUUID, user string) ([]QTopic, error)
+	QuerySubsByACL(projectUUID, user string) ([]QSub, error)
 	QuerySubs(projectUUID string, name string) ([]QSub, error)
 	QueryTopics(projectUUID string, name string) ([]QTopic, error)
 	RemoveTopic(projectUUID string, name string) error

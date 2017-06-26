@@ -11,3 +11,13 @@ func GetProjectTopicsACL(projectUUID string, username string, store stores.Store
 	topics, err := store.QueryTopicsByACL(projectUUID, username)
 	return int64(len(topics)), err
 }
+
+func GetProjectSubs(projectUUID string, store stores.Store) (int64, error) {
+	subs, err := store.QuerySubs(projectUUID, "")
+	return int64(len(subs)), err
+}
+
+func GetProjectSubsACL(projectUUID string, username string, store stores.Store) (int64, error) {
+	subs, err := store.QuerySubsByACL(projectUUID, username)
+	return int64(len(subs)), err
+}

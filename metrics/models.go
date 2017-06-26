@@ -9,6 +9,8 @@ import (
 const (
 	DescProjectTopics string = "Counter that displays the number of topics belonging to the specific project"
 	NameProjectTopics string = "project.number_of_topics"
+	DescProjectSubs   string = "Counter that displays the number of subscriptions belonging to the specific project"
+	NameProjectSubs   string = "project.number_of_subscriptions"
 )
 
 type MetricList struct {
@@ -51,6 +53,13 @@ func NewProjectTopics(project string, value int64, tstamp string) Metric {
 	// Initialize single point timeseries with the latest timestamp and value
 	ts := []Timepoint{Timepoint{Timestamp: tstamp, Value: value}}
 	m := Metric{Metric: NameProjectTopics, MetricType: "counter", ValueType: "int64", ResourceType: "project", Resource: project, Timeseries: ts, Description: DescProjectTopics}
+	return m
+}
+
+func NewProjectSubs(project string, value int64, tstamp string) Metric {
+	// Initialize single point timeseries with the latest timestamp and value
+	ts := []Timepoint{Timepoint{Timestamp: tstamp, Value: value}}
+	m := Metric{Metric: NameProjectSubs, MetricType: "counter", ValueType: "int64", ResourceType: "project", Resource: project, Timeseries: ts, Description: DescProjectSubs}
 	return m
 }
 

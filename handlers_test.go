@@ -1122,11 +1122,25 @@ func (suite *HandlerTestSuite) TestProjectcMetrics() {
          "resource_name": "ARGO",
          "timeseries": [
             {
-               "timestamp": "{{TIMESTAMP}}",
+               "timestamp": "{{TIMESTAMP1}}",
                "value": 3
             }
          ],
          "description": "Counter that displays the number of topics belonging to the specific project"
+      },
+      {
+         "metric": "project.number_of_subscriptions",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "project",
+         "resource_name": "ARGO",
+         "timeseries": [
+            {
+               "timestamp": "{{TIMESTAMP2}}",
+               "value": 4
+            }
+         ],
+         "description": "Counter that displays the number of subscriptions belonging to the specific project"
       }
    ]
 }`
@@ -1142,8 +1156,10 @@ func (suite *HandlerTestSuite) TestProjectcMetrics() {
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	metricOut, _ := metrics.GetMetricsFromJSON([]byte(w.Body.String()))
-	ts := metricOut.Metrics[0].Timeseries[0].Timestamp
-	expResp = strings.Replace(expResp, "{{TIMESTAMP}}", ts, -1)
+	ts1 := metricOut.Metrics[0].Timeseries[0].Timestamp
+	ts2 := metricOut.Metrics[1].Timeseries[0].Timestamp
+	expResp = strings.Replace(expResp, "{{TIMESTAMP1}}", ts1, -1)
+	expResp = strings.Replace(expResp, "{{TIMESTAMP2}}", ts2, -1)
 	suite.Equal(expResp, w.Body.String())
 
 }
