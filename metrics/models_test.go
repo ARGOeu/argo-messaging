@@ -102,6 +102,7 @@ func (suite *MetricsTestSuite) TestGetSubs() {
 	suite.Equal(int64(4), n)
 
 }
+
 func (suite *MetricsTestSuite) TestGetSubsACL() {
 
 	APIcfg := config.NewAPICfg()
@@ -109,6 +110,16 @@ func (suite *MetricsTestSuite) TestGetSubsACL() {
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
 	n, _ := GetProjectSubsACL("argo_uuid", "uuid1", store)
 	suite.Equal(int64(3), n)
+
+}
+
+func (suite *MetricsTestSuite) TestGetSubsByTopic() {
+
+	APIcfg := config.NewAPICfg()
+	APIcfg.LoadStrJSON(suite.cfgStr)
+	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
+	n, _ := GetProjectSubsByTopic("argo_uuid", "topic1", store)
+	suite.Equal(int64(1), n)
 
 }
 

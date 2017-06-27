@@ -1551,7 +1551,8 @@ func TopicMetrics(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	results, err := topics.FindMetric(projectUUID, urlTopic, refStr)
+	// Number of bytes and number of messages
+	resultsMsg, err := topics.FindMetric(projectUUID, urlTopic, refStr)
 
 	if err != nil {
 		if err.Error() == "not found" {
@@ -1561,7 +1562,26 @@ func TopicMetrics(w http.ResponseWriter, r *http.Request) {
 		respondErr(w, 500, "Backend error", "INTERNAL_SERVER_ERROR")
 	}
 
-	res := results
+	numMsg := resultsMsg.MsgNum
+	numBytes := resultsMsg.TotalBytes
+
+	numSubs := int64(0)
+	numSubs, err = metrics.GetProjectSubsByTopic(projectUUID, urlTopic, refStr)
+	if err != nil {
+		if err.Error() == "not found" {
+			respondErr(w, 404, "Topic does not exist", "NOT_FOUND")
+			return
+		}
+		respondErr(w, 500, "Backend error", "INTERNAL_SERVER_ERROR")
+	}
+	m1 := metrics.NewTopicSubs(urlTopic, numSubs, metrics.GetTimeNowZulu())
+	res := metrics.NewMetricList(m1)
+
+	m2 := metrics.NewTopicMsgs(urlTopic, numMsg, metrics.GetTimeNowZulu())
+	m3 := metrics.NewTopicBytes(urlTopic, numBytes, metrics.GetTimeNowZulu())
+
+	res.Metrics = append(res.Metrics, m2)
+	res.Metrics = append(res.Metrics, m3)
 
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()

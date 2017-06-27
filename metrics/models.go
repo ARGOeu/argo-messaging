@@ -11,6 +11,12 @@ const (
 	NameProjectTopics string = "project.number_of_topics"
 	DescProjectSubs   string = "Counter that displays the number of subscriptions belonging to the specific project"
 	NameProjectSubs   string = "project.number_of_subscriptions"
+	DescTopicSubs     string = "Counter that displays the number of subscriptions belonging to a specific topic"
+	NameTopicSubs     string = "topic.number_of_subscriptions"
+	DescTopicMsgs     string = "Counter that displays the number number of messages published to the specific topic"
+	NameTopicMsgs     string = "topic.number_of_messages"
+	DescTopicBytes    string = "Counter that displays the total size of data (in bytes) published to the specific topic"
+	NameTopicBytes    string = "topic.number_of_bytes"
 )
 
 type MetricList struct {
@@ -60,6 +66,27 @@ func NewProjectSubs(project string, value int64, tstamp string) Metric {
 	// Initialize single point timeseries with the latest timestamp and value
 	ts := []Timepoint{Timepoint{Timestamp: tstamp, Value: value}}
 	m := Metric{Metric: NameProjectSubs, MetricType: "counter", ValueType: "int64", ResourceType: "project", Resource: project, Timeseries: ts, Description: DescProjectSubs}
+	return m
+}
+
+func NewTopicSubs(topic string, value int64, tstamp string) Metric {
+	// Initialize single point timeseries with the latest timestamp and value
+	ts := []Timepoint{Timepoint{Timestamp: tstamp, Value: value}}
+	m := Metric{Metric: NameTopicSubs, MetricType: "counter", ValueType: "int64", ResourceType: "topic", Resource: topic, Timeseries: ts, Description: DescTopicSubs}
+	return m
+}
+
+func NewTopicMsgs(topic string, value int64, tstamp string) Metric {
+	// Initialize single point timeseries with the latest timestamp and value
+	ts := []Timepoint{Timepoint{Timestamp: tstamp, Value: value}}
+	m := Metric{Metric: NameTopicMsgs, MetricType: "counter", ValueType: "int64", ResourceType: "topic", Resource: topic, Timeseries: ts, Description: DescTopicMsgs}
+	return m
+}
+
+func NewTopicBytes(topic string, value int64, tstamp string) Metric {
+	// Initialize single point timeseries with the latest timestamp and value
+	ts := []Timepoint{Timepoint{Timestamp: tstamp, Value: value}}
+	m := Metric{Metric: NameTopicBytes, MetricType: "counter", ValueType: "int64", ResourceType: "topic", Resource: topic, Timeseries: ts, Description: DescTopicBytes}
 	return m
 }
 

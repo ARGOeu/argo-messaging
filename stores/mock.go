@@ -620,6 +620,16 @@ func (mk *MockStore) QuerySubs(projectUUID string, name string) ([]QSub, error) 
 	return result, nil
 }
 
+func (mk *MockStore) QuerySubsByTopic(projectUUID, topic string) ([]QSub, error) {
+	result := []QSub{}
+	for _, item := range mk.SubList {
+		if projectUUID == item.ProjectUUID && item.Topic == topic {
+			result = append(result, item)
+		}
+	}
+	return result, nil
+}
+
 func (mk *MockStore) QuerySubsByACL(projectUUID, user string) ([]QSub, error) {
 	result := []QSub{}
 	for _, item := range mk.SubList {

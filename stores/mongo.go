@@ -340,6 +340,27 @@ func (mong *MongoStore) QueryUsers(projectUUID string, uuid string, name string)
 	return results, err
 }
 
+//QuerySubsByTopic returns subscriptions of a specific topic
+func (mong *MongoStore) QuerySubsByTopic(projectUUID, topic string) ([]QSub, error) {
+	// By default return all subs of a given project
+	query := bson.M{"project_uuid": projectUUID}
+
+	// If topic is given return only the specific topic
+	if topic != "" {
+		query = bson.M{"project_uuid": projectUUID, "topic": topic}
+	}
+	db := mong.Session.DB(mong.Database)
+	c := db.C("subscriptions")
+	var results []QSub
+	err := c.Find(query).All(&results)
+
+	if err != nil {
+		log.Fatal("STORE", "\t", err.Error())
+	}
+
+	return results, err
+}
+
 //QuerySubsByACL returns subscriptions that a specific username has access to
 func (mong *MongoStore) QuerySubsByACL(projectUUID, user string) ([]QSub, error) {
 	// By default return all subs of a given project

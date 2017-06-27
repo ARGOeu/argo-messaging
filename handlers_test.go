@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -1172,8 +1173,50 @@ func (suite *HandlerTestSuite) TestTopicMetrics() {
 	}
 
 	expResp := `{
-   "number_of_messages": 0,
-   "total_bytes": 0
+   "metrics": [
+      {
+         "metric": "topic.number_of_subscriptions",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "topic",
+         "resource_name": "topic1",
+         "timeseries": [
+            {
+               "timestamp": "{{TIMESTAMP1}}",
+               "value": 1
+            }
+         ],
+         "description": "Counter that displays the number of subscriptions belonging to a specific topic"
+      },
+      {
+         "metric": "topic.number_of_messages",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "topic",
+         "resource_name": "topic1",
+         "timeseries": [
+            {
+               "timestamp": "{{TIMESTAMP2}}",
+               "value": 0
+            }
+         ],
+         "description": "Counter that displays the number number of messages published to the specific topic"
+      },
+      {
+         "metric": "topic.number_of_bytes",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "topic",
+         "resource_name": "topic1",
+         "timeseries": [
+            {
+               "timestamp": "{{TIMESTAMP3}}",
+               "value": 0
+            }
+         ],
+         "description": "Counter that displays the total size of data (in bytes) published to the specific topic"
+      }
+   ]
 }`
 
 	cfgKafka := config.NewAPICfg()
@@ -1186,7 +1229,15 @@ func (suite *HandlerTestSuite) TestTopicMetrics() {
 	router.HandleFunc("/v1/projects/{project}/topics/{topic}:metrics", WrapMockAuthConfig(TopicMetrics, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
+	metricOut, _ := metrics.GetMetricsFromJSON([]byte(w.Body.String()))
+	ts1 := metricOut.Metrics[0].Timeseries[0].Timestamp
+	ts2 := metricOut.Metrics[1].Timeseries[0].Timestamp
+	ts3 := metricOut.Metrics[2].Timeseries[0].Timestamp
+	expResp = strings.Replace(expResp, "{{TIMESTAMP1}}", ts1, -1)
+	expResp = strings.Replace(expResp, "{{TIMESTAMP2}}", ts2, -1)
+	expResp = strings.Replace(expResp, "{{TIMESTAMP3}}", ts3, -1)
 	suite.Equal(expResp, w.Body.String())
+	fmt.Println(w.Body.String())
 
 }
 func (suite *HandlerTestSuite) TestTopicACL01() {
