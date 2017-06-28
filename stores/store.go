@@ -5,6 +5,7 @@ import "time"
 // Store encapsulates the generic store interface
 type Store interface {
 	Initialize()
+	QuerySubsByTopic(projectUUID, topic string) ([]QSub, error)
 	QueryTopicsByACL(projectUUID, user string) ([]QTopic, error)
 	QuerySubsByACL(projectUUID, user string) ([]QSub, error)
 	QuerySubs(projectUUID string, name string) ([]QSub, error)

@@ -1141,7 +1141,7 @@ paths:
         200:
           description: Topic metrics.
           schema:
-            $ref: '#/definitions/TopicMetrics'
+            $ref: '#/definitions/Metrics'
         400:
           $ref: "#/responses/400"
         401:
