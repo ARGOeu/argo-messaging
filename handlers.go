@@ -1502,6 +1502,17 @@ func ProjectMetrics(w http.ResponseWriter, r *http.Request) {
 	res := metrics.NewMetricList(m1)
 	res.Metrics = append(res.Metrics, m2)
 
+	// Project User subscriptions aggregation
+	m3, err := metrics.AggrProjectUserSubs(projectUUID, refStr)
+	if err != nil {
+		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
+		return
+	}
+
+	for _, item := range m3.Metrics {
+		res.Metrics = append(res.Metrics, item)
+	}
+
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
 	if err != nil {

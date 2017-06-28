@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -1123,7 +1122,7 @@ func (suite *HandlerTestSuite) TestProjectcMetrics() {
          "resource_name": "ARGO",
          "timeseries": [
             {
-               "timestamp": "{{TIMESTAMP1}}",
+               "timestamp": "{{TS1}}",
                "value": 3
             }
          ],
@@ -1137,11 +1136,67 @@ func (suite *HandlerTestSuite) TestProjectcMetrics() {
          "resource_name": "ARGO",
          "timeseries": [
             {
-               "timestamp": "{{TIMESTAMP2}}",
+               "timestamp": "{{TS2}}",
                "value": 4
             }
          ],
          "description": "Counter that displays the number of subscriptions belonging to the specific project"
+      },
+      {
+         "metric": "project.user.number_of_subscriptions",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "project.user",
+         "resource_name": "ARGO.UserA",
+         "timeseries": [
+            {
+               "timestamp": "{{TS3}}",
+               "value": 3
+            }
+         ],
+         "description": "Counter that displays the number of subscriptions that a user has access to the specific project"
+      },
+      {
+         "metric": "project.user.number_of_subscriptions",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "project.user",
+         "resource_name": "ARGO.UserB",
+         "timeseries": [
+            {
+               "timestamp": "{{TS4}}",
+               "value": 3
+            }
+         ],
+         "description": "Counter that displays the number of subscriptions that a user has access to the specific project"
+      },
+      {
+         "metric": "project.user.number_of_subscriptions",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "project.user",
+         "resource_name": "ARGO.UserX",
+         "timeseries": [
+            {
+               "timestamp": "{{TS5}}",
+               "value": 1
+            }
+         ],
+         "description": "Counter that displays the number of subscriptions that a user has access to the specific project"
+      },
+      {
+         "metric": "project.user.number_of_subscriptions",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "project.user",
+         "resource_name": "ARGO.UserZ",
+         "timeseries": [
+            {
+               "timestamp": "{{TS5}}",
+               "value": 2
+            }
+         ],
+         "description": "Counter that displays the number of subscriptions that a user has access to the specific project"
       }
    ]
 }`
@@ -1159,8 +1214,16 @@ func (suite *HandlerTestSuite) TestProjectcMetrics() {
 	metricOut, _ := metrics.GetMetricsFromJSON([]byte(w.Body.String()))
 	ts1 := metricOut.Metrics[0].Timeseries[0].Timestamp
 	ts2 := metricOut.Metrics[1].Timeseries[0].Timestamp
-	expResp = strings.Replace(expResp, "{{TIMESTAMP1}}", ts1, -1)
-	expResp = strings.Replace(expResp, "{{TIMESTAMP2}}", ts2, -1)
+	ts3 := metricOut.Metrics[2].Timeseries[0].Timestamp
+	ts4 := metricOut.Metrics[3].Timeseries[0].Timestamp
+	ts5 := metricOut.Metrics[4].Timeseries[0].Timestamp
+	ts6 := metricOut.Metrics[5].Timeseries[0].Timestamp
+	expResp = strings.Replace(expResp, "{{TS1}}", ts1, -1)
+	expResp = strings.Replace(expResp, "{{TS2}}", ts2, -1)
+	expResp = strings.Replace(expResp, "{{TS3}}", ts3, -1)
+	expResp = strings.Replace(expResp, "{{TS4}}", ts4, -1)
+	expResp = strings.Replace(expResp, "{{TS5}}", ts5, -1)
+	expResp = strings.Replace(expResp, "{{TS6}}", ts6, -1)
 	suite.Equal(expResp, w.Body.String())
 
 }
@@ -1237,7 +1300,6 @@ func (suite *HandlerTestSuite) TestTopicMetrics() {
 	expResp = strings.Replace(expResp, "{{TIMESTAMP2}}", ts2, -1)
 	expResp = strings.Replace(expResp, "{{TIMESTAMP3}}", ts3, -1)
 	suite.Equal(expResp, w.Body.String())
-	fmt.Println(w.Body.String())
 
 }
 func (suite *HandlerTestSuite) TestTopicACL01() {
