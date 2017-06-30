@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -1087,8 +1088,36 @@ func (suite *HandlerTestSuite) TestSubMetrics() {
 	}
 
 	expResp := `{
-   "number_of_messages": 0,
-   "total_bytes": 0
+   "metrics": [
+      {
+         "metric": "subscription.number_of_messages",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "subscription",
+         "resource_name": "sub1",
+         "timeseries": [
+            {
+               "timestamp": "{{TS1}}",
+               "value": 0
+            }
+         ],
+         "description": "Counter that displays the number number of messages consumed from the specific subscription"
+      },
+      {
+         "metric": "subscription.number_of_bytes",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "subscription",
+         "resource_name": "sub1",
+         "timeseries": [
+            {
+               "timestamp": "{{TS2}}",
+               "value": 0
+            }
+         ],
+         "description": "Counter that displays the total size of data (in bytes) consumed from the specific subscription"
+      }
+   ]
 }`
 
 	cfgKafka := config.NewAPICfg()
@@ -1101,7 +1130,15 @@ func (suite *HandlerTestSuite) TestSubMetrics() {
 	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:metrics", WrapMockAuthConfig(SubMetrics, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
+
+	metricOut, _ := metrics.GetMetricsFromJSON([]byte(w.Body.String()))
+	ts1 := metricOut.Metrics[0].Timeseries[0].Timestamp
+	ts2 := metricOut.Metrics[1].Timeseries[0].Timestamp
+	expResp = strings.Replace(expResp, "{{TS1}}", ts1, -1)
+	expResp = strings.Replace(expResp, "{{TS2}}", ts2, -1)
 	suite.Equal(expResp, w.Body.String())
+
+	fmt.Println(w.Body.String())
 
 }
 
@@ -1143,7 +1180,7 @@ func (suite *HandlerTestSuite) TestProjectcMetrics() {
          "description": "Counter that displays the number of subscriptions belonging to the specific project"
       },
       {
-         "metric": "project.user.number_of_subscriptions",
+         "metric": "project.user.number_of_topics",
          "metric_type": "counter",
          "value_type": "int64",
          "resource_type": "project.user",
@@ -1151,6 +1188,62 @@ func (suite *HandlerTestSuite) TestProjectcMetrics() {
          "timeseries": [
             {
                "timestamp": "{{TS3}}",
+               "value": 2
+            }
+         ],
+         "description": "Counter that displays the number of topics that a user has access to the specific project"
+      },
+      {
+         "metric": "project.user.number_of_topics",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "project.user",
+         "resource_name": "ARGO.UserB",
+         "timeseries": [
+            {
+               "timestamp": "{{TS4}}",
+               "value": 2
+            }
+         ],
+         "description": "Counter that displays the number of topics that a user has access to the specific project"
+      },
+      {
+         "metric": "project.user.number_of_topics",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "project.user",
+         "resource_name": "ARGO.UserX",
+         "timeseries": [
+            {
+               "timestamp": "{{TS5}}",
+               "value": 1
+            }
+         ],
+         "description": "Counter that displays the number of topics that a user has access to the specific project"
+      },
+      {
+         "metric": "project.user.number_of_topics",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "project.user",
+         "resource_name": "ARGO.UserZ",
+         "timeseries": [
+            {
+               "timestamp": "{{TS6}}",
+               "value": 1
+            }
+         ],
+         "description": "Counter that displays the number of topics that a user has access to the specific project"
+      },
+      {
+         "metric": "project.user.number_of_subscriptions",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "project.user",
+         "resource_name": "ARGO.UserA",
+         "timeseries": [
+            {
+               "timestamp": "{{TS7}}",
                "value": 3
             }
          ],
@@ -1164,7 +1257,7 @@ func (suite *HandlerTestSuite) TestProjectcMetrics() {
          "resource_name": "ARGO.UserB",
          "timeseries": [
             {
-               "timestamp": "{{TS4}}",
+               "timestamp": "{{TS8}}",
                "value": 3
             }
          ],
@@ -1178,7 +1271,7 @@ func (suite *HandlerTestSuite) TestProjectcMetrics() {
          "resource_name": "ARGO.UserX",
          "timeseries": [
             {
-               "timestamp": "{{TS5}}",
+               "timestamp": "{{TS9}}",
                "value": 1
             }
          ],
@@ -1192,7 +1285,7 @@ func (suite *HandlerTestSuite) TestProjectcMetrics() {
          "resource_name": "ARGO.UserZ",
          "timeseries": [
             {
-               "timestamp": "{{TS5}}",
+               "timestamp": "{{TS10}}",
                "value": 2
             }
          ],
@@ -1218,12 +1311,20 @@ func (suite *HandlerTestSuite) TestProjectcMetrics() {
 	ts4 := metricOut.Metrics[3].Timeseries[0].Timestamp
 	ts5 := metricOut.Metrics[4].Timeseries[0].Timestamp
 	ts6 := metricOut.Metrics[5].Timeseries[0].Timestamp
+	ts7 := metricOut.Metrics[6].Timeseries[0].Timestamp
+	ts8 := metricOut.Metrics[7].Timeseries[0].Timestamp
+	ts9 := metricOut.Metrics[8].Timeseries[0].Timestamp
+	ts10 := metricOut.Metrics[9].Timeseries[0].Timestamp
 	expResp = strings.Replace(expResp, "{{TS1}}", ts1, -1)
 	expResp = strings.Replace(expResp, "{{TS2}}", ts2, -1)
 	expResp = strings.Replace(expResp, "{{TS3}}", ts3, -1)
 	expResp = strings.Replace(expResp, "{{TS4}}", ts4, -1)
 	expResp = strings.Replace(expResp, "{{TS5}}", ts5, -1)
 	expResp = strings.Replace(expResp, "{{TS6}}", ts6, -1)
+	expResp = strings.Replace(expResp, "{{TS7}}", ts7, -1)
+	expResp = strings.Replace(expResp, "{{TS8}}", ts8, -1)
+	expResp = strings.Replace(expResp, "{{TS9}}", ts9, -1)
+	expResp = strings.Replace(expResp, "{{TS10}}", ts10, -1)
 	suite.Equal(expResp, w.Body.String())
 
 }

@@ -123,7 +123,7 @@ func (suite *MetricsTestSuite) TestGetSubsByTopic() {
 
 }
 
-func (suite *MetricsTestSuite) TestAggrProjectUserTest() {
+func (suite *MetricsTestSuite) TestAggrProjectUserSubTest() {
 
 	expJSON := `{
    "metrics": [
@@ -190,6 +190,90 @@ func (suite *MetricsTestSuite) TestAggrProjectUserTest() {
 	APIcfg.LoadStrJSON(suite.cfgStr)
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
 	ml, _ := AggrProjectUserSubs("argo_uuid", store)
+
+	ts1 := ml.Metrics[0].Timeseries[0].Timestamp
+	ts2 := ml.Metrics[0].Timeseries[0].Timestamp
+	ts3 := ml.Metrics[0].Timeseries[0].Timestamp
+	ts4 := ml.Metrics[0].Timeseries[0].Timestamp
+
+	expJSON = strings.Replace(expJSON, "{{TS1}}", ts1, -1)
+	expJSON = strings.Replace(expJSON, "{{TS2}}", ts2, -1)
+	expJSON = strings.Replace(expJSON, "{{TS3}}", ts3, -1)
+	expJSON = strings.Replace(expJSON, "{{TS4}}", ts4, -1)
+
+	outJSON, _ := ml.ExportJSON()
+
+	suite.Equal(expJSON, outJSON)
+
+}
+
+func (suite *MetricsTestSuite) TestAggrProjectUserTopicsTest() {
+
+	expJSON := `{
+   "metrics": [
+      {
+         "metric": "project.user.number_of_topics",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "project.user",
+         "resource_name": "ARGO.UserA",
+         "timeseries": [
+            {
+               "timestamp": "{{TS1}}",
+               "value": 2
+            }
+         ],
+         "description": "Counter that displays the number of topics that a user has access to the specific project"
+      },
+      {
+         "metric": "project.user.number_of_topics",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "project.user",
+         "resource_name": "ARGO.UserB",
+         "timeseries": [
+            {
+               "timestamp": "{{TS2}}",
+               "value": 2
+            }
+         ],
+         "description": "Counter that displays the number of topics that a user has access to the specific project"
+      },
+      {
+         "metric": "project.user.number_of_topics",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "project.user",
+         "resource_name": "ARGO.UserX",
+         "timeseries": [
+            {
+               "timestamp": "{{TS3}}",
+               "value": 1
+            }
+         ],
+         "description": "Counter that displays the number of topics that a user has access to the specific project"
+      },
+      {
+         "metric": "project.user.number_of_topics",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "project.user",
+         "resource_name": "ARGO.UserZ",
+         "timeseries": [
+            {
+               "timestamp": "{{TS4}}",
+               "value": 1
+            }
+         ],
+         "description": "Counter that displays the number of topics that a user has access to the specific project"
+      }
+   ]
+}`
+
+	APIcfg := config.NewAPICfg()
+	APIcfg.LoadStrJSON(suite.cfgStr)
+	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
+	ml, _ := AggrProjectUserTopics("argo_uuid", store)
 
 	ts1 := ml.Metrics[0].Timeseries[0].Timestamp
 	ts2 := ml.Metrics[0].Timeseries[0].Timestamp

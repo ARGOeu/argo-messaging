@@ -889,7 +889,7 @@ paths:
         200:
           description: Subscription metrics.
           schema:
-            $ref: '#/definitions/SubMetrics'
+            $ref: '#/definitions/Metrics'
         400:
           $ref: "#/responses/400"
         401:
