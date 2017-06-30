@@ -245,7 +245,7 @@ Success Response
          "resource_name": "ARGO",
          "timeseries": [
             {
-               "timestamp": "2017-06-23T05:47:13Z",
+               "timestamp": "2017-06-30T13:53:13Z",
                "value": 3
             }
          ],
@@ -259,11 +259,67 @@ Success Response
          "resource_name": "ARGO",
          "timeseries": [
             {
-               "timestamp": "2017-06-23T05:47:13Z",
+               "timestamp": "2017-06-30T13:53:13Z",
                "value": 4
             }
          ],
          "description": "Counter that displays the number of subscriptions belonging to the specific project"
+      },
+      {
+         "metric": "project.user.number_of_subscriptions",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "project.user",
+         "resource_name": "ARGO.UserA",
+         "timeseries": [
+            {
+               "timestamp": "2017-06-30T13:53:13Z",
+               "value": 3
+            }
+         ],
+         "description": "Counter that displays the number of subscriptions that a user has access to the specific project"
+      },
+      {
+         "metric": "project.user.number_of_subscriptions",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "project.user",
+         "resource_name": "ARGO.UserB",
+         "timeseries": [
+            {
+               "timestamp": "2017-06-30T13:53:13Z",
+               "value": 3
+            }
+         ],
+         "description": "Counter that displays the number of subscriptions that a user has access to the specific project"
+      },
+      {
+         "metric": "project.user.number_of_subscriptions",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "project.user",
+         "resource_name": "ARGO.UserX",
+         "timeseries": [
+            {
+               "timestamp": "2017-06-30T13:53:13Z",
+               "value": 1
+            }
+         ],
+         "description": "Counter that displays the number of subscriptions that a user has access to the specific project"
+      },
+      {
+         "metric": "project.user.number_of_subscriptions",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "project.user",
+         "resource_name": "ARGO.UserZ",
+         "timeseries": [
+            {
+               "timestamp": "2017-06-30T13:53:13Z",
+               "value": 2
+            }
+         ],
+         "description": "Counter that displays the number of subscriptions that a user has access to the specific project"
       }
    ]
 }
