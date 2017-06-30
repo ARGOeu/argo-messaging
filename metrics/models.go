@@ -87,7 +87,9 @@ func NewTopicSubs(topic string, value int64, tstamp string) Metric {
 func NewSubMsgs(topic string, value int64, tstamp string) Metric {
 	// Initialize single point timeseries with the latest timestamp and value
 	ts := []Timepoint{Timepoint{Timestamp: tstamp, Value: value}}
+
 	m := Metric{Metric: NameSubMsgs, MetricType: "counter", ValueType: "int64", ResourceType: "subscription", Resource: topic, Timeseries: ts, Description: DescSubMsgs}
+
 	return m
 }
 
@@ -95,6 +97,7 @@ func NewSubBytes(topic string, value int64, tstamp string) Metric {
 	// Initialize single point timeseries with the latest timestamp and value
 	ts := []Timepoint{Timepoint{Timestamp: tstamp, Value: value}}
 	m := Metric{Metric: NameSubBytes, MetricType: "counter", ValueType: "int64", ResourceType: "subscription", Resource: topic, Timeseries: ts, Description: DescSubBytes}
+
 	return m
 }
 

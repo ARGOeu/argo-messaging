@@ -1101,6 +1101,7 @@ func (suite *HandlerTestSuite) TestSubMetrics() {
                "value": 0
             }
          ],
+<<<<<<< 3e2f1e10881b5407acda63d64cb11c9956608b3a
          "description": "Counter that displays the number number of messages consumed from the specific subscription"
       },
       {
@@ -1108,6 +1109,15 @@ func (suite *HandlerTestSuite) TestSubMetrics() {
          "metric_type": "counter",
          "value_type": "int64",
          "resource_type": "subscription",
+=======
+         "description": "Counter that displays the number number of messages published to the specific topic"
+      },
+      {
+         "metric": "topic.number_of_bytes",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "topic",
+>>>>>>> ARGO-863 Add metric: Aggregation of topics per user at project. Refactor subscription metrics to new schema
          "resource_name": "sub1",
          "timeseries": [
             {
@@ -1115,7 +1125,11 @@ func (suite *HandlerTestSuite) TestSubMetrics() {
                "value": 0
             }
          ],
+<<<<<<< 3e2f1e10881b5407acda63d64cb11c9956608b3a
          "description": "Counter that displays the total size of data (in bytes) consumed from the specific subscription"
+=======
+         "description": "Counter that displays the total size of data (in bytes) published to the specific topic"
+>>>>>>> ARGO-863 Add metric: Aggregation of topics per user at project. Refactor subscription metrics to new schema
       }
    ]
 }`
