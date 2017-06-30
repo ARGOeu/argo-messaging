@@ -395,8 +395,36 @@ Success Response
 `200 OK`
 ```
 {
-  "number_of_messages":12,
-  "total_bytes":54
+   "metrics": [
+      {
+         "metric": "subscription.number_of_messages",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "subscription",
+         "resource_name": "sub1",
+         "timeseries": [
+            {
+               "timestamp": "2017-06-30T14:20:38Z",
+               "value": 0
+            }
+         ],
+         "description": "Counter that displays the number number of messages published to the specific topic"
+      },
+      {
+         "metric": "topic.number_of_bytes",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "topic",
+         "resource_name": "sub1",
+         "timeseries": [
+            {
+               "timestamp": "2017-06-30T14:20:38Z",
+               "value": 0
+            }
+         ],
+         "description": "Counter that displays the total size of data (in bytes) published to the specific topic"
+      }
+   ]
 }
 ```
 

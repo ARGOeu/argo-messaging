@@ -1502,14 +1502,27 @@ func ProjectMetrics(w http.ResponseWriter, r *http.Request) {
 	res := metrics.NewMetricList(m1)
 	res.Metrics = append(res.Metrics, m2)
 
-	// Project User subscriptions aggregation
-	m3, err := metrics.AggrProjectUserSubs(projectUUID, refStr)
+	// Project User topics aggregation
+	fmt.Println("aggregating topis/user...")
+	m3, err := metrics.AggrProjectUserTopics(projectUUID, refStr)
 	if err != nil {
 		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
 		return
 	}
 
 	for _, item := range m3.Metrics {
+		res.Metrics = append(res.Metrics, item)
+	}
+
+	// Project User subscriptions aggregation
+	fmt.Println("aggregating subs/user...")
+	m4, err := metrics.AggrProjectUserSubs(projectUUID, refStr)
+	if err != nil {
+		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
+		return
+	}
+
+	for _, item := range m4.Metrics {
 		res.Metrics = append(res.Metrics, item)
 	}
 
@@ -1770,7 +1783,7 @@ func SubMetrics(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	results, err := subscriptions.FindMetric(projectUUID, urlSub, refStr)
+	resultMsg, err := subscriptions.FindMetric(projectUUID, urlSub, refStr)
 
 	if err != nil {
 		if err.Error() == "not found" {
@@ -1780,7 +1793,14 @@ func SubMetrics(w http.ResponseWriter, r *http.Request) {
 		respondErr(w, 500, "Backend error", "INTERNAL_SERVER_ERROR")
 	}
 
-	res := results
+	numMsg := resultMsg.MsgNum
+	numBytes := resultMsg.TotalBytes
+
+	m1 := metrics.NewSubMsgs(urlSub, numMsg, metrics.GetTimeNowZulu())
+	res := metrics.NewMetricList(m1)
+	m2 := metrics.NewSubBytes(urlSub, numBytes, metrics.GetTimeNowZulu())
+
+	res.Metrics = append(res.Metrics, m2)
 
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()

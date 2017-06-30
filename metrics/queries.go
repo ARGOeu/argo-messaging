@@ -47,3 +47,24 @@ func AggrProjectUserSubs(projectUUID string, store stores.Store) (MetricList, er
 	}
 	return ml, err
 }
+
+func AggrProjectUserTopics(projectUUID string, store stores.Store) (MetricList, error) {
+	pr, err := store.QueryProjects(projectUUID, "")
+	if err != nil {
+		return MetricList{}, err
+	}
+	prName := pr[0].Name
+	users, err := store.QueryUsers(projectUUID, "", "")
+	ml := MetricList{}
+	for _, item := range users {
+		username := item.Name
+		userUUID := item.UUID
+		numSubs, _ := GetProjectTopicsACL(projectUUID, userUUID, store)
+		if numSubs > 0 {
+			m := NewProjectUserTopics(prName, username, numSubs, GetTimeNowZulu())
+			ml.Metrics = append(ml.Metrics, m)
+		}
+
+	}
+	return ml, err
+}

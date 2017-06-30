@@ -7,18 +7,24 @@ import (
 
 // Metric names and descriptions
 const (
-	DescProjectTopics   string = "Counter that displays the number of topics belonging to the specific project"
-	NameProjectTopics   string = "project.number_of_topics"
-	DescProjectSubs     string = "Counter that displays the number of subscriptions belonging to the specific project"
-	NameProjectSubs     string = "project.number_of_subscriptions"
-	DescTopicSubs       string = "Counter that displays the number of subscriptions belonging to a specific topic"
-	NameTopicSubs       string = "topic.number_of_subscriptions"
-	DescTopicMsgs       string = "Counter that displays the number number of messages published to the specific topic"
-	NameTopicMsgs       string = "topic.number_of_messages"
-	DescTopicBytes      string = "Counter that displays the total size of data (in bytes) published to the specific topic"
-	NameTopicBytes      string = "topic.number_of_bytes"
-	DescProjectUserSubs string = "Counter that displays the number of subscriptions that a user has access to the specific project"
-	NameProjectUserSubs string = "project.user.number_of_subscriptions"
+	DescProjectTopics     string = "Counter that displays the number of topics belonging to the specific project"
+	NameProjectTopics     string = "project.number_of_topics"
+	DescProjectSubs       string = "Counter that displays the number of subscriptions belonging to the specific project"
+	NameProjectSubs       string = "project.number_of_subscriptions"
+	DescTopicSubs         string = "Counter that displays the number of subscriptions belonging to a specific topic"
+	NameTopicSubs         string = "topic.number_of_subscriptions"
+	DescTopicMsgs         string = "Counter that displays the number number of messages published to the specific topic"
+	NameTopicMsgs         string = "topic.number_of_messages"
+	DescTopicBytes        string = "Counter that displays the total size of data (in bytes) published to the specific topic"
+	NameTopicBytes        string = "topic.number_of_bytes"
+	DescProjectUserSubs   string = "Counter that displays the number of subscriptions that a user has access to the specific project"
+	NameProjectUserSubs   string = "project.user.number_of_subscriptions"
+	DescProjectUserTopics string = "Counter that displays the number of topics that a user has access to the specific project"
+	NameProjectUserTopics string = "project.user.number_of_topics"
+	DescSubMsgs           string = "Counter that displays the number number of messages consumed from the specific subscription"
+	NameSubMsgs           string = "subscription.number_of_messages"
+	DescSubBytes          string = "Counter that displays the total size of data (in bytes) consumed from the specific subscription"
+	NameSubBytes          string = "subscription.number_of_bytes"
 )
 
 type MetricList struct {
@@ -78,6 +84,20 @@ func NewTopicSubs(topic string, value int64, tstamp string) Metric {
 	return m
 }
 
+func NewSubMsgs(topic string, value int64, tstamp string) Metric {
+	// Initialize single point timeseries with the latest timestamp and value
+	ts := []Timepoint{Timepoint{Timestamp: tstamp, Value: value}}
+	m := Metric{Metric: NameSubMsgs, MetricType: "counter", ValueType: "int64", ResourceType: "subscription", Resource: topic, Timeseries: ts, Description: DescSubMsgs}
+	return m
+}
+
+func NewSubBytes(topic string, value int64, tstamp string) Metric {
+	// Initialize single point timeseries with the latest timestamp and value
+	ts := []Timepoint{Timepoint{Timestamp: tstamp, Value: value}}
+	m := Metric{Metric: NameSubBytes, MetricType: "counter", ValueType: "int64", ResourceType: "subscription", Resource: topic, Timeseries: ts, Description: DescSubBytes}
+	return m
+}
+
 func NewTopicMsgs(topic string, value int64, tstamp string) Metric {
 	// Initialize single point timeseries with the latest timestamp and value
 	ts := []Timepoint{Timepoint{Timestamp: tstamp, Value: value}}
@@ -96,6 +116,14 @@ func NewProjectUserSubs(project string, user string, value int64, tstamp string)
 	// Initialize single point timeseries with the latest timestamp and value
 	ts := []Timepoint{Timepoint{Timestamp: tstamp, Value: value}}
 	m := Metric{Metric: NameProjectUserSubs, MetricType: "counter", ValueType: "int64", ResourceType: "project.user", Resource: project + "." + user, Timeseries: ts, Description: DescProjectUserSubs}
+
+	return m
+}
+
+func NewProjectUserTopics(project string, user string, value int64, tstamp string) Metric {
+	// Initialize single point timeseries with the latest timestamp and value
+	ts := []Timepoint{Timepoint{Timestamp: tstamp, Value: value}}
+	m := Metric{Metric: NameProjectUserTopics, MetricType: "counter", ValueType: "int64", ResourceType: "project.user", Resource: project + "." + user, Timeseries: ts, Description: DescProjectUserTopics}
 
 	return m
 }

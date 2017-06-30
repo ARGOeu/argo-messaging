@@ -313,11 +313,11 @@ func (mong *MongoStore) QueryUsers(projectUUID string, uuid string, name string)
 	query := bson.M{}
 	// If project UUID is given return users that belong to the project
 	if projectUUID != "" {
-		query = bson.M{"project_uuid": projectUUID}
+		query = bson.M{"projects.project_uuid": projectUUID}
 		if uuid != "" {
-			query = bson.M{"project_uuid": projectUUID, "uuid": uuid}
+			query = bson.M{"projects.project_uuid": projectUUID, "uuid": uuid}
 		} else if name != "" {
-			query = bson.M{"project_uuid": projectUUID, "name": name}
+			query = bson.M{"projects.project_uuid": projectUUID, "name": name}
 		}
 	} else {
 		if uuid != "" {
@@ -331,6 +331,7 @@ func (mong *MongoStore) QueryUsers(projectUUID string, uuid string, name string)
 	db := mong.Session.DB(mong.Database)
 	c := db.C("users")
 	var results []QUser
+
 	err := c.Find(query).All(&results)
 
 	if err != nil {
