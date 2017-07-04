@@ -23,6 +23,13 @@ type QAcl struct {
 	ACL []string `bson:"acl"`
 }
 
+// QopMetric are the results of the QopMetric query
+type QopMetric struct {
+	Hostname string  `bson:"hostname"`
+	CPU      float64 `bson:"cpu"`
+	MEM      float64 `bson:"mem"`
+}
+
 // QProject are the results of the QProject query
 type QProject struct {
 	UUID        string    `bson:"uuid"`

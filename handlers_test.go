@@ -2,10 +2,10 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -1138,8 +1138,6 @@ func (suite *HandlerTestSuite) TestSubMetrics() {
 	expResp = strings.Replace(expResp, "{{TS2}}", ts2, -1)
 	suite.Equal(expResp, w.Body.String())
 
-	fmt.Println(w.Body.String())
-
 }
 
 func (suite *HandlerTestSuite) TestProjectcMetrics() {
@@ -1325,6 +1323,71 @@ func (suite *HandlerTestSuite) TestProjectcMetrics() {
 	expResp = strings.Replace(expResp, "{{TS8}}", ts8, -1)
 	expResp = strings.Replace(expResp, "{{TS9}}", ts9, -1)
 	expResp = strings.Replace(expResp, "{{TS10}}", ts10, -1)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestOpMetrics() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/metrics", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "metrics": [
+      {
+         "metric": "ams_node.cpu_usage",
+         "metric_type": "percentage",
+         "value_type": "float64",
+         "resource_type": "ams_node",
+         "resource_name": "{{HOST}}",
+         "timeseries": [
+            {
+               "timestamp": "{{TS1}}",
+               "value": {{VAL1}}
+            }
+         ],
+         "description": "Percentage value that displays the CPU usage of ams service in the specific node"
+      },
+      {
+         "metric": "ams_node.memory_usage",
+         "metric_type": "percentage",
+         "value_type": "float64",
+         "resource_type": "ams_node",
+         "resource_name": "{{HOST}}",
+         "timeseries": [
+            {
+               "timestamp": "{{TS1}}",
+               "value": {{VAL2}}
+            }
+         ],
+         "description": "Percentage value that displays the Memory usage of ams service in the specific node"
+      }
+   ]
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/metrics", WrapMockAuthConfig(OpMetrics, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	metricOut, _ := metrics.GetMetricsFromJSON([]byte(w.Body.String()))
+	ts1 := metricOut.Metrics[0].Timeseries[0].Timestamp
+	val1 := metricOut.Metrics[0].Timeseries[0].Value.(float64)
+	ts2 := metricOut.Metrics[1].Timeseries[0].Timestamp
+	val2 := metricOut.Metrics[1].Timeseries[0].Value.(float64)
+	host := metricOut.Metrics[0].Resource
+	expResp = strings.Replace(expResp, "{{TS1}}", ts1, -1)
+	expResp = strings.Replace(expResp, "{{TS2}}", ts2, -1)
+	expResp = strings.Replace(expResp, "{{VAL1}}", strconv.FormatFloat(val1, 'g', 1, 64), -1)
+	expResp = strings.Replace(expResp, "{{VAL2}}", strconv.FormatFloat(val2, 'g', 1, 64), -1)
+	expResp = strings.Replace(expResp, "{{HOST}}", host, -1)
 	suite.Equal(expResp, w.Body.String())
 
 }

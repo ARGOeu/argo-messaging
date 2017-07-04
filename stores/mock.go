@@ -17,6 +17,7 @@ type MockStore struct {
 	Session     bool
 	TopicsACL   map[string]QAcl
 	SubsACL     map[string]QAcl
+	OpMetrics   map[string]QopMetric
 }
 
 // QueryACL Topic/Subscription ACL
@@ -42,6 +43,12 @@ func NewMockStore(server string, database string) *MockStore {
 	mk.Session = true
 	mk.Initialize()
 	return &mk
+}
+
+func (mk *MockStore) InsertOpMetric(hostname string, cpu float64, mem float64) error {
+	qOp := QopMetric{hostname, cpu, mem}
+	mk.OpMetrics[hostname] = qOp
+	return nil
 }
 
 // Close is used to close session
@@ -72,6 +79,14 @@ func (mk *MockStore) UpdateUserToken(uuid string, token string) error {
 
 	return errors.New("not found")
 
+}
+
+func (mk *MockStore) GetOpMetrics() []QopMetric {
+	results := []QopMetric{}
+	for _, v := range mk.OpMetrics {
+		results = append(results, v)
+	}
+	return results
 }
 
 // UpdateUser updates user information
@@ -359,6 +374,7 @@ func (mk *MockStore) UpdateSubPull(projectUUID string, name string, offset int64
 
 // Initialize is used to initalize the mock
 func (mk *MockStore) Initialize() {
+	mk.OpMetrics = make(map[string]QopMetric)
 
 	// populate topics
 	qtop1 := QTopic{"argo_uuid", "topic1", 0, 0}

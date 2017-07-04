@@ -606,6 +606,43 @@ func UserCreate(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// OpMetrics (GET) all operational metrics
+func OpMetrics(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab context references
+	refStr := context.Get(r, "str").(stores.Store)
+
+	// Get Results Object
+	res, err := metrics.GetUsageCpuMem(refStr)
+
+	if err != nil && err.Error() != "not found" {
+		respondErr(w, 500, "Internal error while querying datastore", "INTERNAL")
+		return
+	}
+
+	// Output result to JSON
+	resJSON, err := res.ExportJSON()
+
+	if err != nil {
+
+		respondErr(w, 500, "Error exporting data", "INTERNAL_SERVER_ERROR")
+		return
+	}
+
+	// Write response
+	output = []byte(resJSON)
+	respondOK(w, output)
+
+}
+
 // UserListOne (GET) one user
 func UserListOne(w http.ResponseWriter, r *http.Request) {
 
@@ -1503,7 +1540,6 @@ func ProjectMetrics(w http.ResponseWriter, r *http.Request) {
 	res.Metrics = append(res.Metrics, m2)
 
 	// Project User topics aggregation
-	fmt.Println("aggregating topis/user...")
 	m3, err := metrics.AggrProjectUserTopics(projectUUID, refStr)
 	if err != nil {
 		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
@@ -1515,7 +1551,6 @@ func ProjectMetrics(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Project User subscriptions aggregation
-	fmt.Println("aggregating subs/user...")
 	m4, err := metrics.AggrProjectUserSubs(projectUUID, refStr)
 	if err != nil {
 		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
