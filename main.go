@@ -10,6 +10,7 @@ import (
 	"github.com/ARGOeu/argo-messaging/push"
 	"github.com/ARGOeu/argo-messaging/stores"
 	log "github.com/Sirupsen/logrus"
+	"github.com/gorilla/handlers"
 )
 
 func main() {
@@ -39,7 +40,7 @@ func main() {
 	}
 
 	// Initialize server wth proper parameters
-	server := &http.Server{Addr: ":" + strconv.Itoa(cfg.Port), Handler: API.Router, TLSConfig: config}
+	server := &http.Server{Addr: ":" + strconv.Itoa(cfg.Port), Handler: handlers.CORS()(API.Router), TLSConfig: config}
 
 	// Web service binds to server. Requests served over HTTPS.
 	err := server.ListenAndServeTLS(cfg.Cert, cfg.CertKey)
