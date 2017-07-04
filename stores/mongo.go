@@ -514,6 +514,23 @@ func (mong *MongoStore) GetAllRoles() []string {
 	return results
 }
 
+//GetOpMetrics returns the operational metrics from datastore
+func (mong *MongoStore) GetOpMetrics() []QopMetric {
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C("op_metrics")
+	var results []QopMetric
+
+	err := c.Find(bson.M{}).All(&results)
+
+	if err != nil {
+		log.Fatal("STORE", "\t", err.Error())
+	}
+
+	return results
+
+}
+
 //GetUserRoles returns the roles of a user in a project
 func (mong *MongoStore) GetUserRoles(projectUUID string, token string) ([]string, string) {
 
@@ -580,6 +597,23 @@ func (mong *MongoStore) HasProject(name string) bool {
 func (mong *MongoStore) InsertTopic(projectUUID string, name string) error {
 	topic := QTopic{ProjectUUID: projectUUID, Name: name, MsgNum: 0, TotalBytes: 0}
 	return mong.InsertResource("topics", topic)
+}
+
+// InsertOpMetric inserts an operational metric
+func (mong *MongoStore) InsertOpMetric(hostname string, cpu float64, mem float64) error {
+	opMetric := QopMetric{Hostname: hostname, CPU: cpu, MEM: mem}
+	db := mong.Session.DB(mong.Database)
+	c := db.C("op_metrics")
+
+	upsertdata := bson.M{"$set": opMetric}
+
+	info, err := c.UpsertId(opMetric.Hostname, upsertdata)
+	log.Info(info)
+	if err != nil {
+		log.Error(err)
+	}
+
+	return err
 }
 
 // InsertUser inserts a new user to the store

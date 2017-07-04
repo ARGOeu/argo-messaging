@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -1101,7 +1100,6 @@ func (suite *HandlerTestSuite) TestSubMetrics() {
                "value": 0
             }
          ],
-<<<<<<< 3e2f1e10881b5407acda63d64cb11c9956608b3a
          "description": "Counter that displays the number number of messages consumed from the specific subscription"
       },
       {
@@ -1109,15 +1107,6 @@ func (suite *HandlerTestSuite) TestSubMetrics() {
          "metric_type": "counter",
          "value_type": "int64",
          "resource_type": "subscription",
-=======
-         "description": "Counter that displays the number number of messages published to the specific topic"
-      },
-      {
-         "metric": "topic.number_of_bytes",
-         "metric_type": "counter",
-         "value_type": "int64",
-         "resource_type": "topic",
->>>>>>> ARGO-863 Add metric: Aggregation of topics per user at project. Refactor subscription metrics to new schema
          "resource_name": "sub1",
          "timeseries": [
             {
@@ -1125,11 +1114,7 @@ func (suite *HandlerTestSuite) TestSubMetrics() {
                "value": 0
             }
          ],
-<<<<<<< 3e2f1e10881b5407acda63d64cb11c9956608b3a
          "description": "Counter that displays the total size of data (in bytes) consumed from the specific subscription"
-=======
-         "description": "Counter that displays the total size of data (in bytes) published to the specific topic"
->>>>>>> ARGO-863 Add metric: Aggregation of topics per user at project. Refactor subscription metrics to new schema
       }
    ]
 }`
@@ -1151,8 +1136,6 @@ func (suite *HandlerTestSuite) TestSubMetrics() {
 	expResp = strings.Replace(expResp, "{{TS1}}", ts1, -1)
 	expResp = strings.Replace(expResp, "{{TS2}}", ts2, -1)
 	suite.Equal(expResp, w.Body.String())
-
-	fmt.Println(w.Body.String())
 
 }
 
@@ -1339,6 +1322,51 @@ func (suite *HandlerTestSuite) TestProjectcMetrics() {
 	expResp = strings.Replace(expResp, "{{TS8}}", ts8, -1)
 	expResp = strings.Replace(expResp, "{{TS9}}", ts9, -1)
 	expResp = strings.Replace(expResp, "{{TS10}}", ts10, -1)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestOpMetrics() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/metrics", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "metrics": [
+      {
+         "metric": "ams_node.cpu_usage",
+         "metric_type": "percentage",
+         "value_type": "float64",
+         "resource_type": "ams_node",
+         "resource_name": "{{HOST}}",
+         "timeseries": [
+            {
+               "timestamp": "{{TS1}}",
+               "value": 0
+            }
+         ],
+         "description": "Percentage value that displays the CPU usage of ams service in the specific node"
+      }
+   ]
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/metrics", WrapMockAuthConfig(OpMetrics, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	metricOut, _ := metrics.GetMetricsFromJSON([]byte(w.Body.String()))
+	ts1 := metricOut.Metrics[0].Timeseries[0].Timestamp
+	host := metricOut.Metrics[0].Resource
+	expResp = strings.Replace(expResp, "{{TS1}}", ts1, -1)
+	expResp = strings.Replace(expResp, "{{HOST}}", host, -1)
 	suite.Equal(expResp, w.Body.String())
 
 }

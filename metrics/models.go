@@ -25,6 +25,8 @@ const (
 	NameSubMsgs           string = "subscription.number_of_messages"
 	DescSubBytes          string = "Counter that displays the total size of data (in bytes) consumed from the specific subscription"
 	NameSubBytes          string = "subscription.number_of_bytes"
+	DescOpNodeCPU         string = "Percentage value that displays the CPU usage of ams service in the specific node"
+	NameOpNodeCPU         string = "ams_node.cpu_usage"
 )
 
 type MetricList struct {
@@ -127,6 +129,14 @@ func NewProjectUserTopics(project string, user string, value int64, tstamp strin
 	// Initialize single point timeseries with the latest timestamp and value
 	ts := []Timepoint{Timepoint{Timestamp: tstamp, Value: value}}
 	m := Metric{Metric: NameProjectUserTopics, MetricType: "counter", ValueType: "int64", ResourceType: "project.user", Resource: project + "." + user, Timeseries: ts, Description: DescProjectUserTopics}
+
+	return m
+}
+
+// Initialize single point timeseries with the latest timestamp and value
+func NewOpNodeCPU(hostname string, value float64, tstamp string) Metric {
+	ts := []Timepoint{Timepoint{Timestamp: tstamp, Value: value}}
+	m := Metric{Metric: NameOpNodeCPU, MetricType: "percentage", ValueType: "float64", ResourceType: "ams_node", Resource: hostname, Timeseries: ts, Description: DescOpNodeCPU}
 
 	return m
 }

@@ -75,6 +75,44 @@ func (suite *MetricsTestSuite) TestCreateMetricList() {
 	suite.Equal(expJson, outputJSON)
 }
 
+func (suite *MetricsTestSuite) TestOperational() {
+
+	expJSON := `{
+   "metrics": [
+      {
+         "metric": "ams_node.cpu_usage",
+         "metric_type": "percentage",
+         "value_type": "float64",
+         "resource_type": "ams_node",
+         "resource_name": "{{HOST}}",
+         "timeseries": [
+            {
+               "timestamp": "{{TS1}}",
+               "value": 0
+            }
+         ],
+         "description": "Percentage value that displays the CPU usage of ams service in the specific node"
+      }
+   ]
+}`
+
+	APIcfg := config.NewAPICfg()
+	APIcfg.LoadStrJSON(suite.cfgStr)
+	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
+	ml, _ := GetUsageCPU(store)
+	outJSON, _ := ml.ExportJSON()
+
+	ts1 := ml.Metrics[0].Timeseries[0].Timestamp
+	host := ml.Metrics[0].Resource
+
+	expJSON = strings.Replace(expJSON, "{{TS1}}", ts1, -1)
+
+	expJSON = strings.Replace(expJSON, "{{HOST}}", host, -1)
+
+	suite.Equal(expJSON, outJSON)
+
+}
+
 func (suite *MetricsTestSuite) TestGetTopics() {
 
 	APIcfg := config.NewAPICfg()
@@ -192,9 +230,9 @@ func (suite *MetricsTestSuite) TestAggrProjectUserSubTest() {
 	ml, _ := AggrProjectUserSubs("argo_uuid", store)
 
 	ts1 := ml.Metrics[0].Timeseries[0].Timestamp
-	ts2 := ml.Metrics[0].Timeseries[0].Timestamp
-	ts3 := ml.Metrics[0].Timeseries[0].Timestamp
-	ts4 := ml.Metrics[0].Timeseries[0].Timestamp
+	ts2 := ml.Metrics[1].Timeseries[0].Timestamp
+	ts3 := ml.Metrics[2].Timeseries[0].Timestamp
+	ts4 := ml.Metrics[3].Timeseries[0].Timestamp
 
 	expJSON = strings.Replace(expJSON, "{{TS1}}", ts1, -1)
 	expJSON = strings.Replace(expJSON, "{{TS2}}", ts2, -1)

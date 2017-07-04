@@ -23,6 +23,7 @@ type Store interface {
 	RemoveProjectSubs(projectUUID string) error
 	InsertUser(uuid string, projects []QProjectRoles, name string, token string, email string, serviceRoles []string, createdOn time.Time, modifiedOn time.Time, createdBy string) error
 	InsertProject(uuid string, name string, createdOn time.Time, modifiedOn time.Time, createdBy string, description string) error
+	InsertOpMetric(hostname string, cpu float64, mem float64) error
 	InsertTopic(projectUUID string, name string) error
 	IncrementTopicMsgNum(projectUUID string, name string, num int64) error
 	IncrementTopicBytes(projectUUID string, name string, totalBytes int64) error
@@ -34,6 +35,7 @@ type Store interface {
 	QueryOneSub(projectUUID string, name string) (QSub, error)
 	QueryPushSubs() []QSub
 	HasResourceRoles(resource string, roles []string) bool
+	GetOpMetrics() []QopMetric
 	GetUserRoles(projectUUID string, token string) ([]string, string)
 	UpdateSubOffset(projectUUID string, name string, offset int64)
 	UpdateSubPull(projectUUID string, name string, offset int64, ts string) error

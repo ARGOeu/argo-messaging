@@ -622,6 +622,7 @@ func OpMetrics(w http.ResponseWriter, r *http.Request) {
 
 	// Get Results Object
 	res, err := metrics.GetUsageCPU(refStr)
+
 	if err != nil && err.Error() != "not found" {
 		respondErr(w, 500, "Internal error while querying datastore", "INTERNAL")
 		return
@@ -1832,7 +1833,7 @@ func SubMetrics(w http.ResponseWriter, r *http.Request) {
 
 	m1 := metrics.NewSubMsgs(urlSub, numMsg, metrics.GetTimeNowZulu())
 	res := metrics.NewMetricList(m1)
-	m2 := metrics.NewTopicBytes(urlSub, numBytes, metrics.GetTimeNowZulu())
+	m2 := metrics.NewSubBytes(urlSub, numBytes, metrics.GetTimeNowZulu())
 
 	res.Metrics = append(res.Metrics, m2)
 

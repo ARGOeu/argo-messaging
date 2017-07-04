@@ -12,17 +12,18 @@ pages:
     - Messaging Backend - Apache Kafka: msg_backend.md
     - Messaging API flow: msg_flow.md
     - Authentication & Authorization: auth.md
-    - Project & User management guide: projects_users.md 
+    - Project & User management guide: projects_users.md
 - How to Guides:
     - Publisher Guide: publisher.md
     #  - Consumer Guide: consumer.md
-- API & References: 
+- API & References:
     - API Basic Information: api_basic.md
     - API Authentication: api_auth.md
     - API Users: api_users.md
     - API Projects: api_projects.md
     - API Topics: api_topics.md
     - API Subscriptions: api_subs.md
+    - API Operational Metrics: api_metrics.md
     - API Error Messages: api_errors.md
 - Q&A:
     - General : qa_general_questions.md
