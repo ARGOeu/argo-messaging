@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -1344,10 +1345,24 @@ func (suite *HandlerTestSuite) TestOpMetrics() {
          "timeseries": [
             {
                "timestamp": "{{TS1}}",
-               "value": 0
+               "value": {{VAL1}}
             }
          ],
          "description": "Percentage value that displays the CPU usage of ams service in the specific node"
+      },
+      {
+         "metric": "ams_node.memory_usage",
+         "metric_type": "percentage",
+         "value_type": "float64",
+         "resource_type": "ams_node",
+         "resource_name": "{{HOST}}",
+         "timeseries": [
+            {
+               "timestamp": "{{TS1}}",
+               "value": {{VAL2}}
+            }
+         ],
+         "description": "Percentage value that displays the Memory usage of ams service in the specific node"
       }
    ]
 }`
@@ -1364,8 +1379,14 @@ func (suite *HandlerTestSuite) TestOpMetrics() {
 	suite.Equal(200, w.Code)
 	metricOut, _ := metrics.GetMetricsFromJSON([]byte(w.Body.String()))
 	ts1 := metricOut.Metrics[0].Timeseries[0].Timestamp
+	val1 := metricOut.Metrics[0].Timeseries[0].Value.(float64)
+	ts2 := metricOut.Metrics[1].Timeseries[0].Timestamp
+	val2 := metricOut.Metrics[1].Timeseries[0].Value.(float64)
 	host := metricOut.Metrics[0].Resource
 	expResp = strings.Replace(expResp, "{{TS1}}", ts1, -1)
+	expResp = strings.Replace(expResp, "{{TS2}}", ts2, -1)
+	expResp = strings.Replace(expResp, "{{VAL1}}", strconv.FormatFloat(val1, 'g', 1, 64), -1)
+	expResp = strings.Replace(expResp, "{{VAL2}}", strconv.FormatFloat(val2, 'g', 1, 64), -1)
 	expResp = strings.Replace(expResp, "{{HOST}}", host, -1)
 	suite.Equal(expResp, w.Body.String())
 

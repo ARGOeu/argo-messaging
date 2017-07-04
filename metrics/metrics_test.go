@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"io/ioutil"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -88,10 +89,24 @@ func (suite *MetricsTestSuite) TestOperational() {
          "timeseries": [
             {
                "timestamp": "{{TS1}}",
-               "value": 0
+               "value": {{VAL1}}
             }
          ],
          "description": "Percentage value that displays the CPU usage of ams service in the specific node"
+      },
+      {
+         "metric": "ams_node.memory_usage",
+         "metric_type": "percentage",
+         "value_type": "float64",
+         "resource_type": "ams_node",
+         "resource_name": "{{HOST}}",
+         "timeseries": [
+            {
+               "timestamp": "{{TS2}}",
+               "value": {{VAL2}}
+            }
+         ],
+         "description": "Percentage value that displays the Memory usage of ams service in the specific node"
       }
    ]
 }`
@@ -99,14 +114,18 @@ func (suite *MetricsTestSuite) TestOperational() {
 	APIcfg := config.NewAPICfg()
 	APIcfg.LoadStrJSON(suite.cfgStr)
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
-	ml, _ := GetUsageCPU(store)
+	ml, _ := GetUsageCpuMem(store)
 	outJSON, _ := ml.ExportJSON()
 
 	ts1 := ml.Metrics[0].Timeseries[0].Timestamp
+	ts2 := ml.Metrics[1].Timeseries[0].Timestamp
+	val1 := ml.Metrics[0].Timeseries[0].Value.(float64)
+	val2 := ml.Metrics[1].Timeseries[0].Value.(float64)
 	host := ml.Metrics[0].Resource
-
 	expJSON = strings.Replace(expJSON, "{{TS1}}", ts1, -1)
-
+	expJSON = strings.Replace(expJSON, "{{TS2}}", ts2, -1)
+	expJSON = strings.Replace(expJSON, "{{VAL1}}", strconv.FormatFloat(val1, 'g', 1, 64), -1)
+	expJSON = strings.Replace(expJSON, "{{VAL2}}", strconv.FormatFloat(val2, 'g', 1, 64), -1)
 	expJSON = strings.Replace(expJSON, "{{HOST}}", host, -1)
 
 	suite.Equal(expJSON, outJSON)

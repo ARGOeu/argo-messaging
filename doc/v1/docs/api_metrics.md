@@ -31,15 +31,29 @@ Success Response
          "metric_type": "percentage",
          "value_type": "float64",
          "resource_type": "ams_node",
-         "resource_name": "host2.foo",
+         "resource_name": "host.foo",
          "timeseries": [
             {
-               "timestamp": "2017-07-04T09:36:03Z",
-               "value": 50
+               "timestamp": "2017-07-04T10:18:07Z",
+               "value": 0.2
             }
          ],
          "description": "Percentage value that displays the CPU usage of ams service in the specific node"
       },
+      {
+         "metric": "ams_node.memory_usage",
+         "metric_type": "percentage",
+         "value_type": "float64",
+         "resource_type": "ams_node",
+         "resource_name": "host.foo",
+         "timeseries": [
+            {
+               "timestamp": "2017-07-04T10:18:07Z",
+               "value": 0.1
+            }
+         ],
+         "description": "Percentage value that displays the Memory usage of ams service in the specific node"
+      }
    ]
 }
 

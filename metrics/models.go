@@ -27,6 +27,8 @@ const (
 	NameSubBytes          string = "subscription.number_of_bytes"
 	DescOpNodeCPU         string = "Percentage value that displays the CPU usage of ams service in the specific node"
 	NameOpNodeCPU         string = "ams_node.cpu_usage"
+	DescOpNodeMEM         string = "Percentage value that displays the Memory usage of ams service in the specific node"
+	NameOpNodeMEM         string = "ams_node.memory_usage"
 )
 
 type MetricList struct {
@@ -137,6 +139,13 @@ func NewProjectUserTopics(project string, user string, value int64, tstamp strin
 func NewOpNodeCPU(hostname string, value float64, tstamp string) Metric {
 	ts := []Timepoint{Timepoint{Timestamp: tstamp, Value: value}}
 	m := Metric{Metric: NameOpNodeCPU, MetricType: "percentage", ValueType: "float64", ResourceType: "ams_node", Resource: hostname, Timeseries: ts, Description: DescOpNodeCPU}
+
+	return m
+}
+
+func NewOpNodeMEM(hostname string, value float64, tstamp string) Metric {
+	ts := []Timepoint{Timepoint{Timestamp: tstamp, Value: value}}
+	m := Metric{Metric: NameOpNodeMEM, MetricType: "percentage", ValueType: "float64", ResourceType: "ams_node", Resource: hostname, Timeseries: ts, Description: DescOpNodeMEM}
 
 	return m
 }

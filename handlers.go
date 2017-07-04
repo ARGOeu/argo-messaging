@@ -621,7 +621,7 @@ func OpMetrics(w http.ResponseWriter, r *http.Request) {
 	refStr := context.Get(r, "str").(stores.Store)
 
 	// Get Results Object
-	res, err := metrics.GetUsageCPU(refStr)
+	res, err := metrics.GetUsageCpuMem(refStr)
 
 	if err != nil && err.Error() != "not found" {
 		respondErr(w, 500, "Internal error while querying datastore", "INTERNAL")
