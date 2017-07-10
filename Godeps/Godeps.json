@@ -1,7 +1,7 @@
 {
 	"ImportPath": "github.com/ARGOeu/argo-messaging",
 	"GoVersion": "go1.7",
-	"GodepVersion": "v74",
+	"GodepVersion": "v75",
 	"Deps": [
 		{
 			"ImportPath": "github.com/BurntSushi/toml",
@@ -35,6 +35,11 @@
 		{
 			"ImportPath": "github.com/gorilla/context",
 			"Rev": "1c83b3eabd45b6d76072b66b746c20815fb2872d"
+		},
+		{
+			"ImportPath": "github.com/gorilla/handlers",
+			"Comment": "v1.1-11-ga577578",
+			"Rev": "a5775781a543af3c6b9f5baf10995e4d14168950"
 		},
 		{
 			"ImportPath": "github.com/gorilla/mux",

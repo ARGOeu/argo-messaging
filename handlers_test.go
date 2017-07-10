@@ -1101,7 +1101,7 @@ func (suite *HandlerTestSuite) TestSubMetrics() {
                "value": 0
             }
          ],
-         "description": "Counter that displays the number number of messages consumed from the specific subscription"
+         "description": "Counter that displays the number of messages consumed from the specific subscription"
       },
       {
          "metric": "subscription.number_of_bytes",
@@ -1427,7 +1427,7 @@ func (suite *HandlerTestSuite) TestTopicMetrics() {
                "value": 0
             }
          ],
-         "description": "Counter that displays the number number of messages published to the specific topic"
+         "description": "Counter that displays the number of messages published to the specific topic"
       },
       {
          "metric": "topic.number_of_bytes",
