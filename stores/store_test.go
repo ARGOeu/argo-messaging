@@ -39,7 +39,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 	// Test user
 	roles01, _ := store.GetUserRoles("argo_uuid", "S3CR3T")
 	roles02, _ := store.GetUserRoles("argo_uuid", "SecretKey")
-	suite.Equal([]string{"admin", "member"}, roles01)
+	suite.Equal([]string{"consumer", "publisher"}, roles01)
 	suite.Equal([]string{}, roles02)
 
 	// Test roles
@@ -243,6 +243,9 @@ func (suite *StoreTestSuite) TestMockStore() {
 	store.RemoveUser("user_uuid11")
 	usr11, err = store.QueryUsers("", "user_uuid11", "")
 	suite.Equal(errors.New("not found"), err)
+
+	usrGet, _ := store.GetUserFromToken("A3B94A94V3A")
+	suite.Equal(usr10[0], usrGet)
 
 }
 

@@ -643,6 +643,51 @@ func OpMetrics(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// UserListByToken (GET) one user by his token
+func UserListByToken(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+	urlToken := urlVars["token"]
+
+	// Grab context references
+	refStr := context.Get(r, "str").(stores.Store)
+
+	// Get Results Object
+	result, err := auth.GetUserByToken(urlToken, refStr)
+
+	if err != nil {
+		if err.Error() == "not found" {
+			respondErr(w, 404, "User does not exist", "NOT_FOUND")
+			return
+		}
+
+		respondErr(w, 500, "Internal error while querying datastore", "INTERNAL")
+		return
+	}
+
+	// Output result to JSON
+	resJSON, err := result.ExportJSON()
+
+	if err != nil {
+		respondErr(w, 500, "Error exporting data", "INTERNAL")
+		return
+	}
+
+	// Write response
+	output = []byte(resJSON)
+	respondOK(w, output)
+
+}
+
 // UserListOne (GET) one user
 func UserListOne(w http.ResponseWriter, r *http.Request) {
 

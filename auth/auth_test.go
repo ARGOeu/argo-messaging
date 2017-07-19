@@ -34,7 +34,7 @@ func (suite *AuthTestSuite) TestAuth() {
 	authen02, user02 := Authenticate("argo_uuid", "falseSECRET", store)
 	suite.Equal("UserA", user01)
 	suite.Equal("", user02)
-	suite.Equal([]string{"admin", "member"}, authen01)
+	suite.Equal([]string{"consumer", "publisher"}, authen01)
 	suite.Equal([]string{}, authen02)
 
 	suite.Equal(true, Authorize("topics:list_all", []string{"admin"}, store))
@@ -127,9 +127,11 @@ func (suite *AuthTestSuite) TestAuth() {
             {
                "project": "ARGO",
                "roles": [
-                  "admin",
-                  "member"
-               ]
+                  "consumer",
+                  "publisher"
+               ],
+               "topics": [],
+               "subscriptions": []
             }
          ],
          "name": "Test",
@@ -144,8 +146,17 @@ func (suite *AuthTestSuite) TestAuth() {
             {
                "project": "ARGO",
                "roles": [
-                  "admin",
-                  "member"
+                  "consumer",
+                  "publisher"
+               ],
+               "topics": [
+                  "topic1",
+                  "topic2"
+               ],
+               "subscriptions": [
+                  "sub1",
+                  "sub2",
+                  "sub3"
                ]
             }
          ],
@@ -161,8 +172,17 @@ func (suite *AuthTestSuite) TestAuth() {
             {
                "project": "ARGO",
                "roles": [
-                  "admin",
-                  "member"
+                  "consumer",
+                  "publisher"
+               ],
+               "topics": [
+                  "topic1",
+                  "topic2"
+               ],
+               "subscriptions": [
+                  "sub1",
+                  "sub3",
+                  "sub4"
                ]
             }
          ],
@@ -179,7 +199,14 @@ func (suite *AuthTestSuite) TestAuth() {
             {
                "project": "ARGO",
                "roles": [
+                  "publisher",
                   "consumer"
+               ],
+               "topics": [
+                  "topic3"
+               ],
+               "subscriptions": [
+                  "sub2"
                ]
             }
          ],
@@ -196,7 +223,15 @@ func (suite *AuthTestSuite) TestAuth() {
             {
                "project": "ARGO",
                "roles": [
-                  "producer"
+                  "publisher",
+                  "consumer"
+               ],
+               "topics": [
+                  "topic2"
+               ],
+               "subscriptions": [
+                  "sub3",
+                  "sub4"
                ]
             }
          ],
@@ -214,6 +249,37 @@ func (suite *AuthTestSuite) TestAuth() {
 	users, _ := FindUsers("argo_uuid", "", "", store)
 	outUserList, _ := users.ExportJSON()
 	suite.Equal(expUserList, outUserList)
+
+	expUsrTkJSON := `{
+   "projects": [
+      {
+         "project": "ARGO",
+         "roles": [
+            "publisher",
+            "consumer"
+         ],
+         "topics": [
+            "topic2"
+         ],
+         "subscriptions": [
+            "sub3",
+            "sub4"
+         ]
+      }
+   ],
+   "name": "UserZ",
+   "token": "S3CR3T4",
+   "email": "foo-email",
+   "service_roles": [],
+   "created_on": "2009-11-10T23:00:00Z",
+   "modified_on": "2009-11-10T23:00:00Z",
+   "created_by": "UserA"
+}`
+
+	// Test GetUserByToken
+	userTk, _ := GetUserByToken("S3CR3T4", store)
+	usrTkJSON, _ := userTk.ExportJSON()
+	suite.Equal(expUsrTkJSON, usrTkJSON)
 
 	suite.Equal(true, ExistsWithName("UserA", store))
 	suite.Equal(false, ExistsWithName("userA", store))
@@ -247,7 +313,9 @@ func (suite *AuthTestSuite) TestAuth() {
          "project": "ARGO",
          "roles": [
             "consumer"
-         ]
+         ],
+         "topics": [],
+         "subscriptions": []
       }
    ],
    "name": "johndoe",
@@ -275,7 +343,9 @@ func (suite *AuthTestSuite) TestAuth() {
          "project": "ARGO",
          "roles": [
             "consumer"
-         ]
+         ],
+         "topics": [],
+         "subscriptions": []
       }
    ],
    "name": "johnny_doe",

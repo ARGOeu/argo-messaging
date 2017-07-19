@@ -29,6 +29,8 @@ type User struct {
 type ProjectRoles struct {
 	Project string   `json:"project"`
 	Roles   []string `json:"roles"`
+	Topics  []string `json:"topics"`
+	Subs    []string `json:"subscriptions"`
 }
 
 // Users holds a list of available users
@@ -77,6 +79,51 @@ func NewUser(uuid string, projects []ProjectRoles, name string, token string, em
 	return User{UUID: uuid, Projects: projects, Name: name, Token: token, Email: email, ServiceRoles: serviceRoles, CreatedOn: createdOn.Format(zuluForm), ModifiedOn: modifiedOn.Format(zuluForm), CreatedBy: createdBy}
 }
 
+// GetUserByToken returns a specific user by his token
+func GetUserByToken(token string, store stores.Store) (User, error) {
+	result := User{}
+
+	user, err := store.GetUserFromToken(token)
+
+	if err != nil {
+		return result, err
+	}
+
+	usernameC := ""
+	if user.CreatedBy != "" {
+		usr, err := store.QueryUsers("", user.CreatedBy, "")
+		if err == nil && len(usr) > 0 {
+			usernameC = usr[0].Name
+
+		}
+	}
+
+	pRoles := []ProjectRoles{}
+	for _, pItem := range user.Projects {
+		prName := projects.GetNameByUUID(pItem.ProjectUUID, store)
+		// Get User topics and subscriptions
+
+		topicList, _ := store.QueryTopicsByACL(pItem.ProjectUUID, user.UUID)
+		topicNames := []string{}
+		for _, tpItem := range topicList {
+			topicNames = append(topicNames, tpItem.Name)
+		}
+
+		subList, _ := store.QuerySubsByACL(pItem.ProjectUUID, user.UUID)
+		subNames := []string{}
+		for _, sbItem := range subList {
+			subNames = append(subNames, sbItem.Name)
+		}
+		pRoles = append(pRoles, ProjectRoles{Project: prName, Roles: pItem.Roles, Topics: topicNames, Subs: subNames})
+	}
+
+	curUser := NewUser(user.UUID, pRoles, user.Name, user.Token, user.Email, user.ServiceRoles, user.CreatedOn, user.ModifiedOn, usernameC)
+
+	result = curUser
+
+	return result, err
+}
+
 // FindUsers returns a specific user or a list of all available users belonging to a  project in the datastore.
 func FindUsers(projectUUID string, uuid string, name string, store stores.Store) (Users, error) {
 	result := Users{}
@@ -84,20 +131,39 @@ func FindUsers(projectUUID string, uuid string, name string, store stores.Store)
 	users, err := store.QueryUsers(projectUUID, uuid, name)
 
 	for _, item := range users {
-		pRoles := []ProjectRoles{}
-		for _, pItem := range item.Projects {
-			prName := projects.GetNameByUUID(pItem.ProjectUUID, store)
-			pRoles = append(pRoles, ProjectRoles{Project: prName, Roles: pItem.Roles})
-		}
+
 		// Get Username from user uuid
-		username := ""
+
+		usernameC := ""
 		if item.CreatedBy != "" {
 			usr, err := store.QueryUsers("", item.CreatedBy, "")
 			if err == nil && len(usr) > 0 {
-				username = usr[0].Name
+				usernameC = usr[0].Name
+
 			}
 		}
-		curUser := NewUser(item.UUID, pRoles, item.Name, item.Token, item.Email, item.ServiceRoles, item.CreatedOn, item.ModifiedOn, username)
+
+		pRoles := []ProjectRoles{}
+		for _, pItem := range item.Projects {
+			prName := projects.GetNameByUUID(pItem.ProjectUUID, store)
+			// Get User topics and subscriptions
+
+			topicList, _ := store.QueryTopicsByACL(pItem.ProjectUUID, item.UUID)
+			topicNames := []string{}
+			for _, tpItem := range topicList {
+				topicNames = append(topicNames, tpItem.Name)
+			}
+
+			subList, _ := store.QuerySubsByACL(pItem.ProjectUUID, item.UUID)
+			subNames := []string{}
+			for _, sbItem := range subList {
+				subNames = append(subNames, sbItem.Name)
+			}
+			pRoles = append(pRoles, ProjectRoles{Project: prName, Roles: pItem.Roles, Topics: topicNames, Subs: subNames})
+		}
+
+		curUser := NewUser(item.UUID, pRoles, item.Name, item.Token, item.Email, item.ServiceRoles, item.CreatedOn, item.ModifiedOn, usernameC)
+
 		result.List = append(result.List, curUser)
 	}
 
@@ -328,6 +394,7 @@ func PerResource(project string, resType string, resName string, user string, st
 	if resType == "topics" || resType == "subscriptions" {
 
 		acl, _ := GetACL(project, resType, resName, store)
+
 		for _, item := range acl.AuthUsers {
 			if item == user {
 				return true
