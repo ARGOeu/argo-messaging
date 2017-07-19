@@ -37,6 +37,7 @@ type Store interface {
 	HasResourceRoles(resource string, roles []string) bool
 	GetOpMetrics() []QopMetric
 	GetUserRoles(projectUUID string, token string) ([]string, string)
+	GetUserFromToken(token string) (QUser, error)
 	UpdateSubOffset(projectUUID string, name string, offset int64)
 	UpdateSubPull(projectUUID string, name string, offset int64, ts string) error
 	UpdateSubOffsetAck(projectUUID string, name string, offset int64, ts string) error

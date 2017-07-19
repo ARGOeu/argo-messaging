@@ -157,6 +157,55 @@ func (suite *HandlerTestSuite) TestUserUpdate() {
 
 }
 
+func (suite *HandlerTestSuite) TestUserListByToken() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/users:byToken/S3CR3T1", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "projects": [
+      {
+         "project": "ARGO",
+         "roles": [
+            "consumer",
+            "publisher"
+         ],
+         "topics": [
+            "topic1",
+            "topic2"
+         ],
+         "subscriptions": [
+            "sub1",
+            "sub2",
+            "sub3"
+         ]
+      }
+   ],
+   "name": "UserA",
+   "token": "S3CR3T1",
+   "email": "foo-email",
+   "service_roles": [],
+   "created_on": "2009-11-10T23:00:00Z",
+   "modified_on": "2009-11-10T23:00:00Z"
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/users:byToken/{token}", WrapMockAuthConfig(UserListByToken, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
 func (suite *HandlerTestSuite) TestUserListOne() {
 
 	req, err := http.NewRequest("GET", "http://localhost:8080/v1/users/UserA", nil)
@@ -169,8 +218,17 @@ func (suite *HandlerTestSuite) TestUserListOne() {
       {
          "project": "ARGO",
          "roles": [
-            "admin",
-            "member"
+            "consumer",
+            "publisher"
+         ],
+         "topics": [
+            "topic1",
+            "topic2"
+         ],
+         "subscriptions": [
+            "sub1",
+            "sub2",
+            "sub3"
          ]
       }
    ],
@@ -211,9 +269,11 @@ func (suite *HandlerTestSuite) TestUserListAll() {
             {
                "project": "ARGO",
                "roles": [
-                  "admin",
-                  "member"
-               ]
+                  "consumer",
+                  "publisher"
+               ],
+               "topics": [],
+               "subscriptions": []
             }
          ],
          "name": "Test",
@@ -228,8 +288,17 @@ func (suite *HandlerTestSuite) TestUserListAll() {
             {
                "project": "ARGO",
                "roles": [
-                  "admin",
-                  "member"
+                  "consumer",
+                  "publisher"
+               ],
+               "topics": [
+                  "topic1",
+                  "topic2"
+               ],
+               "subscriptions": [
+                  "sub1",
+                  "sub2",
+                  "sub3"
                ]
             }
          ],
@@ -245,8 +314,17 @@ func (suite *HandlerTestSuite) TestUserListAll() {
             {
                "project": "ARGO",
                "roles": [
-                  "admin",
-                  "member"
+                  "consumer",
+                  "publisher"
+               ],
+               "topics": [
+                  "topic1",
+                  "topic2"
+               ],
+               "subscriptions": [
+                  "sub1",
+                  "sub3",
+                  "sub4"
                ]
             }
          ],
@@ -263,7 +341,14 @@ func (suite *HandlerTestSuite) TestUserListAll() {
             {
                "project": "ARGO",
                "roles": [
+                  "publisher",
                   "consumer"
+               ],
+               "topics": [
+                  "topic3"
+               ],
+               "subscriptions": [
+                  "sub2"
                ]
             }
          ],
@@ -280,7 +365,15 @@ func (suite *HandlerTestSuite) TestUserListAll() {
             {
                "project": "ARGO",
                "roles": [
-                  "producer"
+                  "publisher",
+                  "consumer"
+               ],
+               "topics": [
+                  "topic2"
+               ],
+               "subscriptions": [
+                  "sub3",
+                  "sub4"
                ]
             }
          ],

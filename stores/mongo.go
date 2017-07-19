@@ -558,6 +558,33 @@ func (mong *MongoStore) GetUserRoles(projectUUID string, token string) ([]string
 
 }
 
+//GetUserFromToken returns user information from a specific token
+func (mong *MongoStore) GetUserFromToken(token string) (QUser, error) {
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C("users")
+	var results []QUser
+
+	err := c.Find(bson.M{"token": token}).All(&results)
+
+	if err != nil {
+		log.Fatal("STORE", "\t", err.Error())
+	}
+
+	if len(results) == 0 {
+		return QUser{}, errors.New("not found")
+	}
+
+	if len(results) > 1 {
+		log.Warning("STORE", "\t", "Multiple users with the same token", token)
+
+	}
+
+	// Search the found user for project roles
+	return results[0], err
+
+}
+
 // QueryOneSub queries and returns specific sub of project
 func (mong *MongoStore) QueryOneSub(projectUUID string, name string) (QSub, error) {
 

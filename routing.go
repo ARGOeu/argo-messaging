@@ -66,6 +66,7 @@ func NewRouting(cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *p
 // Global list populated with default routes
 var defaultRoutes = []APIRoute{
 	{"ams:metrics", "GET", "/metrics", OpMetrics},
+	{"users:byToken", "GET", "/users:byToken/{token}", UserListByToken},
 	{"users:list", "GET", "/users", UserListAll},
 	{"users:show", "GET", "/users/{user}", UserListOne},
 	{"users:refreshToken", "POST", "/users/{user}:refreshToken", RefreshToken},

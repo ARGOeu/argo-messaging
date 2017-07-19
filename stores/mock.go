@@ -403,18 +403,17 @@ func (mk *MockStore) Initialize() {
 	mk.ProjectList = append(mk.ProjectList, qPr2)
 
 	// populate Users
-	qRole := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"admin", "member"}}}
+	qRole := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"consumer", "publisher"}}}
 	qUsr := QUser{"uuid0", qRole, "Test", "S3CR3T", "Test@test.com", []string{}, created, modified, ""}
 
 	mk.UserList = append(mk.UserList, qUsr)
 
-	qRoleConsumer := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"consumer"}}}
-	qRoleProducer := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"producer"}}}
+	qRoleConsumerPub := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"publisher", "consumer"}}}
 
 	mk.UserList = append(mk.UserList, QUser{"uuid1", qRole, "UserA", "S3CR3T1", "foo-email", []string{}, created, modified, ""})
 	mk.UserList = append(mk.UserList, QUser{"uuid2", qRole, "UserB", "S3CR3T2", "foo-email", []string{}, created, modified, "uuid1"})
-	mk.UserList = append(mk.UserList, QUser{"uuid3", qRoleConsumer, "UserX", "S3CR3T3", "foo-email", []string{}, created, modified, "uuid1"})
-	mk.UserList = append(mk.UserList, QUser{"uuid4", qRoleProducer, "UserZ", "S3CR3T4", "foo-email", []string{}, created, modified, "uuid1"})
+	mk.UserList = append(mk.UserList, QUser{"uuid3", qRoleConsumerPub, "UserX", "S3CR3T3", "foo-email", []string{}, created, modified, "uuid1"})
+	mk.UserList = append(mk.UserList, QUser{"uuid4", qRoleConsumerPub, "UserZ", "S3CR3T4", "foo-email", []string{}, created, modified, "uuid1"})
 
 	qRole1 := QRole{"topics:list_all", []string{"admin", "reader", "publisher"}}
 	qRole2 := QRole{"topics:publish", []string{"admin", "publisher"}}
@@ -458,6 +457,19 @@ func (mk *MockStore) QueryOneSub(projectUUID string, name string) (QSub, error) 
 // Clone the store
 func (mk *MockStore) Clone() Store {
 	return mk
+}
+
+func (mk *MockStore) GetUserFromToken(token string) (QUser, error) {
+	for _, item := range mk.UserList {
+
+		if item.Token == token {
+			return item, nil
+
+		}
+	}
+
+	return QUser{}, errors.New("not found")
+
 }
 
 // GetUserRoles returns the roles of a user in a project
@@ -647,6 +659,7 @@ func (mk *MockStore) QuerySubsByTopic(projectUUID, topic string) ([]QSub, error)
 }
 
 func (mk *MockStore) QuerySubsByACL(projectUUID, user string) ([]QSub, error) {
+
 	result := []QSub{}
 	for _, item := range mk.SubList {
 		if projectUUID == item.ProjectUUID {
@@ -662,6 +675,7 @@ func (mk *MockStore) QuerySubsByACL(projectUUID, user string) ([]QSub, error) {
 }
 
 func (mk *MockStore) QueryTopicsByACL(projectUUID, user string) ([]QTopic, error) {
+
 	result := []QTopic{}
 	for _, item := range mk.TopicList {
 		if projectUUID == item.ProjectUUID {
