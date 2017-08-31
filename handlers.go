@@ -1538,9 +1538,9 @@ func ProjectMetrics(w http.ResponseWriter, r *http.Request) {
 
 	// Grab context references
 	refStr := context.Get(r, "str").(stores.Store)
-	refRoles := context.Get(r, "auth_roles").([]string)
-	refUser := context.Get(r, "auth_user").(string)
-	refAuthResource := context.Get(r, "auth_resource").(bool)
+	//refRoles := context.Get(r, "auth_roles").([]string)
+	//refUser := context.Get(r, "auth_user").(string)
+	//refAuthResource := context.Get(r, "auth_resource").(bool)
 
 	urlProject := urlVars["project"]
 
@@ -1552,33 +1552,20 @@ func ProjectMetrics(w http.ResponseWriter, r *http.Request) {
 
 	numTopics := int64(0)
 	numSubs := int64(0)
-	if refAuthResource && auth.IsPublisher(refRoles) {
-		numTopics2, err2 := metrics.GetProjectTopics(projectUUID, refStr)
-		if err2 != nil {
-			respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
-			return
-		}
-		numTopics = numTopics2
-		numSubs2, err2 := metrics.GetProjectSubs(projectUUID, refStr)
-		if err2 != nil {
-			respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
-			return
-		}
-		numSubs = numSubs2
-	} else {
-		numTopics2, err2 := metrics.GetProjectTopicsACL(projectUUID, refUser, refStr)
-		if err2 != nil {
-			respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
-			return
-		}
-		numTopics = numTopics2
-		numSubs2, err2 := metrics.GetProjectSubsACL(projectUUID, refUser, refStr)
-		if err2 != nil {
-			respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
-			return
-		}
-		numSubs = numSubs2
+
+	numTopics2, err2 := metrics.GetProjectTopics(projectUUID, refStr)
+	if err2 != nil {
+		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
+		return
 	}
+	numTopics = numTopics2
+	numSubs2, err2 := metrics.GetProjectSubs(projectUUID, refStr)
+	if err2 != nil {
+		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
+		return
+	}
+	numSubs = numSubs2
+
 	m1 := metrics.NewProjectTopics(urlProject, numTopics, metrics.GetTimeNowZulu())
 	m2 := metrics.NewProjectSubs(urlProject, numSubs, metrics.GetTimeNowZulu())
 	res := metrics.NewMetricList(m1)
