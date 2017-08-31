@@ -2135,7 +2135,7 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	if pullInfo.RetImm == "true" {
 		retImm = true
 	}
-	msgs, err := refBrk.Consume(fullTopic, targSub.Offset, retImm, int64(max))
+	msgs, err := refBrk.Consume(r.Context(), fullTopic, targSub.Offset, retImm, int64(max))
 	if err != nil {
 		// If tracked offset is off
 		if err == brokers.ErrOffsetOff {
@@ -2144,7 +2144,7 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 			targSub.Offset = refBrk.GetMinOffset(fullTopic)
 			refStr.UpdateSubOffset(projectUUID, targSub.Name, targSub.Offset)
 			// Try again to consume
-			msgs, err = refBrk.Consume(fullTopic, targSub.Offset, retImm, int64(max))
+			msgs, err = refBrk.Consume(r.Context(), fullTopic, targSub.Offset, retImm, int64(max))
 			// If still error respond and return
 			if err != nil {
 				respondErr(w, 500, "Cannot consume message", "INTERNAL_SERVER_ERROR")

@@ -1,16 +1,14 @@
 package brokers
 
 import (
+	"context"
 	"strconv"
 	"sync"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
-)
-
-import (
 	"github.com/ARGOeu/argo-messaging/messages"
 	"github.com/Shopify/sarama"
+	log "github.com/Sirupsen/logrus"
 )
 
 type topicLock struct {
@@ -169,7 +167,7 @@ func (b *KafkaBroker) GetMinOffset(topic string) int64 {
 }
 
 // Consume function to consume a message from the broker
-func (b *KafkaBroker) Consume(topic string, offset int64, imm bool, max int64) ([]string, error) {
+func (b *KafkaBroker) Consume(ctx context.Context, topic string, offset int64, imm bool, max int64) ([]string, error) {
 
 	b.lockForTopic(topic)
 
@@ -225,6 +223,11 @@ func (b *KafkaBroker) Consume(topic string, offset int64, imm bool, max int64) (
 ConsumerLoop:
 	for {
 		select {
+		// If the http client cancels the http request break consume loop
+		case <-ctx.Done():
+			{
+				break ConsumerLoop
+			}
 		case <-timeout:
 			{
 				break ConsumerLoop
