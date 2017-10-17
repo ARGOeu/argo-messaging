@@ -30,6 +30,12 @@ type PushConfig struct {
 	RetPol RetryPolicy `json:"retryPolicy"`
 }
 
+// SubMetrics holds the subscription's metric details
+type SubMetrics struct {
+	MsgNum     int64 `json:"number_of_messages"`
+	TotalBytes int64 `json:"total_bytes"`
+}
+
 // RetryPolicy holds information on retry policies
 type RetryPolicy struct {
 	PolicyType string `json:"type,omitempty"`
@@ -47,9 +53,37 @@ type SubPullOptions struct {
 	MaxMsg string `json:"maxMessages,omitempty"`
 }
 
+// SetOffset structure is used for input in set Offset Request
+type SetOffset struct {
+	Offset int64 `json:"offset"`
+}
+
+// Offsets is used as a json structure for show offsets Response
+type Offsets struct {
+	Max     int64 `json:"max"`
+	Min     int64 `json:"min"`
+	Current int64 `json:"current"`
+}
+
 // AckIDs utility struct
 type AckIDs struct {
 	IDs []string `json:"AckIds"`
+}
+
+// FindMetric returns the metric of a specific subscription
+func FindMetric(projectUUID string, name string, store stores.Store) (SubMetrics, error) {
+	result := SubMetrics{MsgNum: 0}
+	topics, err := store.QuerySubs(projectUUID, name)
+	for _, item := range topics {
+		projectName := projects.GetNameByUUID(item.ProjectUUID, store)
+		if projectName == "" {
+			return result, errors.New("invalid project")
+		}
+
+		result.MsgNum = item.MsgNum
+		result.TotalBytes = item.TotalBytes
+	}
+	return result, err
 }
 
 // Empty returns true if Subscriptions list has no items
@@ -60,6 +94,13 @@ func (sl *Subscriptions) Empty() bool {
 // GetAckFromJSON retrieves ack ids from json
 func GetAckFromJSON(input []byte) (AckIDs, error) {
 	s := AckIDs{}
+	err := json.Unmarshal([]byte(input), &s)
+	return s, err
+}
+
+// GetSetOffsetJSON retrieves set offset information
+func GetSetOffsetJSON(input []byte) (SetOffset, error) {
+	s := SetOffset{}
 	err := json.Unmarshal([]byte(input), &s)
 	return s, err
 }
@@ -85,6 +126,18 @@ func New(projectUUID string, projectName string, name string, topic string) Subs
 	ps := PushConfig{}
 	s := Subscription{ProjectUUID: projectUUID, Name: name, Topic: topic, FullName: fsn, FullTopic: ftn, PushCfg: ps, Ack: 10}
 	return s
+}
+
+// ExportJSON exports metrics as a json string
+func (offs *SubMetrics) ExportJSON() (string, error) {
+	output, err := json.MarshalIndent(offs, "", "   ")
+	return string(output[:]), err
+}
+
+// ExportJSON exports offsets structure as a json string
+func (offs *Offsets) ExportJSON() (string, error) {
+	output, err := json.MarshalIndent(offs, "", "   ")
+	return string(output[:]), err
 }
 
 // ExportJSON exports whole sub Structure as a json string

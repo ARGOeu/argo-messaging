@@ -2,8 +2,9 @@ package config
 
 import (
 	"io/ioutil"
-	"log"
 	"testing"
+
+	log "github.com/Sirupsen/logrus"
 
 	"github.com/stretchr/testify/suite"
 )
@@ -33,15 +34,15 @@ func (suite *ConfigTestSuite) SetupTest() {
 func (suite *ConfigTestSuite) TestLoadConfiguration() {
 	APIcfg := NewAPICfg()
 	suite.Equal([]string(nil), APIcfg.ZooHosts)
-	APIcfg.Load()
+	APIcfg.LoadTest()
 	suite.Equal([]string{"localhost"}, APIcfg.ZooHosts)
 	suite.Equal("", APIcfg.KafkaZnode)
 	suite.Equal("localhost", APIcfg.StoreHost)
 	suite.Equal("argo_msg", APIcfg.StoreDB)
 	suite.Equal(8080, APIcfg.Port)
 
-	// test "LOAD" param
-	APIcfg2 := NewAPICfg("LOAD")
+	// test "LOADTEST" param
+	APIcfg2 := NewAPICfg("LOADTEST")
 	suite.Equal([]string{"localhost"}, APIcfg2.ZooHosts)
 	suite.Equal("", APIcfg2.KafkaZnode)
 	suite.Equal("localhost", APIcfg2.StoreHost)

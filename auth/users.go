@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"time"
 
 	"github.com/ARGOeu/argo-messaging/projects"
 	"github.com/ARGOeu/argo-messaging/stores"
@@ -19,12 +20,17 @@ type User struct {
 	Token        string         `json:"token"`
 	Email        string         `json:"email"`
 	ServiceRoles []string       `json:"service_roles"`
+	CreatedOn    string         `json:"created_on,omitempty"`
+	ModifiedOn   string         `json:"modified_on,omitempty"`
+	CreatedBy    string         `json:"created_by,omitempty"`
 }
 
 // ProjectRoles is the struct that hold project and role information of the user
 type ProjectRoles struct {
 	Project string   `json:"project"`
 	Roles   []string `json:"roles"`
+	Topics  []string `json:"topics"`
+	Subs    []string `json:"subscriptions"`
 }
 
 // Users holds a list of available users
@@ -68,8 +74,54 @@ func GetUserFromJSON(input []byte) (User, error) {
 }
 
 // NewUser accepts parameters and creates a new user
-func NewUser(uuid string, projects []ProjectRoles, name string, token string, email string, serviceRoles []string) User {
-	return User{UUID: uuid, Projects: projects, Name: name, Token: token, Email: email, ServiceRoles: serviceRoles}
+func NewUser(uuid string, projects []ProjectRoles, name string, token string, email string, serviceRoles []string, createdOn time.Time, modifiedOn time.Time, createdBy string) User {
+	zuluForm := "2006-01-02T15:04:05Z"
+	return User{UUID: uuid, Projects: projects, Name: name, Token: token, Email: email, ServiceRoles: serviceRoles, CreatedOn: createdOn.Format(zuluForm), ModifiedOn: modifiedOn.Format(zuluForm), CreatedBy: createdBy}
+}
+
+// GetUserByToken returns a specific user by his token
+func GetUserByToken(token string, store stores.Store) (User, error) {
+	result := User{}
+
+	user, err := store.GetUserFromToken(token)
+
+	if err != nil {
+		return result, err
+	}
+
+	usernameC := ""
+	if user.CreatedBy != "" {
+		usr, err := store.QueryUsers("", user.CreatedBy, "")
+		if err == nil && len(usr) > 0 {
+			usernameC = usr[0].Name
+
+		}
+	}
+
+	pRoles := []ProjectRoles{}
+	for _, pItem := range user.Projects {
+		prName := projects.GetNameByUUID(pItem.ProjectUUID, store)
+		// Get User topics and subscriptions
+
+		topicList, _ := store.QueryTopicsByACL(pItem.ProjectUUID, user.UUID)
+		topicNames := []string{}
+		for _, tpItem := range topicList {
+			topicNames = append(topicNames, tpItem.Name)
+		}
+
+		subList, _ := store.QuerySubsByACL(pItem.ProjectUUID, user.UUID)
+		subNames := []string{}
+		for _, sbItem := range subList {
+			subNames = append(subNames, sbItem.Name)
+		}
+		pRoles = append(pRoles, ProjectRoles{Project: prName, Roles: pItem.Roles, Topics: topicNames, Subs: subNames})
+	}
+
+	curUser := NewUser(user.UUID, pRoles, user.Name, user.Token, user.Email, user.ServiceRoles, user.CreatedOn, user.ModifiedOn, usernameC)
+
+	result = curUser
+
+	return result, err
 }
 
 // FindUsers returns a specific user or a list of all available users belonging to a  project in the datastore.
@@ -79,13 +131,44 @@ func FindUsers(projectUUID string, uuid string, name string, store stores.Store)
 	users, err := store.QueryUsers(projectUUID, uuid, name)
 
 	for _, item := range users {
+
+		// Get Username from user uuid
+
+		usernameC := ""
+		if item.CreatedBy != "" {
+			usr, err := store.QueryUsers("", item.CreatedBy, "")
+			if err == nil && len(usr) > 0 {
+				usernameC = usr[0].Name
+
+			}
+		}
+
 		pRoles := []ProjectRoles{}
 		for _, pItem := range item.Projects {
 			prName := projects.GetNameByUUID(pItem.ProjectUUID, store)
-			pRoles = append(pRoles, ProjectRoles{Project: prName, Roles: pItem.Roles})
+			// Get User topics and subscriptions
+
+			topicList, _ := store.QueryTopicsByACL(pItem.ProjectUUID, item.UUID)
+			topicNames := []string{}
+			for _, tpItem := range topicList {
+				topicNames = append(topicNames, tpItem.Name)
+			}
+
+			subList, _ := store.QuerySubsByACL(pItem.ProjectUUID, item.UUID)
+			subNames := []string{}
+			for _, sbItem := range subList {
+				subNames = append(subNames, sbItem.Name)
+			}
+			pRoles = append(pRoles, ProjectRoles{Project: prName, Roles: pItem.Roles, Topics: topicNames, Subs: subNames})
 		}
-		curUser := NewUser(item.UUID, pRoles, item.Name, item.Token, item.Email, item.ServiceRoles)
+
+		curUser := NewUser(item.UUID, pRoles, item.Name, item.Token, item.Email, item.ServiceRoles, item.CreatedOn, item.ModifiedOn, usernameC)
+
 		result.List = append(result.List, curUser)
+	}
+
+	if len(result.List) == 0 {
+		err = errors.New("not found")
 	}
 
 	return result, err
@@ -156,7 +239,7 @@ func UpdateUserToken(uuid string, token string, store stores.Store) (User, error
 }
 
 // UpdateUser updates an existing user's information
-func UpdateUser(uuid string, name string, projectList []ProjectRoles, email string, serviceRoles []string, store stores.Store) (User, error) {
+func UpdateUser(uuid string, name string, projectList []ProjectRoles, email string, serviceRoles []string, modifiedOn time.Time, store stores.Store) (User, error) {
 
 	prList := []stores.QProjectRoles{}
 
@@ -192,7 +275,7 @@ func UpdateUser(uuid string, name string, projectList []ProjectRoles, email stri
 		}
 	}
 
-	if err := store.UpdateUser(uuid, prList, name, email, serviceRoles); err != nil {
+	if err := store.UpdateUser(uuid, prList, name, email, serviceRoles, modifiedOn); err != nil {
 		return User{}, err
 	}
 
@@ -202,7 +285,7 @@ func UpdateUser(uuid string, name string, projectList []ProjectRoles, email stri
 }
 
 // CreateUser creates a new user
-func CreateUser(uuid string, name string, projectList []ProjectRoles, token string, email string, serviceRoles []string, store stores.Store) (User, error) {
+func CreateUser(uuid string, name string, projectList []ProjectRoles, token string, email string, serviceRoles []string, createdOn time.Time, createdBy string, store stores.Store) (User, error) {
 	// check if project with the same name exists
 	if ExistsWithName(name, store) {
 		return User{}, errors.New("exists")
@@ -227,7 +310,7 @@ func CreateUser(uuid string, name string, projectList []ProjectRoles, token stri
 		prList = append(prList, stores.QProjectRoles{ProjectUUID: prUUID, Roles: item.Roles})
 	}
 
-	if err := store.InsertUser(uuid, prList, name, token, email, serviceRoles); err != nil {
+	if err := store.InsertUser(uuid, prList, name, token, email, serviceRoles, createdOn, createdOn, createdBy); err != nil {
 		return User{}, errors.New("backend error")
 	}
 
@@ -311,6 +394,7 @@ func PerResource(project string, resType string, resName string, user string, st
 	if resType == "topics" || resType == "subscriptions" {
 
 		acl, _ := GetACL(project, resType, resName, store)
+
 		for _, item := range acl.AuthUsers {
 			if item == user {
 				return true

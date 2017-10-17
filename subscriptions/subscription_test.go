@@ -2,8 +2,9 @@ package subscriptions
 
 import (
 	"io/ioutil"
-	"log"
 	"testing"
+
+	log "github.com/Sirupsen/logrus"
 
 	"github.com/ARGOeu/argo-messaging/config"
 	"github.com/ARGOeu/argo-messaging/stores"
@@ -67,6 +68,15 @@ func (suite *SubTestSuite) TestGetSubByName() {
 	expSub.PushCfg.RetPol.Period = 0
 	suite.Equal(expSub, result.List[0])
 
+}
+
+func (suite *SubTestSuite) TestGetSubMetric() {
+	APIcfg := config.NewAPICfg()
+	APIcfg.LoadStrJSON(suite.cfgStr)
+	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
+	mySubM, _ := FindMetric("argo_uuid", "sub1", store)
+	expTopic := SubMetrics{MsgNum: 0}
+	suite.Equal(expTopic, mySubM)
 }
 
 func (suite *SubTestSuite) TestHasProjectTopic() {

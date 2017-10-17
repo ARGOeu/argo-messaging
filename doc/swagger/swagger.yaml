@@ -24,6 +24,34 @@ tags:
   - name: Projects
     description: Projects available in the service
 paths:
+
+  /metrics:
+    get:
+      summary: List operational metrics of the ams service
+      description: |
+        list operational metrics
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+      tags:
+        - Operational Metrics
+      responses:
+        200:
+          description: An array of Metrics
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Metrics'
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
+
   /projects:
     get:
       summary: List subscriptions in a project
@@ -192,6 +220,36 @@ paths:
           $ref: "#/responses/404"
         409:
           $ref: "#/responses/409"
+        500:
+          $ref: "#/responses/500"
+
+  /projects/{PROJECT}:metrics:
+    get:
+      summary: Get metrics for a specific project
+      description: |
+        Shows a specific projects information
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+      tags:
+        - Projects
+      responses:
+        200:
+          description: A Metrics object
+          schema:
+            $ref: '#/definitions/Metrics'
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
         500:
           $ref: "#/responses/500"
 
@@ -615,7 +673,9 @@ paths:
         200:
           description: An empty response if Authorized User list is succesfully updated
           schema:
-            $ref: '#/definitions/AuthUsers'
+            type: string
+            default: ""
+            description: empty string
         400:
           $ref: "#/responses/400"
         401:
@@ -626,6 +686,85 @@ paths:
           $ref: "#/responses/404"
         500:
           $ref: "#/responses/500"
+
+  /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}:modifyOffset:
+    post:
+      summary: Modify Offset of a given subscription
+      description: |
+        Modify the Offset of a given subscription
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: SUBSCRIPTION
+          in: path
+          description: Name of the subscription
+          required: true
+          type: string
+        - name: Offset
+          in: body
+          description: Offset
+          required: true
+          schema:
+           $ref: '#/definitions/Offset'
+      tags:
+        - Subscriptions
+      responses:
+        200:
+          description: An empty response if Authorized User list is succesfully updated
+          schema:
+            type: string
+            default: ""
+            description: empty string
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
+
+  /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}:offsets:
+    get:
+      summary: Get min max and current offset of a subscription
+      description: |
+        Get min max and current offset of a subscription
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: SUBSCRIPTION
+          in: path
+          description: Name of the subscription
+          required: true
+          type: string
+      tags:
+        - Subscriptions
+      responses:
+        200:
+          description: A json representation of min, max and current offsets
+          schema:
+            $ref: '#/definitions/Offsets'
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
+
 
 
 
@@ -752,6 +891,41 @@ paths:
           $ref: "#/responses/404"
         408:
           $ref: "#/responses/408"
+        500:
+          $ref: "#/responses/500"
+
+  /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}:metrics:
+    get:
+      summary: List of metrics related to the specific subscription
+      description: |
+        Show a list of subscription's metrics like the number of messages published
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: SUBSCRIPTION
+          in: path
+          description: Name of the subscription
+          required: true
+          type: string
+      tags:
+        - Subscriptions
+      responses:
+        200:
+          description: Subscription metrics.
+          schema:
+            $ref: '#/definitions/Metrics'
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
         500:
           $ref: "#/responses/500"
 
@@ -972,6 +1146,41 @@ paths:
         500:
           $ref: "#/responses/500"
 
+  /projects/{PROJECT}/topics/{TOPIC}:metrics:
+    get:
+      summary: List of metrics related to the specific topic
+      description: |
+        Show a list of topic metrics like the number of messages published
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: TOPIC
+          in: path
+          description: Name of the topic
+          required: true
+          type: string
+      tags:
+        - Topics
+      responses:
+        200:
+          description: Topic metrics.
+          schema:
+            $ref: '#/definitions/Metrics'
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
+
   /projects/{PROJECT}/topics/{TOPIC}:modifyAcl:
     post:
       summary: Modify ACL of a given topic
@@ -1054,6 +1263,58 @@ responses:
 
 definitions:
 
+  Metrics:
+   type: object
+   properties:
+     metrics:
+       type: array
+       items:
+         $ref: '#/definitions/Metric'
+
+  Metric:
+    type: object
+    properties:
+      metric:
+        type: string
+      metric_type:
+        type: string
+      resource_type:
+        type: string
+      resource_name:
+        type: string
+      value_type:
+        type: string
+      description:
+        type: string
+      timeseries:
+        type: array
+        items:
+          $ref: '#/definitions/Timepoint'
+
+  Timepoint:
+    type: object
+    properties:
+      timestamp:
+        type: string
+      value:
+        type: string
+
+  SubMetrics:
+    type: object
+    properties:
+      mumber_of_messages:
+        type: integer
+      total_bytes:
+        type: integer
+
+  TopicMetrics:
+    type: object
+    properties:
+      mumber_of_messages:
+        type: integer
+      total_bytes:
+        type: integer
+
   AuthUsers:
     type: object
     properties:
@@ -1104,6 +1365,28 @@ definitions:
         description: endpoint url for endpoint to push messages
       retryPolicy:
         $ref: '#/definitions/RetryPolicy'
+
+  Offset:
+    type: object
+    properties:
+      offset:
+       type: integer
+       description: offset number of current subscriptions
+
+  Offsets:
+    type: object
+    properties:
+      min:
+       type: integer
+       description: minimum offset
+      max:
+       type: integer
+       description: max offset
+      current:
+       type: integer
+       description: current offset
+
+
 
   RetryPolicy:
     type: object
@@ -1228,6 +1511,12 @@ definitions:
         type: array
         items:
           type: string
+       created_on:
+        type: string
+       modified_on:
+        type: string
+       created_by:
+        type: string
 
   ProjectRoles:
       type: object

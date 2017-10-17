@@ -1,10 +1,12 @@
 package push
 
 import (
+	"context"
 	"errors"
-	"log"
 	"strings"
 	"time"
+
+	log "github.com/Sirupsen/logrus"
 
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/messages"
@@ -92,7 +94,7 @@ func (mgr *Manager) RemoveProjectAll(projectUUID string) error {
 
 // Push method of pusher object to consume and push messages
 func (p *Pusher) push(brk brokers.Broker, store stores.Store) {
-	log.Println("pid", p.id, "pushing")
+	log.Debug("pid ", p.id, "pushing")
 	// update sub details
 
 	subs, err := subscriptions.Find(p.sub.ProjectUUID, p.sub.Name, store)
@@ -106,7 +108,19 @@ func (p *Pusher) push(brk brokers.Broker, store stores.Store) {
 	// Init Received Message List
 
 	fullTopic := p.sub.ProjectUUID + "." + p.sub.Topic
-	msgs := brk.Consume(fullTopic, p.sub.Offset, true)
+	msgs, err := brk.Consume(nil, fullTopic, p.sub.Offset, true, 1)
+	if err != nil {
+		// If tracked offset is off, update it to the latest min offset
+		if err == brokers.ErrOffsetOff {
+			// Get Current Min Offset and advanced tracked one
+			p.sub.Offset = brk.GetMinOffset(fullTopic)
+			msgs, err = brk.Consume(context.Background(), fullTopic, p.sub.Offset, true, 1)
+			if err != nil {
+				log.Error("Unable to consume after updating offset")
+				return
+			}
+		}
+	}
 	if len(msgs) > 0 {
 		// Generate push message template
 		pMsg := messages.PushMsg{}
@@ -119,10 +133,13 @@ func (p *Pusher) push(brk brokers.Broker, store stores.Store) {
 		if err == nil {
 			// Advance the offset
 			store.UpdateSubOffset(p.sub.ProjectUUID, p.sub.Name, 1+p.sub.Offset)
-			log.Println("offset updated")
+			// Update subscription's metrics
+			store.IncrementSubMsgNum(p.sub.ProjectUUID, p.sub.Name, int64(1))
+			store.IncrementSubBytes(p.sub.ProjectUUID, p.sub.Name, pMsg.Msg.Size())
+			log.Debug("offset updated")
 		}
 	} else {
-		log.Println("pid:", p.id, "empty")
+		log.Debug("pid: ", p.id, " empty")
 	}
 }
 
@@ -130,7 +147,7 @@ func (p *Pusher) push(brk brokers.Broker, store stores.Store) {
 func (mgr *Manager) PrintAll() {
 	for k := range mgr.list {
 		item := mgr.list[k]
-		log.Println("--- pid:", item.id, "running:", item.running)
+		log.Debug("--- pid: ", item.id, " running: ", item.running)
 	}
 }
 
@@ -141,7 +158,7 @@ func NewManager(brk brokers.Broker, str stores.Store, sndr Sender) *Manager {
 	mgr.store = str
 	mgr.sender = sndr
 	mgr.list = make(map[string]*Pusher)
-	log.Println("Manager Initialized")
+	log.Info("PUSH", "\t", "Manager Initialized")
 	return &mgr
 }
 
@@ -195,10 +212,10 @@ func (mgr *Manager) Restart(project string, sub string) error {
 
 	if p, err := mgr.Get(project + "/" + sub); err == nil {
 		if p.running == false {
-			log.Println("Already stopped", p.id, "state:", p.running)
+			log.Debug("Already stopped", p.id, "state:", p.running)
 			return errors.New("Already Stoped")
 		}
-		log.Println("Trying to Restart:", p.id)
+		log.Debug("Trying to Restart:", p.id)
 		p.stop <- 2
 		return nil
 	}
@@ -215,10 +232,10 @@ func (mgr *Manager) Stop(project string, sub string) error {
 
 	if p, err := mgr.Get(project + "/" + sub); err == nil {
 		if p.running == false {
-			log.Println("Already stopped", p.id, "state:", p.running)
+			log.Debug("Already stopped", p.id, " state:", p.running)
 			return errors.New("Already Stoped")
 		}
-		log.Println("Trying to stop:", p.id)
+		log.Debug("Trying to stop:", p.id)
 		p.stop <- 1
 		return nil
 	}
@@ -284,7 +301,7 @@ func (mgr *Manager) Add(projectUUID string, subName string) error {
 	pushr.sndr = mgr.sender
 	pushr.mgr = mgr
 	mgr.list[projectUUID+"/"+subName] = &pushr
-	log.Println("Push Subscription Added")
+	log.Info("PUSH", "\t", "Push Subscription Added")
 
 	return nil
 
@@ -315,7 +332,7 @@ func (mgr *Manager) Launch(project string, sub string) error {
 
 // Launch the pusher activity
 func (p *Pusher) launch(brk brokers.Broker, store stores.Store) {
-	log.Println("pusher:", p.id, "launching...")
+	log.Info("PUSH", "\t", "pusher: ", p.id, " launching...")
 	p.running = true
 	if p.retryPolicy == "linear" {
 		go LinearActivity(p, brk, store)
@@ -334,7 +351,7 @@ func LinearActivity(p *Pusher, brk brokers.Broker, store stores.Store) error {
 		case halt := <-p.stop:
 			{
 
-				log.Println("pusher:", p.id, "Stoping...")
+				log.Info("PUSH", "\t", "pusher: ", p.id, " stoping...")
 				p.running = false
 				if halt == 2 {
 					p.mgr.Launch(p.sub.ProjectUUID, p.sub.Name)

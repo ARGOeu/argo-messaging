@@ -14,11 +14,20 @@ type QSub struct {
 	Ack          int    `bson:"ack"`
 	RetPolicy    string `bson:"retry_policy"`
 	RetPeriod    int    `bson:"retry_period"`
+	MsgNum       int64  `bson:"msg_num"`
+	TotalBytes   int64  `bson:"total_bytes"`
 }
 
 // QAcl holds a list of authorized users queried from topic or subscription collections
 type QAcl struct {
 	ACL []string `bson:"acl"`
+}
+
+// QopMetric are the results of the QopMetric query
+type QopMetric struct {
+	Hostname string  `bson:"hostname"`
+	CPU      float64 `bson:"cpu"`
+	MEM      float64 `bson:"mem"`
 }
 
 // QProject are the results of the QProject query
@@ -39,6 +48,9 @@ type QUser struct {
 	Token        string          `bson:"token"`
 	Email        string          `bson:"email"`
 	ServiceRoles []string        `bson:"service_roles"`
+	CreatedOn    time.Time       `bson:"created_on"`
+	ModifiedOn   time.Time       `bson:"modified_on"`
+	CreatedBy    string          `bson:"created_by"`
 }
 
 //QProjectRoles include information about projects and roles that user has
@@ -57,6 +69,8 @@ type QRole struct {
 type QTopic struct {
 	ProjectUUID string `bson:"project_uuid"`
 	Name        string `bson:"name"`
+	MsgNum      int64  `bson:"msg_num"`
+	TotalBytes  int64  `bson:"total_bytes"`
 }
 
 func (qUsr *QUser) isInProject(projectUUID string) bool {

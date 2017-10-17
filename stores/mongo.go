@@ -2,8 +2,9 @@ package stores
 
 import (
 	"errors"
-	"log"
 	"time"
+
+	log "github.com/Sirupsen/logrus"
 
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -43,13 +44,13 @@ func (mong *MongoStore) Initialize() {
 	session, err := mgo.Dial(mong.Server)
 	if err != nil {
 
-		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
+		log.Fatal("STORE", "\t", err.Error())
 
 	}
 
 	mong.Session = session
 
-	log.Printf("%s\t%s\t%s: %s", "INFO", "STORE", "Connected to Mongo", mong.Server)
+	log.Info("STORE", "\t", "Connected to Mongo: ", mong.Server)
 }
 
 // QueryProjects queries the database for a specific project or a list of all projects
@@ -70,7 +71,7 @@ func (mong *MongoStore) QueryProjects(uuid string, name string) ([]QProject, err
 	var results []QProject
 	err := c.Find(query).All(&results)
 	if err != nil {
-		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
+		log.Fatal("STORE", "\t", err.Error())
 	}
 
 	if len(results) > 0 {
@@ -132,7 +133,7 @@ func (mong *MongoStore) UpdateUserToken(uuid string, token string) error {
 }
 
 // UpdateUser updates user information
-func (mong *MongoStore) UpdateUser(uuid string, projects []QProjectRoles, name string, email string, serviceRoles []string) error {
+func (mong *MongoStore) UpdateUser(uuid string, projects []QProjectRoles, name string, email string, serviceRoles []string, modifiedOn time.Time) error {
 	db := mong.Session.DB(mong.Database)
 	c := db.C("users")
 
@@ -166,6 +167,8 @@ func (mong *MongoStore) UpdateUser(uuid string, projects []QProjectRoles, name s
 		curUsr.ServiceRoles = serviceRoles
 	}
 
+	curUsr.ModifiedOn = modifiedOn
+
 	change := bson.M{"$set": curUsr}
 
 	err = c.Update(doc, change)
@@ -175,17 +178,19 @@ func (mong *MongoStore) UpdateUser(uuid string, projects []QProjectRoles, name s
 }
 
 // UpdateSubPull updates next offset and sets timestamp for Ack
-func (mong *MongoStore) UpdateSubPull(name string, nextOff int64, ts string) {
+func (mong *MongoStore) UpdateSubPull(projectUUID string, name string, nextOff int64, ts string) error {
 
 	db := mong.Session.DB(mong.Database)
 	c := db.C("subscriptions")
 
-	doc := bson.M{"name": name}
+	doc := bson.M{"project_uuid": projectUUID, "name": name}
 	change := bson.M{"$set": bson.M{"next_offset": nextOff, "pending_ack": ts}}
 	err := c.Update(doc, change)
-	if err != nil {
-		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
+	if err != nil && err != mgo.ErrNotFound {
+		log.Fatal("STORE", "\t", err.Error())
 	}
+
+	return err
 
 }
 
@@ -205,7 +210,7 @@ func (mong *MongoStore) UpdateSubOffsetAck(projectUUID string, name string, offs
 	}
 
 	// check if ack offset is wrong - wrong ack
-	if offset < res.Offset || offset > res.NextOffset {
+	if offset <= res.Offset || offset > res.NextOffset {
 		return errors.New("wrong ack")
 	}
 
@@ -219,11 +224,11 @@ func (mong *MongoStore) UpdateSubOffsetAck(projectUUID string, name string, offs
 		return errors.New("ack timeout")
 	}
 
-	doc := bson.M{"name": name}
+	doc := bson.M{"project_uuid": projectUUID, "name": name}
 	change := bson.M{"$set": bson.M{"offset": offset, "next_offset": 0, "pending_ack": ""}}
 	err = c.Update(doc, change)
-	if err != nil {
-		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
+	if err != nil && err != mgo.ErrNotFound {
+		log.Fatal("STORE", "\t", err.Error())
 	}
 
 	return nil
@@ -239,8 +244,8 @@ func (mong *MongoStore) UpdateSubOffset(projectUUID string, name string, offset 
 	doc := bson.M{"project_uuid": projectUUID, "name": name}
 	change := bson.M{"$set": bson.M{"offset": offset, "next_offset": 0, "pending_ack": ""}}
 	err := c.Update(doc, change)
-	if err != nil {
-		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
+	if err != nil && err != mgo.ErrNotFound {
+		log.Fatal("STORE", "\t", err.Error())
 	}
 
 }
@@ -254,7 +259,7 @@ func (mong *MongoStore) HasUsers(projectUUID string, users []string) (bool, []st
 
 	err := c.Find(bson.M{"projects": bson.M{"$elemMatch": bson.M{"project_uuid": projectUUID}}, "name": bson.M{"$in": users}}).All(&results)
 	if err != nil {
-		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
+		log.Fatal("STORE", "\t", err.Error())
 	}
 
 	// for each given username
@@ -291,7 +296,7 @@ func (mong *MongoStore) QueryACL(projectUUID string, resource string, name strin
 	err := c.Find(bson.M{"project_uuid": projectUUID, "name": name}).All(&results)
 
 	if err != nil {
-		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
+		log.Fatal("STORE", "\t", err.Error())
 	}
 
 	if len(results) > 0 {
@@ -308,11 +313,11 @@ func (mong *MongoStore) QueryUsers(projectUUID string, uuid string, name string)
 	query := bson.M{}
 	// If project UUID is given return users that belong to the project
 	if projectUUID != "" {
-		query = bson.M{"project_uuid": projectUUID}
+		query = bson.M{"projects.project_uuid": projectUUID}
 		if uuid != "" {
-			query = bson.M{"project_uuid": projectUUID, "uuid": uuid}
+			query = bson.M{"projects.project_uuid": projectUUID, "uuid": uuid}
 		} else if name != "" {
-			query = bson.M{"project_uuid": projectUUID, "name": name}
+			query = bson.M{"projects.project_uuid": projectUUID, "name": name}
 		}
 	} else {
 		if uuid != "" {
@@ -326,10 +331,74 @@ func (mong *MongoStore) QueryUsers(projectUUID string, uuid string, name string)
 	db := mong.Session.DB(mong.Database)
 	c := db.C("users")
 	var results []QUser
+
 	err := c.Find(query).All(&results)
 
 	if err != nil {
-		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
+		log.Fatal("STORE", "\t", err.Error())
+	}
+
+	return results, err
+}
+
+//QuerySubsByTopic returns subscriptions of a specific topic
+func (mong *MongoStore) QuerySubsByTopic(projectUUID, topic string) ([]QSub, error) {
+	// By default return all subs of a given project
+	query := bson.M{"project_uuid": projectUUID}
+
+	// If topic is given return only the specific topic
+	if topic != "" {
+		query = bson.M{"project_uuid": projectUUID, "topic": topic}
+	}
+	db := mong.Session.DB(mong.Database)
+	c := db.C("subscriptions")
+	var results []QSub
+	err := c.Find(query).All(&results)
+
+	if err != nil {
+		log.Fatal("STORE", "\t", err.Error())
+	}
+
+	return results, err
+}
+
+//QuerySubsByACL returns subscriptions that a specific username has access to
+func (mong *MongoStore) QuerySubsByACL(projectUUID, user string) ([]QSub, error) {
+	// By default return all subs of a given project
+	query := bson.M{"project_uuid": projectUUID}
+
+	// If name is given return only the specific topic
+	if user != "" {
+		query = bson.M{"project_uuid": projectUUID, "acl": user}
+	}
+	db := mong.Session.DB(mong.Database)
+	c := db.C("subscriptions")
+	var results []QSub
+	err := c.Find(query).All(&results)
+
+	if err != nil {
+		log.Fatal("STORE", "\t", err.Error())
+	}
+
+	return results, err
+}
+
+//QueryTopicsByACL returns topics that a specific username has access to
+func (mong *MongoStore) QueryTopicsByACL(projectUUID, user string) ([]QTopic, error) {
+	// By default return all topics of a given project
+	query := bson.M{"project_uuid": projectUUID}
+
+	// If name is given return only the specific topic
+	if user != "" {
+		query = bson.M{"project_uuid": projectUUID, "acl": user}
+	}
+	db := mong.Session.DB(mong.Database)
+	c := db.C("topics")
+	var results []QTopic
+	err := c.Find(query).All(&results)
+
+	if err != nil {
+		log.Fatal("STORE", "\t", err.Error())
 	}
 
 	return results, err
@@ -351,10 +420,66 @@ func (mong *MongoStore) QueryTopics(projectUUID string, name string) ([]QTopic, 
 	err := c.Find(query).All(&results)
 
 	if err != nil {
-		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
+		log.Fatal("STORE", "\t", err.Error())
 	}
 
 	return results, err
+}
+
+// IncrementTopicMsgNum increments the number of messages published in a topic
+func (mong *MongoStore) IncrementTopicMsgNum(projectUUID string, name string, num int64) error {
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C("topics")
+
+	doc := bson.M{"project_uuid": projectUUID, "name": name}
+	change := bson.M{"$inc": bson.M{"msg_num": num}}
+
+	err := c.Update(doc, change)
+
+	return err
+
+}
+
+//IncrementTopicBytes increases the total number of bytes published in a topic
+func (mong *MongoStore) IncrementTopicBytes(projectUUID string, name string, totalBytes int64) error {
+	db := mong.Session.DB(mong.Database)
+	c := db.C("topics")
+
+	doc := bson.M{"project_uuid": projectUUID, "name": name}
+	change := bson.M{"$inc": bson.M{"total_bytes": totalBytes}}
+
+	err := c.Update(doc, change)
+
+	return err
+}
+
+// IncrementTopicMsgNum increments the number of messages pulled in a subscription
+func (mong *MongoStore) IncrementSubMsgNum(projectUUID string, name string, num int64) error {
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C("subscriptions")
+
+	doc := bson.M{"project_uuid": projectUUID, "name": name}
+	change := bson.M{"$inc": bson.M{"msg_num": num}}
+
+	err := c.Update(doc, change)
+
+	return err
+
+}
+
+//IncrementSubMsgNum increases the total number of bytes consumed from a subscripion
+func (mong *MongoStore) IncrementSubBytes(projectUUID string, name string, totalBytes int64) error {
+	db := mong.Session.DB(mong.Database)
+	c := db.C("subscriptions")
+
+	doc := bson.M{"project_uuid": projectUUID, "name": name}
+	change := bson.M{"$inc": bson.M{"total_bytes": totalBytes}}
+
+	err := c.Update(doc, change)
+
+	return err
 }
 
 //HasResourceRoles returns the roles of a user in a project
@@ -365,7 +490,7 @@ func (mong *MongoStore) HasResourceRoles(resource string, roles []string) bool {
 	var results []QRole
 	err := c.Find(bson.M{"resource": resource, "roles": bson.M{"$in": roles}}).All(&results)
 	if err != nil {
-		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
+		log.Fatal("STORE", "\t", err.Error())
 	}
 
 	if len(results) > 0 {
@@ -384,9 +509,26 @@ func (mong *MongoStore) GetAllRoles() []string {
 	var results []string
 	err := c.Find(nil).Distinct("roles", &results)
 	if err != nil {
-		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
+		log.Fatal("STORE", "\t", err.Error())
 	}
 	return results
+}
+
+//GetOpMetrics returns the operational metrics from datastore
+func (mong *MongoStore) GetOpMetrics() []QopMetric {
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C("op_metrics")
+	var results []QopMetric
+
+	err := c.Find(bson.M{}).All(&results)
+
+	if err != nil {
+		log.Fatal("STORE", "\t", err.Error())
+	}
+
+	return results
+
 }
 
 //GetUserRoles returns the roles of a user in a project
@@ -399,7 +541,7 @@ func (mong *MongoStore) GetUserRoles(projectUUID string, token string) ([]string
 	err := c.Find(bson.M{"token": token}).All(&results)
 
 	if err != nil {
-		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
+		log.Fatal("STORE", "\t", err.Error())
 	}
 
 	if len(results) == 0 {
@@ -407,12 +549,39 @@ func (mong *MongoStore) GetUserRoles(projectUUID string, token string) ([]string
 	}
 
 	if len(results) > 1 {
-		log.Printf("%s\t%s\t%s: %s", "WARNING", "STORE", "Multiple users with the same token", token)
+		log.Warning("STORE", "\t", "Multiple users with the same token", token)
 
 	}
 
 	// Search the found user for project roles
 	return results[0].getProjectRoles(projectUUID), results[0].Name
+
+}
+
+//GetUserFromToken returns user information from a specific token
+func (mong *MongoStore) GetUserFromToken(token string) (QUser, error) {
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C("users")
+	var results []QUser
+
+	err := c.Find(bson.M{"token": token}).All(&results)
+
+	if err != nil {
+		log.Fatal("STORE", "\t", err.Error())
+	}
+
+	if len(results) == 0 {
+		return QUser{}, errors.New("not found")
+	}
+
+	if len(results) > 1 {
+		log.Warning("STORE", "\t", "Multiple users with the same token", token)
+
+	}
+
+	// Search the found user for project roles
+	return results[0], err
 
 }
 
@@ -424,7 +593,7 @@ func (mong *MongoStore) QueryOneSub(projectUUID string, name string) (QSub, erro
 	var results []QSub
 	err := c.Find(bson.M{"project_uuid": projectUUID, "name": name}).All(&results)
 	if err != nil {
-		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
+		log.Fatal("STORE", "\t", err.Error())
 	}
 
 	if len(results) > 0 {
@@ -442,7 +611,7 @@ func (mong *MongoStore) HasProject(name string) bool {
 	var results []QProject
 	err := c.Find(bson.M{"name": name}).All(&results)
 	if err != nil {
-		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
+		log.Fatal("STORE", "\t", err.Error())
 	}
 
 	if len(results) > 0 {
@@ -453,13 +622,30 @@ func (mong *MongoStore) HasProject(name string) bool {
 
 // InsertTopic inserts a topic to the store
 func (mong *MongoStore) InsertTopic(projectUUID string, name string) error {
-	topic := QTopic{ProjectUUID: projectUUID, Name: name}
+	topic := QTopic{ProjectUUID: projectUUID, Name: name, MsgNum: 0, TotalBytes: 0}
 	return mong.InsertResource("topics", topic)
 }
 
+// InsertOpMetric inserts an operational metric
+func (mong *MongoStore) InsertOpMetric(hostname string, cpu float64, mem float64) error {
+	opMetric := QopMetric{Hostname: hostname, CPU: cpu, MEM: mem}
+	db := mong.Session.DB(mong.Database)
+	c := db.C("op_metrics")
+
+	upsertdata := bson.M{"$set": opMetric}
+
+	info, err := c.UpsertId(opMetric.Hostname, upsertdata)
+	log.Info(info)
+	if err != nil {
+		log.Error(err)
+	}
+
+	return err
+}
+
 // InsertUser inserts a new user to the store
-func (mong *MongoStore) InsertUser(uuid string, projects []QProjectRoles, name string, token string, email string, serviceRoles []string) error {
-	user := QUser{UUID: uuid, Name: name, Email: email, Token: token, Projects: projects, ServiceRoles: serviceRoles}
+func (mong *MongoStore) InsertUser(uuid string, projects []QProjectRoles, name string, token string, email string, serviceRoles []string, createdOn time.Time, modifiedOn time.Time, createdBy string) error {
+	user := QUser{UUID: uuid, Name: name, Email: email, Token: token, Projects: projects, ServiceRoles: serviceRoles, CreatedOn: createdOn, ModifiedOn: modifiedOn, CreatedBy: createdBy}
 	return mong.InsertResource("users", user)
 }
 
@@ -471,7 +657,7 @@ func (mong *MongoStore) InsertProject(uuid string, name string, createdOn time.T
 
 // InsertSub inserts a subscription to the store
 func (mong *MongoStore) InsertSub(projectUUID string, name string, topic string, offset int64, ack int, push string, rPolicy string, rPeriod int) error {
-	sub := QSub{projectUUID, name, topic, offset, 0, "", push, ack, rPolicy, rPeriod}
+	sub := QSub{projectUUID, name, topic, offset, 0, "", push, ack, rPolicy, rPeriod, 0, 0}
 	return mong.InsertResource("subscriptions", sub)
 }
 
@@ -542,7 +728,7 @@ func (mong *MongoStore) InsertResource(col string, res interface{}) error {
 
 	err := c.Insert(res)
 	if err != nil {
-		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
+		log.Fatal("STORE", "\t", err.Error())
 	}
 
 	return err
@@ -584,7 +770,7 @@ func (mong *MongoStore) QuerySubs(projectUUID string, name string) ([]QSub, erro
 	var results []QSub
 	err := c.Find(query).All(&results)
 	if err != nil {
-		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
+		log.Fatal("STORE", "\t", err.Error())
 	}
 	return results, err
 
@@ -598,7 +784,7 @@ func (mong *MongoStore) QueryPushSubs() []QSub {
 	var results []QSub
 	err := c.Find(bson.M{"push_endpoint": bson.M{"$ne": nil}}).All(&results)
 	if err != nil {
-		log.Fatalf("%s\t%s\t%s", "FATAL", "STORE", err.Error())
+		log.Fatal("STORE", "\t", err.Error())
 	}
 	return results
 

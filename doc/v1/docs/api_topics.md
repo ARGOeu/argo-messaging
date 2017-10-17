@@ -18,7 +18,7 @@ PUT "/v1/projects/{project_name}/topics/{topic_name}"
 ### Example request
 ```json
 curl -X PUT -H "Content-Type: application/json"
- -d '' " https://{URL}/v1/projects/EGI/topics/monitoring?key=S3CR3T"
+ " https://{URL}/v1/projects/BRAND_NEW/topics/monitoring?key=S3CR3T"
 ```
 
 ### Responses  
@@ -29,7 +29,7 @@ Success Response
 `200 OK`
 ```json
 {
- "name": "projects/EGI/topics/monitoring"
+ "name": "projects/BRAND_NEW/topics/monitoring"
 }
 ```
 
@@ -53,7 +53,7 @@ DELETE "/v1/projects/{project_name}/topics/{topic_name}"
 
 ```json
 curl -X DELETE -H "Content-Type: application/json"  
--d '' "https://{URL}/v1/projects/EGI/topics/monitoring?key=S3CR3T"
+-d '' "https://{URL}/v1/projects/BRAND_NEW/topics/monitoring?key=S3CR3T"
 ```
 
 ### Responses  
@@ -80,7 +80,7 @@ GET "/v1/projects/{project_name}/topics/{topic_name}"
 
 ```json
 curl -H "Content-Type: application/json"  
--d '' " https://{URL}/v1/projects/EGI/topics/monitoring?key=S3CR3T"
+ "https://{URL}/v1/projects/BRAND_NEW/topics/monitoring?key=S3CR3T"
 ```
 
 ### Responses  
@@ -90,7 +90,7 @@ Success Response
 `200 OK`
 ```json
 {
- "name": "projects/EGI/topics/monitoring"
+ "name": "projects/BRAND_NEW/topics/monitoring"
 }
 ```
 
@@ -111,8 +111,8 @@ GET "/v1/projects/{project_name}/topics"
 ### Example request
 
 ```json
-curl -H "Content-Type: application/json"  
--d '' " https://{URL}/v1/projects/EGI/topics/?key=S3CR3T"`
+curl -H "Content-Type: application/json"
+"https://{URL}/v1/projects/BRAND_NEW/topics/?key=S3CR3T"`
 ```
 
 ### Responses  
@@ -123,10 +123,10 @@ Success Response
 {
   "topics": [
     {
-      "name":"/project/EGI/topics/monitoring"
+      "name":"/project/BRAND_NEW/topics/monitoring"
     },
     {
-      "name":"/project/EGI/topics/accounting"
+      "name":"/project/BRAND_NEW/topics/accounting"
     },
      ]
 }
@@ -172,7 +172,7 @@ POST "/v1/projects/{project_name}/topics/{topic_name}:publish"
 
 ```json
 curl -X POST -H "Content-Type: application/json"  
--d { POSTDATA } "https://{URL}/v1/projects/EGI/topics/monitoring:publish?key=S3CR3T"
+-d { POSTDATA } "https://{URL}/v1/projects/BRAND_NEW/topics/monitoring:publish?key=S3CR3T"
 ```
 
 ### Responses  
@@ -193,7 +193,7 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 
 
 ## [GET] List ACL of a given topic
-The following request returns a list of authorized users (publishers) of a given topic. 
+The following request returns a list of authorized users (publishers) of a given topic.
 
 ### Request
 ```
@@ -207,7 +207,8 @@ GET "/v1/projects/{project_name}/topics/{topic_name}:acl"
 ### Example request
 
 ```json
-curl  -H "Content-Type: application/json" "https://{URL}/v1/projects/EGI/topics/monitoring:acl?key=S3CR3T"
+curl  -H "Content-Type: application/json"
+"https://{URL}/v1/projects/BRAND_NEW/topics/monitoring:acl?key=S3CR3T"
 ```
 
 ### Responses  
@@ -254,7 +255,7 @@ POST "/v1/projects/{project_name}/topics/{topic_name}:modifyAcl"
 
 ```
 curl -X POST -H "Content-Type: application/json"  
--d { POSTDATA } "https://{URL}/v1/projects/EGI/topics/monitoring:modifyAcl?key=S3CR3T"
+-d { POSTDATA } "https://{URL}/v1/projects/BRAND_NEW/topics/monitoring:modifyAcl?key=S3CR3T"
 ```
 
 ### Responses  
@@ -275,4 +276,81 @@ If the to-be updated ACL contains users that are non-existent in the project the
 }
 ```
 
+Please refer to section [Errors](api_errors.md) to see all possible Errors
+
+## [GET] Topic Metrics
+The following request returns related metrics for the specific topic: for eg the number of published messages
+
+### Request
+```
+GET "/v1/projects/{project_name}/topics/{topic_name}:metrics"
+```
+
+### Where
+- Project_name: name of the project
+- topic_name: name of the topic
+
+### Example request
+
+```json
+curl  -H "Content-Type: application/json"
+"https://{URL}/v1/projects/BRAND_NEW/topics/monitoring:metrics?key=S3CR3T"
+```
+
+### Responses  
+If successful it returns topic's related metrics (number of messages published and total bytes).
+
+Success Response
+`200 OK`
+```
+{
+   "metrics": [
+      {
+         "metric": "topic.number_of_subscriptions",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "topic",
+         "resource_name": "topic1",
+         "timeseries": [
+            {
+               "timestamp": "2017-06-27T10:20:18Z",
+               "value": 1
+            }
+         ],
+         "description": "Counter that displays the number of subscriptions belonging to a specific topic"
+      },
+      {
+         "metric": "topic.number_of_messages",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "topic",
+         "resource_name": "topic1",
+         "timeseries": [
+            {
+               "timestamp": "2017-06-27T10:20:18Z",
+               "value": 0
+            }
+         ],
+         "description": "Counter that displays the number number of messages published to the specific topic"
+      },
+      {
+         "metric": "topic.number_of_bytes",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "topic",
+         "resource_name": "topic1",
+         "timeseries": [
+            {
+               "timestamp": "2017-06-27T10:20:18Z",
+               "value": 0
+            }
+         ],
+         "description": "Counter that displays the total size of data (in bytes) published to the specific topic"
+      }
+   ]
+}
+
+```
+
+### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors

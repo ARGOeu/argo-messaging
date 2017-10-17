@@ -3,15 +3,19 @@ package main
 import (
 	"bytes"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
+
+	log "github.com/Sirupsen/logrus"
 
 	"github.com/ARGOeu/argo-messaging/auth"
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
+	"github.com/ARGOeu/argo-messaging/metrics"
 	"github.com/ARGOeu/argo-messaging/projects"
 	"github.com/ARGOeu/argo-messaging/push"
 	"github.com/ARGOeu/argo-messaging/stores"
@@ -38,6 +42,15 @@ func (suite *HandlerTestSuite) SetupTest() {
 	}`
 
 	log.SetOutput(ioutil.Discard)
+}
+
+func (suite *HandlerTestSuite) TestValidHTTPS() {
+	suite.Equal(false, isValidHTTPS("ht"))
+	suite.Equal(false, isValidHTTPS("www.example.com"))
+	suite.Equal(false, isValidHTTPS("https:www.example.com"))
+	suite.Equal(false, isValidHTTPS("http://www.example.com"))
+	suite.Equal(true, isValidHTTPS("https://www.example.com"))
+
 }
 
 func (suite *HandlerTestSuite) TestValidation() {
@@ -117,23 +130,6 @@ func (suite *HandlerTestSuite) TestRefreshToken() {
 
 func (suite *HandlerTestSuite) TestUserUpdate() {
 
-	expJSON := `{
-   "projects": [
-      {
-         "project": "ARGO",
-         "roles": [
-            "producer"
-         ]
-      }
-   ],
-   "name": "UPDATED_NAME",
-   "token": "S3CR3T4",
-   "email": "foo-email",
-   "service_roles": [
-      "service_admin"
-   ]
-}`
-
 	postJSON := `{
 	"name":"UPDATED_NAME",
 	"service_roles":["service_admin"]
@@ -154,7 +150,60 @@ func (suite *HandlerTestSuite) TestUserUpdate() {
 	router.HandleFunc("/v1/users/{user}", WrapMockAuthConfig(UserUpdate, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
-	suite.Equal(expJSON, w.Body.String())
+	userOut, _ := auth.GetUserFromJSON([]byte(w.Body.String()))
+	suite.Equal("UPDATED_NAME", userOut.Name)
+	suite.Equal([]string{"service_admin"}, userOut.ServiceRoles)
+	suite.Equal("UserA", userOut.CreatedBy)
+
+}
+
+func (suite *HandlerTestSuite) TestUserListByToken() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/users:byToken/S3CR3T1", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "projects": [
+      {
+         "project": "ARGO",
+         "roles": [
+            "consumer",
+            "publisher"
+         ],
+         "topics": [
+            "topic1",
+            "topic2"
+         ],
+         "subscriptions": [
+            "sub1",
+            "sub2",
+            "sub3"
+         ]
+      }
+   ],
+   "name": "UserA",
+   "token": "S3CR3T1",
+   "email": "foo-email",
+   "service_roles": [],
+   "created_on": "2009-11-10T23:00:00Z",
+   "modified_on": "2009-11-10T23:00:00Z"
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/users:byToken/{token}", WrapMockAuthConfig(UserListByToken, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
 }
 
 func (suite *HandlerTestSuite) TestUserListOne() {
@@ -169,15 +218,26 @@ func (suite *HandlerTestSuite) TestUserListOne() {
       {
          "project": "ARGO",
          "roles": [
-            "admin",
-            "member"
+            "consumer",
+            "publisher"
+         ],
+         "topics": [
+            "topic1",
+            "topic2"
+         ],
+         "subscriptions": [
+            "sub1",
+            "sub2",
+            "sub3"
          ]
       }
    ],
    "name": "UserA",
    "token": "S3CR3T1",
    "email": "foo-email",
-   "service_roles": []
+   "service_roles": [],
+   "created_on": "2009-11-10T23:00:00Z",
+   "modified_on": "2009-11-10T23:00:00Z"
 }`
 
 	cfgKafka := config.NewAPICfg()
@@ -209,73 +269,121 @@ func (suite *HandlerTestSuite) TestUserListAll() {
             {
                "project": "ARGO",
                "roles": [
-                  "admin",
-                  "member"
-               ]
+                  "consumer",
+                  "publisher"
+               ],
+               "topics": [],
+               "subscriptions": []
             }
          ],
          "name": "Test",
          "token": "S3CR3T",
          "email": "Test@test.com",
-         "service_roles": []
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z"
       },
       {
          "projects": [
             {
                "project": "ARGO",
                "roles": [
-                  "admin",
-                  "member"
+                  "consumer",
+                  "publisher"
+               ],
+               "topics": [
+                  "topic1",
+                  "topic2"
+               ],
+               "subscriptions": [
+                  "sub1",
+                  "sub2",
+                  "sub3"
                ]
             }
          ],
          "name": "UserA",
          "token": "S3CR3T1",
          "email": "foo-email",
-         "service_roles": []
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z"
       },
       {
          "projects": [
             {
                "project": "ARGO",
                "roles": [
-                  "admin",
-                  "member"
+                  "consumer",
+                  "publisher"
+               ],
+               "topics": [
+                  "topic1",
+                  "topic2"
+               ],
+               "subscriptions": [
+                  "sub1",
+                  "sub3",
+                  "sub4"
                ]
             }
          ],
          "name": "UserB",
          "token": "S3CR3T2",
          "email": "foo-email",
-         "service_roles": []
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "UserA"
       },
       {
          "projects": [
             {
                "project": "ARGO",
                "roles": [
+                  "publisher",
                   "consumer"
+               ],
+               "topics": [
+                  "topic3"
+               ],
+               "subscriptions": [
+                  "sub2"
                ]
             }
          ],
          "name": "UserX",
          "token": "S3CR3T3",
          "email": "foo-email",
-         "service_roles": []
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "UserA"
       },
       {
          "projects": [
             {
                "project": "ARGO",
                "roles": [
-                  "producer"
+                  "publisher",
+                  "consumer"
+               ],
+               "topics": [
+                  "topic2"
+               ],
+               "subscriptions": [
+                  "sub3",
+                  "sub4"
                ]
             }
          ],
          "name": "UserZ",
          "token": "S3CR3T4",
          "email": "foo-email",
-         "service_roles": []
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "UserA"
       }
    ]
 }`
@@ -518,6 +626,176 @@ func (suite *HandlerTestSuite) TestProjectListOne() {
 	router.HandleFunc("/v1/projects/{project}", WrapMockAuthConfig(ProjectListOne, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestSubModPushConfigError() {
+
+	postJSON := `{
+	"topic":"projects/ARGO/topics/topic1",
+	"pushConfig": {
+		 "pushEndpoint": "http://www.example.com",
+		 "retryPolicy": {}
+	}
+}`
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/projects/ARGO/subscriptions/sub1:modifyPushConfig", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "error": {
+      "code": 400,
+      "message": "Push endpoint should be addressed by a valid https url",
+      "status": "INVALID_ARGUMENT"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := push.Manager{}
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modifyPushConfig", WrapMockAuthConfig(SubModPush, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(400, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestSubModPushConfig() {
+
+	postJSON := `{
+	"topic":"projects/ARGO/topics/topic1",
+	"pushConfig": {
+		 "pushEndpoint": "https://www.example.com",
+		 "retryPolicy": {}
+	}
+}`
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/projects/ARGO/subscriptions/sub1:modifyPushConfig", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "name": "/projects/ARGO/subscriptions/sub1",
+   "topic": "/projects/ARGO/topics/topic1",
+   "pushConfig": {
+      "pushEndpoint": "https://www.example.com",
+      "retryPolicy": {
+         "type": "linear",
+         "period": 3000
+      }
+   },
+   "ackDeadlineSeconds": 10
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := push.Manager{}
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modifyPushConfig", WrapMockAuthConfig(SubModPush, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal("", w.Body.String())
+
+	// Retrieve the subscription
+	req2, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/subscriptions/sub1", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	router2 := mux.NewRouter().StrictSlash(true)
+	w2 := httptest.NewRecorder()
+	router2.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubListOne, cfgKafka, &brk, str, &mgr))
+	router2.ServeHTTP(w2, req2)
+	suite.Equal(200, w2.Code)
+	suite.Equal(expResp, w2.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestSubCreatePushConfig() {
+
+	postJSON := `{
+	"topic":"projects/ARGO/topics/topic1",
+	"pushConfig": {
+		 "pushEndpoint": "https://www.example.com",
+		 "retryPolicy": {}
+	}
+}`
+
+	req, err := http.NewRequest("PUT", "http://localhost:8080/v1/projects/ARGO/subscriptions/subNew", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "name": "/projects/ARGO/subscriptions/subNew",
+   "topic": "/projects/ARGO/topics/topic1",
+   "pushConfig": {
+      "pushEndpoint": "https://www.example.com",
+      "retryPolicy": {
+         "type": "linear",
+         "period": 3000
+      }
+   },
+   "ackDeadlineSeconds": 10
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := push.Manager{}
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubCreate, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestSubCreatePushConfigError() {
+
+	postJSON := `{
+	"topic":"projects/ARGO/topics/topic1",
+	"pushConfig": {
+		 "pushEndpoint": "http://www.example.com",
+		 "retryPolicy": {}
+	}
+}`
+
+	req, err := http.NewRequest("PUT", "http://localhost:8080/v1/projects/ARGO/subscriptions/subNew", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "error": {
+      "code": 400,
+      "message": "Push endpoint should be addressed by a valid https url",
+      "status": "INVALID_ARGUMENT"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := push.Manager{}
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubCreate, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(400, w.Code)
 	suite.Equal(expResp, w.Body.String())
 
 }
@@ -895,6 +1173,392 @@ func (suite *HandlerTestSuite) TestTopicListOne() {
 	suite.Equal(expResp, w.Body.String())
 }
 
+func (suite *HandlerTestSuite) TestSubMetrics() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/subscriptions/sub1:metrics", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "metrics": [
+      {
+         "metric": "subscription.number_of_messages",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "subscription",
+         "resource_name": "sub1",
+         "timeseries": [
+            {
+               "timestamp": "{{TS1}}",
+               "value": 0
+            }
+         ],
+         "description": "Counter that displays the number of messages consumed from the specific subscription"
+      },
+      {
+         "metric": "subscription.number_of_bytes",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "subscription",
+         "resource_name": "sub1",
+         "timeseries": [
+            {
+               "timestamp": "{{TS2}}",
+               "value": 0
+            }
+         ],
+         "description": "Counter that displays the total size of data (in bytes) consumed from the specific subscription"
+      }
+   ]
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:metrics", WrapMockAuthConfig(SubMetrics, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+
+	metricOut, _ := metrics.GetMetricsFromJSON([]byte(w.Body.String()))
+	ts1 := metricOut.Metrics[0].Timeseries[0].Timestamp
+	ts2 := metricOut.Metrics[1].Timeseries[0].Timestamp
+	expResp = strings.Replace(expResp, "{{TS1}}", ts1, -1)
+	expResp = strings.Replace(expResp, "{{TS2}}", ts2, -1)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestProjectcMetrics() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO:metrics", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "metrics": [
+      {
+         "metric": "project.number_of_topics",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "project",
+         "resource_name": "ARGO",
+         "timeseries": [
+            {
+               "timestamp": "{{TS1}}",
+               "value": 3
+            }
+         ],
+         "description": "Counter that displays the number of topics belonging to the specific project"
+      },
+      {
+         "metric": "project.number_of_subscriptions",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "project",
+         "resource_name": "ARGO",
+         "timeseries": [
+            {
+               "timestamp": "{{TS2}}",
+               "value": 4
+            }
+         ],
+         "description": "Counter that displays the number of subscriptions belonging to the specific project"
+      },
+      {
+         "metric": "project.user.number_of_topics",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "project.user",
+         "resource_name": "ARGO.UserA",
+         "timeseries": [
+            {
+               "timestamp": "{{TS3}}",
+               "value": 2
+            }
+         ],
+         "description": "Counter that displays the number of topics that a user has access to the specific project"
+      },
+      {
+         "metric": "project.user.number_of_topics",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "project.user",
+         "resource_name": "ARGO.UserB",
+         "timeseries": [
+            {
+               "timestamp": "{{TS4}}",
+               "value": 2
+            }
+         ],
+         "description": "Counter that displays the number of topics that a user has access to the specific project"
+      },
+      {
+         "metric": "project.user.number_of_topics",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "project.user",
+         "resource_name": "ARGO.UserX",
+         "timeseries": [
+            {
+               "timestamp": "{{TS5}}",
+               "value": 1
+            }
+         ],
+         "description": "Counter that displays the number of topics that a user has access to the specific project"
+      },
+      {
+         "metric": "project.user.number_of_topics",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "project.user",
+         "resource_name": "ARGO.UserZ",
+         "timeseries": [
+            {
+               "timestamp": "{{TS6}}",
+               "value": 1
+            }
+         ],
+         "description": "Counter that displays the number of topics that a user has access to the specific project"
+      },
+      {
+         "metric": "project.user.number_of_subscriptions",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "project.user",
+         "resource_name": "ARGO.UserA",
+         "timeseries": [
+            {
+               "timestamp": "{{TS7}}",
+               "value": 3
+            }
+         ],
+         "description": "Counter that displays the number of subscriptions that a user has access to the specific project"
+      },
+      {
+         "metric": "project.user.number_of_subscriptions",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "project.user",
+         "resource_name": "ARGO.UserB",
+         "timeseries": [
+            {
+               "timestamp": "{{TS8}}",
+               "value": 3
+            }
+         ],
+         "description": "Counter that displays the number of subscriptions that a user has access to the specific project"
+      },
+      {
+         "metric": "project.user.number_of_subscriptions",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "project.user",
+         "resource_name": "ARGO.UserX",
+         "timeseries": [
+            {
+               "timestamp": "{{TS9}}",
+               "value": 1
+            }
+         ],
+         "description": "Counter that displays the number of subscriptions that a user has access to the specific project"
+      },
+      {
+         "metric": "project.user.number_of_subscriptions",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "project.user",
+         "resource_name": "ARGO.UserZ",
+         "timeseries": [
+            {
+               "timestamp": "{{TS10}}",
+               "value": 2
+            }
+         ],
+         "description": "Counter that displays the number of subscriptions that a user has access to the specific project"
+      }
+   ]
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}:metrics", WrapMockAuthConfig(ProjectMetrics, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	metricOut, _ := metrics.GetMetricsFromJSON([]byte(w.Body.String()))
+	ts1 := metricOut.Metrics[0].Timeseries[0].Timestamp
+	ts2 := metricOut.Metrics[1].Timeseries[0].Timestamp
+	ts3 := metricOut.Metrics[2].Timeseries[0].Timestamp
+	ts4 := metricOut.Metrics[3].Timeseries[0].Timestamp
+	ts5 := metricOut.Metrics[4].Timeseries[0].Timestamp
+	ts6 := metricOut.Metrics[5].Timeseries[0].Timestamp
+	ts7 := metricOut.Metrics[6].Timeseries[0].Timestamp
+	ts8 := metricOut.Metrics[7].Timeseries[0].Timestamp
+	ts9 := metricOut.Metrics[8].Timeseries[0].Timestamp
+	ts10 := metricOut.Metrics[9].Timeseries[0].Timestamp
+	expResp = strings.Replace(expResp, "{{TS1}}", ts1, -1)
+	expResp = strings.Replace(expResp, "{{TS2}}", ts2, -1)
+	expResp = strings.Replace(expResp, "{{TS3}}", ts3, -1)
+	expResp = strings.Replace(expResp, "{{TS4}}", ts4, -1)
+	expResp = strings.Replace(expResp, "{{TS5}}", ts5, -1)
+	expResp = strings.Replace(expResp, "{{TS6}}", ts6, -1)
+	expResp = strings.Replace(expResp, "{{TS7}}", ts7, -1)
+	expResp = strings.Replace(expResp, "{{TS8}}", ts8, -1)
+	expResp = strings.Replace(expResp, "{{TS9}}", ts9, -1)
+	expResp = strings.Replace(expResp, "{{TS10}}", ts10, -1)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestOpMetrics() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/metrics", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "metrics": [
+      {
+         "metric": "ams_node.cpu_usage",
+         "metric_type": "percentage",
+         "value_type": "float64",
+         "resource_type": "ams_node",
+         "resource_name": "{{HOST}}",
+         "timeseries": [
+            {
+               "timestamp": "{{TS1}}",
+               "value": {{VAL1}}
+            }
+         ],
+         "description": "Percentage value that displays the CPU usage of ams service in the specific node"
+      },
+      {
+         "metric": "ams_node.memory_usage",
+         "metric_type": "percentage",
+         "value_type": "float64",
+         "resource_type": "ams_node",
+         "resource_name": "{{HOST}}",
+         "timeseries": [
+            {
+               "timestamp": "{{TS1}}",
+               "value": {{VAL2}}
+            }
+         ],
+         "description": "Percentage value that displays the Memory usage of ams service in the specific node"
+      }
+   ]
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/metrics", WrapMockAuthConfig(OpMetrics, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	metricOut, _ := metrics.GetMetricsFromJSON([]byte(w.Body.String()))
+	ts1 := metricOut.Metrics[0].Timeseries[0].Timestamp
+	val1 := metricOut.Metrics[0].Timeseries[0].Value.(float64)
+	ts2 := metricOut.Metrics[1].Timeseries[0].Timestamp
+	val2 := metricOut.Metrics[1].Timeseries[0].Value.(float64)
+	host := metricOut.Metrics[0].Resource
+	expResp = strings.Replace(expResp, "{{TS1}}", ts1, -1)
+	expResp = strings.Replace(expResp, "{{TS2}}", ts2, -1)
+	expResp = strings.Replace(expResp, "{{VAL1}}", strconv.FormatFloat(val1, 'g', 1, 64), -1)
+	expResp = strings.Replace(expResp, "{{VAL2}}", strconv.FormatFloat(val2, 'g', 1, 64), -1)
+	expResp = strings.Replace(expResp, "{{HOST}}", host, -1)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestTopicMetrics() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/topics/topic1:metrics", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "metrics": [
+      {
+         "metric": "topic.number_of_subscriptions",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "topic",
+         "resource_name": "topic1",
+         "timeseries": [
+            {
+               "timestamp": "{{TIMESTAMP1}}",
+               "value": 1
+            }
+         ],
+         "description": "Counter that displays the number of subscriptions belonging to a specific topic"
+      },
+      {
+         "metric": "topic.number_of_messages",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "topic",
+         "resource_name": "topic1",
+         "timeseries": [
+            {
+               "timestamp": "{{TIMESTAMP2}}",
+               "value": 0
+            }
+         ],
+         "description": "Counter that displays the number of messages published to the specific topic"
+      },
+      {
+         "metric": "topic.number_of_bytes",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "topic",
+         "resource_name": "topic1",
+         "timeseries": [
+            {
+               "timestamp": "{{TIMESTAMP3}}",
+               "value": 0
+            }
+         ],
+         "description": "Counter that displays the total size of data (in bytes) published to the specific topic"
+      }
+   ]
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:metrics", WrapMockAuthConfig(TopicMetrics, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	metricOut, _ := metrics.GetMetricsFromJSON([]byte(w.Body.String()))
+	ts1 := metricOut.Metrics[0].Timeseries[0].Timestamp
+	ts2 := metricOut.Metrics[1].Timeseries[0].Timestamp
+	ts3 := metricOut.Metrics[2].Timeseries[0].Timestamp
+	expResp = strings.Replace(expResp, "{{TIMESTAMP1}}", ts1, -1)
+	expResp = strings.Replace(expResp, "{{TIMESTAMP2}}", ts2, -1)
+	expResp = strings.Replace(expResp, "{{TIMESTAMP3}}", ts3, -1)
+	suite.Equal(expResp, w.Body.String())
+
+}
 func (suite *HandlerTestSuite) TestTopicACL01() {
 
 	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/topics/topic1:acl", nil)

@@ -11,8 +11,8 @@ After a fresh install of the ARGO Messaging Service, the steps you need to follo
  - Create a project: Project entities is used as a basis of organizing and isolating groups of users & resources
  - Create a project_admin user: Users that have the project_admin have, by default, all capabilities in their project. They can also manage resources such as topics and subscriptions (CRUD) and also manage ACLs (users) on those resources as well.
  - Create a topic: The main resource that is scoped in a project, and can hold messages.
- - Create a subscription: A subscription is the main resource from which users consume messages. 
- - Create users for the new resources: Usually a project has  publisher and consumer accounts for clients that either are authorized to publish or consume messages. 
+ - Create a subscription: A subscription is the main resource from which users consume messages.
+ - Create users for the new resources: Usually a project has  publisher and consumer accounts for clients that either are authorized to publish or consume messages.
 
 ## Configure `service_token`
 
@@ -36,7 +36,7 @@ First a service token must be defined in the config.json as such:
 The service token in this example has the value: `S3CR3T`
 This `service_token` is authorized for all available actions (projects,users,topics,subscriptions).
 
-In order to enable the use of this `service_token` you must restart the service. 
+In order to enable the use of this `service_token` you must restart the service.
 
 ```
 service argo-messaging restart
@@ -45,7 +45,7 @@ service argo-messaging restart
 ## Create a service_admin user
 
 The service_token is intended to be used for the first initialization of the API. The first thing the service needs is a user with all possible capabilities, which is a `service_admin`.
-Now even though no user has been initialized in the service, the administrator can use the ARGO Messaging API Call with service_token `S3CR3T` to create the user. 
+Now even though no user has been initialized in the service, the administrator can use the ARGO Messaging API Call with service_token `S3CR3T` to create the user.
 The service_admin will be able to further define projects and other users.
 
 Using the service_token an admin can create a new service_admin user with the username `demo_service_admin` by calling:
@@ -74,7 +74,9 @@ The response:
   "email": "sadmin@mail.example.foo",
   "service_roles": [
     "service_admin"
-  ]
+  ],
+  "created_on": "2016-10-13T11:19:07Z",
+  "modified_on": "2016-10-13T11:19:07Z"
 }
 ```
 
@@ -90,18 +92,18 @@ Using the `demo_service_admin` account, the user can create the first project (e
 POST https://{URL}/v1/projects/DEMO?key=904c56cc6e2b1955dbd98ace80a45be8238432fc
 ```
 with the following POST BODY:
-```
+```json
 {
    "description":"my first demo project"
 }
 ```
 
 and the response:
-```
+```json
 {
   "name": "DEMO",
-  "created_on": "2016-10-13T12:19:07.341+03:00",
-  "modified_on": "2016-10-13T12:19:07.341+03:00",
+  "created_on": "2016-10-13T12:19:07Z",
+  "modified_on": "2016-10-13T12:19:07Z",
   "created_by": "demo_service_admin",
   "description": "my first demo project"
 }
@@ -141,13 +143,16 @@ The response:
   "name": "admin_DEMO",
   "token": "6311196665befcc1523b8e013979347b8780254c",
   "email": "demoadmin@mail.example.foo",
-  "service_roles": []
+  "service_roles": [],
+  "created_on": "2016-10-13T12:29:07Z",
+  "modified_on": "2016-10-13T12:29:07Z",
+  "created_by": "demo_service_admin"
 }
 ```
 
 For more details visit the [API Users](api_users.md) to see all possible actions for users.
 
-## Create a topic 
+## Create a topic
 
 Service_admin users don't manage resources such as topics/subscriptions. Instead in each project the project_admin is eligible for creating (and managing) topics and subscriptions. To create a new topic (named `topic101`) as `admin_DEMO` user in project `DEMO` the user issues:
 
@@ -175,14 +180,14 @@ To create a new subscription (named `sub101`) to topic `topic101` of project `DE
 PUT https://{URL}/v1/projects/DEMO/subscriptions/subs101?key=6311196665befcc1523b8e013979347b8780254c
 ```
 with POST Body:
-```
+```json
 {
    "topic":"projects/DEMO/topic/topic101"
 }
 ```
 
 and response:
-```
+```json
 {
   "name": "/projects/DEMO/subscriptions/sub101",
   "topic": "/projects/DEMO/topics/topic101",
@@ -215,7 +220,7 @@ with POST Body:
 ```
 
 resulting in response:
-```
+```json
 {
   "projects": [
     {
@@ -228,11 +233,14 @@ resulting in response:
   "name": "publisher_DEMO",
   "token": "915dff62846dd1d790b4296c034c184fa3a859b6",
   "email": "demopublisher@mail.example.foo",
-  "service_roles": []
+  "service_roles": [],
+  "created_on": "2016-10-13T12:39:07Z",
+  "modified_on": "2016-10-13T12:39:07Z",
+  "created_by" : "demo_service_admin"
 }
 ```
 
-To create the `conumer_DEMO` user:
+To create the `consumer_DEMO` user:
 ```
 POST https://{URL}/v1/users/consumer_DEMO?key=904c56cc6e2b1955dbd98ace80a45be8238432fc
 ```
@@ -258,7 +266,10 @@ resulting in response:
   "name": "consumer_DEMO",
   "token": "dba38fd1a45337a617a59e7278c756f23642e9e7",
   "email": "democonsumer@mail.example.foo",
-  "service_roles": []
+  "service_roles": [],
+  "created_on": "2016-10-13T12:40:07Z",
+  "modified_on": "2016-10-13T12:40:07Z",
+  "created_by" : "demo_service_admin"
 }
 ```
 For more details visit the [API Users](api_users.md) to see all possible actions for users.

@@ -1,15 +1,14 @@
 package brokers
 
 import (
-	"log"
+	"context"
 	"strconv"
 	"sync"
 	"time"
-)
 
-import (
 	"github.com/ARGOeu/argo-messaging/messages"
 	"github.com/Shopify/sarama"
+	log "github.com/Sirupsen/logrus"
 )
 
 type topicLock struct {
@@ -90,6 +89,7 @@ func (b *KafkaBroker) Initialize(peers []string) {
 	b.createTopicLock = topicLock{}
 	b.consumeLock = make(map[string]*topicLock)
 	b.Config = sarama.NewConfig()
+	b.Config.Consumer.Fetch.Default = 1000000
 	b.Config.Producer.RequiredAcks = sarama.WaitForAll
 	b.Config.Producer.Retry.Max = 5
 	b.Servers = peers
@@ -99,29 +99,30 @@ func (b *KafkaBroker) Initialize(peers []string) {
 	b.Client, err = sarama.NewClient(b.Servers, nil)
 	if err != nil {
 		// Should not reach here
-		log.Fatalf("%s\t%s\t%s", "FATAL", "BROKER", err.Error())
+		log.Fatal("BROKER", "\t", err.Error())
 	}
 
 	b.Producer, err = sarama.NewSyncProducer(b.Servers, b.Config)
 	if err != nil {
 		// Should not reach here
-		log.Fatalf("%s\t%s\t%s", "FATAL", "BROKER", err.Error())
+		log.Fatal("BROKER", "\t", err.Error())
 
 	}
 
-	b.Consumer, err = sarama.NewConsumer(b.Servers, nil)
+	b.Consumer, err = sarama.NewConsumer(b.Servers, b.Config)
+
 	if err != nil {
-		log.Fatalf("%s\t%s\t%s", "FATAL", "BROKER", err.Error())
+		log.Fatal("BROKER", "\t", err.Error())
 	}
 
-	log.Printf("%s\t%s\t%s:%s", "INFO", "BROKER", "Kafka Backend Initialized! Kafka node list", peers)
+	log.Info("BROKER", "\t", "Kafka Backend Initialized! Kafka node list", peers)
 
 }
 
 // Publish function publish a message to the broker
 func (b *KafkaBroker) Publish(topic string, msg messages.Message) (string, string, int, int64, error) {
 
-	off := b.GetOffset(topic)
+	off := b.GetMaxOffset(topic)
 	msg.ID = strconv.FormatInt(off, 10)
 	// Stamp time to UTC Z to nanoseconds
 	zNano := "2006-01-02T15:04:05.999999999Z"
@@ -146,41 +147,63 @@ func (b *KafkaBroker) Publish(topic string, msg messages.Message) (string, strin
 }
 
 // GetOffset returns a current topic's offset
-func (b *KafkaBroker) GetOffset(topic string) int64 {
+func (b *KafkaBroker) GetMaxOffset(topic string) int64 {
 	// Fetch offset
 	loff, err := b.Client.GetOffset(topic, 0, sarama.OffsetNewest)
 	if err != nil {
-		panic(err)
+		log.Error(err.Error())
+	}
+	return loff
+}
+
+// GetOffset returns a current topic's offset
+func (b *KafkaBroker) GetMinOffset(topic string) int64 {
+	// Fetch offset
+	loff, err := b.Client.GetOffset(topic, 0, sarama.OffsetOldest)
+	if err != nil {
+		log.Error(err.Error())
 	}
 	return loff
 }
 
 // Consume function to consume a message from the broker
-func (b *KafkaBroker) Consume(topic string, offset int64, imm bool) []string {
+func (b *KafkaBroker) Consume(ctx context.Context, topic string, offset int64, imm bool, max int64) ([]string, error) {
 
 	b.lockForTopic(topic)
 
 	defer b.unlockForTopic(topic)
-	// Fetch offset
-
-	// consumer, _ := sarama.NewConsumer(b.Servers, b.Config)
-
+	// Fetch offsets
 	loff, err := b.Client.GetOffset(topic, 0, sarama.OffsetNewest)
-	log.Println("consuming topic:", topic, "with offset:", loff)
+
 	if err != nil {
-		panic(err)
+		log.Error(err.Error())
 	}
+
+	oldOff, err := b.Client.GetOffset(topic, 0, sarama.OffsetOldest)
+	if err != nil {
+		log.Error(err.Error())
+	}
+
+	log.Debug("consuming topic:", topic, " min_offset:", oldOff, " max_offset:", loff, " current offset:", offset)
 
 	// If tracked offset is equal or bigger than topic offset means no new messages
 	if offset >= loff {
-		return []string{}
+		return []string{}, nil
+	}
+
+	// If tracked offset is left behind increment it to topic's min. offset
+	if offset < oldOff {
+		log.Debug("Tracked offset is off for topic:", topic, " broker offset:", offset, " tracked offset:", oldOff)
+		return []string{}, ErrOffsetOff
 	}
 
 	partitionConsumer, err := b.Consumer.ConsumePartition(topic, 0, offset)
 
 	if err != nil {
-		log.Println("Partition already consumed aborting try")
-		return []string{}
+		log.Debug("Unable to consume")
+		log.Debug(err.Error())
+		return []string{}, err
+
 	}
 
 	defer func() {
@@ -200,6 +223,11 @@ func (b *KafkaBroker) Consume(topic string, offset int64, imm bool) []string {
 ConsumerLoop:
 	for {
 		select {
+		// If the http client cancels the http request break consume loop
+		case <-ctx.Done():
+			{
+				break ConsumerLoop
+			}
 		case <-timeout:
 			{
 				break ConsumerLoop
@@ -207,16 +235,28 @@ ConsumerLoop:
 		case msg := <-partitionConsumer.Messages():
 
 			messages = append(messages, string(msg.Value[:]))
+
 			consumed++
-			if imm {
+
+			log.Debug("consumed:" + string(consumed))
+			log.Debug("max:" + string(max))
+			log.Debug(msg)
+			// if we pass over the available messages and still want more
+
+			if consumed >= max {
 				break ConsumerLoop
 			}
+
 			if offset+consumed > loff-1 {
-				break ConsumerLoop
+				// if returnImmediately is set dont wait for more
+				if imm {
+					break ConsumerLoop
+				}
+
 			}
 
 		}
 	}
 
-	return messages
+	return messages, nil
 }

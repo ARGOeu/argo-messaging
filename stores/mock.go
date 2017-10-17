@@ -17,6 +17,7 @@ type MockStore struct {
 	Session     bool
 	TopicsACL   map[string]QAcl
 	SubsACL     map[string]QAcl
+	OpMetrics   map[string]QopMetric
 }
 
 // QueryACL Topic/Subscription ACL
@@ -44,14 +45,20 @@ func NewMockStore(server string, database string) *MockStore {
 	return &mk
 }
 
+func (mk *MockStore) InsertOpMetric(hostname string, cpu float64, mem float64) error {
+	qOp := QopMetric{hostname, cpu, mem}
+	mk.OpMetrics[hostname] = qOp
+	return nil
+}
+
 // Close is used to close session
 func (mk *MockStore) Close() {
 	mk.Session = false
 }
 
 // InsertUser inserts a new user to the store
-func (mk *MockStore) InsertUser(uuid string, projects []QProjectRoles, name string, token string, email string, serviceRoles []string) error {
-	user := QUser{UUID: uuid, Name: name, Email: email, Projects: projects, Token: token, ServiceRoles: serviceRoles}
+func (mk *MockStore) InsertUser(uuid string, projects []QProjectRoles, name string, token string, email string, serviceRoles []string, createdOn time.Time, modifiedOn time.Time, createdBy string) error {
+	user := QUser{UUID: uuid, Name: name, Email: email, Projects: projects, Token: token, ServiceRoles: serviceRoles, CreatedOn: createdOn, ModifiedOn: modifiedOn, CreatedBy: createdBy}
 	mk.UserList = append(mk.UserList, user)
 	return nil
 }
@@ -74,8 +81,16 @@ func (mk *MockStore) UpdateUserToken(uuid string, token string) error {
 
 }
 
+func (mk *MockStore) GetOpMetrics() []QopMetric {
+	results := []QopMetric{}
+	for _, v := range mk.OpMetrics {
+		results = append(results, v)
+	}
+	return results
+}
+
 // UpdateUser updates user information
-func (mk *MockStore) UpdateUser(uuid string, projects []QProjectRoles, name string, email string, serviceRoles []string) error {
+func (mk *MockStore) UpdateUser(uuid string, projects []QProjectRoles, name string, email string, serviceRoles []string, modifiedOn time.Time) error {
 
 	for i, item := range mk.UserList {
 		if item.UUID == uuid {
@@ -91,6 +106,8 @@ func (mk *MockStore) UpdateUser(uuid string, projects []QProjectRoles, name stri
 			if email != "" {
 				mk.UserList[i].Email = email
 			}
+
+			mk.UserList[i].ModifiedOn = modifiedOn
 
 			return nil
 		}
@@ -163,6 +180,56 @@ func (mk *MockStore) UpdateProject(projectUUID string, name string, description 
 
 }
 
+//IncrementTopicMsgNum increase number of messages published in a topic
+func (mk *MockStore) IncrementTopicMsgNum(projectUUID string, name string, num int64) error {
+
+	for i, item := range mk.TopicList {
+		if item.ProjectUUID == projectUUID && item.Name == name {
+			mk.TopicList[i].MsgNum += num
+			return nil
+		}
+	}
+
+	return errors.New("not found")
+}
+
+//IncrementTopicBytes increases the total number of bytes published in a topic
+func (mk *MockStore) IncrementTopicBytes(projectUUID string, name string, totalBytes int64) error {
+	for i, item := range mk.TopicList {
+		if item.ProjectUUID == projectUUID && item.Name == name {
+			mk.TopicList[i].TotalBytes += totalBytes
+			return nil
+		}
+	}
+
+	return errors.New("not found")
+}
+
+//IncrementSubBytes increases the total number of bytes published in a subscription
+func (mk *MockStore) IncrementSubBytes(projectUUID string, name string, totalBytes int64) error {
+	for i, item := range mk.SubList {
+		if item.ProjectUUID == projectUUID && item.Name == name {
+			mk.SubList[i].TotalBytes += totalBytes
+			return nil
+		}
+	}
+
+	return errors.New("not found")
+}
+
+//IncrementSubMsgNum increase number of messages pulled in a subscription
+func (mk *MockStore) IncrementSubMsgNum(projectUUID string, name string, num int64) error {
+
+	for i, item := range mk.SubList {
+		if item.ProjectUUID == projectUUID && item.Name == name {
+			mk.SubList[i].MsgNum += num
+			return nil
+		}
+	}
+
+	return errors.New("not found")
+}
+
 // UpdateSubOffset updates the offset of the current subscription
 func (mk *MockStore) UpdateSubOffset(projectUUID string, name string, offset int64) {
 
@@ -170,7 +237,25 @@ func (mk *MockStore) UpdateSubOffset(projectUUID string, name string, offset int
 
 // ModSubPush modifies the subscription ack
 func (mk *MockStore) ModSubPush(projectUUID string, name string, push string, rPolicy string, rPeriod int) error {
-	return nil
+	for i, item := range mk.SubList {
+		if item.ProjectUUID == projectUUID {
+			if push != "" {
+				mk.SubList[i].PushEndpoint = push
+				mk.SubList[i].RetPolicy = "linear"
+				mk.SubList[i].RetPeriod = 300
+			}
+			if rPolicy != "" {
+				mk.SubList[i].RetPolicy = rPolicy
+			}
+			if rPeriod != 0 {
+				mk.SubList[i].RetPeriod = rPeriod
+			}
+
+			return nil
+		}
+	}
+
+	return errors.New("not found")
 }
 
 // UpdateSubOffsetAck updates the offset of the current subscription
@@ -275,26 +360,35 @@ func (mk *MockStore) QueryUsers(projectUUID string, uuid string, name string) ([
 }
 
 // UpdateSubPull updates next offset info after a pull
-func (mk *MockStore) UpdateSubPull(name string, offset int64, ts string) {
+func (mk *MockStore) UpdateSubPull(projectUUID string, name string, offset int64, ts string) error {
+	for i, item := range mk.SubList {
+		if item.ProjectUUID == projectUUID && item.Name == name {
+			mk.SubList[i].NextOffset = offset
+			mk.SubList[i].PendingAck = ts
+			return nil
+		}
+	}
+	return errors.New("not found")
 
 }
 
 // Initialize is used to initalize the mock
 func (mk *MockStore) Initialize() {
+	mk.OpMetrics = make(map[string]QopMetric)
 
 	// populate topics
-	qtop1 := QTopic{"argo_uuid", "topic1"}
-	qtop2 := QTopic{"argo_uuid", "topic2"}
-	qtop3 := QTopic{"argo_uuid", "topic3"}
+	qtop1 := QTopic{"argo_uuid", "topic1", 0, 0}
+	qtop2 := QTopic{"argo_uuid", "topic2", 0, 0}
+	qtop3 := QTopic{"argo_uuid", "topic3", 0, 0}
 	mk.TopicList = append(mk.TopicList, qtop1)
 	mk.TopicList = append(mk.TopicList, qtop2)
 	mk.TopicList = append(mk.TopicList, qtop3)
 
 	// populate Subscriptions
-	qsub1 := QSub{"argo_uuid", "sub1", "topic1", 0, 0, "", "", 10, "linear", 300}
-	qsub2 := QSub{"argo_uuid", "sub2", "topic2", 0, 0, "", "", 10, "linear", 300}
-	qsub3 := QSub{"argo_uuid", "sub3", "topic3", 0, 0, "", "", 10, "linear", 300}
-	qsub4 := QSub{"argo_uuid", "sub4", "topic4", 0, 0, "", "endpoint.foo", 10, "linear", 300}
+	qsub1 := QSub{"argo_uuid", "sub1", "topic1", 0, 0, "", "", 10, "linear", 300, 0, 0}
+	qsub2 := QSub{"argo_uuid", "sub2", "topic2", 0, 0, "", "", 10, "linear", 300, 0, 0}
+	qsub3 := QSub{"argo_uuid", "sub3", "topic3", 0, 0, "", "", 10, "linear", 300, 0, 0}
+	qsub4 := QSub{"argo_uuid", "sub4", "topic4", 0, 0, "", "endpoint.foo", 10, "linear", 300, 0, 0}
 	mk.SubList = append(mk.SubList, qsub1)
 	mk.SubList = append(mk.SubList, qsub2)
 	mk.SubList = append(mk.SubList, qsub3)
@@ -309,18 +403,17 @@ func (mk *MockStore) Initialize() {
 	mk.ProjectList = append(mk.ProjectList, qPr2)
 
 	// populate Users
-	qRole := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"admin", "member"}}}
-	qUsr := QUser{"uuid0", qRole, "Test", "S3CR3T", "Test@test.com", []string{}}
+	qRole := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"consumer", "publisher"}}}
+	qUsr := QUser{"uuid0", qRole, "Test", "S3CR3T", "Test@test.com", []string{}, created, modified, ""}
 
 	mk.UserList = append(mk.UserList, qUsr)
 
-	qRoleConsumer := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"consumer"}}}
-	qRoleProducer := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"producer"}}}
+	qRoleConsumerPub := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"publisher", "consumer"}}}
 
-	mk.UserList = append(mk.UserList, QUser{"uuid1", qRole, "UserA", "S3CR3T1", "foo-email", []string{}})
-	mk.UserList = append(mk.UserList, QUser{"uuid2", qRole, "UserB", "S3CR3T2", "foo-email", []string{}})
-	mk.UserList = append(mk.UserList, QUser{"uuid3", qRoleConsumer, "UserX", "S3CR3T3", "foo-email", []string{}})
-	mk.UserList = append(mk.UserList, QUser{"uuid4", qRoleProducer, "UserZ", "S3CR3T4", "foo-email", []string{}})
+	mk.UserList = append(mk.UserList, QUser{"uuid1", qRole, "UserA", "S3CR3T1", "foo-email", []string{}, created, modified, ""})
+	mk.UserList = append(mk.UserList, QUser{"uuid2", qRole, "UserB", "S3CR3T2", "foo-email", []string{}, created, modified, "uuid1"})
+	mk.UserList = append(mk.UserList, QUser{"uuid3", qRoleConsumerPub, "UserX", "S3CR3T3", "foo-email", []string{}, created, modified, "uuid1"})
+	mk.UserList = append(mk.UserList, QUser{"uuid4", qRoleConsumerPub, "UserZ", "S3CR3T4", "foo-email", []string{}, created, modified, "uuid1"})
 
 	qRole1 := QRole{"topics:list_all", []string{"admin", "reader", "publisher"}}
 	qRole2 := QRole{"topics:publish", []string{"admin", "publisher"}}
@@ -364,6 +457,19 @@ func (mk *MockStore) QueryOneSub(projectUUID string, name string) (QSub, error) 
 // Clone the store
 func (mk *MockStore) Clone() Store {
 	return mk
+}
+
+func (mk *MockStore) GetUserFromToken(token string) (QUser, error) {
+	for _, item := range mk.UserList {
+
+		if item.Token == token {
+			return item, nil
+
+		}
+	}
+
+	return QUser{}, errors.New("not found")
+
 }
 
 // GetUserRoles returns the roles of a user in a project
@@ -412,14 +518,14 @@ func (mk *MockStore) HasProject(name string) bool {
 
 // InsertTopic inserts a new topic object to the store
 func (mk *MockStore) InsertTopic(projectUUID string, name string) error {
-	topic := QTopic{ProjectUUID: projectUUID, Name: name}
+	topic := QTopic{ProjectUUID: projectUUID, Name: name, MsgNum: 0, TotalBytes: 0}
 	mk.TopicList = append(mk.TopicList, topic)
 	return nil
 }
 
 // InsertSub inserts a new sub object to the store
 func (mk *MockStore) InsertSub(projectUUID string, name string, topic string, offset int64, ack int, push string, rPolicy string, rPeriod int) error {
-	sub := QSub{projectUUID, name, topic, offset, 0, "", push, ack, rPolicy, rPeriod}
+	sub := QSub{projectUUID, name, topic, offset, 0, "", push, ack, rPolicy, rPeriod, 0, 0}
 	mk.SubList = append(mk.SubList, sub)
 	return nil
 }
@@ -535,6 +641,48 @@ func (mk *MockStore) QuerySubs(projectUUID string, name string) ([]QSub, error) 
 				result = append(result, item)
 			} else if name == item.Name {
 				return []QSub{item}, nil
+			}
+		}
+	}
+
+	return result, nil
+}
+
+func (mk *MockStore) QuerySubsByTopic(projectUUID, topic string) ([]QSub, error) {
+	result := []QSub{}
+	for _, item := range mk.SubList {
+		if projectUUID == item.ProjectUUID && item.Topic == topic {
+			result = append(result, item)
+		}
+	}
+	return result, nil
+}
+
+func (mk *MockStore) QuerySubsByACL(projectUUID, user string) ([]QSub, error) {
+
+	result := []QSub{}
+	for _, item := range mk.SubList {
+		if projectUUID == item.ProjectUUID {
+			for _, usr := range mk.SubsACL[item.Name].ACL {
+				if usr == user {
+					result = append(result, item)
+				}
+			}
+		}
+	}
+
+	return result, nil
+}
+
+func (mk *MockStore) QueryTopicsByACL(projectUUID, user string) ([]QTopic, error) {
+
+	result := []QTopic{}
+	for _, item := range mk.TopicList {
+		if projectUUID == item.ProjectUUID {
+			for _, usr := range mk.TopicsACL[item.Name].ACL {
+				if usr == user {
+					result = append(result, item)
+				}
 			}
 		}
 	}

@@ -4,17 +4,20 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
+	"net/url"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
+
 	"github.com/ARGOeu/argo-messaging/auth"
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
 	"github.com/ARGOeu/argo-messaging/messages"
+	"github.com/ARGOeu/argo-messaging/metrics"
 	"github.com/ARGOeu/argo-messaging/projects"
 	"github.com/ARGOeu/argo-messaging/push"
 	"github.com/ARGOeu/argo-messaging/stores"
@@ -100,11 +103,11 @@ func WrapLog(hfn http.Handler, name string) http.HandlerFunc {
 
 		hfn.ServeHTTP(w, r)
 
-		log.Printf(
-			"ACCESS\t%s\t%s\t%s\t%s",
-			r.Method,
-			r.RequestURI,
-			name,
+		log.Info(
+			"ACCESS", "\t",
+			r.Method, "\t",
+			r.RequestURI, "\t",
+			name, "\t",
 			time.Since(start),
 		)
 	})
@@ -238,6 +241,7 @@ func ProjectUpdate(w http.ResponseWriter, r *http.Request) {
 	postBody, err := projects.GetFromJSON(body)
 	if err != nil {
 		respondErr(w, 400, "Invalid Project Arguments", "INVALID_ARGUMENT")
+		log.Error(string(body[:]))
 		return
 	}
 
@@ -304,6 +308,7 @@ func ProjectCreate(w http.ResponseWriter, r *http.Request) {
 	postBody, err := projects.GetFromJSON(body)
 	if err != nil {
 		respondErr(w, 400, "Invalid Project Arguments", "INVALID_ARGUMENT")
+		log.Error(string(body[:]))
 		return
 	}
 
@@ -498,12 +503,14 @@ func UserUpdate(w http.ResponseWriter, r *http.Request) {
 	postBody, err := auth.GetUserFromJSON(body)
 	if err != nil {
 		respondErr(w, 400, "Invalid User Arguments", "INVALID_ARGUMENT")
+		log.Error(string(body[:]))
 		return
 	}
 
 	// Get Result Object
 	userUUID := auth.GetUUIDByName(urlUser, refStr)
-	res, err := auth.UpdateUser(userUUID, postBody.Name, postBody.Projects, postBody.Email, postBody.ServiceRoles, refStr)
+	modified := time.Now()
+	res, err := auth.UpdateUser(userUUID, postBody.Name, postBody.Projects, postBody.Email, postBody.ServiceRoles, modified, refStr)
 
 	if err != nil {
 
@@ -553,6 +560,7 @@ func UserCreate(w http.ResponseWriter, r *http.Request) {
 
 	// Grab context references
 	refStr := context.Get(r, "str").(stores.Store)
+	refUserUUID := context.Get(r, "auth_user_uuid").(string)
 
 	// Read POST JSON body
 	body, err := ioutil.ReadAll(r.Body)
@@ -565,13 +573,15 @@ func UserCreate(w http.ResponseWriter, r *http.Request) {
 	postBody, err := auth.GetUserFromJSON(body)
 	if err != nil {
 		respondErr(w, 400, "Invalid User  Arguments", "INVALID_ARGUMENT")
+		log.Error(string(body[:]))
 		return
 	}
 
 	uuid := uuid.NewV4().String() // generate a new uuid to attach to the new project
 	token, err := auth.GenToken() // generate a new user token
+	created := time.Now()
 	// Get Result Object
-	res, err := auth.CreateUser(uuid, urlUser, postBody.Projects, token, postBody.Email, postBody.ServiceRoles, refStr)
+	res, err := auth.CreateUser(uuid, urlUser, postBody.Projects, token, postBody.Email, postBody.ServiceRoles, created, refUserUUID, refStr)
 
 	if err != nil {
 		if err.Error() == "exists" {
@@ -587,6 +597,88 @@ func UserCreate(w http.ResponseWriter, r *http.Request) {
 	resJSON, err := res.ExportJSON()
 	if err != nil {
 		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL")
+		return
+	}
+
+	// Write response
+	output = []byte(resJSON)
+	respondOK(w, output)
+
+}
+
+// OpMetrics (GET) all operational metrics
+func OpMetrics(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab context references
+	refStr := context.Get(r, "str").(stores.Store)
+
+	// Get Results Object
+	res, err := metrics.GetUsageCpuMem(refStr)
+
+	if err != nil && err.Error() != "not found" {
+		respondErr(w, 500, "Internal error while querying datastore", "INTERNAL")
+		return
+	}
+
+	// Output result to JSON
+	resJSON, err := res.ExportJSON()
+
+	if err != nil {
+
+		respondErr(w, 500, "Error exporting data", "INTERNAL_SERVER_ERROR")
+		return
+	}
+
+	// Write response
+	output = []byte(resJSON)
+	respondOK(w, output)
+
+}
+
+// UserListByToken (GET) one user by his token
+func UserListByToken(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+	urlToken := urlVars["token"]
+
+	// Grab context references
+	refStr := context.Get(r, "str").(stores.Store)
+
+	// Get Results Object
+	result, err := auth.GetUserByToken(urlToken, refStr)
+
+	if err != nil {
+		if err.Error() == "not found" {
+			respondErr(w, 404, "User does not exist", "NOT_FOUND")
+			return
+		}
+
+		respondErr(w, 500, "Internal error while querying datastore", "INTERNAL")
+		return
+	}
+
+	// Output result to JSON
+	resJSON, err := result.ExportJSON()
+
+	if err != nil {
+		respondErr(w, 500, "Error exporting data", "INTERNAL")
 		return
 	}
 
@@ -752,8 +844,13 @@ func SubAck(w http.ResponseWriter, r *http.Request) {
 
 	// Check if sub exists
 
-	if subscriptions.HasSub(projectUUID, urlVars["subscription"], refStr) == false {
-		respondErr(w, 404, "Subscription does not exist", "NOT_FOUND")
+	cur_sub, err := subscriptions.Find(projectUUID, subName, refStr)
+	if err != nil {
+		respondErr(w, 500, "Error handling acknowledgement", "INTERNAL_SERVER_ERROR")
+		return
+	}
+	if len(cur_sub.List) == 0 {
+		respondErr(w, 404, "Subscription doesn't exist", "NOT_FOUND")
 		return
 	}
 
@@ -844,6 +941,127 @@ func SubListOne(w http.ResponseWriter, r *http.Request) {
 	// Output result to JSON
 	resJSON, err := results.List[0].ExportJSON()
 
+	if err != nil {
+		respondErr(w, 500, "Error exporting data", "INTERNAL_SERVER_ERROR")
+		return
+	}
+
+	// Write response
+	output = []byte(resJSON)
+	respondOK(w, output)
+
+}
+
+// SubSetOffset (PUT) sets subscriptions current offset
+func SubSetOffset(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+	// Get Result Object
+	urlSub := urlVars["subscription"]
+
+	// Read POST JSON body
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		respondErr(w, 400, "Invalid Request body", "INVALID_ARGUMENT")
+		return
+	}
+
+	// Parse pull options
+	postBody, err := subscriptions.GetSetOffsetJSON(body)
+	if err != nil {
+		respondErr(w, 400, "Invalid Offset Argument", "INVALID_ARGUMENT")
+		log.Error(string(body[:]))
+		return
+	}
+
+	// Grab context references
+	refStr := context.Get(r, "str").(stores.Store)
+	refBrk := context.Get(r, "brk").(brokers.Broker)
+	// Get project UUID First to use as reference
+	projectUUID := context.Get(r, "auth_project_uuid").(string)
+
+	// Find Subscription
+	results, err := subscriptions.Find(projectUUID, urlVars["subscription"], refStr)
+
+	if err != nil {
+		respondErr(w, 500, "Backend Error", "INTERNAL_SERVER_ERROR")
+		return
+	}
+
+	// If not found
+	if results.Empty() {
+		respondErr(w, 404, "Subscription does not exist", "NOT_FOUND")
+		return
+	}
+	brk_topic := projectUUID + "." + results.List[0].Topic
+	min_offset := refBrk.GetMinOffset(brk_topic)
+	max_offset := refBrk.GetMaxOffset(brk_topic)
+
+	//Check if given offset is between min max
+	if postBody.Offset < min_offset || postBody.Offset > max_offset {
+		respondErr(w, 400, "Offset out of bounds", "INVALID_ARGUMENT")
+		log.Error(string(body[:]))
+	}
+
+	// Get subscription offsets
+
+	refStr.UpdateSubOffset(projectUUID, urlSub, postBody.Offset)
+
+	respondOK(w, output)
+
+}
+
+// SubGetOffsets (GET) gets offset metrics from a subscription
+func SubGetOffsets(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+
+	// Grab context references
+	refStr := context.Get(r, "str").(stores.Store)
+	refBrk := context.Get(r, "brk").(brokers.Broker)
+
+	projectUUID := context.Get(r, "auth_project_uuid").(string)
+
+	results, err := subscriptions.Find(projectUUID, urlVars["subscription"], refStr)
+
+	if err != nil {
+		respondErr(w, 500, "Backend Error", "INTERNAL_SERVER_ERROR")
+		return
+	}
+
+	// If not found
+	if results.Empty() {
+		respondErr(w, 404, "Subscription does not exist", "NOT_FOUND")
+		return
+	}
+
+	// Output result to JSON
+	brk_topic := projectUUID + "." + results.List[0].Topic
+	cur_offset := results.List[0].Offset
+	min_offset := refBrk.GetMinOffset(brk_topic)
+	max_offset := refBrk.GetMaxOffset(brk_topic)
+
+	// Create offset struct
+	offResult := subscriptions.Offsets{Current: cur_offset, Min: min_offset, Max: max_offset}
+	resJSON, err := offResult.ExportJSON()
 	if err != nil {
 		respondErr(w, 500, "Error exporting data", "INTERNAL_SERVER_ERROR")
 		return
@@ -958,6 +1176,7 @@ func TopicModACL(w http.ResponseWriter, r *http.Request) {
 	postBody, err := auth.GetACLFromJSON(body)
 	if err != nil {
 		respondErr(w, 400, "Invalid Topic ACL Arguments", "INVALID_ARGUMENT")
+		log.Error(string(body[:]))
 		return
 	}
 
@@ -1017,6 +1236,7 @@ func SubModACL(w http.ResponseWriter, r *http.Request) {
 	postBody, err := auth.GetACLFromJSON(body)
 	if err != nil {
 		respondErr(w, 400, "Invalid Subscription ACL Arguments", "INVALID_ARGUMENT")
+		log.Error(string(body[:]))
 		return
 	}
 
@@ -1080,6 +1300,7 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 	postBody, err := subscriptions.GetFromJSON(body)
 	if err != nil {
 		respondErr(w, 400, "Invalid Subscription Arguments", "INVALID_ARGUMENT")
+		log.Error(string(body[:]))
 		return
 	}
 
@@ -1088,6 +1309,11 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 	rPeriod := 0
 	if postBody.PushCfg != (subscriptions.PushConfig{}) {
 		pushEnd = postBody.PushCfg.Pend
+		// Check if push endpoint is not a valid https:// endpoint
+		if !(isValidHTTPS(pushEnd)) {
+			respondErr(w, 400, "Push endpoint should be addressed by a valid https url", "INVALID_ARGUMENT")
+			return
+		}
 		rPolicy = postBody.PushCfg.RetPol.PolicyType
 		rPeriod = postBody.PushCfg.RetPol.Period
 		if rPolicy == "" {
@@ -1181,6 +1407,7 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 	postBody, err := subscriptions.GetFromJSON(body)
 	if err != nil {
 		respondErr(w, 400, "Invalid Subscription Arguments", "INVALID_ARGUMENT")
+		log.Error(string(body[:]))
 		return
 	}
 
@@ -1197,15 +1424,20 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get current topic offset
-
-	fullTopic := tProject + "." + tName
-	curOff := refBrk.GetOffset(fullTopic)
+	tProjectUUID := projects.GetUUIDByName(tProject, refStr)
+	fullTopic := tProjectUUID + "." + tName
+	curOff := refBrk.GetMaxOffset(fullTopic)
 
 	pushEnd := ""
 	rPolicy := ""
 	rPeriod := 0
 	if postBody.PushCfg != (subscriptions.PushConfig{}) {
 		pushEnd = postBody.PushCfg.Pend
+		// Check if push endpoint is not a valid https:// endpoint
+		if !(isValidHTTPS(pushEnd)) {
+			respondErr(w, 400, "Push endpoint should be addressed by a valid https url", "INVALID_ARGUMENT")
+			return
+		}
 		rPolicy = postBody.PushCfg.RetPol.PolicyType
 		rPeriod = postBody.PushCfg.RetPol.Period
 		if rPolicy == "" {
@@ -1281,6 +1513,171 @@ func TopicCreate(w http.ResponseWriter, r *http.Request) {
 	resJSON, err := res.ExportJSON()
 	if err != nil {
 		respondErr(w, 500, "Error Exporting Retrieved Data to JSON", "INTERNAL_SERVER_ERROR")
+		return
+	}
+
+	// Write response
+	output = []byte(resJSON)
+	respondOK(w, output)
+
+}
+
+// ProjectMetrics (GET) metrics for one project (number of topics)
+func ProjectMetrics(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+
+	// Grab context references
+	refStr := context.Get(r, "str").(stores.Store)
+	//refRoles := context.Get(r, "auth_roles").([]string)
+	//refUser := context.Get(r, "auth_user").(string)
+	//refAuthResource := context.Get(r, "auth_resource").(bool)
+
+	urlProject := urlVars["project"]
+
+	projectUUID := context.Get(r, "auth_project_uuid").(string)
+
+	// Check Authorization per topic
+	// - if enabled in config
+	// - if user has only publisher role
+
+	numTopics := int64(0)
+	numSubs := int64(0)
+
+	numTopics2, err2 := metrics.GetProjectTopics(projectUUID, refStr)
+	if err2 != nil {
+		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
+		return
+	}
+	numTopics = numTopics2
+	numSubs2, err2 := metrics.GetProjectSubs(projectUUID, refStr)
+	if err2 != nil {
+		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
+		return
+	}
+	numSubs = numSubs2
+
+	m1 := metrics.NewProjectTopics(urlProject, numTopics, metrics.GetTimeNowZulu())
+	m2 := metrics.NewProjectSubs(urlProject, numSubs, metrics.GetTimeNowZulu())
+	res := metrics.NewMetricList(m1)
+	res.Metrics = append(res.Metrics, m2)
+
+	// Project User topics aggregation
+	m3, err := metrics.AggrProjectUserTopics(projectUUID, refStr)
+	if err != nil {
+		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
+		return
+	}
+
+	for _, item := range m3.Metrics {
+		res.Metrics = append(res.Metrics, item)
+	}
+
+	// Project User subscriptions aggregation
+	m4, err := metrics.AggrProjectUserSubs(projectUUID, refStr)
+	if err != nil {
+		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
+		return
+	}
+
+	for _, item := range m4.Metrics {
+		res.Metrics = append(res.Metrics, item)
+	}
+
+	// Output result to JSON
+	resJSON, err := res.ExportJSON()
+	if err != nil {
+		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
+		return
+	}
+
+	// Write response
+	output = []byte(resJSON)
+	respondOK(w, output)
+
+}
+
+// TopicMetrics (GET) metrics for one topic
+func TopicMetrics(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+
+	// Grab context references
+	refStr := context.Get(r, "str").(stores.Store)
+	refRoles := context.Get(r, "auth_roles").([]string)
+	refUser := context.Get(r, "auth_user").(string)
+	refAuthResource := context.Get(r, "auth_resource").(bool)
+
+	urlTopic := urlVars["topic"]
+
+	projectUUID := context.Get(r, "auth_project_uuid").(string)
+
+	// Check Authorization per topic
+	// - if enabled in config
+	// - if user has only publisher role
+
+	if refAuthResource && auth.IsPublisher(refRoles) {
+
+		if auth.PerResource(projectUUID, "topics", urlTopic, refUser, refStr) == false {
+			respondErr(w, 403, "Access to this resource is forbidden", "FORBIDDEN")
+			return
+		}
+	}
+
+	// Number of bytes and number of messages
+	resultsMsg, err := topics.FindMetric(projectUUID, urlTopic, refStr)
+
+	if err != nil {
+		if err.Error() == "not found" {
+			respondErr(w, 404, "Topic does not exist", "NOT_FOUND")
+			return
+		}
+		respondErr(w, 500, "Backend error", "INTERNAL_SERVER_ERROR")
+	}
+
+	numMsg := resultsMsg.MsgNum
+	numBytes := resultsMsg.TotalBytes
+
+	numSubs := int64(0)
+	numSubs, err = metrics.GetProjectSubsByTopic(projectUUID, urlTopic, refStr)
+	if err != nil {
+		if err.Error() == "not found" {
+			respondErr(w, 404, "Topic does not exist", "NOT_FOUND")
+			return
+		}
+		respondErr(w, 500, "Backend error", "INTERNAL_SERVER_ERROR")
+	}
+	m1 := metrics.NewTopicSubs(urlTopic, numSubs, metrics.GetTimeNowZulu())
+	res := metrics.NewMetricList(m1)
+
+	m2 := metrics.NewTopicMsgs(urlTopic, numMsg, metrics.GetTimeNowZulu())
+	m3 := metrics.NewTopicBytes(urlTopic, numBytes, metrics.GetTimeNowZulu())
+
+	res.Metrics = append(res.Metrics, m2)
+	res.Metrics = append(res.Metrics, m3)
+
+	// Output result to JSON
+	resJSON, err := res.ExportJSON()
+	if err != nil {
+		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
 		return
 	}
 
@@ -1417,6 +1814,74 @@ func SubACL(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// SubMetrics (GET) metrics for one subscription
+func SubMetrics(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+
+	// Grab context references
+	refStr := context.Get(r, "str").(stores.Store)
+	refRoles := context.Get(r, "auth_roles").([]string)
+	refUser := context.Get(r, "auth_user").(string)
+	refAuthResource := context.Get(r, "auth_resource").(bool)
+
+	urlSub := urlVars["subscription"]
+
+	projectUUID := context.Get(r, "auth_project_uuid").(string)
+
+	// Check Authorization per topic
+	// - if enabled in config
+	// - if user has only publisher role
+
+	if refAuthResource && auth.IsConsumer(refRoles) {
+
+		if auth.PerResource(projectUUID, "subscriptions", urlSub, refUser, refStr) == false {
+			respondErr(w, 403, "Access to this resource is forbidden", "FORBIDDEN")
+			return
+		}
+	}
+
+	resultMsg, err := subscriptions.FindMetric(projectUUID, urlSub, refStr)
+
+	if err != nil {
+		if err.Error() == "not found" {
+			respondErr(w, 404, "Subscription does not exist", "NOT_FOUND")
+			return
+		}
+		respondErr(w, 500, "Backend error", "INTERNAL_SERVER_ERROR")
+	}
+
+	numMsg := resultMsg.MsgNum
+	numBytes := resultMsg.TotalBytes
+
+	m1 := metrics.NewSubMsgs(urlSub, numMsg, metrics.GetTimeNowZulu())
+	res := metrics.NewMetricList(m1)
+	m2 := metrics.NewSubBytes(urlSub, numBytes, metrics.GetTimeNowZulu())
+
+	res.Metrics = append(res.Metrics, m2)
+
+	// Output result to JSON
+	resJSON, err := res.ExportJSON()
+	if err != nil {
+		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
+		return
+	}
+
+	// Write response
+	output = []byte(resJSON)
+	respondOK(w, output)
+
+}
+
 //SubListAll (GET) all subscriptions
 func SubListAll(w http.ResponseWriter, r *http.Request) {
 
@@ -1536,6 +2001,7 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 	msgList, err := messages.LoadMsgListJSON(body)
 	if err != nil {
 		respondErr(w, 400, "Invalid Message Arguments", "INVALID_ARGUMENT")
+		log.Error(string(body[:]))
 		return
 	}
 
@@ -1567,6 +2033,11 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 		// Append the MsgID of the successful published message to the msgIds list
 		msgIDs.IDs = append(msgIDs.IDs, msg.ID)
 	}
+
+	// increment topic number of message metric
+	refStr.IncrementTopicMsgNum(projectUUID, urlTopic, int64(len(msgList.Msgs)))
+	// increment topic total bytes published
+	refStr.IncrementTopicBytes(projectUUID, urlTopic, msgList.TotalSize())
 
 	// Export the msgIDs
 	resJSON, err := msgIDs.ExportJSON()
@@ -1614,7 +2085,7 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	// - if enabled in config
 	// - if user has only consumer role
 	if refAuthResource && auth.IsConsumer(refRoles) {
-		if auth.PerResource(urlProject, "subscriptions", urlSub, refUser, refStr) == false {
+		if auth.PerResource(projectUUID, "subscriptions", urlSub, refUser, refStr) == false {
 			respondErr(w, 403, "Access to this resource is forbidden", "FORBIDDEN")
 			return
 		}
@@ -1631,6 +2102,7 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	pullInfo, err := subscriptions.GetPullOptionsJSON(body)
 	if err != nil {
 		respondErr(w, 400, "Pull Parameters Invalid", "INVALID_ARGUMENT")
+		log.Error(string(body[:]))
 		return
 	}
 
@@ -1651,11 +2123,38 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 
 	fullTopic := targSub.ProjectUUID + "." + targSub.Topic
 	retImm := false
+	max := 1
+
+	if pullInfo.MaxMsg != "" {
+		max, err = strconv.Atoi(pullInfo.MaxMsg)
+		if err != nil {
+			max = 1
+		}
+	}
+
 	if pullInfo.RetImm == "true" {
 		retImm = true
 	}
-	msgs := refBrk.Consume(fullTopic, targSub.Offset, retImm)
-
+	msgs, err := refBrk.Consume(r.Context(), fullTopic, targSub.Offset, retImm, int64(max))
+	if err != nil {
+		// If tracked offset is off
+		if err == brokers.ErrOffsetOff {
+			log.Debug("Will increment now...")
+			// Increment tracked offset to current min offset
+			targSub.Offset = refBrk.GetMinOffset(fullTopic)
+			refStr.UpdateSubOffset(projectUUID, targSub.Name, targSub.Offset)
+			// Try again to consume
+			msgs, err = refBrk.Consume(r.Context(), fullTopic, targSub.Offset, retImm, int64(max))
+			// If still error respond and return
+			if err != nil {
+				respondErr(w, 500, "Cannot consume message", "INTERNAL_SERVER_ERROR")
+				return
+			}
+		} else {
+			respondErr(w, 500, "Cannot consume message", "INTERNAL_SERVER_ERROR")
+			return
+		}
+	}
 	var limit int
 	limit, err = strconv.Atoi(pullInfo.MaxMsg)
 	if err != nil {
@@ -1673,10 +2172,16 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 			respondErr(w, 500, "Message retrieved from broker network has invalid JSON Structure", "INTERNAL_SERVER_ERROR")
 			return
 		}
-
+		// calc the message id = message's kafka offset (read offst + msg position)
+		idOff := targSub.Offset + int64(i)
+		curMsg.ID = strconv.FormatInt(idOff, 10)
 		curRec := messages.RecMsg{AckID: ackPrefix + curMsg.ID, Msg: curMsg}
 		recList.RecMsgs = append(recList.RecMsgs, curRec)
 	}
+
+	// increment subscrption number of message metric
+	refStr.IncrementSubMsgNum(projectUUID, urlSub, int64(len(msgs)))
+	refStr.IncrementSubBytes(projectUUID, urlSub, recList.TotalSize())
 
 	resJSON, err := recList.ExportJSON()
 
@@ -1689,7 +2194,7 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	zSec := "2006-01-02T15:04:05Z"
 	t := time.Now()
 	ts := t.Format(zSec)
-	refStr.UpdateSubPull(targSub.Name, int64(len(recList.RecMsgs))+targSub.Offset, ts)
+	refStr.UpdateSubPull(targSub.ProjectUUID, targSub.Name, int64(len(recList.RecMsgs))+targSub.Offset, ts)
 
 	output = []byte(resJSON)
 	respondOK(w, output)
@@ -1706,7 +2211,7 @@ func respondOK(w http.ResponseWriter, output []byte) {
 
 // respondErr is used to finalize response writer with proper error codes and error output
 func respondErr(w http.ResponseWriter, errCode int, errMsg string, status string) {
-	log.Printf("ERROR\t%d\t%s", errCode, errMsg)
+	log.Error(errCode, "\t", errMsg)
 	w.WriteHeader(errCode)
 	rt := APIErrorRoot{}
 	bd := APIErrorBody{}
@@ -1742,4 +2247,19 @@ type APIError struct {
 	Message string `json:"message"`
 	Domain  string `json:"domain"`
 	Reason  string `json:"reason"`
+}
+
+// IsValidHTTPS checks if a url string is valid https url
+func isValidHTTPS(urlStr string) bool {
+	u, err := url.ParseRequestURI(urlStr)
+	if err != nil {
+		return false
+	}
+	// If a valid url is in form without slashes after scheme consider it invalid.
+	// If a valid url doesn't have https as a scheme consider it invalid
+	if u.Host == "" || u.Scheme != "https" {
+		return false
+	}
+
+	return true
 }

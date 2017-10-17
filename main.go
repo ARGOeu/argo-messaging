@@ -2,7 +2,6 @@ package main
 
 import (
 	"crypto/tls"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -10,6 +9,8 @@ import (
 	"github.com/ARGOeu/argo-messaging/config"
 	"github.com/ARGOeu/argo-messaging/push"
 	"github.com/ARGOeu/argo-messaging/stores"
+	log "github.com/Sirupsen/logrus"
+	"github.com/gorilla/handlers"
 )
 
 func main() {
@@ -38,13 +39,16 @@ func main() {
 		PreferServerCipherSuites: true,
 	}
 
+	// Initialize CORS specifics
+	xReqWithConType := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type"})
+	allowVerbs := handlers.AllowedMethods([]string{"OPTIONS", "POST", "GET", "PUT", "DELETE", "HEAD"})
 	// Initialize server wth proper parameters
-	server := &http.Server{Addr: ":" + strconv.Itoa(cfg.Port), Handler: API.Router, TLSConfig: config}
+	server := &http.Server{Addr: ":" + strconv.Itoa(cfg.Port), Handler: handlers.CORS(xReqWithConType, allowVerbs)(API.Router), TLSConfig: config}
 
 	// Web service binds to server. Requests served over HTTPS.
 	err := server.ListenAndServeTLS(cfg.Cert, cfg.CertKey)
 	if err != nil {
-		log.Fatal("ERROR\tAPI\tListenAndServe:", err)
+		log.Fatal("API", "\t", "ListenAndServe:", err)
 	}
 
 }

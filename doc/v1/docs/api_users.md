@@ -28,72 +28,123 @@ Success Response
     {
        "projects": [
           {
-            "project": "ARGO",
+             "project": "ARGO",
              "roles": [
-                "project_admin"
-             ]
+                "consumer",
+                "publisher"
+             ],
+             "topics": [],
+             "subscriptions": []
           }
        ],
        "name": "Test",
        "token": "S3CR3T",
        "email": "Test@test.com",
-       "service_roles":[]
-    },
-    {
-       "projects": [
-          {
-            "project": "ARGO",
-             "roles": [
-                "project_admin"
-             ]
-          }
-       ],
-       "name": "UserA",
-       "token": "S3CR3T1",
-       "email": "foo-email",
-       "service_roles":[]
-    },
-    {
-       "projects": [
-          {
-            "project": "ARGO",
-             "roles": [
-                "project_admin"
-             ]
-          }
-       ],
-       "name": "UserB",
-       "token": "S3CR3T2",
-       "email": "foo-email",
-       "service_roles":[]
-    },
-    {
-       "projects": [
-          {
-            "project": "ARGO",
-             "roles": [
-                "consumer"
-             ]
-          }
-       ],
-       "name": "UserX",
-       "token": "S3CR3T3",
-       "email": "foo-email",
-       "service_roles":[]
+       "service_roles": [],
+       "created_on": "2009-11-10T23:00:00Z",
+       "modified_on": "2009-11-10T23:00:00Z"
     },
     {
        "projects": [
           {
              "project": "ARGO",
              "roles": [
+                "consumer",
                 "publisher"
+             ],
+             "topics": [
+                "topic1",
+                "topic2"
+             ],
+             "subscriptions": [
+                "sub1",
+                "sub2",
+                "sub3"
+             ]
+          }
+       ],
+       "name": "UserA",
+       "token": "S3CR3T1",
+       "email": "foo-email",
+       "service_roles": [],
+       "created_on": "2009-11-10T23:00:00Z",
+       "modified_on": "2009-11-10T23:00:00Z"
+    },
+    {
+       "projects": [
+          {
+             "project": "ARGO",
+             "roles": [
+                "consumer",
+                "publisher"
+             ],
+             "topics": [
+                "topic1",
+                "topic2"
+             ],
+             "subscriptions": [
+                "sub1",
+                "sub3",
+                "sub4"
+             ]
+          }
+       ],
+       "name": "UserB",
+       "token": "S3CR3T2",
+       "email": "foo-email",
+       "service_roles": [],
+       "created_on": "2009-11-10T23:00:00Z",
+       "modified_on": "2009-11-10T23:00:00Z",
+       "created_by": "UserA"
+    },
+    {
+       "projects": [
+          {
+             "project": "ARGO",
+             "roles": [
+                "publisher",
+                "consumer"
+             ],
+             "topics": [
+                "topic3"
+             ],
+             "subscriptions": [
+                "sub2"
+             ]
+          }
+       ],
+       "name": "UserX",
+       "token": "S3CR3T3",
+       "email": "foo-email",
+       "service_roles": [],
+       "created_on": "2009-11-10T23:00:00Z",
+       "modified_on": "2009-11-10T23:00:00Z",
+       "created_by": "UserA"
+    },
+    {
+       "projects": [
+          {
+             "project": "ARGO",
+             "roles": [
+                "publisher",
+                "consumer"
+             ],
+             "topics": [
+                "topic2"
+             ],
+             "subscriptions": [
+                "sub3",
+                "sub4"
              ]
           }
        ],
        "name": "UserZ",
        "token": "S3CR3T4",
        "email": "foo-email",
-       "service_roles":[]
+       "service_roles": [],
+       "created_on": "2009-11-10T23:00:00Z",
+       "modified_on": "2009-11-10T23:00:00Z",
+       "created_by": "UserA"
     }
  ]
 }
@@ -128,23 +179,91 @@ Success Response
 
 ```json
 {
- "projects": [
-    {
-       "project_uuid": "ARGO",
-       "roles": [
-          "project_admin"
-       ]
-    }
- ],
- "name": "UserA",
- "token": "S3CR3T1",
- "email": "foo-email",
- "service_roles":[]
+   "projects": [
+      {
+         "project": "ARGO",
+         "roles": [
+            "consumer",
+            "publisher"
+         ],
+         "topics": [
+            "topic1",
+            "topic2"
+         ],
+         "subscriptions": [
+            "sub1",
+            "sub2",
+            "sub3"
+         ]
+      }
+   ],
+   "name": "UserA",
+   "token": "S3CR3T1",
+   "email": "foo-email",
+   "service_roles": [],
+   "created_on": "2009-11-10T23:00:00Z",
+   "modified_on": "2009-11-10T23:00:00Z"
 }
 ```
 
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
+
+## [GET] Manage Users - List a specific user by token
+This request lists information about a specific user using user's token as input
+
+### Request
+```
+GET "/v1/users:byToken/{token}"
+```
+
+### Where
+- token: the token of the user
+
+### Example request
+```
+curl -X GET -H "Content-Type: application/json"
+  "https://{URL}/v1/users:byToken/S3CR3T1?key=S3CR3T"
+```
+
+### Responses  
+If successful, the response contains information about the specific user
+
+Success Response
+`200 OK`
+
+```json
+{
+   "projects": [
+      {
+         "project": "ARGO",
+         "roles": [
+            "consumer",
+            "publisher"
+         ],
+         "topics": [
+            "topic1",
+            "topic2"
+         ],
+         "subscriptions": [
+            "sub1",
+            "sub2",
+            "sub3"
+         ]
+      }
+   ],
+   "name": "UserA",
+   "token": "S3CR3T1",
+   "email": "foo-email",
+   "service_roles": [],
+   "created_on": "2009-11-10T23:00:00Z",
+   "modified_on": "2009-11-10T23:00:00Z"
+}
+```
+
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors
+
 
 
 ## [POST] Manage Users - Create new user
@@ -212,13 +331,18 @@ Success Response
        "project": "ARGO",
        "roles": [
           "project_admin"
-       ]
+       ],
+       "topics":[],
+       "subscriptions":[]
     }
  ],
  "name": "USERNEW",
  "token": "R4ND0MT0K3N",
  "email": "foo-email",
- "service_roles":[]
+ "service_roles":[],
+ "created_on": "2009-11-10T23:00:00Z",
+ "modified_on": "2009-11-10T23:00:00Z",
+ "created_by": "UserA"
 }
 ```
 
@@ -277,13 +401,18 @@ Success Response
        "project": "ARGO2",
        "roles": [
           "project_admin"
-       ]
+       ],
+       "topics":[],
+       "subscriptions":[]
     }
  ],
  "name": "CHANGED_NAME",
  "token": "R4ND0MT0K3N",
  "email": "foo-email",
- "service_roles":[]
+ "service_roles":[],
+ "created_on": "2009-11-10T23:00:00Z",
+ "modified_on": "2009-11-11T10:00:00Z",
+ "created_by": "UserA"
 }
 ```
 
@@ -321,13 +450,18 @@ Success Response
        "project": "ARGO",
        "roles": [
           "project_admin"
-       ]
+       ],
+       "topics":[],
+       "subscriptions":[]
     }
  ],
  "name": "USER2",
  "token": "NEWRANDOMTOKEN",
  "email": "foo-email",
- "service_roles":[]
+ "service_roles":[],
+ "created_on": "2009-11-10T23:00:00Z",
+ "modified_on": "2009-11-11T12:00:00Z",
+ "created_by": "UserA"
 }
 ```
 

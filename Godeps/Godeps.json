@@ -1,7 +1,7 @@
 {
 	"ImportPath": "github.com/ARGOeu/argo-messaging",
 	"GoVersion": "go1.7",
-	"GodepVersion": "v74",
+	"GodepVersion": "v75",
 	"Deps": [
 		{
 			"ImportPath": "github.com/BurntSushi/toml",
@@ -12,6 +12,11 @@
 			"ImportPath": "github.com/Shopify/sarama",
 			"Comment": "v1.7.0-23-gd37c73f",
 			"Rev": "d37c73f2b2bce85f7fa16b6a550d26c5372892ef"
+		},
+		{
+			"ImportPath": "github.com/Sirupsen/logrus",
+			"Comment": "v0.10.0-38-g3ec0642",
+			"Rev": "3ec0642a7fb6488f65b06f9040adc67e3990296a"
 		},
 		{
 			"ImportPath": "github.com/eapache/go-resiliency/breaker",
@@ -30,6 +35,11 @@
 		{
 			"ImportPath": "github.com/gorilla/context",
 			"Rev": "1c83b3eabd45b6d76072b66b746c20815fb2872d"
+		},
+		{
+			"ImportPath": "github.com/gorilla/handlers",
+			"Comment": "v1.1-11-ga577578",
+			"Rev": "a5775781a543af3c6b9f5baf10995e4d14168950"
 		},
 		{
 			"ImportPath": "github.com/gorilla/mux",
@@ -131,6 +141,10 @@
 		{
 			"ImportPath": "github.com/twinj/uuid",
 			"Rev": "70cac2bcd273ef6a371bb96cde363d28b68734c3"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/unix",
+			"Rev": "c200b10b5d5e122be351b67af224adc6128af5bf"
 		},
 		{
 			"ImportPath": "gopkg.in/fsnotify.v1",

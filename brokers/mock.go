@@ -1,6 +1,7 @@
 package brokers
 
 import (
+	"context"
 	"strconv"
 
 	"github.com/ARGOeu/argo-messaging/messages"
@@ -84,17 +85,22 @@ func (b *MockBroker) Initialize(peers []string) {
 func (b *MockBroker) Publish(topic string, msg messages.Message) (string, string, int, int64, error) {
 	payload, _ := msg.ExportJSON()
 	b.MsgList = append(b.MsgList, payload)
-	off := b.GetOffset(topic) - 1
+	off := b.GetMaxOffset(topic) - 1
 	msgID := strconv.FormatInt(off, 10)
 	return msgID, "argo_uuid.topic1", 0, int64(len(b.MsgList)), nil
 }
 
 // GetOffset returns a current topic's offset
-func (b *MockBroker) GetOffset(topic string) int64 {
+func (b *MockBroker) GetMaxOffset(topic string) int64 {
 	return int64(len(b.MsgList) + 1)
 }
 
+// GetOffset returns a current topic's offset
+func (b *MockBroker) GetMinOffset(topic string) int64 {
+	return int64(len(b.MsgList))
+}
+
 // Consume function to consume a message from the broker
-func (b *MockBroker) Consume(topic string, offset int64, imm bool) []string {
-	return b.MsgList
+func (b *MockBroker) Consume(ctx context.Context, topic string, offset int64, imm bool, max int64) ([]string, error) {
+	return b.MsgList, nil
 }

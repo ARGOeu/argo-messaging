@@ -3,7 +3,6 @@ package messages
 import (
 	b64 "encoding/base64"
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -52,6 +51,21 @@ func (suite *MsgTestSuite) TestAttributes() {
 	suite.Equal(errors.New("Attribute doesn't exist"), err1)
 }
 
+func (suite *MsgTestSuite) TestMsgListBytes() {
+
+	testMsg1 := New("this is a test")
+	testMsg2 := New("this is another test")
+	testMsg3 := New("this is another test")
+	sz1 := testMsg1.Size()
+	sz2 := testMsg2.Size()
+	sz3 := testMsg3.Size()
+	ml := MsgList{Msgs: []Message{}}
+	ml.Msgs = append(ml.Msgs, testMsg1)
+	ml.Msgs = append(ml.Msgs, testMsg2)
+	ml.Msgs = append(ml.Msgs, testMsg3)
+	suite.Equal(sz1+sz2+sz3, ml.TotalSize())
+}
+
 func (suite *MsgTestSuite) TestLoadMsgJson() {
 	txtJSON := `{
    "messageId": "35",
@@ -65,8 +79,6 @@ func (suite *MsgTestSuite) TestLoadMsgJson() {
 	expAttr := Attributes{"tick": "tock", "flip": "flop"}
 	suite.Equal(expAttr, testMsg.Attr)
 	suite.Equal("aGVsbG8gd29ybGQh", testMsg.Data)
-
-	fmt.Println(testMsg.Data)
 
 }
 
@@ -88,7 +100,6 @@ func (suite *MsgTestSuite) TestExportJson() {
 	outJSON, err := testMsg.ExportJSON()
 	suite.Equal(nil, err)
 	suite.Equal(expJSON, outJSON)
-	fmt.Println(outJSON)
 
 }
 

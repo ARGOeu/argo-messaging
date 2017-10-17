@@ -3,8 +3,10 @@ package auth
 import (
 	"errors"
 	"io/ioutil"
-	"log"
 	"testing"
+	"time"
+
+	log "github.com/Sirupsen/logrus"
 
 	"github.com/ARGOeu/argo-messaging/config"
 	"github.com/ARGOeu/argo-messaging/stores"
@@ -32,7 +34,7 @@ func (suite *AuthTestSuite) TestAuth() {
 	authen02, user02 := Authenticate("argo_uuid", "falseSECRET", store)
 	suite.Equal("UserA", user01)
 	suite.Equal("", user02)
-	suite.Equal([]string{"admin", "member"}, authen01)
+	suite.Equal([]string{"consumer", "publisher"}, authen01)
 	suite.Equal([]string{}, authen02)
 
 	suite.Equal(true, Authorize("topics:list_all", []string{"admin"}, store))
@@ -125,73 +127,121 @@ func (suite *AuthTestSuite) TestAuth() {
             {
                "project": "ARGO",
                "roles": [
-                  "admin",
-                  "member"
-               ]
+                  "consumer",
+                  "publisher"
+               ],
+               "topics": [],
+               "subscriptions": []
             }
          ],
          "name": "Test",
          "token": "S3CR3T",
          "email": "Test@test.com",
-         "service_roles": []
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z"
       },
       {
          "projects": [
             {
                "project": "ARGO",
                "roles": [
-                  "admin",
-                  "member"
+                  "consumer",
+                  "publisher"
+               ],
+               "topics": [
+                  "topic1",
+                  "topic2"
+               ],
+               "subscriptions": [
+                  "sub1",
+                  "sub2",
+                  "sub3"
                ]
             }
          ],
          "name": "UserA",
          "token": "S3CR3T1",
          "email": "foo-email",
-         "service_roles": []
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z"
       },
       {
          "projects": [
             {
                "project": "ARGO",
                "roles": [
-                  "admin",
-                  "member"
+                  "consumer",
+                  "publisher"
+               ],
+               "topics": [
+                  "topic1",
+                  "topic2"
+               ],
+               "subscriptions": [
+                  "sub1",
+                  "sub3",
+                  "sub4"
                ]
             }
          ],
          "name": "UserB",
          "token": "S3CR3T2",
          "email": "foo-email",
-         "service_roles": []
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "UserA"
       },
       {
          "projects": [
             {
                "project": "ARGO",
                "roles": [
+                  "publisher",
                   "consumer"
+               ],
+               "topics": [
+                  "topic3"
+               ],
+               "subscriptions": [
+                  "sub2"
                ]
             }
          ],
          "name": "UserX",
          "token": "S3CR3T3",
          "email": "foo-email",
-         "service_roles": []
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "UserA"
       },
       {
          "projects": [
             {
                "project": "ARGO",
                "roles": [
-                  "producer"
+                  "publisher",
+                  "consumer"
+               ],
+               "topics": [
+                  "topic2"
+               ],
+               "subscriptions": [
+                  "sub3",
+                  "sub4"
                ]
             }
          ],
          "name": "UserZ",
          "token": "S3CR3T4",
          "email": "foo-email",
-         "service_roles": []
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "UserA"
       }
    ]
 }`
@@ -199,6 +249,37 @@ func (suite *AuthTestSuite) TestAuth() {
 	users, _ := FindUsers("argo_uuid", "", "", store)
 	outUserList, _ := users.ExportJSON()
 	suite.Equal(expUserList, outUserList)
+
+	expUsrTkJSON := `{
+   "projects": [
+      {
+         "project": "ARGO",
+         "roles": [
+            "publisher",
+            "consumer"
+         ],
+         "topics": [
+            "topic2"
+         ],
+         "subscriptions": [
+            "sub3",
+            "sub4"
+         ]
+      }
+   ],
+   "name": "UserZ",
+   "token": "S3CR3T4",
+   "email": "foo-email",
+   "service_roles": [],
+   "created_on": "2009-11-10T23:00:00Z",
+   "modified_on": "2009-11-10T23:00:00Z",
+   "created_by": "UserA"
+}`
+
+	// Test GetUserByToken
+	userTk, _ := GetUserByToken("S3CR3T4", store)
+	usrTkJSON, _ := userTk.ExportJSON()
+	suite.Equal(expUsrTkJSON, usrTkJSON)
 
 	suite.Equal(true, ExistsWithName("UserA", store))
 	suite.Equal(false, ExistsWithName("userA", store))
@@ -232,7 +313,9 @@ func (suite *AuthTestSuite) TestAuth() {
          "project": "ARGO",
          "roles": [
             "consumer"
-         ]
+         ],
+         "topics": [],
+         "subscriptions": []
       }
    ],
    "name": "johndoe",
@@ -240,11 +323,15 @@ func (suite *AuthTestSuite) TestAuth() {
    "email": "TOK3N",
    "service_roles": [
       "service_admin"
-   ]
+   ],
+   "created_on": "2009-11-10T23:00:00Z",
+   "modified_on": "2009-11-10T23:00:00Z"
 }`
 
+	tm := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
+
 	// Test Create
-	CreateUser("uuid12", "johndoe", []ProjectRoles{ProjectRoles{Project: "ARGO", Roles: []string{"consumer"}}}, "johndoe@fake.email.foo", "TOK3N", []string{"service_admin"}, store)
+	CreateUser("uuid12", "johndoe", []ProjectRoles{ProjectRoles{Project: "ARGO", Roles: []string{"consumer"}}}, "johndoe@fake.email.foo", "TOK3N", []string{"service_admin"}, tm, "", store)
 	usrs, _ := FindUsers("", "uuid12", "", store)
 	usrJSON, _ := usrs.List[0].ExportJSON()
 	suite.Equal(expUsrJSON, usrJSON)
@@ -256,7 +343,9 @@ func (suite *AuthTestSuite) TestAuth() {
          "project": "ARGO",
          "roles": [
             "consumer"
-         ]
+         ],
+         "topics": [],
+         "subscriptions": []
       }
    ],
    "name": "johnny_doe",
@@ -265,9 +354,11 @@ func (suite *AuthTestSuite) TestAuth() {
    "service_roles": [
       "consumer",
       "producer"
-   ]
+   ],
+   "created_on": "2009-11-10T23:00:00Z",
+   "modified_on": "2009-11-10T23:00:00Z"
 }`
-	UpdateUser("uuid12", "johnny_doe", nil, "", []string{"consumer", "producer"}, store)
+	UpdateUser("uuid12", "johnny_doe", nil, "", []string{"consumer", "producer"}, tm, store)
 	usrUpd, _ := FindUsers("", "uuid12", "", store)
 	usrUpdJSON, _ := usrUpd.List[0].ExportJSON()
 	suite.Equal(expUpdate, usrUpdJSON)

@@ -18,14 +18,14 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal("mockhost", store.Server)
 	suite.Equal("mockbase", store.Database)
 
-	eTopList := []QTopic{QTopic{"argo_uuid", "topic1"},
-		QTopic{"argo_uuid", "topic2"},
-		QTopic{"argo_uuid", "topic3"}}
+	eTopList := []QTopic{QTopic{"argo_uuid", "topic1", 0, 0},
+		QTopic{"argo_uuid", "topic2", 0, 0},
+		QTopic{"argo_uuid", "topic3", 0, 0}}
 
-	eSubList := []QSub{QSub{"argo_uuid", "sub1", "topic1", 0, 0, "", "", 10, "linear", 300},
-		QSub{"argo_uuid", "sub2", "topic2", 0, 0, "", "", 10, "linear", 300},
-		QSub{"argo_uuid", "sub3", "topic3", 0, 0, "", "", 10, "linear", 300},
-		QSub{"argo_uuid", "sub4", "topic4", 0, 0, "", "endpoint.foo", 10, "linear", 300}}
+	eSubList := []QSub{QSub{"argo_uuid", "sub1", "topic1", 0, 0, "", "", 10, "linear", 300, 0, 0},
+		QSub{"argo_uuid", "sub2", "topic2", 0, 0, "", "", 10, "linear", 300, 0, 0},
+		QSub{"argo_uuid", "sub3", "topic3", 0, 0, "", "", 10, "linear", 300, 0, 0},
+		QSub{"argo_uuid", "sub4", "topic4", 0, 0, "", "endpoint.foo", 10, "linear", 300, 0, 0}}
 
 	tpList, _ := store.QueryTopics("argo_uuid", "")
 	suite.Equal(eTopList, tpList)
@@ -39,7 +39,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 	// Test user
 	roles01, _ := store.GetUserRoles("argo_uuid", "S3CR3T")
 	roles02, _ := store.GetUserRoles("argo_uuid", "SecretKey")
-	suite.Equal([]string{"admin", "member"}, roles01)
+	suite.Equal([]string{"consumer", "publisher"}, roles01)
 	suite.Equal([]string{}, roles02)
 
 	// Test roles
@@ -55,16 +55,16 @@ func (suite *StoreTestSuite) TestMockStore() {
 	store.InsertTopic("argo_uuid", "topicFresh")
 	store.InsertSub("argo_uuid", "subFresh", "topicFresh", 0, 10, "", "linear", 300)
 
-	eTopList2 := []QTopic{QTopic{"argo_uuid", "topic1"},
-		QTopic{"argo_uuid", "topic2"},
-		QTopic{"argo_uuid", "topic3"},
-		QTopic{"argo_uuid", "topicFresh"}}
+	eTopList2 := []QTopic{QTopic{"argo_uuid", "topic1", 0, 0},
+		QTopic{"argo_uuid", "topic2", 0, 0},
+		QTopic{"argo_uuid", "topic3", 0, 0},
+		QTopic{"argo_uuid", "topicFresh", 0, 0}}
 
-	eSubList2 := []QSub{QSub{"argo_uuid", "sub1", "topic1", 0, 0, "", "", 10, "linear", 300},
-		QSub{"argo_uuid", "sub2", "topic2", 0, 0, "", "", 10, "linear", 300},
-		QSub{"argo_uuid", "sub3", "topic3", 0, 0, "", "", 10, "linear", 300},
-		QSub{"argo_uuid", "sub4", "topic4", 0, 0, "", "endpoint.foo", 10, "linear", 300},
-		QSub{"argo_uuid", "subFresh", "topicFresh", 0, 0, "", "", 10, "linear", 300}}
+	eSubList2 := []QSub{QSub{"argo_uuid", "sub1", "topic1", 0, 0, "", "", 10, "linear", 300, 0, 0},
+		QSub{"argo_uuid", "sub2", "topic2", 0, 0, "", "", 10, "linear", 300, 0, 0},
+		QSub{"argo_uuid", "sub3", "topic3", 0, 0, "", "", 10, "linear", 300, 0, 0},
+		QSub{"argo_uuid", "sub4", "topic4", 0, 0, "", "endpoint.foo", 10, "linear", 300, 0, 0},
+		QSub{"argo_uuid", "subFresh", "topicFresh", 0, 0, "", "", 10, "linear", 300, 0, 0}}
 
 	tpList, _ = store.QueryTopics("argo_uuid", "")
 	suite.Equal(eTopList2, tpList)
@@ -192,6 +192,12 @@ func (suite *StoreTestSuite) TestMockStore() {
 	prUp3, _ := store.QueryProjects("argo_uuid3", "")
 	suite.Equal(expPr3, prUp3[0])
 
+	// Test Sub Update Pull
+	err = store.UpdateSubPull("argo_uuid", "sub4", 4, "2016-10-11T12:00:35:15Z")
+	qSubUpd, err := store.QuerySubs("argo_uuid", "sub4")
+	var nxtOff int64 = 4
+	suite.Equal(qSubUpd[0].NextOffset, nxtOff)
+	suite.Equal("2016-10-11T12:00:35:15Z", qSubUpd[0].PendingAck)
 	// Test RemoveProjectTopics
 	store.RemoveProjectTopics("argo_uuid")
 	resTop, _ := store.QueryTopics("argo_uuid", "")
@@ -209,10 +215,10 @@ func (suite *StoreTestSuite) TestMockStore() {
 	// Test Insert User
 	qRoleAdmin1 := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"admin"}}}
 	qRoles := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"admin"}}, QProjectRoles{"argo_uuid2", []string{"admin", "viewer"}}}
-	expUsr10 := QUser{"user_uuid10", qRoleAdmin1, "newUser1", "A3B94A94V3A", "fake@email.com", []string{}}
-	expUsr11 := QUser{"user_uuid11", qRoles, "newUser2", "BX312Z34NLQ", "fake@email.com", []string{}}
-	store.InsertUser("user_uuid10", qRoleAdmin1, "newUser1", "A3B94A94V3A", "fake@email.com", []string{})
-	store.InsertUser("user_uuid11", qRoles, "newUser2", "BX312Z34NLQ", "fake@email.com", []string{})
+	expUsr10 := QUser{"user_uuid10", qRoleAdmin1, "newUser1", "A3B94A94V3A", "fake@email.com", []string{}, created, modified, "uuid1"}
+	expUsr11 := QUser{"user_uuid11", qRoles, "newUser2", "BX312Z34NLQ", "fake@email.com", []string{}, created, modified, "uuid1"}
+	store.InsertUser("user_uuid10", qRoleAdmin1, "newUser1", "A3B94A94V3A", "fake@email.com", []string{}, created, modified, "uuid1")
+	store.InsertUser("user_uuid11", qRoles, "newUser2", "BX312Z34NLQ", "fake@email.com", []string{}, created, modified, "uuid1")
 	usr10, _ := store.QueryUsers("argo_uuid", "user_uuid10", "")
 	usr11, _ := store.QueryUsers("argo_uuid", "", "newUser2")
 
@@ -228,8 +234,8 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal([]string{"admin", "viewer"}, rolesB)
 
 	// Test Update User
-	usrUpdated := QUser{"user_uuid11", qRoles, "updated_name", "BX312Z34NLQ", "fake@email.com", []string{"service_admin"}}
-	store.UpdateUser("user_uuid11", nil, "updated_name", "", []string{"service_admin"})
+	usrUpdated := QUser{"user_uuid11", qRoles, "updated_name", "BX312Z34NLQ", "fake@email.com", []string{"service_admin"}, created, modified, "uuid1"}
+	store.UpdateUser("user_uuid11", nil, "updated_name", "", []string{"service_admin"}, modified)
 	usr11, _ = store.QueryUsers("", "user_uuid11", "")
 	suite.Equal(usrUpdated, usr11[0])
 
@@ -237,6 +243,9 @@ func (suite *StoreTestSuite) TestMockStore() {
 	store.RemoveUser("user_uuid11")
 	usr11, err = store.QueryUsers("", "user_uuid11", "")
 	suite.Equal(errors.New("not found"), err)
+
+	usrGet, _ := store.GetUserFromToken("A3B94A94V3A")
+	suite.Equal(usr10[0], usrGet)
 
 }
 
