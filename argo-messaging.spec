@@ -93,7 +93,6 @@ go clean
 - ARGO-630 Fix msg id mapping to broker offset issue  
 - ARGO-628 Fix offset off bug  
 - ARGO-624 Fix consumer acl bug   
-- Changes to the documentation   
 - ARGO-615 Add secondary logging of messages that exceed size threshold  
 - ARGO-595 Fix users listing null details if user doesn't exist  
 - ARGO-519 Implement configurable level-logging  
