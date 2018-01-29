@@ -126,7 +126,8 @@ func (b *KafkaBroker) Publish(topic string, msg messages.Message) (string, strin
 	msg.ID = strconv.FormatInt(off, 10)
 	// Stamp time to UTC Z to nanoseconds
 	zNano := "2006-01-02T15:04:05.999999999Z"
-	t := time.Now()
+	// Timestamp on publish time -- should be in UTC
+	t := time.Now().UTC()
 	msg.PubTime = t.Format(zNano)
 
 	// Publish the message
