@@ -735,6 +735,55 @@ func UserListOne(w http.ResponseWriter, r *http.Request) {
 
 }
 
+
+func UserListByUUID(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+
+	// Grab context references
+	refStr := context.Get(r, "str").(stores.Store)
+
+	// Get Results Object
+	result, err := auth.GetUserByUUID(urlVars["uuid"], refStr)
+
+	if err != nil {
+		if err.Error() == "not found" {
+			respondErr(w, 404, "User does not exist", "NOT_FOUND")
+			return
+		}
+
+		if err.Error() == "multiple uuids" {
+			respondErr(w, 500, "Multiple users found with the same uuid", "INTERNAL")
+			return
+		}
+
+		respondErr(w, 500, "Internal error while querying datastore", "INTERNAL")
+		return
+	}
+
+	// Output result to JSON
+	resJSON, err := result.ExportJSON()
+
+	if err != nil {
+		respondErr(w, 500, "Error exporting data", "INTERNAL")
+		return
+	}
+
+	// Write response
+	output = []byte(resJSON)
+	respondOK(w, output)
+}
+
+
 // UserListAll (GET) all users belonging to a project
 func UserListAll(w http.ResponseWriter, r *http.Request) {
 
