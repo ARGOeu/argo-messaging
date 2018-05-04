@@ -123,6 +123,7 @@ func (suite *AuthTestSuite) TestAuth() {
 	expUserList := `{
    "users": [
       {
+         "uuid": "uuid0",
          "projects": [
             {
                "project": "ARGO",
@@ -142,6 +143,7 @@ func (suite *AuthTestSuite) TestAuth() {
          "modified_on": "2009-11-10T23:00:00Z"
       },
       {
+         "uuid": "uuid1",
          "projects": [
             {
                "project": "ARGO",
@@ -168,6 +170,7 @@ func (suite *AuthTestSuite) TestAuth() {
          "modified_on": "2009-11-10T23:00:00Z"
       },
       {
+         "uuid": "uuid2",
          "projects": [
             {
                "project": "ARGO",
@@ -195,6 +198,7 @@ func (suite *AuthTestSuite) TestAuth() {
          "created_by": "UserA"
       },
       {
+         "uuid": "uuid3",
          "projects": [
             {
                "project": "ARGO",
@@ -219,6 +223,7 @@ func (suite *AuthTestSuite) TestAuth() {
          "created_by": "UserA"
       },
       {
+         "uuid": "uuid4",
          "projects": [
             {
                "project": "ARGO",
@@ -244,6 +249,7 @@ func (suite *AuthTestSuite) TestAuth() {
          "created_by": "UserA"
       },
       {
+         "uuid": "same_uuid",
          "projects": [
             {
                "project": "ARGO",
@@ -264,6 +270,7 @@ func (suite *AuthTestSuite) TestAuth() {
          "created_by": "UserA"
       },
       {
+         "uuid": "same_uuid",
          "projects": [
             {
                "project": "ARGO",
@@ -291,6 +298,7 @@ func (suite *AuthTestSuite) TestAuth() {
 	suite.Equal(expUserList, outUserList)
 
 	expUsrTkJSON := `{
+   "uuid": "uuid4",
    "projects": [
       {
          "project": "ARGO",
@@ -340,6 +348,7 @@ func (suite *AuthTestSuite) TestAuth() {
 
 	// Test GetUserByUUID
 	expUsrUUIDJSON := `{
+   "uuid": "uuid4",
    "projects": [
       {
          "project": "ARGO",
@@ -394,6 +403,7 @@ func (suite *AuthTestSuite) TestAuth() {
 	suite.Equal(false, tk2 == tk3)
 
 	expUsrJSON := `{
+   "uuid": "uuid12",
    "projects": [
       {
          "project": "ARGO",
@@ -424,6 +434,7 @@ func (suite *AuthTestSuite) TestAuth() {
 
 	// Test Update
 	expUpdate := `{
+   "uuid": "uuid12",
    "projects": [
       {
          "project": "ARGO",

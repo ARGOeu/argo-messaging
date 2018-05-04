@@ -14,7 +14,7 @@ import (
 
 // User is the struct that holds user information
 type User struct {
-	UUID         string         `json:"-"`
+	UUID         string         `json:"uuid"`
 	Projects     []ProjectRoles `json:"projects"`
 	Name         string         `json:"name"`
 	Token        string         `json:"token"`

@@ -26,6 +26,7 @@ Success Response
 {
  "users": [
     {
+       "uuid": "99bfd746-4ebe-11e8-9c2d-fa7ae01bbebw",
        "projects": [
           {
              "project": "ARGO",
@@ -45,6 +46,7 @@ Success Response
        "modified_on": "2009-11-10T23:00:00Z"
     },
     {
+       "uuid": "99bfd746-4ebe-11e8-9c2d-fa7ae01bbebc",
        "projects": [
           {
              "project": "ARGO",
@@ -71,6 +73,7 @@ Success Response
        "modified_on": "2009-11-10T23:00:00Z"
     },
     {
+       "uuid": "94bfd746-4ebe-11e8-9c2d-fa7ae01bbebc",
        "projects": [
           {
              "project": "ARGO",
@@ -98,6 +101,7 @@ Success Response
        "created_by": "UserA"
     },
     {
+       "uuid": "99bfd746-4ebe-11e8-9c2d-fa7ae01bberr",
        "projects": [
           {
              "project": "ARGO",
@@ -122,6 +126,7 @@ Success Response
        "created_by": "UserA"
     },
     {
+       "uuid": "99bfd746-4ebe-11e8-9c2d-fa7ae01bbfrt",
        "projects": [
           {
              "project": "ARGO",
@@ -179,6 +184,7 @@ Success Response
 
 ```json
 {
+   "uuid": "99bfd746-4rte-11e8-9c2d-fa7ae01bbebc",
    "projects": [
       {
          "project": "ARGO",
@@ -234,6 +240,7 @@ Success Response
 
 ```json
 {
+   "uuid": "99bfd746-4ebe-11e8-9c2d-fa7ae01bbebc",
    "projects": [
       {
          "project": "ARGO",
@@ -289,6 +296,7 @@ Success Response
 
 ```json
 {
+   "uuid": "99bfd746-4ebe-11e8-9c2d-fa7ae01bbebc",
    "projects": [
       {
          "project": "ARGO",
@@ -379,6 +387,7 @@ Success Response
 `200 OK`
 ```json
 {
+ "uuid": "99bfd746-4ebe-11e8-9c2a-fa7ae01bbebc",
  "projects": [
     {
        "project": "ARGO",
@@ -413,6 +422,7 @@ PUT "/v1/users/{user_name}"
 ### Put body:
 ```json
 {
+"uuid": "99bfd746-4ebe-11e8-9c2d-fa7ae01bbebz",
  "projects": [
     {
        "project": "ARGO2",
@@ -449,6 +459,7 @@ Success Response
 
 ```json
 {
+"uuid": "99bfd740-4ebe-11e8-9c2d-fa7ae01bbebc",
  "projects": [
     {
        "project": "ARGO2",
@@ -498,6 +509,7 @@ Success Response
 
 ```json
 {
+"uuid": "99bfd746-4ebe-11p0-9c2d-fa7ae01bbebc",
  "projects": [
     {
        "project": "ARGO",
