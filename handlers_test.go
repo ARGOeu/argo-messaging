@@ -165,6 +165,7 @@ func (suite *HandlerTestSuite) TestUserListByToken() {
 	}
 
 	expResp := `{
+   "uuid": "uuid1",
    "projects": [
       {
          "project": "ARGO",
@@ -214,6 +215,7 @@ func (suite *HandlerTestSuite) TestUserListByUUID() {
 	}
 
 	expResp := `{
+   "uuid": "uuid4",
    "projects": [
       {
          "project": "ARGO",
@@ -322,6 +324,7 @@ func (suite *HandlerTestSuite) TestUserListOne() {
 	}
 
 	expResp := `{
+   "uuid": "uuid1",
    "projects": [
       {
          "project": "ARGO",
@@ -373,6 +376,7 @@ func (suite *HandlerTestSuite) TestUserListAll() {
 	expResp := `{
    "users": [
       {
+         "uuid": "uuid0",
          "projects": [
             {
                "project": "ARGO",
@@ -392,6 +396,7 @@ func (suite *HandlerTestSuite) TestUserListAll() {
          "modified_on": "2009-11-10T23:00:00Z"
       },
       {
+         "uuid": "uuid1",
          "projects": [
             {
                "project": "ARGO",
@@ -418,6 +423,7 @@ func (suite *HandlerTestSuite) TestUserListAll() {
          "modified_on": "2009-11-10T23:00:00Z"
       },
       {
+         "uuid": "uuid2",
          "projects": [
             {
                "project": "ARGO",
@@ -445,6 +451,7 @@ func (suite *HandlerTestSuite) TestUserListAll() {
          "created_by": "UserA"
       },
       {
+         "uuid": "uuid3",
          "projects": [
             {
                "project": "ARGO",
@@ -469,6 +476,7 @@ func (suite *HandlerTestSuite) TestUserListAll() {
          "created_by": "UserA"
       },
       {
+         "uuid": "uuid4",
          "projects": [
             {
                "project": "ARGO",
@@ -494,6 +502,7 @@ func (suite *HandlerTestSuite) TestUserListAll() {
          "created_by": "UserA"
       },
       {
+         "uuid": "same_uuid",
          "projects": [
             {
                "project": "ARGO",
@@ -514,6 +523,7 @@ func (suite *HandlerTestSuite) TestUserListAll() {
          "created_by": "UserA"
       },
       {
+         "uuid": "same_uuid",
          "projects": [
             {
                "project": "ARGO",
