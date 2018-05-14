@@ -2303,7 +2303,7 @@ func (suite *HandlerTestSuite) TestSubAck() {
 
 	// grab sub1
 	zSec := "2006-01-02T15:04:05Z"
-	t := time.Now()
+	t := time.Now().UTC()
 	ts := t.Format(zSec)
 	str.SubList[0].PendingAck = ts
 	str.SubList[0].NextOffset = 3
@@ -2318,7 +2318,7 @@ func (suite *HandlerTestSuite) TestSubAck() {
 	suite.Equal("{}", w2.Body.String())
 
 	// mess with the timeout
-	t2 := time.Now().Add(-11 * time.Second)
+	t2 := time.Now().UTC().Add(-11 * time.Second)
 	ts2 := t2.Format(zSec)
 	str.SubList[0].PendingAck = ts2
 	str.SubList[0].NextOffset = 4
