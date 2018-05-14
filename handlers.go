@@ -245,7 +245,7 @@ func ProjectUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	modified := time.Now()
+	modified := time.Now().UTC()
 	// Get Result Object
 
 	res, err := projects.UpdateProject(projectUUID, postBody.Name, postBody.Description, modified, refStr)
@@ -313,7 +313,7 @@ func ProjectCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	uuid := uuid.NewV4().String() // generate a new uuid to attach to the new project
-	created := time.Now()
+	created := time.Now().UTC()
 	// Get Result Object
 	res, err := projects.CreateProject(uuid, urlProject, created, refUserUUID, postBody.Description, refStr)
 
@@ -509,7 +509,7 @@ func UserUpdate(w http.ResponseWriter, r *http.Request) {
 
 	// Get Result Object
 	userUUID := auth.GetUUIDByName(urlUser, refStr)
-	modified := time.Now()
+	modified := time.Now().UTC()
 	res, err := auth.UpdateUser(userUUID, postBody.Name, postBody.Projects, postBody.Email, postBody.ServiceRoles, modified, refStr)
 
 	if err != nil {
@@ -579,7 +579,7 @@ func UserCreate(w http.ResponseWriter, r *http.Request) {
 
 	uuid := uuid.NewV4().String() // generate a new uuid to attach to the new project
 	token, err := auth.GenToken() // generate a new user token
-	created := time.Now()
+	created := time.Now().UTC()
 	// Get Result Object
 	res, err := auth.CreateUser(uuid, urlUser, postBody.Projects, token, postBody.Email, postBody.ServiceRoles, created, refUserUUID, refStr)
 
@@ -735,7 +735,6 @@ func UserListOne(w http.ResponseWriter, r *http.Request) {
 
 }
 
-
 func UserListByUUID(w http.ResponseWriter, r *http.Request) {
 
 	// Init output
@@ -782,7 +781,6 @@ func UserListByUUID(w http.ResponseWriter, r *http.Request) {
 	output = []byte(resJSON)
 	respondOK(w, output)
 }
-
 
 // UserListAll (GET) all users belonging to a project
 func UserListAll(w http.ResponseWriter, r *http.Request) {
@@ -932,7 +930,7 @@ func SubAck(w http.ResponseWriter, r *http.Request) {
 	}
 
 	zSec := "2006-01-02T15:04:05Z"
-	t := time.Now()
+	t := time.Now().UTC()
 	ts := t.Format(zSec)
 
 	err = refStr.UpdateSubOffsetAck(projectUUID, urlVars["subscription"], int64(off+1), ts)
@@ -2241,7 +2239,7 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 
 	// Stamp time to UTC Z to seconds
 	zSec := "2006-01-02T15:04:05Z"
-	t := time.Now()
+	t := time.Now().UTC()
 	ts := t.Format(zSec)
 	refStr.UpdateSubPull(targSub.ProjectUUID, targSub.Name, int64(len(recList.RecMsgs))+targSub.Offset, ts)
 
