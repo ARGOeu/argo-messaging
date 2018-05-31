@@ -3,6 +3,7 @@ package config
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -53,24 +54,50 @@ type brokerInfo struct {
 	Port int
 }
 
-// GetZooList gets list from zookeeper
-func (cfg *APICfg) GetZooList() []string {
-	zConn, _, err := zk.Connect(cfg.ZooHosts, time.Second)
-	if err != nil {
-		panic(err)
+// GetBrokerInfo is a wrapper over GetZooList which retrieves broker information from zookeeper
+func (cfg *APICfg) GetBrokerInfo() []string {
+	// Iterate trying to retrieve broker information from zookeeper
+	for {
+		brkList, err := cfg.GetZooList()
+		if err != nil {
+			// If error retrieving info try again in 3 seconds
+			time.Sleep(3 * time.Second)
+			log.Error("ZK", "\t", "Broker list invalid: ", err.Error())
+		} else {
+			// Info retrieved succesfully so continue
+			log.Info("ZK", "\t", "Discovered broker list:", brkList)
+			return brkList
+		}
+
 	}
-	brIDs, _, err := zConn.Children(cfg.KafkaZnode + "/brokers/ids")
+}
+
+// GetZooList gets broker list from zookeeper
+func (cfg *APICfg) GetZooList() ([]string, error) {
+	peerList := []string{}
+	log.Info("ZK", "\t", "Trying to connect zookeper hosts: ", cfg.ZooHosts, " ...")
+	zConn, _, err := zk.Connect(cfg.ZooHosts, time.Second)
+	// Check if indeed connected and can read
+	_, _, _, err = zConn.ChildrenW("/")
 	if err != nil {
-		panic(err)
+		zConn.Close()
+		return peerList, err
 	}
 
-	peerList := []string{}
+	log.Info("ZK", "\t", "Connected to zookeper hosts: ", cfg.ZooHosts)
+	log.Info("ZK", "\t", "Attempting to read broker information")
+	brIDs, _, err := zConn.Children(cfg.KafkaZnode + "/brokers/ids")
+	if err != nil {
+		return peerList, err
+	}
 
 	for _, brID := range brIDs {
 		data, _, err := zConn.Get(cfg.KafkaZnode + "/brokers/ids/" + brID)
+
 		if err != nil {
-			panic(err)
+			return peerList, err
 		}
+
 		var brk brokerInfo
 		json.Unmarshal(data, &brk)
 		peer := brk.Host + ":" + strconv.Itoa(brk.Port)
@@ -78,7 +105,11 @@ func (cfg *APICfg) GetZooList() []string {
 
 	}
 
-	return peerList
+	if len(peerList) == 0 {
+		return peerList, errors.New("empty")
+	}
+
+	return peerList, nil
 }
 
 func setLogLevel(logLvl string) {
