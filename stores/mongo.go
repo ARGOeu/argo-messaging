@@ -41,16 +41,21 @@ func (mong *MongoStore) Clone() Store {
 // Initialize initializes the mongo store struct
 func (mong *MongoStore) Initialize() {
 
-	session, err := mgo.Dial(mong.Server)
-	if err != nil {
-
-		log.Fatal("STORE", "\t", err.Error())
-
+	// Iterate trying to connect
+	for {
+		log.Info("STORE", "\t", "Trying to connect to Mongo: ", mong.Server)
+		session, err := mgo.Dial(mong.Server)
+		if err != nil {
+			// If connection to datastore failed log error and retry
+			log.Error("STORE", "\t", err.Error())
+		} else {
+			// If connection succesfull continue
+			mong.Session = session
+			log.Info("STORE", "\t", "Connected to Mongo: ", mong.Server)
+			break // connected so continue
+		}
 	}
 
-	mong.Session = session
-
-	log.Info("STORE", "\t", "Connected to Mongo: ", mong.Server)
 }
 
 // QueryProjects queries the database for a specific project or a list of all projects

@@ -84,8 +84,25 @@ func (b *KafkaBroker) InitConfig() {
 	b.Config = sarama.NewConfig()
 }
 
-// Initialize the broker struct
+// Initialize method is a retry wrapper for init (which attempts to connect to broker backend)
 func (b *KafkaBroker) Initialize(peers []string) {
+	for {
+		// Try to initialize broker backend
+		log.Info("BROKER", "\t", "Attempting to connect to kafka backend: ", peers)
+		err := b.init(peers)
+		// if err happened log it and retry in 3sec - else all is ok so return
+		if err != nil {
+			log.Error("BROKER", "\t", err.Error())
+			time.Sleep(3 * time.Second)
+		} else {
+			log.Info("BROKER", "\t", "Kafka Backend Initialized! Kafka node list", peers)
+			return
+		}
+	}
+}
+
+// init attempts to connect to broker backend and initialize local broker-related structures
+func (b *KafkaBroker) init(peers []string) error {
 	b.createTopicLock = topicLock{}
 	b.consumeLock = make(map[string]*topicLock)
 	b.Config = sarama.NewConfig()
@@ -98,25 +115,20 @@ func (b *KafkaBroker) Initialize(peers []string) {
 
 	b.Client, err = sarama.NewClient(b.Servers, nil)
 	if err != nil {
-		// Should not reach here
-		log.Fatal("BROKER", "\t", err.Error())
+		return err
 	}
 
 	b.Producer, err = sarama.NewSyncProducer(b.Servers, b.Config)
 	if err != nil {
-		// Should not reach here
-		log.Fatal("BROKER", "\t", err.Error())
-
+		return err
 	}
 
 	b.Consumer, err = sarama.NewConsumer(b.Servers, b.Config)
-
 	if err != nil {
-		log.Fatal("BROKER", "\t", err.Error())
+		return err
 	}
 
-	log.Info("BROKER", "\t", "Kafka Backend Initialized! Kafka node list", peers)
-
+	return nil
 }
 
 // Publish function publish a message to the broker
