@@ -26,6 +26,7 @@ Success Response
 {
  "users": [
     {
+       "uuid": "99bfd746-4ebe-11e8-9c2d-fa7ae01bbebw",
        "projects": [
           {
              "project": "ARGO",
@@ -45,6 +46,7 @@ Success Response
        "modified_on": "2009-11-10T23:00:00Z"
     },
     {
+       "uuid": "99bfd746-4ebe-11e8-9c2d-fa7ae01bbebc",
        "projects": [
           {
              "project": "ARGO",
@@ -71,6 +73,7 @@ Success Response
        "modified_on": "2009-11-10T23:00:00Z"
     },
     {
+       "uuid": "94bfd746-4ebe-11e8-9c2d-fa7ae01bbebc",
        "projects": [
           {
              "project": "ARGO",
@@ -98,6 +101,7 @@ Success Response
        "created_by": "UserA"
     },
     {
+       "uuid": "99bfd746-4ebe-11e8-9c2d-fa7ae01bberr",
        "projects": [
           {
              "project": "ARGO",
@@ -122,6 +126,7 @@ Success Response
        "created_by": "UserA"
     },
     {
+       "uuid": "99bfd746-4ebe-11e8-9c2d-fa7ae01bbfrt",
        "projects": [
           {
              "project": "ARGO",
@@ -179,6 +184,7 @@ Success Response
 
 ```json
 {
+   "uuid": "99bfd746-4rte-11e8-9c2d-fa7ae01bbebc",
    "projects": [
       {
          "project": "ARGO",
@@ -234,6 +240,7 @@ Success Response
 
 ```json
 {
+   "uuid": "99bfd746-4ebe-11e8-9c2d-fa7ae01bbebc",
    "projects": [
       {
          "project": "ARGO",
@@ -264,7 +271,61 @@ Success Response
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
 
+## [GET] Manage Users - List a specific user by UUID
+This request lists information about a specific user using user's UUID as input
 
+### Request
+```
+GET "/v1/users:byUUID/{uuid}"
+```
+
+### Where
+- uuid: the uuid of the user
+
+### Example request
+```
+curl -X GET -H "Content-Type: application/json"
+  "https://{URL}/v1/users:byUUID/99bfd746-4ebe-11e8-9c2d-fa7ae01bbebc?key=S3CR3T"
+```
+
+### Responses  
+If successful, the response contains information about the specific user
+
+Success Response
+`200 OK`
+
+```json
+{
+   "uuid": "99bfd746-4ebe-11e8-9c2d-fa7ae01bbebc",
+   "projects": [
+      {
+         "project": "ARGO",
+         "roles": [
+            "consumer",
+            "publisher"
+         ],
+         "topics": [
+            "topic1",
+            "topic2"
+         ],
+         "subscriptions": [
+            "sub1",
+            "sub2",
+            "sub3"
+         ]
+      }
+   ],
+   "name": "UserA",
+   "token": "S3CR3T1",
+   "email": "foo-email",
+   "service_roles": [],
+   "created_on": "2009-11-10T23:00:00Z",
+   "modified_on": "2009-11-10T23:00:00Z"
+}
+```
+
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors
 
 ## [POST] Manage Users - Create new user
 This request creates a new user in a project
@@ -326,6 +387,7 @@ Success Response
 `200 OK`
 ```json
 {
+ "uuid": "99bfd746-4ebe-11e8-9c2a-fa7ae01bbebc",
  "projects": [
     {
        "project": "ARGO",
@@ -360,6 +422,7 @@ PUT "/v1/users/{user_name}"
 ### Put body:
 ```json
 {
+"uuid": "99bfd746-4ebe-11e8-9c2d-fa7ae01bbebz",
  "projects": [
     {
        "project": "ARGO2",
@@ -396,6 +459,7 @@ Success Response
 
 ```json
 {
+"uuid": "99bfd740-4ebe-11e8-9c2d-fa7ae01bbebc",
  "projects": [
     {
        "project": "ARGO2",
@@ -445,6 +509,7 @@ Success Response
 
 ```json
 {
+"uuid": "99bfd746-4ebe-11p0-9c2d-fa7ae01bbebc",
  "projects": [
     {
        "project": "ARGO",

@@ -123,6 +123,7 @@ func (suite *AuthTestSuite) TestAuth() {
 	expUserList := `{
    "users": [
       {
+         "uuid": "uuid0",
          "projects": [
             {
                "project": "ARGO",
@@ -142,6 +143,7 @@ func (suite *AuthTestSuite) TestAuth() {
          "modified_on": "2009-11-10T23:00:00Z"
       },
       {
+         "uuid": "uuid1",
          "projects": [
             {
                "project": "ARGO",
@@ -168,6 +170,7 @@ func (suite *AuthTestSuite) TestAuth() {
          "modified_on": "2009-11-10T23:00:00Z"
       },
       {
+         "uuid": "uuid2",
          "projects": [
             {
                "project": "ARGO",
@@ -195,6 +198,7 @@ func (suite *AuthTestSuite) TestAuth() {
          "created_by": "UserA"
       },
       {
+         "uuid": "uuid3",
          "projects": [
             {
                "project": "ARGO",
@@ -219,6 +223,7 @@ func (suite *AuthTestSuite) TestAuth() {
          "created_by": "UserA"
       },
       {
+         "uuid": "uuid4",
          "projects": [
             {
                "project": "ARGO",
@@ -242,6 +247,48 @@ func (suite *AuthTestSuite) TestAuth() {
          "created_on": "2009-11-10T23:00:00Z",
          "modified_on": "2009-11-10T23:00:00Z",
          "created_by": "UserA"
+      },
+      {
+         "uuid": "same_uuid",
+         "projects": [
+            {
+               "project": "ARGO",
+               "roles": [
+                  "publisher",
+                  "consumer"
+               ],
+               "topics": [],
+               "subscriptions": []
+            }
+         ],
+         "name": "UserSame1",
+         "token": "S3CR3T41",
+         "email": "foo-email",
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "UserA"
+      },
+      {
+         "uuid": "same_uuid",
+         "projects": [
+            {
+               "project": "ARGO",
+               "roles": [
+                  "publisher",
+                  "consumer"
+               ],
+               "topics": [],
+               "subscriptions": []
+            }
+         ],
+         "name": "UserSame2",
+         "token": "S3CR3T42",
+         "email": "foo-email",
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "UserA"
       }
    ]
 }`
@@ -251,6 +298,7 @@ func (suite *AuthTestSuite) TestAuth() {
 	suite.Equal(expUserList, outUserList)
 
 	expUsrTkJSON := `{
+   "uuid": "uuid4",
    "projects": [
       {
          "project": "ARGO",
@@ -298,6 +346,53 @@ func (suite *AuthTestSuite) TestAuth() {
 	suite.Equal("uuid3", GetUUIDByName("UserX", store))
 	suite.Equal("uuid4", GetUUIDByName("UserZ", store))
 
+	// Test GetUserByUUID
+	expUsrUUIDJSON := `{
+   "uuid": "uuid4",
+   "projects": [
+      {
+         "project": "ARGO",
+         "roles": [
+            "publisher",
+            "consumer"
+         ],
+         "topics": [
+            "topic2"
+         ],
+         "subscriptions": [
+            "sub3",
+            "sub4"
+         ]
+      }
+   ],
+   "name": "UserZ",
+   "token": "S3CR3T4",
+   "email": "foo-email",
+   "service_roles": [],
+   "created_on": "2009-11-10T23:00:00Z",
+   "modified_on": "2009-11-10T23:00:00Z",
+   "created_by": "UserA"
+}`
+	// normal use case
+	expUsrUUID, expNilErr := GetUserByUUID("uuid4", store)
+	usrUUIDJson, _ := expUsrUUID.ExportJSON()
+
+	suite.Equal(usrUUIDJson, expUsrUUIDJSON)
+	suite.Nil(expNilErr)
+
+	// different users have the same uuid
+	expUsrMultipleUUID, expErrMultipleUUIDS  := GetUserByUUID("same_uuid", store)
+
+	suite.Equal("multiple uuids", expErrMultipleUUIDS.Error())
+	suite.Equal(User{}, expUsrMultipleUUID)
+
+	// user with given uuid doesn't exist
+	expUsrNotFoundUUID, expErrNotFoundUUID  := GetUserByUUID("uuid10", store)
+
+	suite.Equal("not found", expErrNotFoundUUID.Error())
+	suite.Equal(User{}, expUsrNotFoundUUID)
+
+
 	// Test TokenGeneration
 	tk1, _ := GenToken()
 	tk2, _ := GenToken()
@@ -308,6 +403,7 @@ func (suite *AuthTestSuite) TestAuth() {
 	suite.Equal(false, tk2 == tk3)
 
 	expUsrJSON := `{
+   "uuid": "uuid12",
    "projects": [
       {
          "project": "ARGO",
@@ -338,6 +434,7 @@ func (suite *AuthTestSuite) TestAuth() {
 
 	// Test Update
 	expUpdate := `{
+   "uuid": "uuid12",
    "projects": [
       {
          "project": "ARGO",

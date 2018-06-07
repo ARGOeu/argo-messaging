@@ -245,7 +245,7 @@ func ProjectUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	modified := time.Now()
+	modified := time.Now().UTC()
 	// Get Result Object
 
 	res, err := projects.UpdateProject(projectUUID, postBody.Name, postBody.Description, modified, refStr)
@@ -313,7 +313,7 @@ func ProjectCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	uuid := uuid.NewV4().String() // generate a new uuid to attach to the new project
-	created := time.Now()
+	created := time.Now().UTC()
 	// Get Result Object
 	res, err := projects.CreateProject(uuid, urlProject, created, refUserUUID, postBody.Description, refStr)
 
@@ -509,7 +509,7 @@ func UserUpdate(w http.ResponseWriter, r *http.Request) {
 
 	// Get Result Object
 	userUUID := auth.GetUUIDByName(urlUser, refStr)
-	modified := time.Now()
+	modified := time.Now().UTC()
 	res, err := auth.UpdateUser(userUUID, postBody.Name, postBody.Projects, postBody.Email, postBody.ServiceRoles, modified, refStr)
 
 	if err != nil {
@@ -579,7 +579,7 @@ func UserCreate(w http.ResponseWriter, r *http.Request) {
 
 	uuid := uuid.NewV4().String() // generate a new uuid to attach to the new project
 	token, err := auth.GenToken() // generate a new user token
-	created := time.Now()
+	created := time.Now().UTC()
 	// Get Result Object
 	res, err := auth.CreateUser(uuid, urlUser, postBody.Projects, token, postBody.Email, postBody.ServiceRoles, created, refUserUUID, refStr)
 
@@ -735,6 +735,53 @@ func UserListOne(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func UserListByUUID(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+
+	// Grab context references
+	refStr := context.Get(r, "str").(stores.Store)
+
+	// Get Results Object
+	result, err := auth.GetUserByUUID(urlVars["uuid"], refStr)
+
+	if err != nil {
+		if err.Error() == "not found" {
+			respondErr(w, 404, "User does not exist", "NOT_FOUND")
+			return
+		}
+
+		if err.Error() == "multiple uuids" {
+			respondErr(w, 500, "Multiple users found with the same uuid", "INTERNAL")
+			return
+		}
+
+		respondErr(w, 500, "Internal error while querying datastore", "INTERNAL")
+		return
+	}
+
+	// Output result to JSON
+	resJSON, err := result.ExportJSON()
+
+	if err != nil {
+		respondErr(w, 500, "Error exporting data", "INTERNAL")
+		return
+	}
+
+	// Write response
+	output = []byte(resJSON)
+	respondOK(w, output)
+}
+
 // UserListAll (GET) all users belonging to a project
 func UserListAll(w http.ResponseWriter, r *http.Request) {
 
@@ -883,7 +930,7 @@ func SubAck(w http.ResponseWriter, r *http.Request) {
 	}
 
 	zSec := "2006-01-02T15:04:05Z"
-	t := time.Now()
+	t := time.Now().UTC()
 	ts := t.Format(zSec)
 
 	err = refStr.UpdateSubOffsetAck(projectUUID, urlVars["subscription"], int64(off+1), ts)
@@ -2192,7 +2239,7 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 
 	// Stamp time to UTC Z to seconds
 	zSec := "2006-01-02T15:04:05Z"
-	t := time.Now()
+	t := time.Now().UTC()
 	ts := t.Format(zSec)
 	refStr.UpdateSubPull(targSub.ProjectUUID, targSub.Name, int64(len(recList.RecMsgs))+targSub.Offset, ts)
 
