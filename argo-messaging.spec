@@ -3,7 +3,7 @@
 
 Name: argo-messaging
 Summary: ARGO Messaging API for broker network
-Version: 1.0.1
+Version: 1.0.2
 Release: 1%{?dist}
 License: ASL 2.0
 Buildroot: %{_tmppath}/%{name}-buildroot
