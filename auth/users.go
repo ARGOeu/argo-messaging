@@ -272,7 +272,7 @@ func GetUserByUUID(uuid string, store stores.Store) (User, error) {
 
 	return result, nil
 
-	}
+}
 
 // GetUUIDByName queries user by name and returns the corresponding UUID
 func GetUUIDByName(name string, store stores.Store) string {
