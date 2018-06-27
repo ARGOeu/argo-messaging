@@ -2,6 +2,8 @@ package main
 
 import (
 	"crypto/tls"
+	"log/syslog"
+
 	"net/http"
 	"strconv"
 
@@ -9,9 +11,18 @@ import (
 	"github.com/ARGOeu/argo-messaging/config"
 	"github.com/ARGOeu/argo-messaging/push"
 	"github.com/ARGOeu/argo-messaging/stores"
-	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/handlers"
+	log "github.com/sirupsen/logrus"
+	lSyslog "github.com/sirupsen/logrus/hooks/syslog"
 )
+
+func init() {
+	log.SetFormatter(&log.TextFormatter{FullTimestamp: true, DisableColors: true})
+	hook, err := lSyslog.NewSyslogHook("", "", syslog.LOG_INFO, "")
+	if err == nil {
+		log.AddHook(hook)
+	}
+}
 
 func main() {
 	// create and load configuration object

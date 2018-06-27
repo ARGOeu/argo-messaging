@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/samuel/go-zookeeper/zk"
 	"github.com/spf13/pflag"
