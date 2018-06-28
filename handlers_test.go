@@ -266,7 +266,7 @@ func (suite *HandlerTestSuite) TestUserListByUUIDNotFound() {
 	expResp := `{
    "error": {
       "code": 404,
-      "message": "User does not exist",
+      "message": "User doesn't exist",
       "status": "NOT_FOUND"
    }
 }`
@@ -297,7 +297,7 @@ func (suite *HandlerTestSuite) TestUserListByUUIDConflict() {
    "error": {
       "code": 500,
       "message": "Multiple users found with the same uuid",
-      "status": "INTERNAL"
+      "status": "INTERNAL_SERVER_ERROR"
    }
 }`
 
@@ -592,7 +592,7 @@ func (suite *HandlerTestSuite) TestUserDelete() {
 	expResp2 := `{
    "error": {
       "code": 404,
-      "message": "User does not exist",
+      "message": "User doesn't exist",
       "status": "NOT_FOUND"
    }
 }`
@@ -738,7 +738,7 @@ func (suite *HandlerTestSuite) TestProjectListOneNotFound() {
 	expResp := `{
    "error": {
       "code": 404,
-      "message": "Project does not exist",
+      "message": "Project doesn't exist",
       "status": "NOT_FOUND"
    }
 }`
