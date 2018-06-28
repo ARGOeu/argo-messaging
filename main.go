@@ -16,7 +16,9 @@ import (
 	lSyslog "github.com/sirupsen/logrus/hooks/syslog"
 )
 
+// setup logrus' std logger with syslog hook
 func init() {
+	// dont use colors in output
 	log.SetFormatter(&log.TextFormatter{FullTimestamp: true, DisableColors: true})
 	hook, err := lSyslog.NewSyslogHook("", "", syslog.LOG_INFO, "")
 	if err == nil {
