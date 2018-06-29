@@ -159,7 +159,7 @@ func GetMetricsFromJSON(input []byte) (MetricList, error) {
 
 func GetTimeNowZulu() string {
 	zSec := "2006-01-02T15:04:05Z"
-	t := time.Now()
+	t := time.Now().UTC()
 	ts := t.Format(zSec)
 	return ts
 }
