@@ -3,7 +3,7 @@ package main
 import (
 	"net/http"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"

@@ -8,7 +8,7 @@ import (
 
 	"github.com/ARGOeu/argo-messaging/messages"
 	"github.com/Shopify/sarama"
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 type topicLock struct {

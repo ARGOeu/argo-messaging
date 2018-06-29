@@ -1,7 +1,7 @@
 {
 	"ImportPath": "github.com/ARGOeu/argo-messaging",
 	"GoVersion": "go1.7",
-	"GodepVersion": "v75",
+	"GodepVersion": "v80",
 	"Deps": [
 		{
 			"ImportPath": "github.com/BurntSushi/toml",
@@ -12,11 +12,6 @@
 			"ImportPath": "github.com/Shopify/sarama",
 			"Comment": "v1.7.0-23-gd37c73f",
 			"Rev": "d37c73f2b2bce85f7fa16b6a550d26c5372892ef"
-		},
-		{
-			"ImportPath": "github.com/Sirupsen/logrus",
-			"Comment": "v0.10.0-38-g3ec0642",
-			"Rev": "3ec0642a7fb6488f65b06f9040adc67e3990296a"
 		},
 		{
 			"ImportPath": "github.com/eapache/go-resiliency/breaker",
@@ -108,6 +103,16 @@
 			"Rev": "e64db453f3512cade908163702045e0f31137843"
 		},
 		{
+			"ImportPath": "github.com/sirupsen/logrus",
+			"Comment": "v1.0.5-34-ge3292c4",
+			"Rev": "e3292c4c4d7fc915224d48222565b02f6af1900e"
+		},
+		{
+			"ImportPath": "github.com/sirupsen/logrus/hooks/syslog",
+			"Comment": "v1.0.5-34-ge3292c4",
+			"Rev": "e3292c4c4d7fc915224d48222565b02f6af1900e"
+		},
+		{
 			"ImportPath": "github.com/spf13/cast",
 			"Rev": "ee7b3e0353166ab1f3a605294ac8cd2b77953778"
 		},
@@ -143,8 +148,16 @@
 			"Rev": "70cac2bcd273ef6a371bb96cde363d28b68734c3"
 		},
 		{
+			"ImportPath": "golang.org/x/crypto/ssh/terminal",
+			"Rev": "a49355c7e3f8fe157a85be2f77e6e269a0f89602"
+		},
+		{
 			"ImportPath": "golang.org/x/sys/unix",
-			"Rev": "c200b10b5d5e122be351b67af224adc6128af5bf"
+			"Rev": "c4afb3effaa53fd9a06ca61262dc7ce8df4c081b"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/windows",
+			"Rev": "c4afb3effaa53fd9a06ca61262dc7ce8df4c081b"
 		},
 		{
 			"ImportPath": "gopkg.in/fsnotify.v1",

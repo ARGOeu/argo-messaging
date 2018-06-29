@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/ARGOeu/argo-messaging/stores"
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 func GetUsageCpuMem(store stores.Store) (MetricList, error) {

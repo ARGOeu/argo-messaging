@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/ARGOeu/argo-messaging/auth"
 	"github.com/ARGOeu/argo-messaging/brokers"
