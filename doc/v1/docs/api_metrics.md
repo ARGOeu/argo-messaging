@@ -61,3 +61,29 @@ Success Response
 
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
+
+## [GET] Get Health status
+
+### Request
+```
+GET "/v1/status"
+```
+
+### Example request
+
+```
+curl -H "Content-Type: application/json"
+ "https://{URL}/v1/status"
+```
+
+### Responses
+If successful, the response returns the health status of the service
+
+Success Response
+`200 OK`
+
+```json
+{
+  "status": "ok"
+}
+```

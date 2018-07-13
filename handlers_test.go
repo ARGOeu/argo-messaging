@@ -2587,6 +2587,30 @@ func (suite *HandlerTestSuite) TestValidationInTopics() {
 
 }
 
+func (suite *HandlerTestSuite) TestHealthCheck() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/status", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+ "status": "ok"
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := push.Manager{}
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/status", WrapMockAuthConfig(HealthCheck, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+}
+
 func TestHandlersTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }

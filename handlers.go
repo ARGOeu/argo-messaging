@@ -1297,7 +1297,7 @@ func TopicModACL(w http.ResponseWriter, r *http.Request) {
 	// check if user list contain valid users for the given project
 	_, err = auth.AreValidUsers(projectUUID, postBody.AuthUsers, refStr)
 	if err != nil {
-		err := APIErrorRoot{Body:APIErrorBody{Code:http.StatusNotFound, Message:err.Error(), Status:"NOT_FOUND"}}
+		err := APIErrorRoot{Body: APIErrorBody{Code: http.StatusNotFound, Message: err.Error(), Status: "NOT_FOUND"}}
 		respondErr(w, err)
 		return
 	}
@@ -1361,7 +1361,7 @@ func SubModACL(w http.ResponseWriter, r *http.Request) {
 	// check if user list contain valid users for the given project
 	_, err = auth.AreValidUsers(projectUUID, postBody.AuthUsers, refStr)
 	if err != nil {
-		err := APIErrorRoot{Body:APIErrorBody{Code:http.StatusNotFound, Message:err.Error(), Status:"NOT_FOUND"}}
+		err := APIErrorRoot{Body: APIErrorBody{Code: http.StatusNotFound, Message: err.Error(), Status: "NOT_FOUND"}}
 		respondErr(w, err)
 		return
 	}
@@ -2371,6 +2371,22 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	respondOK(w, output)
 }
 
+// HealthCheck returns an ok message to make sure the service is up and running
+func HealthCheck(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	var bytes []byte
+
+	healthMsg := HealthStatus{Status: "ok"}
+
+	if bytes, err = json.MarshalIndent(healthMsg, "", " "); err != nil {
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+	}
+
+	respondOK(w, bytes)
+}
+
 // Respond utility functions
 ///////////////////////////////
 
@@ -2388,6 +2404,10 @@ func respondErr(w http.ResponseWriter, apiErr APIErrorRoot) {
 	// Output API Erorr object to JSON
 	output, _ := json.MarshalIndent(apiErr, "", "   ")
 	w.Write(output)
+}
+
+type HealthStatus struct {
+	Status string `json:"status"`
 }
 
 // APIErrorRoot holds the root json object of an error response
