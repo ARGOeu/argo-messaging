@@ -45,8 +45,11 @@ func NewRouting(cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *p
 
 		handler = WrapLog(handler, route.Name)
 
-		handler = WrapAuthorize(handler, route.Name)
-		handler = WrapAuthenticate(handler)
+		// skip authentication/authorization for the health status api call
+		if route.Name != "ams:healthStatus" {
+			handler = WrapAuthorize(handler, route.Name)
+			handler = WrapAuthenticate(handler)
+		}
 
 		handler = WrapValidate(handler)
 		handler = WrapConfig(handler, cfg, brk, str, mgr)
@@ -66,6 +69,7 @@ func NewRouting(cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *p
 // Global list populated with default routes
 var defaultRoutes = []APIRoute{
 	{"ams:metrics", "GET", "/metrics", OpMetrics},
+	{"ams:healthStatus", "GET", "/status", HealthCheck},
 	{"users:byToken", "GET", "/users:byToken/{token}", UserListByToken},
 	{"users:byUUID", "GET", "/users:byUUID/{uuid}", UserListByUUID},
 	{"users:list", "GET", "/users", UserListAll},
