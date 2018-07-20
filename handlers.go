@@ -2289,7 +2289,7 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	targSub := results.List[0]
 
 	fullTopic := targSub.ProjectUUID + "." + targSub.Topic
-	retImm := false
+	retImm := true
 	max := 1
 
 	if pullInfo.MaxMsg != "" {
@@ -2299,9 +2299,10 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if pullInfo.RetImm == "true" {
-		retImm = true
+	if pullInfo.RetImm == "false" {
+		retImm = false
 	}
+
 	msgs, err := refBrk.Consume(r.Context(), fullTopic, targSub.Offset, retImm, int64(max))
 	if err != nil {
 		// If tracked offset is off
