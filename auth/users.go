@@ -117,7 +117,7 @@ func GetUserByToken(token string, store stores.Store) (User, error) {
 		pRoles = append(pRoles, ProjectRoles{Project: prName, Roles: pItem.Roles, Topics: topicNames, Subs: subNames})
 	}
 
-	curUser := NewUser(user.UUID, pRoles, user.Name, user.Token, user.Email, user.ServiceRoles, user.CreatedOn, user.ModifiedOn, usernameC)
+	curUser := NewUser(user.UUID, pRoles, user.Name, user.Token, user.Email, user.ServiceRoles, user.CreatedOn.UTC(), user.ModifiedOn.UTC(), usernameC)
 
 	result = curUser
 
@@ -162,7 +162,7 @@ func FindUsers(projectUUID string, uuid string, name string, store stores.Store)
 			pRoles = append(pRoles, ProjectRoles{Project: prName, Roles: pItem.Roles, Topics: topicNames, Subs: subNames})
 		}
 
-		curUser := NewUser(item.UUID, pRoles, item.Name, item.Token, item.Email, item.ServiceRoles, item.CreatedOn, item.ModifiedOn, usernameC)
+		curUser := NewUser(item.UUID, pRoles, item.Name, item.Token, item.Email, item.ServiceRoles, item.CreatedOn.UTC(), item.ModifiedOn.UTC(), usernameC)
 
 		result.List = append(result.List, curUser)
 	}

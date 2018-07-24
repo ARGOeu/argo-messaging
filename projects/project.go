@@ -81,7 +81,7 @@ func Find(uuid string, name string, store stores.Store) (Projects, error) {
 				username = usr[0].Name
 			}
 		}
-		curProject := NewProject(item.UUID, item.Name, item.CreatedOn, item.ModifiedOn, username, item.Description)
+		curProject := NewProject(item.UUID, item.Name, item.CreatedOn.UTC(), item.ModifiedOn.UTC(), username, item.Description)
 		result.List = append(result.List, curProject)
 	}
 
@@ -155,7 +155,6 @@ func HasProject(name string, store stores.Store) bool {
 
 // CreateProject creates a new project
 func CreateProject(uuid string, name string, createdOn time.Time, createdBy string, description string, store stores.Store) (Project, error) {
-
 	// check if project with the same name exists
 	if ExistsWithName(name, store) {
 		return Project{}, errors.New("exists")
@@ -167,6 +166,7 @@ func CreateProject(uuid string, name string, createdOn time.Time, createdBy stri
 
 	// reflect stored object
 	stored, err := Find("", name, store)
+
 	return stored.One(), err
 }
 

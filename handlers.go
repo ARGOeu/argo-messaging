@@ -124,7 +124,18 @@ func WrapAuthenticate(hfn http.Handler) http.HandlerFunc {
 		refStr := context.Get(r, "str").(stores.Store)
 		serviceToken := context.Get(r, "auth_service_token").(string)
 
+		project_name := urlVars["project"]
 		projectUUID := projects.GetUUIDByName(urlVars["project"], refStr)
+
+		// In all cases instead of project create
+		if "projects:create" != mux.CurrentRoute(r).GetName() {
+			// Check if given a project name the project wasn't found
+			if project_name != "" && projectUUID == "" {
+				apiErr := APIErrorNotFound("project")
+				respondErr(w, apiErr)
+				return
+			}
+		}
 
 		// Check first if service token is used
 		if serviceToken != "" && serviceToken == urlValues.Get("key") {
@@ -327,6 +338,7 @@ func ProjectCreate(w http.ResponseWriter, r *http.Request) {
 	uuid := uuid.NewV4().String() // generate a new uuid to attach to the new project
 	created := time.Now().UTC()
 	// Get Result Object
+
 	res, err := projects.CreateProject(uuid, urlProject, created, refUserUUID, postBody.Description, refStr)
 
 	if err != nil {
