@@ -261,7 +261,7 @@ func (cfg *APICfg) Load() {
 	cfg.CertKey = viper.GetString("certificate_key")
 	log.Info("CONFIG", "\t", "Parameter Loaded - certificate_key: ", cfg.CertKey)
 	cfg.ResAuth = viper.GetBool("per_resource_auth")
-	log.Info("CONFIG", "\t", "Parameter Loaded - per_resource_auth: ", cfg.CertKey)
+	log.Info("CONFIG", "\t", "Parameter Loaded - per_resource_auth: ", cfg.ResAuth)
 	cfg.ServiceToken = viper.GetString("service_token")
 	log.Info("CONFIG", "\t", "Parameter Loaded - service_token: ", cfg.ServiceToken)
 

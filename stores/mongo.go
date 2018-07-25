@@ -787,7 +787,7 @@ func (mong *MongoStore) QueryPushSubs() []QSub {
 	db := mong.Session.DB(mong.Database)
 	c := db.C("subscriptions")
 	var results []QSub
-	err := c.Find(bson.M{"push_endpoint": bson.M{"$ne": nil}}).All(&results)
+	err := c.Find(bson.M{"push_endpoint": bson.M{"$ne": ""}}).All(&results)
 	if err != nil {
 		log.Fatal("STORE", "\t", err.Error())
 	}

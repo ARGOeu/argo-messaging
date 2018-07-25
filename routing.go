@@ -58,6 +58,7 @@ func NewRouting(cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *p
 			PathPrefix("/v1").
 			Methods(route.Method).
 			Path(route.Path).
+			Name(route.Name).
 			Handler(context.ClearHandler(handler))
 	}
 
