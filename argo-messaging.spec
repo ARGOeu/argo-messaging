@@ -3,7 +3,7 @@
 
 Name: argo-messaging
 Summary: ARGO Messaging API for broker network
-Version: 1.0.2
+Version: 1.0.3
 Release: 1%{?dist}
 License: ASL 2.0
 Buildroot: %{_tmppath}/%{name}-buildroot
@@ -64,6 +64,27 @@ go clean
 %attr(0644,root,root) /usr/lib/systemd/system/argo-messaging.service
 
 %changelog
+* Tue Jul 30 2018 Kostas Koumantaros <kkoumantaros@gmail.com> 1.0.3-1%{?dist}
+- ARGO-1365 Add config noreplace param in spec file 
+- ARGO-1364 Set-cap option in spec file 
+- ARGO-1359 Handle empty project_uuid references 
+- ARGO-1122 Subscriptions - Set default functionality for pulling messages to return immediately
+- ARGO-1279 API CALL - Health check
+- ARGO-1307 Update ams service file to include a syslog identifier 
+- ARGO-1307 Update ams service file to include a syslog identifier 
+- ARGO-1282 Fix Metrics package timestamp to be utc 
+- ARGO-1281 Add support for logging to syslog 
+- ARGO-571 Use const for error messages in messaging service 
+* Tue Jul 11 2017 Kostas Koumantaros <kkoumantaros@gmail.com> 1.0.2-1%{?dist}
+- ARGO-1216 Retry if backends are unavailable 
+- ARGO-1216 Retry if backends are unavailable 
+- ARGO-1177 Fix utc generation in utc-formatted fields 
+- ARGO-1177 Fix utc in created,modified fields 
+- ARGO-1157 Add get user by Token 
+- ARGO-1158 Expose UUID field when querying users 
+- ARGO-1154 API CALL - Return User given a UUID 
+- ARGO-1085 Add info on Ack timeout error for argo-messaging service 
+- ARGO-1003 Fix publishedTime to be in UTC instead of localtime 
 * Tue Oct 27 2017 Kostas Koumantaros <kkoumantaros@gmail.com> 1.0.1-1%{?dist}
 * Kostas Kaggelidis <kaggis> Added Support for Metrics and CORS
 - ARGO-925 Fix return Immediately functionality in pull operation
