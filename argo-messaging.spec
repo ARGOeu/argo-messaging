@@ -59,7 +59,7 @@ go clean
 %attr(0750,argo-messaging,argo-messaging) /var/www/argo-messaging
 %attr(0755,argo-messaging,argo-messaging) /var/www/argo-messaging/argo-messaging
 %caps(cap_net_bind_service=+ep) /var/www/argo-messaging/argo-messaging
-%attr(0644,argo-messaging,argo-messaging) /etc/argo-messaging/config.json
+%config(noreplace) %attr(0644,argo-messaging,argo-messaging) /etc/argo-messaging/config.json
 %attr(0644,root,root) /etc/init/argo-messaging.conf
 %attr(0644,root,root) /usr/lib/systemd/system/argo-messaging.service
 
