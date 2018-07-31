@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/ARGOeu/argo-messaging/auth"
 	"github.com/ARGOeu/argo-messaging/brokers"
@@ -266,7 +266,7 @@ func (suite *HandlerTestSuite) TestUserListByUUIDNotFound() {
 	expResp := `{
    "error": {
       "code": 404,
-      "message": "User does not exist",
+      "message": "User doesn't exist",
       "status": "NOT_FOUND"
    }
 }`
@@ -297,7 +297,7 @@ func (suite *HandlerTestSuite) TestUserListByUUIDConflict() {
    "error": {
       "code": 500,
       "message": "Multiple users found with the same uuid",
-      "status": "INTERNAL"
+      "status": "INTERNAL_SERVER_ERROR"
    }
 }`
 
@@ -592,7 +592,7 @@ func (suite *HandlerTestSuite) TestUserDelete() {
 	expResp2 := `{
    "error": {
       "code": 404,
-      "message": "User does not exist",
+      "message": "User doesn't exist",
       "status": "NOT_FOUND"
    }
 }`
@@ -738,7 +738,7 @@ func (suite *HandlerTestSuite) TestProjectListOneNotFound() {
 	expResp := `{
    "error": {
       "code": 404,
-      "message": "Project does not exist",
+      "message": "Project doesn't exist",
       "status": "NOT_FOUND"
    }
 }`
@@ -2585,6 +2585,30 @@ func (suite *HandlerTestSuite) TestValidationInTopics() {
 	suite.Equal(400, codes[3])
 	suite.Equal(invProject, responses[3])
 
+}
+
+func (suite *HandlerTestSuite) TestHealthCheck() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/status", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+ "status": "ok"
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := push.Manager{}
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/status", WrapMockAuthConfig(HealthCheck, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
 }
 
 func TestHandlersTestSuite(t *testing.T) {

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/ARGOeu/argo-messaging/config"
 	"github.com/ARGOeu/argo-messaging/stores"
@@ -381,17 +381,16 @@ func (suite *AuthTestSuite) TestAuth() {
 	suite.Nil(expNilErr)
 
 	// different users have the same uuid
-	expUsrMultipleUUID, expErrMultipleUUIDS  := GetUserByUUID("same_uuid", store)
+	expUsrMultipleUUID, expErrMultipleUUIDS := GetUserByUUID("same_uuid", store)
 
 	suite.Equal("multiple uuids", expErrMultipleUUIDS.Error())
 	suite.Equal(User{}, expUsrMultipleUUID)
 
 	// user with given uuid doesn't exist
-	expUsrNotFoundUUID, expErrNotFoundUUID  := GetUserByUUID("uuid10", store)
+	expUsrNotFoundUUID, expErrNotFoundUUID := GetUserByUUID("uuid10", store)
 
 	suite.Equal("not found", expErrNotFoundUUID.Error())
 	suite.Equal(User{}, expUsrNotFoundUUID)
-
 
 	// Test TokenGeneration
 	tk1, _ := GenToken()

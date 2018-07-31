@@ -52,6 +52,25 @@ paths:
         500:
           $ref: "#/responses/500"
 
+  /status:
+    get:
+      summary: List operational metrics of the ams service
+      description: |
+        list operational metrics
+      tags:
+        - Operational Metrics
+      responses:
+        200:
+          description: Returns the health status
+          schema:
+            $ref: '#/definitions/HealthCheck'
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        500:
+          $ref: "#/responses/500"
+
   /projects:
     get:
       summary: List subscriptions in a project
@@ -310,7 +329,7 @@ paths:
           $ref: "#/responses/404"
         500:
           $ref: "#/responses/500"
-          
+
     post:
       summary: Create a new user
       description: |
@@ -432,7 +451,7 @@ paths:
           $ref: "#/responses/409"
         500:
           $ref: "#/responses/500"
-          
+
   /users:byUUID/{UUID}:
     get:
       summary: Show a specific user based on the provided UUID
@@ -449,7 +468,7 @@ paths:
         - Users
       responses:
         200:
-          description: A User object 
+          description: A User object
           schema:
             $ref: '#/definitions/User'
         400:
@@ -462,7 +481,7 @@ paths:
           $ref: "#/responses/404"
         500:
           $ref: "#/responses/500"
-          
+
   /users:byToken/{Token}:
     get:
       summary: Show a specific user based on the provided Token
@@ -479,7 +498,7 @@ paths:
         - Users
       responses:
         200:
-          description: A User object 
+          description: A User object
           schema:
             $ref: '#/definitions/User'
         400:
@@ -1604,6 +1623,12 @@ definitions:
          type: array
          items:
            type: string
+
+  HealthCheck:
+    type: object
+    properties:
+      status:
+        type: string
 
   ErrorMsg:
     type: object

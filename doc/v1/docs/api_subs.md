@@ -194,7 +194,7 @@ This request consumes messages from a subscription in a project with a POST requ
 - Project_name: Name of the project
 - subscription_name: The subscription name to consume
 - maxMessages: the max number of messages to consume
-- returnImmediately: (true or false) to prevent the subscriber from waiting if the queue is currently empty.
+- returnImmediately: (true or false) to prevent the subscriber from waiting if the queue is currently empty. If not specified the default value is true.
 
  You can specify the max number of messages returned by one call by setting maxMessages field. By default, the server will keep the connection open until at least one message is received; you can optionally set the returnImmediately field to true to prevent the subscriber from waiting if the queue is currently empty.
 

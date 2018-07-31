@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/ARGOeu/argo-messaging/auth"
 	"github.com/ARGOeu/argo-messaging/brokers"
@@ -47,7 +47,8 @@ func WrapValidate(hfn http.HandlerFunc) http.HandlerFunc {
 		// Iterate alphabetically
 		for _, key := range keys {
 			if validName(urlVars[key]) == false {
-				respondErr(w, 400, "Invalid "+key+" name", "INVALID_ARGUMENT")
+				err := APIErrorInvalidName(key)
+				respondErr(w, err)
 				return
 			}
 		}
@@ -123,7 +124,18 @@ func WrapAuthenticate(hfn http.Handler) http.HandlerFunc {
 		refStr := context.Get(r, "str").(stores.Store)
 		serviceToken := context.Get(r, "auth_service_token").(string)
 
+		project_name := urlVars["project"]
 		projectUUID := projects.GetUUIDByName(urlVars["project"], refStr)
+
+		// In all cases instead of project create
+		if "projects:create" != mux.CurrentRoute(r).GetName() {
+			// Check if given a project name the project wasn't found
+			if project_name != "" && projectUUID == "" {
+				apiErr := APIErrorNotFound("project")
+				respondErr(w, apiErr)
+				return
+			}
+		}
 
 		// Check first if service token is used
 		if serviceToken != "" && serviceToken == urlValues.Get("key") {
@@ -145,7 +157,8 @@ func WrapAuthenticate(hfn http.Handler) http.HandlerFunc {
 			context.Set(r, "auth_project_uuid", projectUUID)
 			hfn.ServeHTTP(w, r)
 		} else {
-			respondErr(w, 401, "Unauthorized", "UNAUTHORIZED")
+			err := APIErrorUnauthorized()
+			respondErr(w, err)
 		}
 
 	})
@@ -170,9 +183,9 @@ func WrapAuthorize(hfn http.Handler, routeName string) http.HandlerFunc {
 		if auth.Authorize(routeName, refRoles, refStr) {
 			hfn.ServeHTTP(w, r)
 		} else {
-			respondErr(w, 403, "Access to this resource is forbidden", "FORBIDDEN")
+			err := APIErrorForbidden()
+			respondErr(w, err)
 		}
-
 	})
 }
 
@@ -200,16 +213,18 @@ func ProjectDelete(w http.ResponseWriter, r *http.Request) {
 	err := projects.RemoveProject(projectUUID, refStr)
 	if err != nil {
 		if err.Error() == "not found" {
-			respondErr(w, 404, "Project doesn't exist", "NOT_FOUND")
+			err := APIErrorNotFound("Project")
+			respondErr(w, err)
 			return
 		}
-
-		respondErr(w, 500, err.Error(), "INTERNAL")
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
 		return
 	}
 	// Stop any relevant push subscriptions
 	if err := refMgr.RemoveProjectAll(projectUUID); err != nil {
-		respondErr(w, 500, err.Error(), "INTERNAL")
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
 	}
 	// Write empty response if anything ok
 	respondOK(w, output)
@@ -233,14 +248,16 @@ func ProjectUpdate(w http.ResponseWriter, r *http.Request) {
 	// Read POST JSON body
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		respondErr(w, 400, "Invalid Request body", "INVALID_ARGUMENT")
+		err := APIErrorInvalidRequestBody()
+		respondErr(w, err)
 		return
 	}
 
 	// Parse pull options
 	postBody, err := projects.GetFromJSON(body)
 	if err != nil {
-		respondErr(w, 400, "Invalid Project Arguments", "INVALID_ARGUMENT")
+		err := APIErrorInvalidRequestBody()
+		respondErr(w, err)
 		log.Error(string(body[:]))
 		return
 	}
@@ -252,23 +269,27 @@ func ProjectUpdate(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if err.Error() == "not found" {
-			respondErr(w, 403, "Project not found", "NOT_FOUND")
+			err := APIErrorNotFound("Project")
+			respondErr(w, err)
 			return
 		}
 
 		if strings.HasPrefix(err.Error(), "invalid") {
-			respondErr(w, 400, err.Error(), "INVALID_ARGUMENT")
+			err := APIErrorInvalidData(err.Error())
+			respondErr(w, err)
 			return
 		}
 
-		respondErr(w, 500, err.Error(), "INTERNAL")
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
 		return
 	}
 
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
 	if err != nil {
-		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL")
+		err := APIErrExportJSON()
+		respondErr(w, err)
 		return
 	}
 
@@ -300,14 +321,16 @@ func ProjectCreate(w http.ResponseWriter, r *http.Request) {
 	// Read POST JSON body
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		respondErr(w, 400, "Invalid Request body", "INVALID_ARGUMENT")
+		err := APIErrorInvalidRequestBody()
+		respondErr(w, err)
 		return
 	}
 
 	// Parse pull options
 	postBody, err := projects.GetFromJSON(body)
 	if err != nil {
-		respondErr(w, 400, "Invalid Project Arguments", "INVALID_ARGUMENT")
+		err := APIErrorInvalidArgument("Project")
+		respondErr(w, err)
 		log.Error(string(body[:]))
 		return
 	}
@@ -315,24 +338,25 @@ func ProjectCreate(w http.ResponseWriter, r *http.Request) {
 	uuid := uuid.NewV4().String() // generate a new uuid to attach to the new project
 	created := time.Now().UTC()
 	// Get Result Object
+
 	res, err := projects.CreateProject(uuid, urlProject, created, refUserUUID, postBody.Description, refStr)
 
 	if err != nil {
 		if err.Error() == "exists" {
-			respondErr(w, 409, "Project already exists", "ALREADY_EXISTS")
+			err := APIErrorConflict("Project")
+			respondErr(w, err)
 			return
 		}
-
-		respondErr(w, 500, err.Error(), "INTERNAL_SERVER_ERROR")
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
 		return
 	}
 
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
 	if err != nil {
-
-		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
-
+		err := APIErrExportJSON()
+		respondErr(w, err)
 		return
 	}
 
@@ -361,9 +385,8 @@ func ProjectListAll(w http.ResponseWriter, r *http.Request) {
 	res, err := projects.Find("", "", refStr)
 
 	if err != nil && err.Error() != "not found" {
-
-		respondErr(w, 500, "Internal error while querying datastore", "INTERNAL_SERVER_ERROR")
-
+		err := APIErrQueryDatastore()
+		respondErr(w, err)
 		return
 	}
 
@@ -371,7 +394,8 @@ func ProjectListAll(w http.ResponseWriter, r *http.Request) {
 	resJSON, err := res.ExportJSON()
 
 	if err != nil {
-		respondErr(w, 500, "Error exporting data", "INTERNAL_SERVER_ERROR")
+		err := APIErrExportJSON()
+		respondErr(w, err)
 		return
 	}
 
@@ -405,10 +429,12 @@ func ProjectListOne(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 
 		if err.Error() == "not found" {
-			respondErr(w, 404, "Project does not exist", "NOT_FOUND")
+			err := APIErrorNotFound("Project")
+			respondErr(w, err)
 			return
 		}
-		respondErr(w, 500, "Internal error while querying datastore", "INTERNAL_SERVER_ERROR")
+		err := APIErrQueryDatastore()
+		respondErr(w, err)
 		return
 	}
 
@@ -417,7 +443,8 @@ func ProjectListOne(w http.ResponseWriter, r *http.Request) {
 	resJSON, err := res.ExportJSON()
 
 	if err != nil {
-		respondErr(w, 500, "Error exporting data", "INTERNAL")
+		err := APIErrExportJSON()
+		respondErr(w, err)
 		return
 	}
 
@@ -453,18 +480,20 @@ func RefreshToken(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if err.Error() == "not found" {
-			respondErr(w, 403, "User not found", "NOT_FOUND")
+			err := APIErrorNotFound("User")
+			respondErr(w, err)
 			return
 		}
-
-		respondErr(w, 500, err.Error(), "INTERNAL")
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
 		return
 	}
 
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
 	if err != nil {
-		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL")
+		err := APIErrExportJSON()
+		respondErr(w, err)
 		return
 	}
 
@@ -495,14 +524,16 @@ func UserUpdate(w http.ResponseWriter, r *http.Request) {
 	// Read POST JSON body
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		respondErr(w, 400, "Invalid Request body", "INVALID_ARGUMENT")
+		err := APIErrorInvalidRequestBody()
+		respondErr(w, err)
 		return
 	}
 
 	// Parse pull options
 	postBody, err := auth.GetUserFromJSON(body)
 	if err != nil {
-		respondErr(w, 400, "Invalid User Arguments", "INVALID_ARGUMENT")
+		err := APIErrorInvalidArgument("User")
+		respondErr(w, err)
 		log.Error(string(body[:]))
 		return
 	}
@@ -517,23 +548,26 @@ func UserUpdate(w http.ResponseWriter, r *http.Request) {
 		// In case of invalid project or role in post body
 
 		if err.Error() == "not found" {
-			respondErr(w, 403, "User not found", "NOT_FOUND")
+			err := APIErrorNotFound("User")
+			respondErr(w, err)
 			return
 		}
 
 		if strings.HasPrefix(err.Error(), "invalid") {
-			respondErr(w, 400, err.Error(), "INVALID_ARGUMENT")
+			err := APIErrorInvalidData(err.Error())
+			respondErr(w, err)
 			return
 		}
-
-		respondErr(w, 500, err.Error(), "INTERNAL")
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
 		return
 	}
 
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
 	if err != nil {
-		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL")
+		err := APIErrExportJSON()
+		respondErr(w, err)
 		return
 	}
 
@@ -565,14 +599,16 @@ func UserCreate(w http.ResponseWriter, r *http.Request) {
 	// Read POST JSON body
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		respondErr(w, 400, "Invalid Request body", "INVALID_ARGUMENT")
+		err := APIErrorInvalidRequestBody()
+		respondErr(w, err)
 		return
 	}
 
 	// Parse pull options
 	postBody, err := auth.GetUserFromJSON(body)
 	if err != nil {
-		respondErr(w, 400, "Invalid User  Arguments", "INVALID_ARGUMENT")
+		err := APIErrorInvalidArgument("User")
+		respondErr(w, err)
 		log.Error(string(body[:]))
 		return
 	}
@@ -585,18 +621,20 @@ func UserCreate(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if err.Error() == "exists" {
-			respondErr(w, 409, "User already exists", "ALREADY_EXISTS")
+			err := APIErrorConflict("User")
+			respondErr(w, err)
 			return
 		}
-
-		respondErr(w, 500, err.Error(), "INTERNAL")
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
 		return
 	}
 
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
 	if err != nil {
-		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL")
+		err := APIErrExportJSON()
+		respondErr(w, err)
 		return
 	}
 
@@ -624,7 +662,8 @@ func OpMetrics(w http.ResponseWriter, r *http.Request) {
 	res, err := metrics.GetUsageCpuMem(refStr)
 
 	if err != nil && err.Error() != "not found" {
-		respondErr(w, 500, "Internal error while querying datastore", "INTERNAL")
+		err := APIErrQueryDatastore()
+		respondErr(w, err)
 		return
 	}
 
@@ -632,8 +671,8 @@ func OpMetrics(w http.ResponseWriter, r *http.Request) {
 	resJSON, err := res.ExportJSON()
 
 	if err != nil {
-
-		respondErr(w, 500, "Error exporting data", "INTERNAL_SERVER_ERROR")
+		err := APIErrExportJSON()
+		respondErr(w, err)
 		return
 	}
 
@@ -666,11 +705,12 @@ func UserListByToken(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if err.Error() == "not found" {
-			respondErr(w, 404, "User does not exist", "NOT_FOUND")
+			err := APIErrorNotFound("User")
+			respondErr(w, err)
 			return
 		}
-
-		respondErr(w, 500, "Internal error while querying datastore", "INTERNAL")
+		err := APIErrQueryDatastore()
+		respondErr(w, err)
 		return
 	}
 
@@ -678,7 +718,8 @@ func UserListByToken(w http.ResponseWriter, r *http.Request) {
 	resJSON, err := result.ExportJSON()
 
 	if err != nil {
-		respondErr(w, 500, "Error exporting data", "INTERNAL")
+		err := APIErrExportJSON()
+		respondErr(w, err)
 		return
 	}
 
@@ -711,11 +752,13 @@ func UserListOne(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if err.Error() == "not found" {
-			respondErr(w, 404, "User does not exist", "NOT_FOUND")
+			err := APIErrorNotFound("User")
+			respondErr(w, err)
 			return
 		}
 
-		respondErr(w, 500, "Internal error while querying datastore", "INTERNAL")
+		err := APIErrQueryDatastore()
+		respondErr(w, err)
 		return
 	}
 
@@ -725,7 +768,8 @@ func UserListOne(w http.ResponseWriter, r *http.Request) {
 	resJSON, err := res.ExportJSON()
 
 	if err != nil {
-		respondErr(w, 500, "Error exporting data", "INTERNAL")
+		err := APIErrExportJSON()
+		respondErr(w, err)
 		return
 	}
 
@@ -756,16 +800,19 @@ func UserListByUUID(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if err.Error() == "not found" {
-			respondErr(w, 404, "User does not exist", "NOT_FOUND")
+			err := APIErrorNotFound("User")
+			respondErr(w, err)
 			return
 		}
 
 		if err.Error() == "multiple uuids" {
-			respondErr(w, 500, "Multiple users found with the same uuid", "INTERNAL")
+			err := APIErrGenericInternal("Multiple users found with the same uuid")
+			respondErr(w, err)
 			return
 		}
 
-		respondErr(w, 500, "Internal error while querying datastore", "INTERNAL")
+		err := APIErrQueryDatastore()
+		respondErr(w, err)
 		return
 	}
 
@@ -773,8 +820,8 @@ func UserListByUUID(w http.ResponseWriter, r *http.Request) {
 	resJSON, err := result.ExportJSON()
 
 	if err != nil {
-		respondErr(w, 500, "Error exporting data", "INTERNAL")
-		return
+		err := APIErrExportJSON()
+		respondErr(w, err)
 	}
 
 	// Write response
@@ -800,7 +847,8 @@ func UserListAll(w http.ResponseWriter, r *http.Request) {
 	res, err := auth.FindUsers("", "", "", refStr)
 
 	if err != nil && err.Error() != "not found" {
-		respondErr(w, 500, "Internal error while querying datastore", "INTERNAL")
+		err := APIErrQueryDatastore()
+		respondErr(w, err)
 		return
 	}
 
@@ -808,8 +856,8 @@ func UserListAll(w http.ResponseWriter, r *http.Request) {
 	resJSON, err := res.ExportJSON()
 
 	if err != nil {
-
-		respondErr(w, 500, "Error exporting data", "INTERNAL_SERVER_ERROR")
+		err := APIErrExportJSON()
+		respondErr(w, err)
 		return
 	}
 
@@ -841,11 +889,12 @@ func UserDelete(w http.ResponseWriter, r *http.Request) {
 	err := auth.RemoveUser(userUUID, refStr)
 	if err != nil {
 		if err.Error() == "not found" {
-			respondErr(w, 404, "User doesn't exist", "NOT_FOUND")
+			err := APIErrorNotFound("User")
+			respondErr(w, err)
 			return
 		}
-
-		respondErr(w, 500, err.Error(), "INTERNAL")
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
 		return
 	}
 
@@ -874,14 +923,16 @@ func SubAck(w http.ResponseWriter, r *http.Request) {
 	// Read POST JSON body
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		respondErr(w, 400, "Invalid request body", "INVALID_ARGUMENT")
+		err := APIErrorInvalidRequestBody()
+		respondErr(w, err)
 		return
 	}
 
 	// Parse pull options
 	postBody, err := subscriptions.GetAckFromJSON(body)
 	if err != nil {
-		respondErr(w, 400, "Invalid ack parameter", "INVALID_ARGUMENT")
+		err := APIErrorInvalidData("Invalid ack parameter")
+		respondErr(w, err)
 		return
 	}
 
@@ -893,24 +944,28 @@ func SubAck(w http.ResponseWriter, r *http.Request) {
 
 	cur_sub, err := subscriptions.Find(projectUUID, subName, refStr)
 	if err != nil {
-		respondErr(w, 500, "Error handling acknowledgement", "INTERNAL_SERVER_ERROR")
+		err := APIErrHandlingAcknowledgement()
+		respondErr(w, err)
 		return
 	}
 	if len(cur_sub.List) == 0 {
-		respondErr(w, 404, "Subscription doesn't exist", "NOT_FOUND")
+		err := APIErrorNotFound("Subscription")
+		respondErr(w, err)
 		return
 	}
 
 	// Get list of AckIDs
 	if postBody.IDs == nil {
-		respondErr(w, 400, "Invalid ack id", "INVALID_ARGUMENT")
+		err := APIErrorInvalidData("Invalid ack id")
+		respondErr(w, err)
 		return
 	}
 
 	// Check if each AckID is valid
 	for _, ackID := range postBody.IDs {
 		if validAckID(projectName, subName, ackID) == false {
-			respondErr(w, 400, "Invalid ack id", "INVALID_ARGUMENT")
+			err := APIErrorInvalidData("Invalid ack id")
+			respondErr(w, err)
 			return
 		}
 	}
@@ -918,14 +973,16 @@ func SubAck(w http.ResponseWriter, r *http.Request) {
 	// Get Max ackID
 	maxAckID, err := subscriptions.GetMaxAckID(postBody.IDs)
 	if err != nil {
-		respondErr(w, 500, "Error handling acknowledgement", "INTERNAL_SERVER_ERROR")
+		err := APIErrHandlingAcknowledgement()
+		respondErr(w, err)
 		return
 	}
 	// Extract offset from max ackID
 	off, err := subscriptions.GetOffsetFromAckID(maxAckID)
 
 	if err != nil {
-		respondErr(w, 400, "Invalid ack id", "INVALID_ARGUMENT")
+		err := APIErrorInvalidData("Invalid ack id")
+		respondErr(w, err)
 		return
 	}
 
@@ -937,11 +994,13 @@ func SubAck(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 
 		if err.Error() == "ack timeout" {
-			respondErr(w, 408, err.Error(), "TIMEOUT")
+			err := APIErrorTimeout(err.Error())
+			respondErr(w, err)
 			return
 		}
 
-		respondErr(w, 400, err.Error(), "INTERNAL_SERVER_ERROR")
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
 		return
 	}
 
@@ -975,13 +1034,15 @@ func SubListOne(w http.ResponseWriter, r *http.Request) {
 	results, err := subscriptions.Find(projectUUID, urlVars["subscription"], refStr)
 
 	if err != nil {
-		respondErr(w, 500, "Backend Error", "INTERNAL_SERVER_ERROR")
+		err := APIErrGenericBackend()
+		respondErr(w, err)
 		return
 	}
 
 	// If not found
 	if results.Empty() {
-		respondErr(w, 404, "Subscription does not exist", "NOT_FOUND")
+		err := APIErrorNotFound("Subscription")
+		respondErr(w, err)
 		return
 	}
 
@@ -989,7 +1050,8 @@ func SubListOne(w http.ResponseWriter, r *http.Request) {
 	resJSON, err := results.List[0].ExportJSON()
 
 	if err != nil {
-		respondErr(w, 500, "Error exporting data", "INTERNAL_SERVER_ERROR")
+		err := APIErrExportJSON()
+		respondErr(w, err)
 		return
 	}
 
@@ -1018,14 +1080,16 @@ func SubSetOffset(w http.ResponseWriter, r *http.Request) {
 	// Read POST JSON body
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		respondErr(w, 400, "Invalid Request body", "INVALID_ARGUMENT")
+		err := APIErrorInvalidRequestBody()
+		respondErr(w, err)
 		return
 	}
 
 	// Parse pull options
 	postBody, err := subscriptions.GetSetOffsetJSON(body)
 	if err != nil {
-		respondErr(w, 400, "Invalid Offset Argument", "INVALID_ARGUMENT")
+		err := APIErrorInvalidArgument("Offset")
+		respondErr(w, err)
 		log.Error(string(body[:]))
 		return
 	}
@@ -1040,13 +1104,15 @@ func SubSetOffset(w http.ResponseWriter, r *http.Request) {
 	results, err := subscriptions.Find(projectUUID, urlVars["subscription"], refStr)
 
 	if err != nil {
-		respondErr(w, 500, "Backend Error", "INTERNAL_SERVER_ERROR")
+		err := APIErrGenericBackend()
+		respondErr(w, err)
 		return
 	}
 
 	// If not found
 	if results.Empty() {
-		respondErr(w, 404, "Subscription does not exist", "NOT_FOUND")
+		err := APIErrorNotFound("Subscription")
+		respondErr(w, err)
 		return
 	}
 	brk_topic := projectUUID + "." + results.List[0].Topic
@@ -1055,7 +1121,8 @@ func SubSetOffset(w http.ResponseWriter, r *http.Request) {
 
 	//Check if given offset is between min max
 	if postBody.Offset < min_offset || postBody.Offset > max_offset {
-		respondErr(w, 400, "Offset out of bounds", "INVALID_ARGUMENT")
+		err := APIErrorInvalidData("Offset out of bounds")
+		respondErr(w, err)
 		log.Error(string(body[:]))
 	}
 
@@ -1090,13 +1157,15 @@ func SubGetOffsets(w http.ResponseWriter, r *http.Request) {
 	results, err := subscriptions.Find(projectUUID, urlVars["subscription"], refStr)
 
 	if err != nil {
-		respondErr(w, 500, "Backend Error", "INTERNAL_SERVER_ERROR")
+		err := APIErrGenericBackend()
+		respondErr(w, err)
 		return
 	}
 
 	// If not found
 	if results.Empty() {
-		respondErr(w, 404, "Subscription does not exist", "NOT_FOUND")
+		err := APIErrorNotFound("Subscription")
+		respondErr(w, err)
 		return
 	}
 
@@ -1110,7 +1179,8 @@ func SubGetOffsets(w http.ResponseWriter, r *http.Request) {
 	offResult := subscriptions.Offsets{Current: cur_offset, Min: min_offset, Max: max_offset}
 	resJSON, err := offResult.ExportJSON()
 	if err != nil {
-		respondErr(w, 500, "Error exporting data", "INTERNAL_SERVER_ERROR")
+		err := APIErrExportJSON()
+		respondErr(w, err)
 		return
 	}
 
@@ -1143,11 +1213,12 @@ func TopicDelete(w http.ResponseWriter, r *http.Request) {
 	err := topics.RemoveTopic(projectUUID, urlVars["topic"], refStr)
 	if err != nil {
 		if err.Error() == "not found" {
-			respondErr(w, 404, "Topic doesn't exist", "NOT_FOUND")
+			err := APIErrorNotFound("Topic")
+			respondErr(w, err)
 			return
 		}
-
-		respondErr(w, 500, err.Error(), "INTERNAL_SERVER_ERROR")
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
 		return
 	}
 
@@ -1181,11 +1252,12 @@ func SubDelete(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 
 		if err.Error() == "not found" {
-			respondErr(w, 404, "Subscription doesn't exist", "NOT_FOUND")
+			err := APIErrorNotFound("Subscription")
+			respondErr(w, err)
 			return
 		}
-
-		respondErr(w, 500, err.Error(), "INTERNAL_SERVER_ERROR")
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
 		return
 	}
 
@@ -1215,14 +1287,16 @@ func TopicModACL(w http.ResponseWriter, r *http.Request) {
 	// Read POST JSON body
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		respondErr(w, 400, "Invalid Request body", "INVALID_ARGUMENT")
+		err := APIErrorInvalidRequestBody()
+		respondErr(w, err)
 		return
 	}
 
 	// Parse pull options
 	postBody, err := auth.GetACLFromJSON(body)
 	if err != nil {
-		respondErr(w, 400, "Invalid Topic ACL Arguments", "INVALID_ARGUMENT")
+		err := APIErrorInvalidArgument("Topic ACL")
+		respondErr(w, err)
 		log.Error(string(body[:]))
 		return
 	}
@@ -1235,7 +1309,8 @@ func TopicModACL(w http.ResponseWriter, r *http.Request) {
 	// check if user list contain valid users for the given project
 	_, err = auth.AreValidUsers(projectUUID, postBody.AuthUsers, refStr)
 	if err != nil {
-		respondErr(w, 404, err.Error(), "NOT_FOUND")
+		err := APIErrorRoot{Body: APIErrorBody{Code: http.StatusNotFound, Message: err.Error(), Status: "NOT_FOUND"}}
+		respondErr(w, err)
 		return
 	}
 
@@ -1244,11 +1319,12 @@ func TopicModACL(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 
 		if err.Error() == "not found" {
-			respondErr(w, 404, "Topic doesn't exist", "NOT_FOUND")
+			err := APIErrorNotFound("Topic")
+			respondErr(w, err)
 			return
 		}
-
-		respondErr(w, 500, err.Error(), "INTERNAL_SERVER_ERROR")
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
 		return
 	}
 
@@ -1275,14 +1351,16 @@ func SubModACL(w http.ResponseWriter, r *http.Request) {
 	// Read POST JSON body
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		respondErr(w, 400, "Invalid Request body", "INVALID_ARGUMENT")
+		err := APIErrorInvalidRequestBody()
+		respondErr(w, err)
 		return
 	}
 
 	// Parse pull options
 	postBody, err := auth.GetACLFromJSON(body)
 	if err != nil {
-		respondErr(w, 400, "Invalid Subscription ACL Arguments", "INVALID_ARGUMENT")
+		err := APIErrorInvalidArgument("Subscription ACL")
+		respondErr(w, err)
 		log.Error(string(body[:]))
 		return
 	}
@@ -1295,7 +1373,8 @@ func SubModACL(w http.ResponseWriter, r *http.Request) {
 	// check if user list contain valid users for the given project
 	_, err = auth.AreValidUsers(projectUUID, postBody.AuthUsers, refStr)
 	if err != nil {
-		respondErr(w, 404, err.Error(), "NOT_FOUND")
+		err := APIErrorRoot{Body: APIErrorBody{Code: http.StatusNotFound, Message: err.Error(), Status: "NOT_FOUND"}}
+		respondErr(w, err)
 		return
 	}
 
@@ -1304,11 +1383,12 @@ func SubModACL(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 
 		if err.Error() == "not found" {
-			respondErr(w, 404, "Subscription doesn't exist", "NOT_FOUND")
+			err := APIErrorNotFound("Subscription")
+			respondErr(w, err)
 			return
 		}
-
-		respondErr(w, 500, err.Error(), "INTERNAL_SERVER_ERROR")
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
 		return
 	}
 
@@ -1339,14 +1419,15 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 	// Read POST JSON body
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		respondErr(w, 400, "Invalid Request body", "INVALID_ARGUMENT")
+		err := APIErrorInvalidRequestBody()
+		respondErr(w, err)
 		return
 	}
 
 	// Parse pull options
 	postBody, err := subscriptions.GetFromJSON(body)
 	if err != nil {
-		respondErr(w, 400, "Invalid Subscription Arguments", "INVALID_ARGUMENT")
+		APIErrorInvalidArgument("Subscription")
 		log.Error(string(body[:]))
 		return
 	}
@@ -1358,7 +1439,8 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 		pushEnd = postBody.PushCfg.Pend
 		// Check if push endpoint is not a valid https:// endpoint
 		if !(isValidHTTPS(pushEnd)) {
-			respondErr(w, 400, "Push endpoint should be addressed by a valid https url", "INVALID_ARGUMENT")
+			err := APIErrorInvalidData("Push endpoint should be addressed by a valid https url")
+			respondErr(w, err)
 			return
 		}
 		rPolicy = postBody.PushCfg.RetPol.PolicyType
@@ -1378,14 +1460,14 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 	res, err := subscriptions.Find(projectUUID, subName, refStr)
 
 	if err != nil {
-
-		respondErr(w, 500, "Backend Error", "INTERNAL_SERVER_ERROR")
-
+		err := APIErrGenericBackend()
+		respondErr(w, err)
 		return
 	}
 
 	if res.Empty() {
-		respondErr(w, 404, "Subscription doesn't exist", "NOT_FOUND")
+		err := APIErrorNotFound("Subscription")
+		respondErr(w, err)
 		return
 	}
 	old := res.List[0]
@@ -1395,11 +1477,12 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 
 		if err.Error() == "not found" {
-			respondErr(w, 404, "Subscription doesn't exist", "NOT_FOUND")
+			err := APIErrorNotFound("Subscription")
+			respondErr(w, err)
 			return
 		}
-
-		respondErr(w, 500, err.Error(), "INTERNAL_SERVER_ERROR")
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
 		return
 	}
 
@@ -1446,14 +1529,16 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 	// Read POST JSON body
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		respondErr(w, 400, "Invalid Request body", "INVALID_ARGUMENT")
+		err := APIErrorInvalidRequestBody()
+		respondErr(w, err)
 		return
 	}
 
 	// Parse pull options
 	postBody, err := subscriptions.GetFromJSON(body)
 	if err != nil {
-		respondErr(w, 400, "Invalid Subscription Arguments", "INVALID_ARGUMENT")
+		err := APIErrorInvalidArgument("Subscription")
+		respondErr(w, err)
 		log.Error(string(body[:]))
 		return
 	}
@@ -1461,12 +1546,14 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 	tProject, tName, err := subscriptions.ExtractFullTopicRef(postBody.FullTopic)
 
 	if err != nil {
-		respondErr(w, 400, "Invalid Topic Name", "INVALID_ARGUMENT")
+		err := APIErrorInvalidName("Topic")
+		respondErr(w, err)
 		return
 	}
 
 	if topics.HasTopic(projectUUID, tName, refStr) == false {
-		respondErr(w, 404, "Topic doesn't exist", "NOT_FOUND")
+		err := APIErrorNotFound("Topic")
+		respondErr(w, err)
 		return
 	}
 
@@ -1482,7 +1569,8 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 		pushEnd = postBody.PushCfg.Pend
 		// Check if push endpoint is not a valid https:// endpoint
 		if !(isValidHTTPS(pushEnd)) {
-			respondErr(w, 400, "Push endpoint should be addressed by a valid https url", "INVALID_ARGUMENT")
+			err := APIErrorInvalidData("Push endpoint should be addressed by a valid https url")
+			respondErr(w, err)
 			return
 		}
 		rPolicy = postBody.PushCfg.RetPol.PolicyType
@@ -1500,11 +1588,12 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if err.Error() == "exists" {
-			respondErr(w, 409, "Subscription already exists", "ALREADY_EXISTS")
+			err := APIErrorConflict("Subscription")
+			respondErr(w, err)
 			return
 		}
-
-		respondErr(w, 500, err.Error(), "INTERNAL_SERVER_ERROR")
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
 		return
 	}
 
@@ -1517,7 +1606,8 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
 	if err != nil {
-		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
+		err := APIErrExportJSON()
+		respondErr(w, err)
 		return
 	}
 
@@ -1549,17 +1639,19 @@ func TopicCreate(w http.ResponseWriter, r *http.Request) {
 	res, err := topics.CreateTopic(projectUUID, urlVars["topic"], refStr)
 	if err != nil {
 		if err.Error() == "exists" {
-			respondErr(w, 409, "Topic already exists", "ALREADY_EXISTS")
+			err := APIErrorConflict("Topic")
+			respondErr(w, err)
 			return
 		}
-
-		respondErr(w, 500, err.Error(), "INTERNAL_SERVER_ERROR")
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
 	}
 
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
 	if err != nil {
-		respondErr(w, 500, "Error Exporting Retrieved Data to JSON", "INTERNAL_SERVER_ERROR")
+		err := APIErrExportJSON()
+		respondErr(w, err)
 		return
 	}
 
@@ -1602,13 +1694,15 @@ func ProjectMetrics(w http.ResponseWriter, r *http.Request) {
 
 	numTopics2, err2 := metrics.GetProjectTopics(projectUUID, refStr)
 	if err2 != nil {
-		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
+		err := APIErrExportJSON()
+		respondErr(w, err)
 		return
 	}
 	numTopics = numTopics2
 	numSubs2, err2 := metrics.GetProjectSubs(projectUUID, refStr)
 	if err2 != nil {
-		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
+		err := APIErrExportJSON()
+		respondErr(w, err)
 		return
 	}
 	numSubs = numSubs2
@@ -1621,7 +1715,8 @@ func ProjectMetrics(w http.ResponseWriter, r *http.Request) {
 	// Project User topics aggregation
 	m3, err := metrics.AggrProjectUserTopics(projectUUID, refStr)
 	if err != nil {
-		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
+		err := APIErrExportJSON()
+		respondErr(w, err)
 		return
 	}
 
@@ -1632,7 +1727,8 @@ func ProjectMetrics(w http.ResponseWriter, r *http.Request) {
 	// Project User subscriptions aggregation
 	m4, err := metrics.AggrProjectUserSubs(projectUUID, refStr)
 	if err != nil {
-		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
+		err := APIErrExportJSON()
+		respondErr(w, err)
 		return
 	}
 
@@ -1643,7 +1739,8 @@ func ProjectMetrics(w http.ResponseWriter, r *http.Request) {
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
 	if err != nil {
-		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
+		err := APIErrExportJSON()
+		respondErr(w, err)
 		return
 	}
 
@@ -1684,7 +1781,8 @@ func TopicMetrics(w http.ResponseWriter, r *http.Request) {
 	if refAuthResource && auth.IsPublisher(refRoles) {
 
 		if auth.PerResource(projectUUID, "topics", urlTopic, refUser, refStr) == false {
-			respondErr(w, 403, "Access to this resource is forbidden", "FORBIDDEN")
+			err := APIErrorForbidden()
+			respondErr(w, err)
 			return
 		}
 	}
@@ -1694,10 +1792,12 @@ func TopicMetrics(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if err.Error() == "not found" {
-			respondErr(w, 404, "Topic does not exist", "NOT_FOUND")
+			err := APIErrorNotFound("Topic")
+			respondErr(w, err)
 			return
 		}
-		respondErr(w, 500, "Backend error", "INTERNAL_SERVER_ERROR")
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
 	}
 
 	numMsg := resultsMsg.MsgNum
@@ -1707,10 +1807,12 @@ func TopicMetrics(w http.ResponseWriter, r *http.Request) {
 	numSubs, err = metrics.GetProjectSubsByTopic(projectUUID, urlTopic, refStr)
 	if err != nil {
 		if err.Error() == "not found" {
-			respondErr(w, 404, "Topic does not exist", "NOT_FOUND")
+			err := APIErrorNotFound("Topic")
+			respondErr(w, err)
 			return
 		}
-		respondErr(w, 500, "Backend error", "INTERNAL_SERVER_ERROR")
+		err := APIErrGenericBackend()
+		respondErr(w, err)
 	}
 	m1 := metrics.NewTopicSubs(urlTopic, numSubs, metrics.GetTimeNowZulu())
 	res := metrics.NewMetricList(m1)
@@ -1724,7 +1826,8 @@ func TopicMetrics(w http.ResponseWriter, r *http.Request) {
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
 	if err != nil {
-		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
+		err := APIErrExportJSON()
+		respondErr(w, err)
 		return
 	}
 
@@ -1755,12 +1858,14 @@ func TopicListOne(w http.ResponseWriter, r *http.Request) {
 	results, err := topics.Find(projectUUID, urlVars["topic"], refStr)
 
 	if err != nil {
-		respondErr(w, 500, "Backend error", "INTERNAL_SERVER_ERROR")
+		err := APIErrGenericBackend()
+		respondErr(w, err)
 	}
 
 	// If not found
 	if results.Empty() {
-		respondErr(w, 404, "Topic does not exist", "NOT_FOUND")
+		err := APIErrorNotFound("Topic")
+		respondErr(w, err)
 		return
 	}
 
@@ -1769,7 +1874,8 @@ func TopicListOne(w http.ResponseWriter, r *http.Request) {
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
 	if err != nil {
-		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
+		err := APIErrExportJSON()
+		respondErr(w, err)
 		return
 	}
 
@@ -1803,14 +1909,16 @@ func TopicACL(w http.ResponseWriter, r *http.Request) {
 
 	// If not found
 	if err != nil {
-		respondErr(w, 404, "Topic does not exist", "NOT_FOUND")
+		err := APIErrorNotFound("Topic")
+		respondErr(w, err)
 		return
 	}
 
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
 	if err != nil {
-		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
+		err := APIErrExportJSON()
+		respondErr(w, err)
 		return
 	}
 
@@ -1844,14 +1952,16 @@ func SubACL(w http.ResponseWriter, r *http.Request) {
 
 	// If not found
 	if err != nil {
-		respondErr(w, 404, "Subscription does not exist", "NOT_FOUND")
+		err := APIErrorNotFound("Subscription")
+		respondErr(w, err)
 		return
 	}
 
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
 	if err != nil {
-		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
+		err := APIErrExportJSON()
+		respondErr(w, err)
 		return
 	}
 
@@ -1892,7 +2002,8 @@ func SubMetrics(w http.ResponseWriter, r *http.Request) {
 	if refAuthResource && auth.IsConsumer(refRoles) {
 
 		if auth.PerResource(projectUUID, "subscriptions", urlSub, refUser, refStr) == false {
-			respondErr(w, 403, "Access to this resource is forbidden", "FORBIDDEN")
+			err := APIErrorForbidden()
+			respondErr(w, err)
 			return
 		}
 	}
@@ -1901,10 +2012,12 @@ func SubMetrics(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if err.Error() == "not found" {
-			respondErr(w, 404, "Subscription does not exist", "NOT_FOUND")
+			err := APIErrorNotFound("Subscription")
+			respondErr(w, err)
 			return
 		}
-		respondErr(w, 500, "Backend error", "INTERNAL_SERVER_ERROR")
+		err := APIErrGenericBackend()
+		respondErr(w, err)
 	}
 
 	numMsg := resultMsg.MsgNum
@@ -1919,7 +2032,8 @@ func SubMetrics(w http.ResponseWriter, r *http.Request) {
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
 	if err != nil {
-		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
+		err := APIErrExportJSON()
+		respondErr(w, err)
 		return
 	}
 
@@ -1946,13 +2060,15 @@ func SubListAll(w http.ResponseWriter, r *http.Request) {
 
 	res, err := subscriptions.Find(projectUUID, "", refStr)
 	if err != nil {
-		respondErr(w, 500, "Backend error", "INTERNAL_SERVER_ERROR")
+		err := APIErrGenericBackend()
+		respondErr(w, err)
 		return
 	}
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
 	if err != nil {
-		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
+		err := APIErrExportJSON()
+		respondErr(w, err)
 		return
 	}
 
@@ -1979,13 +2095,15 @@ func TopicListAll(w http.ResponseWriter, r *http.Request) {
 
 	res, err := topics.Find(projectUUID, "", refStr)
 	if err != nil {
-		respondErr(w, 500, "Backend error", "INTERNAL_SERVER_ERROR")
+		err := APIErrGenericBackend()
+		respondErr(w, err)
 		return
 	}
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
 	if err != nil {
-		respondErr(w, 500, "Error exporting data to JSON", "INTERNAL_SERVER_ERROR")
+		err := APIErrExportJSON()
+		respondErr(w, err)
 		return
 	}
 
@@ -2021,7 +2139,8 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 
 	// Check if Project/Topic exist
 	if topics.HasTopic(projectUUID, urlVars["topic"], refStr) == false {
-		respondErr(w, 404, "Topic doesn't exist", "NOT_FOUND")
+		err := APIErrorNotFound("Topic")
+		respondErr(w, err)
 		return
 	}
 
@@ -2032,7 +2151,8 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 	if refAuthResource && auth.IsPublisher(refRoles) {
 
 		if auth.PerResource(projectUUID, "topics", urlTopic, refUser, refStr) == false {
-			respondErr(w, 403, "Access to this resource is forbidden", "FORBIDDEN")
+			err := APIErrorForbidden()
+			respondErr(w, err)
 			return
 		}
 	}
@@ -2040,14 +2160,16 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 	// Read POST JSON body
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		respondErr(w, 400, "Bad Request Body", "BAD REQUEST")
+		err := APIErrorInvalidRequestBody()
+		respondErr(w, err)
 		return
 	}
 
 	// Create Message List from Post JSON
 	msgList, err := messages.LoadMsgListJSON(body)
 	if err != nil {
-		respondErr(w, 400, "Invalid Message Arguments", "INVALID_ARGUMENT")
+		err := APIErrorInvalidArgument("Message")
+		respondErr(w, err)
 		log.Error(string(body[:]))
 		return
 	}
@@ -2064,16 +2186,19 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 
 		if err != nil {
 			if err.Error() == "kafka server: Message was too large, server rejected it to avoid allocation error." {
-				respondErr(w, 413, "Message size too large", "INVALID_ARGUMENT")
+				err := APIErrTooLargeMessage("Message size too large")
+				respondErr(w, err)
 				return
 			}
-			respondErr(w, 500, err.Error(), "INTERNAL_SERVER_ERROR")
+			err := APIErrGenericInternal(err.Error())
+			respondErr(w, err)
 			return
 		}
 		msg.ID = msgID
 		// Assertions for Succesfull Publish
 		if rTop != fullTopic {
-			respondErr(w, 500, "Broker reports wrong topic", "INTERNAL_SERVER_ERROR")
+			err := APIErrGenericInternal("Broker reports wrong topic")
+			respondErr(w, err)
 			return
 		}
 
@@ -2089,7 +2214,8 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 	// Export the msgIDs
 	resJSON, err := msgIDs.ExportJSON()
 	if err != nil {
-		respondErr(w, 500, "Error during export data to JSON", "INTERNAL_SERVER_ERROR")
+		err := APIErrExportJSON()
+		respondErr(w, err)
 		return
 	}
 
@@ -2124,7 +2250,8 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	projectUUID := context.Get(r, "auth_project_uuid").(string)
 	// Check if sub exists
 	if subscriptions.HasSub(projectUUID, urlSub, refStr) == false {
-		respondErr(w, 404, "Subscription doesn't exist", "NOT_FOUND")
+		err := APIErrorNotFound("Subscription")
+		respondErr(w, err)
 		return
 	}
 
@@ -2133,7 +2260,8 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	// - if user has only consumer role
 	if refAuthResource && auth.IsConsumer(refRoles) {
 		if auth.PerResource(projectUUID, "subscriptions", urlSub, refUser, refStr) == false {
-			respondErr(w, 403, "Access to this resource is forbidden", "FORBIDDEN")
+			err := APIErrorForbidden()
+			respondErr(w, err)
 			return
 		}
 	}
@@ -2141,14 +2269,16 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	// Read POST JSON body
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		respondErr(w, 400, "Invalid Request Body", "INVALID_ARGUMENT")
+		err := APIErrorInvalidRequestBody()
+		respondErr(w, err)
 		return
 	}
 
 	// Parse pull options
 	pullInfo, err := subscriptions.GetPullOptionsJSON(body)
 	if err != nil {
-		respondErr(w, 400, "Pull Parameters Invalid", "INVALID_ARGUMENT")
+		err := APIErrorInvalidArgument("Pull Parameters")
+		respondErr(w, err)
 		log.Error(string(body[:]))
 		return
 	}
@@ -2159,17 +2289,19 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	// Get the subscription info
 	results, err := subscriptions.Find(projectUUID, urlSub, refStr)
 	if err != nil {
-		respondErr(w, 500, "Backend error", "INTERNAL_SERVER_ERROR")
+		err := APIErrGenericBackend()
+		respondErr(w, err)
 		return
 	}
 	if results.Empty() {
-		respondErr(w, 404, "Subscription doesn't exist", "NOT_FOUND")
+		err := APIErrorNotFound("Subscription")
+		respondErr(w, err)
 		return
 	}
 	targSub := results.List[0]
 
 	fullTopic := targSub.ProjectUUID + "." + targSub.Topic
-	retImm := false
+	retImm := true
 	max := 1
 
 	if pullInfo.MaxMsg != "" {
@@ -2179,9 +2311,10 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if pullInfo.RetImm == "true" {
-		retImm = true
+	if pullInfo.RetImm == "false" {
+		retImm = false
 	}
+
 	msgs, err := refBrk.Consume(r.Context(), fullTopic, targSub.Offset, retImm, int64(max))
 	if err != nil {
 		// If tracked offset is off
@@ -2194,11 +2327,13 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 			msgs, err = refBrk.Consume(r.Context(), fullTopic, targSub.Offset, retImm, int64(max))
 			// If still error respond and return
 			if err != nil {
-				respondErr(w, 500, "Cannot consume message", "INTERNAL_SERVER_ERROR")
+				err := APIErrGenericInternal("Cannot consume message")
+				respondErr(w, err)
 				return
 			}
 		} else {
-			respondErr(w, 500, "Cannot consume message", "INTERNAL_SERVER_ERROR")
+			err := APIErrGenericInternal("Cannot consume message")
+			respondErr(w, err)
 			return
 		}
 	}
@@ -2216,7 +2351,8 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 		}
 		curMsg, err := messages.LoadMsgJSON([]byte(msg))
 		if err != nil {
-			respondErr(w, 500, "Message retrieved from broker network has invalid JSON Structure", "INTERNAL_SERVER_ERROR")
+			err := APIErrGenericInternal("Message retrieved from broker network has invalid JSON Structure")
+			respondErr(w, err)
 			return
 		}
 		// calc the message id = message's kafka offset (read offst + msg position)
@@ -2233,7 +2369,8 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	resJSON, err := recList.ExportJSON()
 
 	if err != nil {
-		respondErr(w, 500, "Error during exporting message to JSON", "INTERNAL_SERVER_ERROR")
+		err := APIErrExportJSON()
+		respondErr(w, err)
 		return
 	}
 
@@ -2247,6 +2384,22 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	respondOK(w, output)
 }
 
+// HealthCheck returns an ok message to make sure the service is up and running
+func HealthCheck(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	var bytes []byte
+
+	healthMsg := HealthStatus{Status: "ok"}
+
+	if bytes, err = json.MarshalIndent(healthMsg, "", " "); err != nil {
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+	}
+
+	respondOK(w, bytes)
+}
+
 // Respond utility functions
 ///////////////////////////////
 
@@ -2257,23 +2410,17 @@ func respondOK(w http.ResponseWriter, output []byte) {
 }
 
 // respondErr is used to finalize response writer with proper error codes and error output
-func respondErr(w http.ResponseWriter, errCode int, errMsg string, status string) {
-	log.Error(errCode, "\t", errMsg)
-	w.WriteHeader(errCode)
-	rt := APIErrorRoot{}
-	bd := APIErrorBody{}
-	//em := APIError{}
-	//em.Message = errMsg
-	//em.Domain = "global"
-	//em.Reason = "backend"
-	bd.Code = errCode
-	bd.Message = errMsg
-	//bd.ErrList = append(bd.ErrList, em)
-	bd.Status = status
-	rt.Body = bd
+func respondErr(w http.ResponseWriter, apiErr APIErrorRoot) {
+	log.Error(apiErr.Body.Code, "\t", apiErr.Body.Message)
+	// set the response code
+	w.WriteHeader(apiErr.Body.Code)
 	// Output API Erorr object to JSON
-	output, _ := json.MarshalIndent(rt, "", "   ")
+	output, _ := json.MarshalIndent(apiErr, "", "   ")
 	w.Write(output)
+}
+
+type HealthStatus struct {
+	Status string `json:"status"`
 }
 
 // APIErrorRoot holds the root json object of an error response
@@ -2309,4 +2456,94 @@ func isValidHTTPS(urlStr string) bool {
 	}
 
 	return true
+}
+
+// api err to be used when dealing with an invalid request body
+var APIErrorInvalidRequestBody = func() APIErrorRoot {
+	apiErrBody := APIErrorBody{Code: http.StatusBadRequest, Message: "Invalid Request Body", Status: "BAD_REQUEST"}
+	return APIErrorRoot{Body: apiErrBody}
+}
+
+// api err to be used when a name provided through the url parameters is not valid
+var APIErrorInvalidName = func(key string) APIErrorRoot {
+	apiErrBody := APIErrorBody{Code: http.StatusBadRequest, Message: fmt.Sprintf("Invalid %v name", key), Status: "INVALID_ARGUMENT"}
+	return APIErrorRoot{Body: apiErrBody}
+}
+
+// api err to be used when data provided is invalid
+var APIErrorInvalidData = func(msg string) APIErrorRoot {
+	apiErrBody := APIErrorBody{Code: http.StatusBadRequest, Message: msg, Status: "INVALID_ARGUMENT"}
+	return APIErrorRoot{Body: apiErrBody}
+}
+
+// api err to be used when argument's provided are invalid according to the resource
+var APIErrorInvalidArgument = func(resource string) APIErrorRoot {
+	apiErrBody := APIErrorBody{Code: http.StatusBadRequest, Message: fmt.Sprintf("Invalid %v Arguments", resource), Status: "INVALID_ARGUMENT"}
+	return APIErrorRoot{Body: apiErrBody}
+}
+
+// api err to be used when a user is unauthorized
+var APIErrorUnauthorized = func() APIErrorRoot {
+	apiErrBody := APIErrorBody{Code: http.StatusUnauthorized, Message: "Unauthorized", Status: "UNAUTHORIZED"}
+	return APIErrorRoot{Body: apiErrBody}
+}
+
+// api err to be used when access to a resource is forbidden for the request user
+var APIErrorForbidden = func() APIErrorRoot {
+	apiErrBody := APIErrorBody{Code: http.StatusForbidden, Message: "Access to this resource is forbidden", Status: "FORBIDDEN"}
+	return APIErrorRoot{Body: apiErrBody}
+}
+
+// api err for dealing with absent resources
+var APIErrorNotFound = func(resource string) APIErrorRoot {
+	apiErrBody := APIErrorBody{Code: http.StatusNotFound, Message: fmt.Sprintf("%v doesn't exist", resource), Status: "NOT_FOUND"}
+	return APIErrorRoot{Body: apiErrBody}
+}
+
+// api err for dealing with  timeouts
+var APIErrorTimeout = func(msg string) APIErrorRoot {
+	apiErrBody := APIErrorBody{Code: http.StatusRequestTimeout, Message: msg, Status: "TIMEOUT"}
+	return APIErrorRoot{Body: apiErrBody}
+}
+
+// api err for dealing with already existing resources
+var APIErrorConflict = func(resource string) APIErrorRoot {
+	apiErrBody := APIErrorBody{Code: http.StatusConflict, Message: fmt.Sprintf("%v already exists", resource), Status: "ALREADY_EXISTS"}
+	return APIErrorRoot{Body: apiErrBody}
+}
+
+// api err for dealing with too large messages
+var APIErrTooLargeMessage = func(resource string) APIErrorRoot {
+	apiErrBody := APIErrorBody{Code: http.StatusRequestEntityTooLarge, Message: "Message size is too large", Status: "INVALID_ARGUMENT"}
+	return APIErrorRoot{Body: apiErrBody}
+}
+
+// api err for dealing with generic internal errors
+var APIErrGenericInternal = func(msg string) APIErrorRoot {
+	apiErrBody := APIErrorBody{Code: http.StatusInternalServerError, Message: msg, Status: "INTERNAL_SERVER_ERROR"}
+	return APIErrorRoot{Body: apiErrBody}
+}
+
+// api err for dealing with internal errors when marshaling json to struct
+var APIErrExportJSON = func() APIErrorRoot {
+	apiErrBody := APIErrorBody{Code: http.StatusInternalServerError, Message: "Error exporting data to JSON", Status: "INTERNAL_SERVER_ERROR"}
+	return APIErrorRoot{Body: apiErrBody}
+}
+
+// api err for dealing with internal errors when querying the datastore
+var APIErrQueryDatastore = func() APIErrorRoot {
+	apiErrBody := APIErrorBody{Code: http.StatusInternalServerError, Message: "Internal error while querying datastore", Status: "INTERNAL_SERVER_ERROR"}
+	return APIErrorRoot{Body: apiErrBody}
+}
+
+// api err for dealing with internal errors related to acknowledgement
+var APIErrHandlingAcknowledgement = func() APIErrorRoot {
+	apiErrBody := APIErrorBody{Code: http.StatusInternalServerError, Message: "Error handling acknowledgement", Status: "INTERNAL_SERVER_ERROR"}
+	return APIErrorRoot{Body: apiErrBody}
+}
+
+// api err for dealing with generic backend errors
+var APIErrGenericBackend = func() APIErrorRoot {
+	apiErrBody := APIErrorBody{Code: http.StatusInternalServerError, Message: "Backend Error", Status: "INTERNAL_SERVER_ERROR"}
+	return APIErrorRoot{Body: apiErrBody}
 }
