@@ -75,7 +75,7 @@ go clean
 - ARGO-1282 Fix Metrics package timestamp to be utc 
 - ARGO-1281 Add support for logging to syslog 
 - ARGO-571 Use const for error messages in messaging service 
-* Tue Jul 11 2017 Kostas Koumantaros <kkoumantaros@gmail.com> 1.0.2-1%{?dist}
+* Tue Jun 12 2018 Kostas Koumantaros <kkoumantaros@gmail.com> 1.0.2-1%{?dist}
 - ARGO-1216 Retry if backends are unavailable 
 - ARGO-1216 Retry if backends are unavailable 
 - ARGO-1177 Fix utc generation in utc-formatted fields 
