@@ -121,6 +121,13 @@ func WrapAuthenticate(hfn http.Handler) http.HandlerFunc {
 		urlVars := mux.Vars(r)
 		urlValues := r.URL.Query()
 
+		// if the url parameter 'key' is empty or absent, end the request with an unauthorized response
+		if urlValues.Get("key") == "" {
+			err := APIErrorUnauthorized()
+			respondErr(w, err)
+			return
+		}
+
 		refStr := context.Get(r, "str").(stores.Store)
 		serviceToken := context.Get(r, "auth_service_token").(string)
 
@@ -164,7 +171,7 @@ func WrapAuthenticate(hfn http.Handler) http.HandlerFunc {
 	})
 }
 
-// WrapAuthorize handle wrapper to apply authentication
+// WrapAuthorize handle wrapper to apply authorization
 func WrapAuthorize(hfn http.Handler, routeName string) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
