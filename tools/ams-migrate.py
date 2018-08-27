@@ -156,7 +156,7 @@ def export_topic(output, topic, k_consumer, max_off):
         max (int): Maximum offset of topic
     """
     first_msg = True
-    export_filename = output+"/"+topic+".topic.data"
+    export_filename = os.path.abspath(os.path.join(output,topic+".topic.data"))
     log.info("saving to: " + export_filename)
     with open(export_filename, "w") as topic_file:
         partition = TopicPartition(topic, 0)
@@ -166,18 +166,12 @@ def export_topic(output, topic, k_consumer, max_off):
             # If on first message, write min-max offsets
             # on the first line of export file as "[topic_name],[min],[max]\n"
             if first_msg:
-                min_off=message.offset
+                min_off=message.offset 
                 topic_file.write(topic+","+str(min_off)+","+str(max_off))
                 topic_file.write("\n")
-                first_msg = False
-            json_txt = json.dumps(json.loads(message.value))
-            topic_file.write(json_txt)
+                first_msg = False 
+            topic_file.write(json.dumps(message.value))
             topic_file.write("\n")
-        if first_msg is True:
-            # Write only header with min,max=max
-            topic_file.write(topic+","+str(max_off)+","+str(max_off))
-            topic_file.write("\n")
-
 
 
 def export_data(args):
@@ -201,6 +195,55 @@ def export_data(args):
         export_topic(args.data, topic, k_consumer, max_off)
 
 
+def import_data(args):
+    """Main import routine
+    
+    Args:
+        args (obj): command line arguments
+    """
+    log.info("Importing ams data")
+    log.info("Connect to kafka: " + args.brokers)
+    broker_args = args.brokers.split(",")
+    producer = get_kafka_producer(broker_args,args.batch_size)
+    file_list = glob(os.path.abspath(os.path.join(args.data,"*.topic.data")))
+    for file_name in file_list:
+        import_topic(file_name, producer, args.advance)
+    producer.flush()
+
+def import_topic(import_filename, producer, advance=False):
+    """Imports data from a filename to a specific topic
+    
+    Args:
+        import_filename (str): name of file to import data from
+        producer (obj): kafka produccer object
+        advance (bool, optional): Defaults to False. if true advance topic offsets by commiting empty messages
+    """
+
+    first_line = True
+    with open(import_filename, 'r') as topic_file:
+        log.info("opened :" + import_filename + " for import")
+        for line in topic_file:
+            
+            if first_line is True:
+                metadata = line.split(',')
+                if len(metadata) is not 3:
+                    return
+                topic = metadata[0]
+                min_off = int(metadata[1])
+                log.info('creating topic {} with initial offset: {} '.format(topic,min_off))
+                if advance is True:
+                    # Send first empty msgs to advance min offset
+                    log.info("advancing with emtpy messages" + str(min))
+                    for _ in range(0, min_off):
+                        producer.send(topic, b'')
+                        first_line=False
+                log.info("ready to import data")
+                first_line = False
+                continue
+            # Then send real messages
+            json_data = json.loads(line)
+            producer.send(topic, line)
+    log.info("import completed")
 
 
 
@@ -215,7 +258,7 @@ def main(args):
     if args.cmd == 'export':
         export_data(args)
     elif args.cmd == 'import':
-        log.info("import not yet implemented!")
+        import_data(args)
 
 
     
