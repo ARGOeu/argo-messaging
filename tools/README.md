@@ -28,6 +28,21 @@ where `--brokers` follow with a comma-separated list of host:port of kafka insta
 where `--timeout` specify a consume wait timeout in milliseconds
 where `--data` specify a folder to export data
 
+How to run for import
+---------------------
+
+In a node with network access to both the AMS kafka backend and AMS mongo instance issue issue the following:
+
+$ `./ams-migrate.py --mongo "localhost:27017" --brokers "localhost:9092" --batch 300 --advance-offsets false --data ./ import`
+or
+$ `./ams-migrate.py import` filled with default values targeting localhost
+
+where `--mongo` follow the hostname:port of mongodb
+where `--brokers` follow with a comma-separated list of host:port of kafka instances
+where `--batch` specify num of messages per batch import operation
+where `--data` specify a folder to import data from
+where `--advance-offsets` if true, advance topic offsets by publishing empty messages
+
 Exported file types
 -------------------
 
