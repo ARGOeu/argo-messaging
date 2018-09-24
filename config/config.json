@@ -8,5 +8,6 @@
   "certificate_key":"/etc/pki/tls/private/localhost.key",
   "per_resource_auth":"true",
   "service_token":"S3CR3T",
-  "log_level":"INFO"
+  "log_level":"INFO",
+  "push_enabled": false
 }

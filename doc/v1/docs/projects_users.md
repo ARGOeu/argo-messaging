@@ -30,7 +30,8 @@ First a service token must be defined in the config.json as such:
   "certificate":"/etc/pki/tls/certs/localhost.crt",
   "certificate_key":"/etc/pki/tls/private/localhost.key",
   "per_resource_auth":"true",
-  "service_token":"S3CR3T"
+  "service_token":"S3CR3T",
+  "push_enabled": false
 }
 ```
 The service token in this example has the value: `S3CR3T`
