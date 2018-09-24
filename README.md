@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.org/ARGOeu/argo-messaging.svg?branch=devel)](https://travis-ci.org/ARGOeu/argo-messaging)
 # ARGO Messaging
 
-> ## :warning: Warning :warning: 
+> ## :warning: Warning :warning:
 > These installation instructions are meant for running the service for demo purposes. If you want to operate the service for anything else other than a simple demo, please implement a deployment model that meets your requirements.
 
 In order to build, test and run the service, recent versions of the docker-engine (>=1.12) and the docker-compose (>= 1.8.0) are required. Step 1 refers to the docker installation on Ubuntu 16.04.1, please adopt accordingly your Linux distribution or OS.
@@ -26,9 +26,9 @@ We advise you to follow the steps described in docker manual. For Ubuntu:
 **Note:** Don't forget to login logout before running the docker as a non root user. This ensures your user is running with the correct permissions.
 
 ## Install docker-compose
- 
+
 We are using version of the Compose file format. To install the latest docker-compose, follow the guidelines here: https://github.com/docker/compose/releases
-   
+
 ## Clone the argo-messaging repository
 
 ```shell
@@ -67,7 +67,8 @@ In the ```argo-messaging``` directory, edit ```config.json```:
 -  "certificate_key":"/etc/pki/tls/private/localhost.key",
 +  "certificate":"./host.crt",
 +  "certificate_key":"./host.key",
-"service_token":"CHANGE-THIS-TO-A-LONG-STRING"
+"service_token":"CHANGE-THIS-TO-A-LONG-STRING",
+"push_enabled": false
 }
 ```
 
@@ -88,7 +89,7 @@ $ docker run --env hostUID=`id -u`:`id -g` --rm -v "$PWD":/usr/src/myapp -w /usr
 ```shell
 $ docker run --env hostUID=`id -u`:`id -g` --rm -v "$PWD":/usr/src/myapp -w /usr/src/myapp golang:1.7 make go-build-linux-static
 ```
- 
+
 ## Start the service
 
 ```shell

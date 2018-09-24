@@ -29,6 +29,7 @@ type APICfg struct {
 	ResAuth      bool
 	ServiceToken string
 	LogLevel     string
+	PushEnabled  bool
 }
 
 // NewAPICfg creates a new kafka configuration object
@@ -177,6 +178,8 @@ func (cfg *APICfg) LoadTest() {
 	log.Info("CONFIG", "\t", "Parameter Loaded - per_resource_auth: ", cfg.CertKey)
 	cfg.ServiceToken = viper.GetString("service_token")
 	log.Info("CONFIG", "\t", "Parameter Loaded - service_token: ", cfg.ServiceToken)
+	cfg.PushEnabled = viper.GetBool("push_enabled")
+	log.Info("CONFIG", "\t", "Parameter Loaded - push_enabled: ", cfg.PushEnabled)
 
 }
 
@@ -219,6 +222,9 @@ func (cfg *APICfg) Load() {
 
 		pflag.String("service-key", "", "service token definition for immediate full api access")
 		viper.BindPFlag("service_key", pflag.Lookup("service-key"))
+
+		pflag.String("push-enabled", "", "enable automatic handling of push subscriptions at start-up")
+		viper.BindPFlag("push_enabled", pflag.Lookup("push-enabled"))
 
 		configPath = pflag.String("config-dir", "", "directory path to an alternative json config file")
 
@@ -264,6 +270,8 @@ func (cfg *APICfg) Load() {
 	log.Info("CONFIG", "\t", "Parameter Loaded - per_resource_auth: ", cfg.ResAuth)
 	cfg.ServiceToken = viper.GetString("service_token")
 	log.Info("CONFIG", "\t", "Parameter Loaded - service_token: ", cfg.ServiceToken)
+	cfg.PushEnabled = viper.GetBool("push_enabled")
+	log.Info("CONFIG", "\t", "Parameter Loaded - push_enabled: ", cfg.PushEnabled)
 
 }
 
@@ -292,5 +300,7 @@ func (cfg *APICfg) LoadStrJSON(input string) {
 	log.Info("CONFIG", "\t", "Parameter Loaded - per_resource_auth", cfg.CertKey)
 	cfg.ServiceToken = viper.GetString("service_token")
 	log.Info("CONFIG", "\t", "Parameter Loaded - service_token", cfg.ServiceToken)
+	cfg.PushEnabled = viper.GetBool("push_enabled")
+	log.Info("CONFIG", "\t", "Parameter Loaded - push_enabled: ", cfg.PushEnabled)
 
 }

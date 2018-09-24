@@ -1417,7 +1417,6 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 	// Grab url path variables
 	urlVars := mux.Vars(r)
 	subName := urlVars["subscription"]
-	project := urlVars["project"]
 
 	refMgr := context.Get(r, "mgr").(*push.Manager)
 	// Get project UUID First to use as reference
@@ -1496,15 +1495,15 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 	// According to push cfg set start/stop pushing
 	if pushEnd != "" {
 		if old.PushCfg.Pend == "" {
-			refMgr.Add(project, subName)
-			refMgr.Launch(project, subName)
+			refMgr.Add(projectUUID, subName)
+			refMgr.Launch(projectUUID, subName)
 		} else if old.PushCfg.Pend != pushEnd {
-			refMgr.Restart(project, subName)
+			refMgr.Restart(projectUUID, subName)
 		} else if old.PushCfg.RetPol.PolicyType != rPolicy || old.PushCfg.RetPol.Period != rPeriod {
-			refMgr.Restart(project, subName)
+			refMgr.Restart(projectUUID, subName)
 		}
 	} else {
-		refMgr.Stop(project, subName)
+		refMgr.Stop(projectUUID, subName)
 
 	}
 

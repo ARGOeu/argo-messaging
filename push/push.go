@@ -108,7 +108,7 @@ func (p *Pusher) push(brk brokers.Broker, store stores.Store) {
 	// Init Received Message List
 
 	fullTopic := p.sub.ProjectUUID + "." + p.sub.Topic
-	msgs, err := brk.Consume(nil, fullTopic, p.sub.Offset, true, 1)
+	msgs, err := brk.Consume(context.Background(), fullTopic, p.sub.Offset, true, 1)
 	if err != nil {
 		// If tracked offset is off, update it to the latest min offset
 		if err == brokers.ErrOffsetOff {
@@ -273,6 +273,7 @@ func (mgr *Manager) Refresh(projectUUID string, sub string) error {
 
 // Add a new push subscription
 func (mgr *Manager) Add(projectUUID string, subName string) error {
+
 	// Check if mgr is set
 	if !mgr.isSet() {
 		return errors.New("Push Manager not set")
@@ -317,14 +318,14 @@ func (mgr *Manager) Launch(project string, sub string) error {
 	mgr.Refresh(project, sub)
 
 	psub := project + "/" + sub
-
 	if p, err := mgr.Get(psub); err == nil {
 		if p.running == true {
 			return errors.New("Already Running")
 		}
-
 		p.launch(mgr.broker, mgr.store.Clone())
 		return nil
+	} else {
+		log.Error(err.Error())
 	}
 
 	return errors.New("not Found")

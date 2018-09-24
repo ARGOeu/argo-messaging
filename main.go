@@ -41,8 +41,10 @@ func main() {
 	sndr := push.NewHTTPSender(1)
 
 	mgr := push.NewManager(broker, store, sndr)
-	mgr.LoadPushSubs()
-	mgr.StartAll()
+	if cfg.PushEnabled {
+		mgr.LoadPushSubs()
+		mgr.StartAll()
+	}
 	// create and initialize API routing object
 	API := NewRouting(cfg, broker, store, mgr, defaultRoutes)
 
