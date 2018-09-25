@@ -1,6 +1,7 @@
 package subscriptions
 
 import (
+	"errors"
 	"io/ioutil"
 	"testing"
 
@@ -177,6 +178,26 @@ func (suite *SubTestSuite) TestCreateSubStore() {
 	suite.Equal(expSub, sub2)
 	suite.Equal(nil, err2)
 
+}
+
+func (suite *SubTestSuite) TestModAck() {
+
+	APIcfg := config.NewAPICfg()
+	APIcfg.LoadStrJSON(suite.cfgStr)
+
+	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
+
+	err := ModAck("argo_uuid", "sub1", 300, store)
+	suite.Equal(nil, err)
+
+	err = ModAck("argo_uuid", "sub1", 0, store)
+	suite.Equal(nil, err)
+
+	err = ModAck("argo_uuid", "sub1", -300, store)
+	suite.Equal(errors.New("wrong value"), err)
+
+	err = ModAck("argo_uuid", "sub1", 601, store)
+	suite.Equal(errors.New("wrong value"), err)
 }
 
 func (suite *SubTestSuite) TestExtractFullTopic() {

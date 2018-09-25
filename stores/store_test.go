@@ -90,6 +90,11 @@ func (suite *StoreTestSuite) TestMockStore() {
 	sb, err := store.QueryOneSub("argo_uuid", "sub1")
 	suite.Equal(sb, eSubList[0])
 
+	// Test modify ack deadline in store
+	store.ModAck("argo_uuid", "sub1", 66)
+	subAck, _ := store.QueryOneSub("argo_uuid", "sub1")
+	suite.Equal(66, subAck.Ack)
+
 	// Query ACLS
 	ExpectedACL01 := QAcl{[]string{"uuid1", "uuid2"}}
 	QAcl01, _ := store.QueryACL("argo_uuid", "topics", "topic1")

@@ -18,7 +18,7 @@ type Subscription struct {
 	FullName    string     `json:"name"`
 	FullTopic   string     `json:"topic"`
 	PushCfg     PushConfig `json:"pushConfig"`
-	Ack         int        `json:"ackDeadlineSeconds,omitempty"`
+	Ack         int        `json:"ackDeadlineSeconds"`
 	Offset      int64      `json:"-"`
 	NextOffset  int64      `json:"-"`
 	PendingAck  string     `json:"-"`
@@ -70,6 +70,11 @@ type AckIDs struct {
 	IDs []string `json:"AckIds"`
 }
 
+// Ack utility struct
+type AckDeadline struct {
+	AckDeadline int `json:"ackDeadlineSeconds"`
+}
+
 // FindMetric returns the metric of a specific subscription
 func FindMetric(projectUUID string, name string, store stores.Store) (SubMetrics, error) {
 	result := SubMetrics{MsgNum: 0}
@@ -108,6 +113,13 @@ func GetSetOffsetJSON(input []byte) (SetOffset, error) {
 // GetPullOptionsJSON retrieves pull information
 func GetPullOptionsJSON(input []byte) (SubPullOptions, error) {
 	s := SubPullOptions{}
+	err := json.Unmarshal([]byte(input), &s)
+	return s, err
+}
+
+// GetAckDeadlineFromJson retrieves ack deadline from json input
+func GetAckDeadlineFromJSON(input []byte) (AckDeadline, error) {
+	s := AckDeadline{}
 	err := json.Unmarshal([]byte(input), &s)
 	return s, err
 }
@@ -214,6 +226,20 @@ func CreateSub(projectUUID string, name string, topic string, push string, offse
 	}
 
 	return results.List[0], err
+}
+
+// ModAck updates the subscription's acknowledgment timeout
+func ModAck(projectUUID string, name string, ack int, store stores.Store) error {
+	// minimum deadline allowed 0 seconds, maximum: 600 sec (10 minutes)
+	if ack < 0 || ack > 600 {
+		return errors.New("wrong value")
+	}
+
+	if HasSub(projectUUID, name, store) == false {
+		return errors.New("not found")
+	}
+
+	return store.ModAck(projectUUID, name, ack)
 }
 
 // ModSubPush updates the subscription push config

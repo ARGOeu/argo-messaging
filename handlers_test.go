@@ -2251,6 +2251,73 @@ func (suite *HandlerTestSuite) TestSubPullOne() {
 
 }
 
+func (suite *HandlerTestSuite) TestSubModAck() {
+
+	postJSON := `{
+  "ackDeadlineSeconds":33
+}`
+
+	postJSON2 := `{
+  "ackDeadlineSeconds":700
+}`
+
+	postJSON3 := `{
+  "ackDeadlineSeconds":-22
+}`
+
+	url := "http://localhost:8080/v1/projects/ARGO/subscriptions/sub1:modifyAckDeadline"
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expJSON1 := ``
+
+	expJSON2 := `{
+   "error": {
+      "code": 400,
+      "message": "Invalid ackDeadlineSeconds(needs value between 0 and 600) Arguments",
+      "status": "INVALID_ARGUMENT"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	brk.Initialize([]string{"localhost"})
+	brk.PopulateThree() // Add three messages to the broker queue
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modifyAckDeadline", WrapMockAuthConfig(SubModAck, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expJSON1, w.Body.String())
+
+	subRes, err := str.QueryOneSub("argo_uuid", "sub1")
+	suite.Equal(33, subRes.Ack)
+
+	req2, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(postJSON2)))
+	router2 := mux.NewRouter().StrictSlash(true)
+	w2 := httptest.NewRecorder()
+	mgr = push.Manager{}
+	router2.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modifyAckDeadline", WrapMockAuthConfig(SubModAck, cfgKafka, &brk, str, &mgr))
+	router2.ServeHTTP(w2, req2)
+	suite.Equal(400, w2.Code)
+	suite.Equal(expJSON2, w2.Body.String())
+
+	req3, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(postJSON3)))
+	router3 := mux.NewRouter().StrictSlash(true)
+	w3 := httptest.NewRecorder()
+	mgr = push.Manager{}
+	router3.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modifyAckDeadline", WrapMockAuthConfig(SubModAck, cfgKafka, &brk, str, &mgr))
+	router3.ServeHTTP(w3, req3)
+	suite.Equal(400, w3.Code)
+	suite.Equal(expJSON2, w3.Body.String())
+
+}
+
 func (suite *HandlerTestSuite) TestSubAck() {
 
 	postJSON := `{

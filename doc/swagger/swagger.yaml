@@ -807,6 +807,48 @@ paths:
           $ref: "#/responses/404"
         500:
           $ref: "#/responses/500"
+  /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}:modifyAckDeadline:
+    post:
+      summary: Modify Ack Deadline of a given subscription
+      description: |
+        Modify Ack Deadline of a given subscription. Ack deadline is in seconds. Min value allowed: 0sec. Maximum value allowed: 600sec.
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: SUBSCRIPTION
+          in: path
+          description: Name of the subscription
+          required: true
+          type: string
+        - name: AckDeadline
+          in: body
+          description: AckDeadline
+          required: true
+          schema:
+           $ref: '#/definitions/AckDeadline'
+      tags:
+        - Subscriptions
+      responses:
+        200:
+          description: An empty response if Ack Deadline is succesfully updated
+          schema:
+            type: string
+            default: ""
+            description: empty string
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
 
   /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}:offsets:
     get:
@@ -1443,6 +1485,13 @@ definitions:
         description: endpoint url for endpoint to push messages
       retryPolicy:
         $ref: '#/definitions/RetryPolicy'
+
+  AckDeadline:
+    type: object
+    properties:
+      ackDeadlineSeconds:
+       type: integer
+       description: deadline to acknowledge a pulled message (in seconds)
 
   Offset:
     type: object
