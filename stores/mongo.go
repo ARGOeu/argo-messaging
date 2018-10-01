@@ -431,6 +431,35 @@ func (mong *MongoStore) QueryTopics(projectUUID string, name string) ([]QTopic, 
 	return results, err
 }
 
+// QueryDailyTopicMsgCount returns results regarding the number of messages published to a topic
+func (mong *MongoStore) QueryDailyTopicMsgCount(projectUUID string, topicName string, date time.Time) ([]QDailyTopicMsgCount, error) {
+
+	var err error
+	var qDailyTopicMsgCount []QDailyTopicMsgCount
+	var query bson.M
+
+	// represents an empty time object
+	var zeroValueTime time.Time
+
+	query = bson.M{"date": date, "project_uuid": projectUUID, "topic_name": topicName}
+
+	// if nothing's specified return the whole collection
+	if projectUUID == "" && topicName == "" && date == zeroValueTime {
+		query = bson.M{}
+	}
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C("daily_topic_msg_count")
+
+	err = c.Find(query).All(&qDailyTopicMsgCount)
+
+	if err != nil {
+		log.Fatal("STORE", "\t", err.Error())
+	}
+
+	return qDailyTopicMsgCount, err
+}
+
 // IncrementTopicMsgNum increments the number of messages published in a topic
 func (mong *MongoStore) IncrementTopicMsgNum(projectUUID string, name string, num int64) error {
 
@@ -441,6 +470,21 @@ func (mong *MongoStore) IncrementTopicMsgNum(projectUUID string, name string, nu
 	change := bson.M{"$inc": bson.M{"msg_num": num}}
 
 	err := c.Update(doc, change)
+
+	return err
+
+}
+
+// IncrementDailyTopicMsgCount increments the daily count of published messages to a specific topic
+func (mong *MongoStore) IncrementDailyTopicMsgCount(projectUUID string, topicName string, num int64, date time.Time) error {
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C("daily_topic_msg_count")
+
+	doc := bson.M{"date": date, "project_uuid": projectUUID, "topic_name": topicName}
+	change := bson.M{"$inc": bson.M{"msg_count": num}}
+
+	_, err := c.Upsert(doc, change)
 
 	return err
 

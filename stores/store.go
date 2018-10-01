@@ -10,6 +10,7 @@ type Store interface {
 	QuerySubsByACL(projectUUID, user string) ([]QSub, error)
 	QuerySubs(projectUUID string, name string) ([]QSub, error)
 	QueryTopics(projectUUID string, name string) ([]QTopic, error)
+	QueryDailyTopicMsgCount(projectUUID string, name string, date time.Time) ([]QDailyTopicMsgCount, error)
 	RemoveTopic(projectUUID string, name string) error
 	RemoveSub(projectUUID string, name string) error
 	QueryUsers(projectUUID string, uuid string, name string) ([]QUser, error)
@@ -26,6 +27,7 @@ type Store interface {
 	InsertOpMetric(hostname string, cpu float64, mem float64) error
 	InsertTopic(projectUUID string, name string) error
 	IncrementTopicMsgNum(projectUUID string, name string, num int64) error
+	IncrementDailyTopicMsgCount(projectUUID string, topicName string, num int64, date time.Time) error
 	IncrementTopicBytes(projectUUID string, name string, totalBytes int64) error
 	IncrementSubBytes(projectUUID string, name string, totalBytes int64) error
 	IncrementSubMsgNum(projectUUID string, name string, num int64) error
