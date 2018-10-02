@@ -43,7 +43,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 	// test daily count
 	store.IncrementDailyTopicMsgCount("argo_uuid", "topic1", 40, time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC))
 	qds, _ := store.QueryDailyTopicMsgCount("argo_uuid", "topic1", time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC))
-	suite.Equal(int64(40), qds[0].NumberOfMessages)
+	suite.Equal(int64(80), qds[0].NumberOfMessages)
 
 	// check if the it was inserted since it wasn't present
 	store.IncrementDailyTopicMsgCount("argo_uuid", "some_other_topic", 70, time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC))

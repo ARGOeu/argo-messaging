@@ -2,6 +2,7 @@ package stores
 
 import (
 	"errors"
+	"sort"
 	"time"
 )
 
@@ -418,10 +419,11 @@ func (mk *MockStore) Initialize() {
 	mk.ProjectList = append(mk.ProjectList, qPr2)
 
 	// populate daily msg count for topics
-	dc1 := QDailyTopicMsgCount{time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC), "argo_uuid", "topic1", 0}
-	dc2 := QDailyTopicMsgCount{time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC), "argo_uuid", "topic2", 0}
-	dc3 := QDailyTopicMsgCount{time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC), "argo_uuid", "topic3", 0}
-	mk.DailyTopicMsgCount = append(mk.DailyTopicMsgCount, dc1, dc2, dc3)
+	dc1 := QDailyTopicMsgCount{time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC), "argo_uuid", "topic1", 40}
+	dc2 := QDailyTopicMsgCount{time.Date(2018, 10, 2, 0, 0, 0, 0, time.UTC), "argo_uuid", "topic1", 30}
+	dc3 := QDailyTopicMsgCount{time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC), "argo_uuid", "topic2", 0}
+	dc4 := QDailyTopicMsgCount{time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC), "argo_uuid", "topic3", 0}
+	mk.DailyTopicMsgCount = append(mk.DailyTopicMsgCount, dc1, dc2, dc3, dc4)
 
 	// populate Users
 	qRole := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"consumer", "publisher"}}}
@@ -737,16 +739,27 @@ func (mk *MockStore) QueryDailyTopicMsgCount(projectUUID string, topicName strin
 
 	if projectUUID == "" && topicName == "" && date.Equal(zeroValueTime) {
 
-		return mk.DailyTopicMsgCount, nil
-
+		qds = mk.DailyTopicMsgCount
 	}
 
-	for _, item := range mk.DailyTopicMsgCount {
-		if item.ProjectUUID == projectUUID && item.TopicName == topicName && item.Date.Equal(date) {
-			qds = append(qds, item)
-			return qds, nil
+	if projectUUID != "" && topicName != "" && date.Equal(zeroValueTime) {
+		for _, item := range mk.DailyTopicMsgCount {
+			if item.ProjectUUID == projectUUID && item.TopicName == topicName {
+				qds = append(qds, item)
+			}
 		}
 	}
+
+	if projectUUID != "" && topicName != "" && !date.Equal(zeroValueTime) {
+		for _, item := range mk.DailyTopicMsgCount {
+			if item.ProjectUUID == projectUUID && item.TopicName == topicName && item.Date.Equal(date) {
+				qds = append(qds, item)
+			}
+		}
+	}
+
+	// sort in descending order
+	sort.Slice(qds, func(i, j int) bool { return qds[i].Date.After(qds[j].Date) })
 
 	return qds, nil
 }

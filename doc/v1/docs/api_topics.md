@@ -346,6 +346,24 @@ Success Response
             }
          ],
          "description": "Counter that displays the total size of data (in bytes) published to the specific topic"
+      },
+      {
+         "metric": "topic.number_of_daily_messages",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "topic",
+         "resource_name": "topic1",
+         "timeseries": [
+            {
+               "timestamp": "2018-10-02",
+               "value": 30
+            },
+            {
+               "timestamp": "2018-10-01",
+               "value": 40
+            }
+         ],
+         "description": "A collection of counters that represents the total number of messages published each day to a specific topic"
       }
    ]
 }
