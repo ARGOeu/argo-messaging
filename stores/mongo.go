@@ -448,10 +448,14 @@ func (mong *MongoStore) QueryDailyTopicMsgCount(projectUUID string, topicName st
 		query = bson.M{}
 	}
 
+	if projectUUID != "" && topicName != "" && date == zeroValueTime {
+		query = bson.M{"project_uuid": projectUUID, "topic_name": topicName}
+	}
+
 	db := mong.Session.DB(mong.Database)
 	c := db.C("daily_topic_msg_count")
 
-	err = c.Find(query).All(&qDailyTopicMsgCount)
+	err = c.Find(query).Sort("-date").Limit(30).All(&qDailyTopicMsgCount)
 
 	if err != nil {
 		log.Fatal("STORE", "\t", err.Error())

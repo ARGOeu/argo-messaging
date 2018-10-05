@@ -1804,6 +1804,7 @@ func TopicMetrics(w http.ResponseWriter, r *http.Request) {
 		}
 		err := APIErrGenericInternal(err.Error())
 		respondErr(w, err)
+		return
 	}
 
 	numMsg := resultsMsg.MsgNum
@@ -1819,15 +1820,24 @@ func TopicMetrics(w http.ResponseWriter, r *http.Request) {
 		}
 		err := APIErrGenericBackend()
 		respondErr(w, err)
+		return
 	}
+
+	var timePoints []metrics.Timepoint
+	if timePoints, err = metrics.GetDailyTopicMsgCount(projectUUID, urlTopic, refStr); err != nil {
+		err := APIErrGenericBackend()
+		respondErr(w, err)
+		return
+	}
+
 	m1 := metrics.NewTopicSubs(urlTopic, numSubs, metrics.GetTimeNowZulu())
 	res := metrics.NewMetricList(m1)
 
 	m2 := metrics.NewTopicMsgs(urlTopic, numMsg, metrics.GetTimeNowZulu())
 	m3 := metrics.NewTopicBytes(urlTopic, numBytes, metrics.GetTimeNowZulu())
+	m4 := metrics.NewDailyTopicMsgCount(urlTopic, timePoints)
 
-	res.Metrics = append(res.Metrics, m2)
-	res.Metrics = append(res.Metrics, m3)
+	res.Metrics = append(res.Metrics, m2, m3, m4)
 
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()

@@ -1693,6 +1693,24 @@ func (suite *HandlerTestSuite) TestTopicMetrics() {
             }
          ],
          "description": "Counter that displays the total size of data (in bytes) published to the specific topic"
+      },
+      {
+         "metric": "topic.number_of_daily_messages",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "topic",
+         "resource_name": "topic1",
+         "timeseries": [
+            {
+               "timestamp": "{{TIMESTAMP4}}",
+               "value": 30
+            },
+            {
+               "timestamp": "{{TIMESTAMP5}}",
+               "value": 40
+            }
+         ],
+         "description": "A collection of counters that represents the total number of messages published each day to a specific topic"
       }
    ]
 }`
@@ -1711,9 +1729,14 @@ func (suite *HandlerTestSuite) TestTopicMetrics() {
 	ts1 := metricOut.Metrics[0].Timeseries[0].Timestamp
 	ts2 := metricOut.Metrics[1].Timeseries[0].Timestamp
 	ts3 := metricOut.Metrics[2].Timeseries[0].Timestamp
+	ts4 := metricOut.Metrics[3].Timeseries[0].Timestamp
+	ts5 := metricOut.Metrics[3].Timeseries[1].Timestamp
 	expResp = strings.Replace(expResp, "{{TIMESTAMP1}}", ts1, -1)
 	expResp = strings.Replace(expResp, "{{TIMESTAMP2}}", ts2, -1)
 	expResp = strings.Replace(expResp, "{{TIMESTAMP3}}", ts3, -1)
+	expResp = strings.Replace(expResp, "{{TIMESTAMP4}}", ts4, -1)
+	expResp = strings.Replace(expResp, "{{TIMESTAMP5}}", ts5, -1)
+
 	suite.Equal(expResp, w.Body.String())
 
 }
