@@ -1570,6 +1570,24 @@ func (suite *HandlerTestSuite) TestProjectMetrics() {
             }
          ],
          "description": "Counter that displays the number of subscriptions that a user has access to the specific project"
+      },
+      {
+         "metric": "project.number_of_daily_messages",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "project",
+         "resource_name": "ARGO",
+         "timeseries": [
+            {
+               "timestamp": "{{TS11}}",
+               "value": 30
+            },
+            {
+               "timestamp": "{{TS12}}",
+               "value": 110
+            }
+         ],
+         "description": "A collection of counters that represents the total number of messages published each day to all of the project's topics"
       }
    ]
 }`
@@ -1595,6 +1613,8 @@ func (suite *HandlerTestSuite) TestProjectMetrics() {
 	ts8 := metricOut.Metrics[7].Timeseries[0].Timestamp
 	ts9 := metricOut.Metrics[8].Timeseries[0].Timestamp
 	ts10 := metricOut.Metrics[9].Timeseries[0].Timestamp
+	ts11 := metricOut.Metrics[10].Timeseries[0].Timestamp
+	ts12 := metricOut.Metrics[10].Timeseries[1].Timestamp
 	expResp = strings.Replace(expResp, "{{TS1}}", ts1, -1)
 	expResp = strings.Replace(expResp, "{{TS2}}", ts2, -1)
 	expResp = strings.Replace(expResp, "{{TS3}}", ts3, -1)
@@ -1605,6 +1625,8 @@ func (suite *HandlerTestSuite) TestProjectMetrics() {
 	expResp = strings.Replace(expResp, "{{TS8}}", ts8, -1)
 	expResp = strings.Replace(expResp, "{{TS9}}", ts9, -1)
 	expResp = strings.Replace(expResp, "{{TS10}}", ts10, -1)
+	expResp = strings.Replace(expResp, "{{TS11}}", ts11, -1)
+	expResp = strings.Replace(expResp, "{{TS12}}", ts12, -1)
 	suite.Equal(expResp, w.Body.String())
 
 }

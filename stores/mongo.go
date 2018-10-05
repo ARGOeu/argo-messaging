@@ -726,6 +726,36 @@ func (mong *MongoStore) RemoveProjectSubs(projectUUID string) error {
 	return mong.RemoveAll("subscriptions", subMatch)
 }
 
+func (mong *MongoStore) QueryDailyProjectMsgCount(projectUUID string) ([]QDailyProjectMsgCount, error) {
+
+	var err error
+	var qdp []QDailyProjectMsgCount
+
+	c := mong.Session.DB(mong.Database).C("daily_topic_msg_count")
+
+	query := []bson.M{
+		{"$match": bson.M{"project_uuid": projectUUID}},
+		{"$group": bson.M{
+			"_id": bson.M{
+				"date": "$date"},
+			"msg_count": bson.M{
+				"$sum": "$msg_count"}}},
+		{"$sort": bson.M{
+			"_id": -1},
+		},
+		{"$limit": 30},
+		{"$project": bson.M{
+			"_id": 0, "date": "$_id.date", "msg_count": 1},
+		},
+	}
+	if err = c.Pipe(query).All(&qdp); err != nil {
+		log.Fatal("STORE", "\t", err.Error())
+	}
+
+	return qdp, err
+
+}
+
 // RemoveProject removes a project from the store
 func (mong *MongoStore) RemoveProject(uuid string) error {
 	project := bson.M{"uuid": uuid}

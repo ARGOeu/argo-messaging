@@ -22,6 +22,7 @@ type Store interface {
 	RemoveProject(uuid string) error
 	RemoveProjectTopics(projectUUID string) error
 	RemoveProjectSubs(projectUUID string) error
+	QueryDailyProjectMsgCount(projectUUID string) ([]QDailyProjectMsgCount, error)
 	InsertUser(uuid string, projects []QProjectRoles, name string, token string, email string, serviceRoles []string, createdOn time.Time, modifiedOn time.Time, createdBy string) error
 	InsertProject(uuid string, name string, createdOn time.Time, modifiedOn time.Time, createdBy string, description string) error
 	InsertOpMetric(hostname string, cpu float64, mem float64) error

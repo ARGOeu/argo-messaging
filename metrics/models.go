@@ -11,6 +11,8 @@ const (
 	NameProjectTopics     = "project.number_of_topics"
 	DescProjectSubs       = "Counter that displays the number of subscriptions belonging to the specific project"
 	NameProjectSubs       = "project.number_of_subscriptions"
+	NameDailyProjectMsgs  = "project.number_of_daily_messages"
+	DescDailyProjectMsgs  = "A collection of counters that represents the total number of messages published each day to all of the project's topics"
 	DescTopicSubs         = "Counter that displays the number of subscriptions belonging to a specific topic"
 	NameTopicSubs         = "topic.number_of_subscriptions"
 	DescTopicMsgs         = "Counter that displays the number of messages published to the specific topic"
@@ -80,6 +82,11 @@ func NewProjectSubs(project string, value int64, tstamp string) Metric {
 	// Initialize single point timeseries with the latest timestamp and value
 	ts := []Timepoint{Timepoint{Timestamp: tstamp, Value: value}}
 	m := Metric{Metric: NameProjectSubs, MetricType: "counter", ValueType: "int64", ResourceType: "project", Resource: project, Timeseries: ts, Description: DescProjectSubs}
+	return m
+}
+
+func NewDailyProjectMsgCount(project string, timePoints []Timepoint) Metric {
+	m := Metric{Metric: NameDailyProjectMsgs, MetricType: "counter", ValueType: "int64", ResourceType: "project", Resource: project, Timeseries: timePoints, Description: DescDailyProjectMsgs}
 	return m
 }
 

@@ -47,6 +47,24 @@ func GetDailyTopicMsgCount(projectUUID string, topicName string, store stores.St
 	return timePoints, err
 }
 
+func GetDailyProjectMsgCount(projectUUID string, store stores.Store) ([]Timepoint, error) {
+
+	var err error
+	var qDpmc []stores.QDailyProjectMsgCount
+
+	timePoints := []Timepoint{}
+
+	if qDpmc, err = store.QueryDailyProjectMsgCount(projectUUID); err != nil {
+		return timePoints, err
+	}
+
+	for _, qdp := range qDpmc {
+		timePoints = append(timePoints, Timepoint{qdp.Date.Format("2006-01-02"), qdp.NumberOfMessages})
+	}
+
+	return timePoints, err
+}
+
 func AggrProjectUserSubs(projectUUID string, store stores.Store) (MetricList, error) {
 	pr, err := store.QueryProjects(projectUUID, "")
 	if err != nil {

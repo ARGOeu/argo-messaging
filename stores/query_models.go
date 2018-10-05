@@ -81,6 +81,12 @@ type QDailyTopicMsgCount struct {
 	NumberOfMessages int64     `bson:"msg_count"`
 }
 
+// QDailyProjectMsgCount holds information about the total amount of messages published to all of a project's topics daily
+type QDailyProjectMsgCount struct {
+	Date             time.Time `bson:"date"`
+	NumberOfMessages int64     `bson:"msg_count"`
+}
+
 func (qUsr *QUser) isInProject(projectUUID string) bool {
 	for _, item := range qUsr.Projects {
 		if item.ProjectUUID == projectUUID {
