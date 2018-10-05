@@ -36,6 +36,20 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal(true, store.HasProject("ARGO"))
 	suite.Equal(false, store.HasProject("FOO"))
 
+	// check query all
+	qdsAll, _ := store.QueryDailyTopicMsgCount("", "", time.Time{})
+	suite.Equal(store.DailyTopicMsgCount, qdsAll)
+
+	// test daily count
+	store.IncrementDailyTopicMsgCount("argo_uuid", "topic1", 40, time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC))
+	qds, _ := store.QueryDailyTopicMsgCount("argo_uuid", "topic1", time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC))
+	suite.Equal(int64(40), qds[0].NumberOfMessages)
+
+	// check if the it was inserted since it wasn't present
+	store.IncrementDailyTopicMsgCount("argo_uuid", "some_other_topic", 70, time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC))
+	qds2, _ := store.QueryDailyTopicMsgCount("argo_uuid", "some_other_topic", time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC))
+	suite.Equal(int64(70), qds2[0].NumberOfMessages)
+
 	// Test user
 	roles01, _ := store.GetUserRoles("argo_uuid", "S3CR3T")
 	roles02, _ := store.GetUserRoles("argo_uuid", "SecretKey")

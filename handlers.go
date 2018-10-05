@@ -2214,6 +2214,11 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 
 	// increment topic number of message metric
 	refStr.IncrementTopicMsgNum(projectUUID, urlTopic, int64(len(msgList.Msgs)))
+
+	// increment daily count of topic messages
+	year, month, day := time.Now().UTC().Date()
+	refStr.IncrementDailyTopicMsgCount(projectUUID, urlTopic, int64(len(msgList.Msgs)), time.Date(year, month, day, 0, 0, 0, 0, time.UTC))
+
 	// increment topic total bytes published
 	refStr.IncrementTopicBytes(projectUUID, urlTopic, msgList.TotalSize())
 

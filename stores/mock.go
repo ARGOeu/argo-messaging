@@ -7,17 +7,18 @@ import (
 
 // MockStore holds configuration
 type MockStore struct {
-	Server      string
-	Database    string
-	SubList     []QSub
-	TopicList   []QTopic
-	ProjectList []QProject
-	UserList    []QUser
-	RoleList    []QRole
-	Session     bool
-	TopicsACL   map[string]QAcl
-	SubsACL     map[string]QAcl
-	OpMetrics   map[string]QopMetric
+	Server             string
+	Database           string
+	SubList            []QSub
+	TopicList          []QTopic
+	DailyTopicMsgCount []QDailyTopicMsgCount
+	ProjectList        []QProject
+	UserList           []QUser
+	RoleList           []QRole
+	Session            bool
+	TopicsACL          map[string]QAcl
+	SubsACL            map[string]QAcl
+	OpMetrics          map[string]QopMetric
 }
 
 // QueryACL Topic/Subscription ACL
@@ -191,6 +192,20 @@ func (mk *MockStore) IncrementTopicMsgNum(projectUUID string, name string, num i
 	}
 
 	return errors.New("not found")
+}
+
+//IncrementTopicMsgNum increase number of messages published in a topic
+func (mk *MockStore) IncrementDailyTopicMsgCount(projectUUID string, topicName string, num int64, date time.Time) error {
+
+	for i, item := range mk.DailyTopicMsgCount {
+		if item.ProjectUUID == projectUUID && item.TopicName == topicName && item.Date.Equal(date) {
+			mk.DailyTopicMsgCount[i].NumberOfMessages += num
+			return nil
+		}
+	}
+
+	mk.DailyTopicMsgCount = append(mk.DailyTopicMsgCount, QDailyTopicMsgCount{Date: date, ProjectUUID: projectUUID, TopicName: topicName, NumberOfMessages: num})
+	return nil
 }
 
 //IncrementTopicBytes increases the total number of bytes published in a topic
@@ -401,6 +416,12 @@ func (mk *MockStore) Initialize() {
 	qPr2 := QProject{UUID: "argo_uuid2", Name: "ARGO2", CreatedOn: created, ModifiedOn: modified, CreatedBy: "uuid1", Description: "simple project"}
 	mk.ProjectList = append(mk.ProjectList, qPr)
 	mk.ProjectList = append(mk.ProjectList, qPr2)
+
+	// populate daily msg count for topics
+	dc1 := QDailyTopicMsgCount{time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC), "argo_uuid", "topic1", 0}
+	dc2 := QDailyTopicMsgCount{time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC), "argo_uuid", "topic2", 0}
+	dc3 := QDailyTopicMsgCount{time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC), "argo_uuid", "topic3", 0}
+	mk.DailyTopicMsgCount = append(mk.DailyTopicMsgCount, dc1, dc2, dc3)
 
 	// populate Users
 	qRole := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"consumer", "publisher"}}}
@@ -706,4 +727,26 @@ func (mk *MockStore) QueryTopics(projectUUID string, name string) ([]QTopic, err
 	}
 
 	return result, nil
+}
+
+//IncrementTopicMsgNum increase number of messages published in a topic
+func (mk *MockStore) QueryDailyTopicMsgCount(projectUUID string, topicName string, date time.Time) ([]QDailyTopicMsgCount, error) {
+
+	var qds []QDailyTopicMsgCount
+	var zeroValueTime time.Time
+
+	if projectUUID == "" && topicName == "" && date.Equal(zeroValueTime) {
+
+		return mk.DailyTopicMsgCount, nil
+
+	}
+
+	for _, item := range mk.DailyTopicMsgCount {
+		if item.ProjectUUID == projectUUID && item.TopicName == topicName && item.Date.Equal(date) {
+			qds = append(qds, item)
+			return qds, nil
+		}
+	}
+
+	return qds, nil
 }
