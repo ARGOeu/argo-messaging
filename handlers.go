@@ -839,6 +839,10 @@ func UserListByUUID(w http.ResponseWriter, r *http.Request) {
 // UserListAll (GET) all users belonging to a project
 func UserListAll(w http.ResponseWriter, r *http.Request) {
 
+	var err error
+	var pageSize int
+	var paginatedUsers auth.PaginatedUsers
+
 	// Init output
 	output := []byte("")
 
@@ -850,17 +854,29 @@ func UserListAll(w http.ResponseWriter, r *http.Request) {
 	// Grab context references
 	refStr := context.Get(r, "str").(stores.Store)
 
-	// Get Results Object
-	res, err := auth.FindUsers("", "", "", refStr)
+	// Grab url path variables
+	urlValues := r.URL.Query()
+	pageToken := urlValues.Get("pageToken")
+	strPageSize := urlValues.Get("pageSize")
 
-	if err != nil && err.Error() != "not found" {
-		err := APIErrQueryDatastore()
+	if strPageSize != "" {
+		if pageSize, err = strconv.Atoi(strPageSize); err != nil {
+			log.Errorf("Pagesize %v produced an error  while being converted to int: %v", strPageSize, err.Error())
+			err := APIErrorInvalidData("Invalid page size")
+			respondErr(w, err)
+			return
+		}
+	}
+
+	// Get Results Object
+	if paginatedUsers, err = auth.PaginatedFindUsers(pageToken, int32(pageSize), refStr); err != nil {
+		err := APIErrorInvalidData("Invalid page token")
 		respondErr(w, err)
 		return
 	}
 
 	// Output result to JSON
-	resJSON, err := res.ExportJSON()
+	resJSON, err := paginatedUsers.ExportJSON()
 
 	if err != nil {
 		err := APIErrExportJSON()

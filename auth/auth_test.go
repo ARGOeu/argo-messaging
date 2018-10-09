@@ -463,6 +463,63 @@ func (suite *AuthTestSuite) TestAuth() {
 	_, err = FindUsers("", "uuid12", "", store)
 	suite.Equal(errors.New("not found"), err)
 
+	store2 := stores.NewMockStore("", "")
+
+	created := "2009-11-10T23:00:00Z"
+	modified := "2009-11-10T23:00:00Z"
+
+	var qUsers1 []User
+	qUsers1 = append(qUsers1, User{"same_uuid", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{}, []string{}}}, "UserSame2", "S3CR3T42", "foo-email", []string{}, created, modified, "UserA"})
+	qUsers1 = append(qUsers1, User{"same_uuid", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{}, []string{}}}, "UserSame1", "S3CR3T41", "foo-email", []string{}, created, modified, "UserA"})
+	qUsers1 = append(qUsers1, User{"uuid4", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{"topic2"}, []string{"sub3", "sub4"}}}, "UserZ", "S3CR3T4", "foo-email", []string{}, created, modified, "UserA"})
+	qUsers1 = append(qUsers1, User{"uuid3", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{"topic3"}, []string{"sub2"}}}, "UserX", "S3CR3T3", "foo-email", []string{}, created, modified, "UserA"})
+	qUsers1 = append(qUsers1, User{"uuid2", []ProjectRoles{{"ARGO", []string{"consumer", "publisher"}, []string{"topic1", "topic2"}, []string{"sub1", "sub3", "sub4"}}}, "UserB", "S3CR3T2", "foo-email", []string{}, created, modified, "UserA"})
+	qUsers1 = append(qUsers1, User{"uuid1", []ProjectRoles{{"ARGO", []string{"consumer", "publisher"}, []string{"topic1", "topic2"}, []string{"sub1", "sub2", "sub3"}}}, "UserA", "S3CR3T1", "foo-email", []string{}, created, modified, ""})
+	qUsers1 = append(qUsers1, User{"uuid0", []ProjectRoles{{"ARGO", []string{"consumer", "publisher"}, []string{}, []string{}}}, "Test", "S3CR3T", "Test@test.com", []string{}, created, modified, ""})
+	// return all users
+	pu1, e1 := PaginatedFindUsers("", 0, store2)
+
+	var qUsers2 []User
+	qUsers2 = append(qUsers2, User{"same_uuid", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{}, []string{}}}, "UserSame2", "S3CR3T42", "foo-email", []string{}, created, modified, "UserA"})
+	qUsers2 = append(qUsers2, User{"same_uuid", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{}, []string{}}}, "UserSame1", "S3CR3T41", "foo-email", []string{}, created, modified, "UserA"})
+	// return the first page with 2 users
+	pu2, e2 := PaginatedFindUsers("", 2, store2)
+
+	var qUsers3 []User
+	qUsers3 = append(qUsers3, User{"uuid4", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{"topic2"}, []string{"sub3", "sub4"}}}, "UserZ", "S3CR3T4", "foo-email", []string{}, created, modified, "UserA"})
+	qUsers3 = append(qUsers3, User{"uuid3", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{"topic3"}, []string{"sub2"}}}, "UserX", "S3CR3T3", "foo-email", []string{}, created, modified, "UserA"})
+	// return the next 2 users
+	pu3, e3 := PaginatedFindUsers("NA==", 2, store2)
+
+	// empty collection
+	store3 := stores.NewMockStore("", "")
+	store3.UserList = []stores.QUser{}
+	pu4, e4 := PaginatedFindUsers("", 0, store3)
+
+	// invalid id
+	_, e5 := PaginatedFindUsers("invalid", 0, store2)
+
+	suite.Equal(qUsers1, pu1.Users)
+	suite.Equal(int32(7), pu1.TotalSize)
+	suite.Equal("", pu1.NextPageToken)
+	suite.Nil(e1)
+
+	suite.Equal(qUsers2, pu2.Users)
+	suite.Equal(int32(7), pu2.TotalSize)
+	suite.Equal("NA==", pu2.NextPageToken)
+	suite.Nil(e2)
+
+	suite.Equal(qUsers3, pu3.Users)
+	suite.Equal(int32(7), pu3.TotalSize)
+	suite.Equal("Mg==", pu3.NextPageToken)
+	suite.Nil(e3)
+
+	suite.Equal(0, len(pu4.Users))
+	suite.Equal(int32(0), pu4.TotalSize)
+	suite.Equal("", pu4.NextPageToken)
+	suite.Nil(e4)
+
+	suite.Equal("illegal base64 data at input byte 4", e5.Error())
 }
 
 func (suite *AuthTestSuite) TestSubACL() {
@@ -523,7 +580,6 @@ func (suite *AuthTestSuite) TestSubACL() {
 	sACL5 := ACL{}
 	outJSON5, _ := sACL5.ExportJSON()
 	suite.Equal(expJSON05, outJSON5)
-
 }
 
 func (suite *AuthTestSuite) TestTopicACL() {
@@ -572,7 +628,6 @@ func (suite *AuthTestSuite) TestTopicACL() {
 	tACL4 := ACL{}
 	outJSON4, _ := tACL4.ExportJSON()
 	suite.Equal(expJSON04, outJSON4)
-
 }
 
 func TestAuthTestSuite(t *testing.T) {

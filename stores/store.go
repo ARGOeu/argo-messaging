@@ -13,6 +13,7 @@ type Store interface {
 	QueryDailyTopicMsgCount(projectUUID string, name string, date time.Time) ([]QDailyTopicMsgCount, error)
 	RemoveTopic(projectUUID string, name string) error
 	RemoveSub(projectUUID string, name string) error
+	PaginatedQueryUsers(pageToken string, pageSize int32) ([]QUser, int32, string, error)
 	QueryUsers(projectUUID string, uuid string, name string) ([]QUser, error)
 	UpdateUser(uuid string, projects []QProjectRoles, name string, email string, serviceRoles []string, modifiedOn time.Time) error
 	UpdateUserToken(uuid string, token string) error

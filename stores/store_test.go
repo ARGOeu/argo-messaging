@@ -234,8 +234,8 @@ func (suite *StoreTestSuite) TestMockStore() {
 	// Test Insert User
 	qRoleAdmin1 := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"admin"}}}
 	qRoles := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"admin"}}, QProjectRoles{"argo_uuid2", []string{"admin", "viewer"}}}
-	expUsr10 := QUser{"user_uuid10", qRoleAdmin1, "newUser1", "A3B94A94V3A", "fake@email.com", []string{}, created, modified, "uuid1"}
-	expUsr11 := QUser{"user_uuid11", qRoles, "newUser2", "BX312Z34NLQ", "fake@email.com", []string{}, created, modified, "uuid1"}
+	expUsr10 := QUser{UUID: "user_uuid10", Projects: qRoleAdmin1, Name: "newUser1", Token: "A3B94A94V3A", Email: "fake@email.com", ServiceRoles: []string{}, CreatedOn: created, ModifiedOn: modified, CreatedBy: "uuid1"}
+	expUsr11 := QUser{UUID: "user_uuid11", Projects: qRoles, Name: "newUser2", Token: "BX312Z34NLQ", Email: "fake@email.com", ServiceRoles: []string{}, CreatedOn: created, ModifiedOn: modified, CreatedBy: "uuid1"}
 	store.InsertUser("user_uuid10", qRoleAdmin1, "newUser1", "A3B94A94V3A", "fake@email.com", []string{}, created, modified, "uuid1")
 	store.InsertUser("user_uuid11", qRoles, "newUser2", "BX312Z34NLQ", "fake@email.com", []string{}, created, modified, "uuid1")
 	usr10, _ := store.QueryUsers("argo_uuid", "user_uuid10", "")
@@ -253,7 +253,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal([]string{"admin", "viewer"}, rolesB)
 
 	// Test Update User
-	usrUpdated := QUser{"user_uuid11", qRoles, "updated_name", "BX312Z34NLQ", "fake@email.com", []string{"service_admin"}, created, modified, "uuid1"}
+	usrUpdated := QUser{UUID: "user_uuid11", Projects: qRoles, Name: "updated_name", Token: "BX312Z34NLQ", Email: "fake@email.com", ServiceRoles: []string{"service_admin"}, CreatedOn: created, ModifiedOn: modified, CreatedBy: "uuid1"}
 	store.UpdateUser("user_uuid11", nil, "updated_name", "", []string{"service_admin"}, modified)
 	usr11, _ = store.QueryUsers("", "user_uuid11", "")
 	suite.Equal(usrUpdated, usr11[0])
@@ -265,6 +265,41 @@ func (suite *StoreTestSuite) TestMockStore() {
 
 	usrGet, _ := store.GetUserFromToken("A3B94A94V3A")
 	suite.Equal(usr10[0], usrGet)
+
+	// test paginated query users
+	store2 := NewMockStore("", "")
+
+	// return all users in one page
+	qUsers1, ts1, pg1, _ := store2.PaginatedQueryUsers("", 0)
+
+	// return a page with the first 2
+	qUsers2, ts2, pg2, _ := store2.PaginatedQueryUsers("", 2)
+
+	// empty store
+	store3 := NewMockStore("", "")
+	store3.UserList = []QUser{}
+	qUsers3, ts3, pg3, _ := store3.PaginatedQueryUsers("", 0)
+
+	// use page token "5" to grab another 2 results
+	qUsers4, ts4, pg4, _ := store2.PaginatedQueryUsers("4", 2)
+
+	suite.Equal(store2.UserList, qUsers1)
+	suite.Equal("", pg1)
+	suite.Equal(int32(7), ts1)
+
+	suite.Equal(6, qUsers2[0].ID)
+	suite.Equal(5, qUsers2[1].ID)
+	suite.Equal("4", pg2)
+	suite.Equal(int32(7), ts2)
+
+	suite.Equal(0, len(qUsers3))
+	suite.Equal("", pg3)
+	suite.Equal(int32(0), ts3)
+
+	suite.Equal(4, qUsers4[0].ID)
+	suite.Equal(3, qUsers4[1].ID)
+	suite.Equal("2", pg4)
+	suite.Equal(int32(7), ts4)
 
 }
 

@@ -6,6 +6,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"fmt"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -344,6 +345,66 @@ func (mong *MongoStore) QueryUsers(projectUUID string, uuid string, name string)
 	}
 
 	return results, err
+}
+
+// PaginatedQueryUsers returns a page of users
+func (mong *MongoStore) PaginatedQueryUsers(pageToken string, pageSize int32) ([]QUser, int32, string, error) {
+
+	var qUsers []QUser
+	var totalSize int32
+	var limit int32
+	var size int
+	var nextPageToken string
+	var err error
+	var ok bool
+	var query bson.M
+
+	// if the page size is other than zero(where zero means, no limit), try to grab one more document to check if there
+	// will be a next page after the current one
+	if pageSize > 0 {
+
+		limit = pageSize + 1
+
+	}
+
+	// first check if an pageToken is provided and whether or not is a valid bson ID
+	if pageToken != "" {
+		if ok = bson.IsObjectIdHex(pageToken); !ok {
+			err = errors.New(fmt.Sprintf("Page token %v is not a valid bson ObjectId", pageToken))
+			log.Errorf("Page token %v is not a valid bson ObjectId", pageToken)
+			return qUsers, totalSize, nextPageToken, err
+		}
+
+		bsonId := bson.ObjectIdHex(pageToken)
+
+		query = bson.M{"_id": bson.M{"$lte": bsonId}}
+	}
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C("users")
+
+	if err = c.Find(query).Sort("-_id").Limit(int(limit)).All(&qUsers); err != nil {
+		log.Fatal("STORE", "\t", err.Error())
+	}
+
+	// if the amount of users that were found was equal to the limit, its a sign that there are users to populate the next page
+	// so pick the last element's pageToken to use as the starting point for the next page
+	// and eliminate the extra element from the current response
+	if len(qUsers) > 0 && len(qUsers) == int(limit) {
+
+		nextPageToken = qUsers[limit-1].ID.(bson.ObjectId).Hex()
+		qUsers = qUsers[:len(qUsers)-1]
+	}
+
+	if size, err = c.Count(); err != nil {
+		log.Fatal("STORE", "\t", err.Error())
+
+	}
+
+	totalSize = int32(size)
+
+	return qUsers, totalSize, nextPageToken, err
+
 }
 
 //QuerySubsByTopic returns subscriptions of a specific topic
