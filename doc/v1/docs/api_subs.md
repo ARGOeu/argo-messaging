@@ -131,6 +131,47 @@ Code: `200 OK`, Empty response if successful.
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
 
+## [POST] Modify Ack Deadline
+This request modifies the acknowledgment deadline for the subscription. The ack deadline value is measured in seconds. The minimum ack deadline value allowed is 0sec and the maximum 600sec.
+
+### Request
+`POST /v1/projects/{project_name}/subscriptions/{subscription_name}:modifyAckDeadline`
+
+### Post body:
+```
+{
+  "ackDeadlineSeconds": 20
+}
+```
+
+### Where
+- Project_name: Name of the project
+- subscription_name: The subscription name to consume
+- ackDeadlineSeconds: integer representing seconds for the acknowledgment deadline (min=0sec, max=600sec).
+
+
+### Example request
+
+```json
+curl -X POST -H "Content-Type: application/json"  
+-d POSTDATA http://{URL}/v1/projects/BRAND_NEW/subscriptions/alert_engine:modifyAckDeadline?key=S3CR3T
+```
+
+### post body:
+```
+{
+  "ackDeadlineSeconds": 30
+}
+```
+
+### Responses  
+
+Success Response
+Code: `200 OK`, Empty response if successful. The deadline will change to 30seconds
+
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors
+
 ## [POST] Modify Push Configuration
 This request modifies the push configuration of a subscription
 
@@ -156,7 +197,7 @@ This request modifies the push configuration of a subscription
 
 ```json
 curl -X POST -H "Content-Type: application/json"  
--d POSTDATA http://{URL}/v1/projects/BRAND_NEW/subscriptions/alert_engine:modifyPushConfig?key=S3CR3T"
+-d POSTDATA http://{URL}/v1/projects/BRAND_NEW/subscriptions/alert_engine:modifyPushConfig?key=S3CR3T
 ```
 
 ### post body:
@@ -427,6 +468,8 @@ Success Response
    ]
 }
 ```
+
+
 
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors

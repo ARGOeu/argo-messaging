@@ -1339,7 +1339,7 @@ func TopicModACL(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// SubModACL (PUT) modifies the ACL
+// SubModACL (POST) modifies the ACL
 func SubModACL(w http.ResponseWriter, r *http.Request) {
 
 	// Init output
@@ -1403,7 +1403,7 @@ func SubModACL(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// SubModPush (PUT) modifies the push configuration
+// SubModPush (POST) modifies the push configuration
 func SubModPush(w http.ResponseWriter, r *http.Request) {
 
 	// Init output
@@ -1508,6 +1508,65 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Write empty response if anything ok
+	respondOK(w, output)
+
+}
+
+// SubModAck (POST) modifies the Ack deadline of the subscription
+func SubModAck(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+	// Get Result Object
+	urlSub := urlVars["subscription"]
+
+	// Read POST JSON body
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		err := APIErrorInvalidRequestBody()
+		respondErr(w, err)
+		return
+	}
+
+	// Parse pull options
+	postBody, err := subscriptions.GetAckDeadlineFromJSON(body)
+	if err != nil {
+		err := APIErrorInvalidArgument("ackDeadlineSeconds(needs value between 0 and 600)")
+		respondErr(w, err)
+		log.Error(string(body[:]))
+		return
+	}
+
+	// Grab context references
+	refStr := context.Get(r, "str").(stores.Store)
+	// Get project UUID First to use as reference
+	projectUUID := context.Get(r, "auth_project_uuid").(string)
+
+	err = subscriptions.ModAck(projectUUID, urlSub, postBody.AckDeadline, refStr)
+
+	if err != nil {
+		if err.Error() == "wrong value" {
+			respondErr(w, APIErrorInvalidArgument("ackDeadlineSeconds(needs value between 0 and 600)"))
+			return
+		}
+		if err.Error() == "not found" {
+			err := APIErrorNotFound("Subscription")
+			respondErr(w, err)
+			return
+		}
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+
 	respondOK(w, output)
 
 }

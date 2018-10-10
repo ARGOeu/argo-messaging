@@ -252,6 +252,19 @@ func (mk *MockStore) UpdateSubOffset(projectUUID string, name string, offset int
 }
 
 // ModSubPush modifies the subscription ack
+func (mk *MockStore) ModAck(projectUUID string, name string, ack int) error {
+	for i, item := range mk.SubList {
+		if item.ProjectUUID == projectUUID && item.Name == name {
+			mk.SubList[i].Ack = ack
+
+			return nil
+		}
+	}
+
+	return errors.New("not found")
+}
+
+// ModSubPush modifies the subscription push configuration
 func (mk *MockStore) ModSubPush(projectUUID string, name string, push string, rPolicy string, rPeriod int) error {
 	for i, item := range mk.SubList {
 		if item.ProjectUUID == projectUUID {

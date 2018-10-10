@@ -764,6 +764,15 @@ func (mong *MongoStore) ModACL(projectUUID string, resource string, name string,
 	return err
 }
 
+// ModAck modifies the subscription's ack timeout field in mongodb
+func (mong *MongoStore) ModAck(projectUUID string, name string, ack int) error {
+	log.Info("Modifying Ack Deadline", ack)
+	db := mong.Session.DB(mong.Database)
+	c := db.C("subscriptions")
+	err := c.Update(bson.M{"project_uuid": projectUUID, "name": name}, bson.M{"$set": bson.M{"ack": ack}})
+	return err
+}
+
 // ModSubPush modifies the push configuration
 func (mong *MongoStore) ModSubPush(projectUUID string, name string, push string, rPolicy string, rPeriod int) error {
 	db := mong.Session.DB(mong.Database)
