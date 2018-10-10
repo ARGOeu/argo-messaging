@@ -41,6 +41,12 @@ func New(projectUUID string, projectName string, name string) Topic {
 func FindMetric(projectUUID string, name string, store stores.Store) (TopicMetrics, error) {
 	result := TopicMetrics{MsgNum: 0}
 	topics, err := store.QueryTopics(projectUUID, name)
+
+	// check if the topic exists
+	if len(topics) == 0 {
+		return result, errors.New("not found")
+	}
+
 	for _, item := range topics {
 		projectName := projects.GetNameByUUID(item.ProjectUUID, store)
 		if projectName == "" {

@@ -1391,7 +1391,38 @@ func (suite *HandlerTestSuite) TestSubMetrics() {
 
 }
 
-func (suite *HandlerTestSuite) TestProjectcMetrics() {
+func (suite *HandlerTestSuite) TestSubMetricsNotFound() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/subscriptions/unknown_sub:metrics", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expRes := `{
+   "error": {
+      "code": 404,
+      "message": "Subscription doesn't exist",
+      "status": "NOT_FOUND"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	// temporarily disable auth for this test case
+	cfgKafka.ResAuth = false
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:metrics", WrapMockAuthConfig(SubMetrics, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(404, w.Code)
+	suite.Equal(expRes, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestProjectMetrics() {
 
 	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO:metrics", nil)
 	if err != nil {
@@ -1738,6 +1769,36 @@ func (suite *HandlerTestSuite) TestTopicMetrics() {
 	expResp = strings.Replace(expResp, "{{TIMESTAMP5}}", ts5, -1)
 
 	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestTopicMetricsNotFound() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/topics/topic4:metrics", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expRes := `{
+   "error": {
+      "code": 404,
+      "message": "Topic doesn't exist",
+      "status": "NOT_FOUND"
+   }
+}`
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	// deactivate auth for this specific test case
+	cfgKafka.ResAuth = false
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:metrics", WrapMockAuthConfig(TopicMetrics, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(404, w.Code)
+	suite.Equal(expRes, w.Body.String())
 
 }
 func (suite *HandlerTestSuite) TestTopicACL01() {

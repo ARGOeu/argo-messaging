@@ -78,8 +78,14 @@ type AckDeadline struct {
 // FindMetric returns the metric of a specific subscription
 func FindMetric(projectUUID string, name string, store stores.Store) (SubMetrics, error) {
 	result := SubMetrics{MsgNum: 0}
-	topics, err := store.QuerySubs(projectUUID, name)
-	for _, item := range topics {
+	subs, err := store.QuerySubs(projectUUID, name)
+
+	// check if sub exists
+	if len(subs) == 0 {
+		return result, errors.New("not found")
+	}
+
+	for _, item := range subs {
 		projectName := projects.GetNameByUUID(item.ProjectUUID, store)
 		if projectName == "" {
 			return result, errors.New("invalid project")
