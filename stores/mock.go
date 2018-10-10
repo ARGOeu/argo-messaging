@@ -182,6 +182,41 @@ func (mk *MockStore) UpdateProject(projectUUID string, name string, description 
 
 }
 
+// QueryDailyProjectMsgCount retrieves the number of total messages that have been published to all project's topics daily
+func (mk *MockStore) QueryDailyProjectMsgCount(projectUUID string) ([]QDailyProjectMsgCount, error) {
+
+	var qDps []QDailyProjectMsgCount
+	var ok bool
+	var msgs int64
+
+	var msgCounts = make(map[time.Time]int64)
+
+	// group the number of messages by date
+	for _, dp := range mk.DailyTopicMsgCount {
+
+		if dp.ProjectUUID == projectUUID {
+
+			if msgs, ok = msgCounts[dp.Date]; ok {
+				msgCounts[dp.Date] = msgs + dp.NumberOfMessages
+			} else {
+				msgCounts[dp.Date] = dp.NumberOfMessages
+			}
+
+		}
+
+	}
+
+	for key, value := range msgCounts {
+
+		qDps = append(qDps, QDailyProjectMsgCount{key, value})
+	}
+
+	// sort in descending order
+	sort.Slice(qDps, func(i, j int) bool { return qDps[i].Date.After(qDps[j].Date) })
+
+	return qDps, nil
+}
+
 //IncrementTopicMsgNum increase number of messages published in a topic
 func (mk *MockStore) IncrementTopicMsgNum(projectUUID string, name string, num int64) error {
 
@@ -434,7 +469,7 @@ func (mk *MockStore) Initialize() {
 	// populate daily msg count for topics
 	dc1 := QDailyTopicMsgCount{time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC), "argo_uuid", "topic1", 40}
 	dc2 := QDailyTopicMsgCount{time.Date(2018, 10, 2, 0, 0, 0, 0, time.UTC), "argo_uuid", "topic1", 30}
-	dc3 := QDailyTopicMsgCount{time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC), "argo_uuid", "topic2", 0}
+	dc3 := QDailyTopicMsgCount{time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC), "argo_uuid", "topic2", 70}
 	dc4 := QDailyTopicMsgCount{time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC), "argo_uuid", "topic3", 0}
 	mk.DailyTopicMsgCount = append(mk.DailyTopicMsgCount, dc1, dc2, dc3, dc4)
 

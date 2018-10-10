@@ -1772,6 +1772,15 @@ func ProjectMetrics(w http.ResponseWriter, r *http.Request) {
 	}
 	numSubs = numSubs2
 
+	var timePoints []metrics.Timepoint
+	var err error
+
+	if timePoints, err = metrics.GetDailyProjectMsgCount(projectUUID, refStr); err != nil {
+		err := APIErrGenericBackend()
+		respondErr(w, err)
+		return
+	}
+
 	m1 := metrics.NewProjectTopics(urlProject, numTopics, metrics.GetTimeNowZulu())
 	m2 := metrics.NewProjectSubs(urlProject, numSubs, metrics.GetTimeNowZulu())
 	res := metrics.NewMetricList(m1)
@@ -1800,6 +1809,9 @@ func ProjectMetrics(w http.ResponseWriter, r *http.Request) {
 	for _, item := range m4.Metrics {
 		res.Metrics = append(res.Metrics, item)
 	}
+
+	m5 := metrics.NewDailyProjectMsgCount(urlProject, timePoints)
+	res.Metrics = append(res.Metrics, m5)
 
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
