@@ -280,6 +280,8 @@ paths:
         List all available users in the service
       parameters:
         - $ref: '#/parameters/ApiKey'
+        - $ref: '#/parameters/PageToken'
+        - $ref: '#/parameters/PageSize'
       tags:
         - Users
       responses:
@@ -1350,6 +1352,20 @@ parameters:
     required: true
     type: string
     default: SecretKey123
+  PageToken:
+    name: pageToken
+    in: query
+    description: the starting point of the next users page
+    required: false
+    type: string
+    default: empty string
+  PageSize:
+    name: pageSize
+    in: query
+    description: the amount of users the page will contain. The default value 0 will return all the results
+    required: false
+    type: integer
+    default: 0
 
 responses:
   400:
@@ -1620,6 +1636,10 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/User'
+      nextPageToken:
+        type: string
+      totalSize:
+        type: integer
 
   User:
      type: object

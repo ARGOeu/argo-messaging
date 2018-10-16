@@ -3,12 +3,29 @@
 ARGO Messaging Service supports calls for creating and modifing users
 
 ## [GET] Manage Users - List all users
-This request lists all available users in the service
+This request lists all available users in the service using pagination
 
+It is important to note that if there are no results to return the service will return the following:
+
+Success Response
+`200 OK`
+
+```json
+{
+ "users": [],
+  "nextPageToken": "",
+  "totalSize": 0
+ }
+```
+Also the default value for `pageSize = 0` and `pageToken = "`.
+
+`Pagesize = 0` returns all the results.
 ### Request
 ```json
 GET "/v1/users"
 ```
+
+### Paginated Request that returns all users in one page
 
 ### Example request
 ```
@@ -151,7 +168,181 @@ Success Response
        "modified_on": "2009-11-10T23:00:00Z",
        "created_by": "UserA"
     }
- ]
+ ],
+ "nextPageToken": "",
+ "totalSize": 5
+}
+```
+
+### Paginated Request that returns the 2 most recent users
+
+### Example request
+```
+curl -X GET -H "Content-Type: application/json"
+  "https://{URL}/v1/users?key=S3CR3T&pageSize=2"
+```
+
+### Responses  
+If successful, the response contains a list of the 2 most recently added users
+
+Success Response
+`200 OK`
+
+```json
+{
+ "users": [
+    {
+       "uuid": "99bfd746-4ebe-11e8-9c2d-fa7ae01bbebw",
+       "projects": [
+          {
+             "project": "ARGO",
+             "roles": [
+                "consumer",
+                "publisher"
+             ],
+             "topics": [],
+             "subscriptions": []
+          }
+       ],
+       "name": "Test",
+       "token": "S3CR3T",
+       "email": "Test@test.com",
+       "service_roles": [],
+       "created_on": "2009-11-10T23:00:00Z",
+       "modified_on": "2009-11-10T23:00:00Z"
+    },
+    {
+       "uuid": "99bfd746-4ebe-11e8-9c2d-fa7ae01bbebc",
+       "projects": [
+          {
+             "project": "ARGO",
+             "roles": [
+                "consumer",
+                "publisher"
+             ],
+             "topics": [
+                "topic1",
+                "topic2"
+             ],
+             "subscriptions": [
+                "sub1",
+                "sub2",
+                "sub3"
+             ]
+          }
+       ],
+       "name": "UserA",
+       "token": "S3CR3T1",
+       "email": "foo-email",
+       "service_roles": [],
+       "created_on": "2009-11-10T23:00:00Z",
+       "modified_on": "2009-11-10T23:00:00Z"
+    }
+ ],
+ "nextPageToken": "some_token2",
+ "totalSize": 5
+}
+```
+
+### Paginated Request that returns the next 3 users
+
+### Example request
+```
+curl -X GET -H "Content-Type: application/json"
+  "https://{URL}/v1/users?key=S3CR3T&pageSize=3&pageToken=some_token2"
+```
+
+### Responses  
+If successful, the response contains a list of the next 3 users
+
+Success Response
+`200 OK`
+
+```json
+{
+ "users": [
+    {
+       "uuid": "94bfd746-4ebe-11e8-9c2d-fa7ae01bbebc",
+       "projects": [
+          {
+             "project": "ARGO",
+             "roles": [
+                "consumer",
+                "publisher"
+             ],
+             "topics": [
+                "topic1",
+                "topic2"
+             ],
+             "subscriptions": [
+                "sub1",
+                "sub3",
+                "sub4"
+             ]
+          }
+       ],
+       "name": "UserB",
+       "token": "S3CR3T2",
+       "email": "foo-email",
+       "service_roles": [],
+       "created_on": "2009-11-10T23:00:00Z",
+       "modified_on": "2009-11-10T23:00:00Z",
+       "created_by": "UserA"
+    },
+    {
+       "uuid": "99bfd746-4ebe-11e8-9c2d-fa7ae01bberr",
+       "projects": [
+          {
+             "project": "ARGO",
+             "roles": [
+                "publisher",
+                "consumer"
+             ],
+             "topics": [
+                "topic3"
+             ],
+             "subscriptions": [
+                "sub2"
+             ]
+          }
+       ],
+       "name": "UserX",
+       "token": "S3CR3T3",
+       "email": "foo-email",
+       "service_roles": [],
+       "created_on": "2009-11-10T23:00:00Z",
+       "modified_on": "2009-11-10T23:00:00Z",
+       "created_by": "UserA"
+    },
+    {
+       "uuid": "99bfd746-4ebe-11e8-9c2d-fa7ae01bbfrt",
+       "projects": [
+          {
+             "project": "ARGO",
+             "roles": [
+                "publisher",
+                "consumer"
+             ],
+             "topics": [
+                "topic2"
+             ],
+             "subscriptions": [
+                "sub3",
+                "sub4"
+             ]
+          }
+       ],
+       "name": "UserZ",
+       "token": "S3CR3T4",
+       "email": "foo-email",
+       "service_roles": [],
+       "created_on": "2009-11-10T23:00:00Z",
+       "modified_on": "2009-11-10T23:00:00Z",
+       "created_by": "UserA"
+    }
+ ],
+  "nextPageToken": "some_token3",
+  "totalSize": 5
 }
 ```
 

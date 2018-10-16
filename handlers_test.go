@@ -376,82 +376,7 @@ func (suite *HandlerTestSuite) TestUserListAll() {
 	expResp := `{
    "users": [
       {
-         "uuid": "uuid0",
-         "projects": [
-            {
-               "project": "ARGO",
-               "roles": [
-                  "consumer",
-                  "publisher"
-               ],
-               "topics": [],
-               "subscriptions": []
-            }
-         ],
-         "name": "Test",
-         "token": "S3CR3T",
-         "email": "Test@test.com",
-         "service_roles": [],
-         "created_on": "2009-11-10T23:00:00Z",
-         "modified_on": "2009-11-10T23:00:00Z"
-      },
-      {
-         "uuid": "uuid1",
-         "projects": [
-            {
-               "project": "ARGO",
-               "roles": [
-                  "consumer",
-                  "publisher"
-               ],
-               "topics": [
-                  "topic1",
-                  "topic2"
-               ],
-               "subscriptions": [
-                  "sub1",
-                  "sub2",
-                  "sub3"
-               ]
-            }
-         ],
-         "name": "UserA",
-         "token": "S3CR3T1",
-         "email": "foo-email",
-         "service_roles": [],
-         "created_on": "2009-11-10T23:00:00Z",
-         "modified_on": "2009-11-10T23:00:00Z"
-      },
-      {
-         "uuid": "uuid2",
-         "projects": [
-            {
-               "project": "ARGO",
-               "roles": [
-                  "consumer",
-                  "publisher"
-               ],
-               "topics": [
-                  "topic1",
-                  "topic2"
-               ],
-               "subscriptions": [
-                  "sub1",
-                  "sub3",
-                  "sub4"
-               ]
-            }
-         ],
-         "name": "UserB",
-         "token": "S3CR3T2",
-         "email": "foo-email",
-         "service_roles": [],
-         "created_on": "2009-11-10T23:00:00Z",
-         "modified_on": "2009-11-10T23:00:00Z",
-         "created_by": "UserA"
-      },
-      {
-         "uuid": "uuid3",
+         "uuid": "same_uuid",
          "projects": [
             {
                "project": "ARGO",
@@ -459,16 +384,33 @@ func (suite *HandlerTestSuite) TestUserListAll() {
                   "publisher",
                   "consumer"
                ],
-               "topics": [
-                  "topic3"
-               ],
-               "subscriptions": [
-                  "sub2"
-               ]
+               "topics": [],
+               "subscriptions": []
             }
          ],
-         "name": "UserX",
-         "token": "S3CR3T3",
+         "name": "UserSame2",
+         "token": "S3CR3T42",
+         "email": "foo-email",
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "UserA"
+      },
+      {
+         "uuid": "same_uuid",
+         "projects": [
+            {
+               "project": "ARGO",
+               "roles": [
+                  "publisher",
+                  "consumer"
+               ],
+               "topics": [],
+               "subscriptions": []
+            }
+         ],
+         "name": "UserSame1",
+         "token": "S3CR3T41",
          "email": "foo-email",
          "service_roles": [],
          "created_on": "2009-11-10T23:00:00Z",
@@ -502,7 +444,7 @@ func (suite *HandlerTestSuite) TestUserListAll() {
          "created_by": "UserA"
       },
       {
-         "uuid": "same_uuid",
+         "uuid": "uuid3",
          "projects": [
             {
                "project": "ARGO",
@@ -510,18 +452,126 @@ func (suite *HandlerTestSuite) TestUserListAll() {
                   "publisher",
                   "consumer"
                ],
-               "topics": [],
-               "subscriptions": []
+               "topics": [
+                  "topic3"
+               ],
+               "subscriptions": [
+                  "sub2"
+               ]
             }
          ],
-         "name": "UserSame1",
-         "token": "S3CR3T41",
+         "name": "UserX",
+         "token": "S3CR3T3",
          "email": "foo-email",
          "service_roles": [],
          "created_on": "2009-11-10T23:00:00Z",
          "modified_on": "2009-11-10T23:00:00Z",
          "created_by": "UserA"
       },
+      {
+         "uuid": "uuid2",
+         "projects": [
+            {
+               "project": "ARGO",
+               "roles": [
+                  "consumer",
+                  "publisher"
+               ],
+               "topics": [
+                  "topic1",
+                  "topic2"
+               ],
+               "subscriptions": [
+                  "sub1",
+                  "sub3",
+                  "sub4"
+               ]
+            }
+         ],
+         "name": "UserB",
+         "token": "S3CR3T2",
+         "email": "foo-email",
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "UserA"
+      },
+      {
+         "uuid": "uuid1",
+         "projects": [
+            {
+               "project": "ARGO",
+               "roles": [
+                  "consumer",
+                  "publisher"
+               ],
+               "topics": [
+                  "topic1",
+                  "topic2"
+               ],
+               "subscriptions": [
+                  "sub1",
+                  "sub2",
+                  "sub3"
+               ]
+            }
+         ],
+         "name": "UserA",
+         "token": "S3CR3T1",
+         "email": "foo-email",
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z"
+      },
+      {
+         "uuid": "uuid0",
+         "projects": [
+            {
+               "project": "ARGO",
+               "roles": [
+                  "consumer",
+                  "publisher"
+               ],
+               "topics": [],
+               "subscriptions": []
+            }
+         ],
+         "name": "Test",
+         "token": "S3CR3T",
+         "email": "Test@test.com",
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z"
+      }
+   ],
+   "nextPageToken": "",
+   "totalSize": 7
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/users", WrapMockAuthConfig(UserListAll, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestUserListAllStartingPage() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/users?pageSize=2", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "users": [
       {
          "uuid": "same_uuid",
          "projects": [
@@ -542,8 +592,31 @@ func (suite *HandlerTestSuite) TestUserListAll() {
          "created_on": "2009-11-10T23:00:00Z",
          "modified_on": "2009-11-10T23:00:00Z",
          "created_by": "UserA"
+      },
+      {
+         "uuid": "same_uuid",
+         "projects": [
+            {
+               "project": "ARGO",
+               "roles": [
+                  "publisher",
+                  "consumer"
+               ],
+               "topics": [],
+               "subscriptions": []
+            }
+         ],
+         "name": "UserSame1",
+         "token": "S3CR3T41",
+         "email": "foo-email",
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "UserA"
       }
-   ]
+   ],
+   "nextPageToken": "NA==",
+   "totalSize": 7
 }`
 
 	cfgKafka := config.NewAPICfg()
@@ -557,6 +630,176 @@ func (suite *HandlerTestSuite) TestUserListAll() {
 	router.HandleFunc("/v1/users", WrapMockAuthConfig(UserListAll, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestUserListAllEmptyCollection() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/users", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "users": [],
+   "nextPageToken": "",
+   "totalSize": 0
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	// empty the store
+	str.UserList = []stores.QUser{}
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/users", WrapMockAuthConfig(UserListAll, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestUserListAllIntermediatePage() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/users?pageToken=NA==&pageSize=2", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "users": [
+      {
+         "uuid": "uuid4",
+         "projects": [
+            {
+               "project": "ARGO",
+               "roles": [
+                  "publisher",
+                  "consumer"
+               ],
+               "topics": [
+                  "topic2"
+               ],
+               "subscriptions": [
+                  "sub3",
+                  "sub4"
+               ]
+            }
+         ],
+         "name": "UserZ",
+         "token": "S3CR3T4",
+         "email": "foo-email",
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "UserA"
+      },
+      {
+         "uuid": "uuid3",
+         "projects": [
+            {
+               "project": "ARGO",
+               "roles": [
+                  "publisher",
+                  "consumer"
+               ],
+               "topics": [
+                  "topic3"
+               ],
+               "subscriptions": [
+                  "sub2"
+               ]
+            }
+         ],
+         "name": "UserX",
+         "token": "S3CR3T3",
+         "email": "foo-email",
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "UserA"
+      }
+   ],
+   "nextPageToken": "Mg==",
+   "totalSize": 7
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/users", WrapMockAuthConfig(UserListAll, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestUserListAllInvalidPageSize() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/users?pageSize=invalid", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "error": {
+      "code": 400,
+      "message": "Invalid page size",
+      "status": "INVALID_ARGUMENT"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/users", WrapMockAuthConfig(UserListAll, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(400, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestUserListAllInvalidPageToken() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/users?pageToken=invalid", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "error": {
+      "code": 400,
+      "message": "Invalid page token",
+      "status": "INVALID_ARGUMENT"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/users", WrapMockAuthConfig(UserListAll, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(400, w.Code)
 	suite.Equal(expResp, w.Body.String())
 
 }

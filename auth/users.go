@@ -3,13 +3,14 @@ package auth
 import (
 	"crypto/rand"
 	"crypto/sha1"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"time"
-
 	"github.com/ARGOeu/argo-messaging/projects"
 	"github.com/ARGOeu/argo-messaging/stores"
+	log "github.com/sirupsen/logrus"
+	"time"
 )
 
 // User is the struct that holds user information
@@ -38,6 +39,13 @@ type Users struct {
 	List []User `json:"users,omitempty"`
 }
 
+// PaginatedUsers holds information about a users' page and how to access the next page
+type PaginatedUsers struct {
+	Users         []User `json:"users"`
+	NextPageToken string `json:"nextPageToken"`
+	TotalSize     int32  `json:"totalSize"`
+}
+
 // ExportJSON exports Project to json format
 func (u *User) ExportJSON() (string, error) {
 	output, err := json.MarshalIndent(u, "", "   ")
@@ -47,6 +55,12 @@ func (u *User) ExportJSON() (string, error) {
 // ExportJSON exports Projects list to json format
 func (us *Users) ExportJSON() (string, error) {
 	output, err := json.MarshalIndent(us, "", "   ")
+	return string(output[:]), err
+}
+
+// ExportJSON exports Projects list to json format
+func (pus *PaginatedUsers) ExportJSON() (string, error) {
+	output, err := json.MarshalIndent(pus, "", "   ")
 	return string(output[:]), err
 }
 
@@ -170,6 +184,71 @@ func FindUsers(projectUUID string, uuid string, name string, store stores.Store)
 	if len(result.List) == 0 {
 		err = errors.New("not found")
 	}
+
+	return result, err
+}
+
+// PaginatedFindUsers returns a page of users
+func PaginatedFindUsers(pageToken string, pageSize int32, store stores.Store) (PaginatedUsers, error) {
+
+	var totalSize int32
+	var nextPageToken string
+	var err error
+	var users []stores.QUser
+	var pageTokenBytes []byte
+
+	// decode the base64 pageToken
+	if pageTokenBytes, err = base64.StdEncoding.DecodeString(pageToken); err != nil {
+		log.Errorf("Page token %v produced an error while being decoded to base64: %v", pageToken, err.Error())
+		return PaginatedUsers{}, err
+	}
+
+	result := PaginatedUsers{Users: []User{}}
+
+	if users, totalSize, nextPageToken, err = store.PaginatedQueryUsers(string(pageTokenBytes), pageSize); err != nil {
+		return result, err
+	}
+
+	for _, item := range users {
+
+		// Get Username from user uuid
+
+		usernameC := ""
+		if item.CreatedBy != "" {
+			usr, err := store.QueryUsers("", item.CreatedBy, "")
+			if err == nil && len(usr) > 0 {
+				usernameC = usr[0].Name
+
+			}
+		}
+
+		pRoles := []ProjectRoles{}
+		for _, pItem := range item.Projects {
+			prName := projects.GetNameByUUID(pItem.ProjectUUID, store)
+			// Get User topics and subscriptions
+
+			topicList, _ := store.QueryTopicsByACL(pItem.ProjectUUID, item.UUID)
+			topicNames := []string{}
+			for _, tpItem := range topicList {
+				topicNames = append(topicNames, tpItem.Name)
+			}
+
+			subList, _ := store.QuerySubsByACL(pItem.ProjectUUID, item.UUID)
+			subNames := []string{}
+			for _, sbItem := range subList {
+				subNames = append(subNames, sbItem.Name)
+			}
+			pRoles = append(pRoles, ProjectRoles{Project: prName, Roles: pItem.Roles, Topics: topicNames, Subs: subNames})
+		}
+
+		curUser := NewUser(item.UUID, pRoles, item.Name, item.Token, item.Email, item.ServiceRoles, item.CreatedOn.UTC(), item.ModifiedOn.UTC(), usernameC)
+
+		result.Users = append(result.Users, curUser)
+	}
+
+	//encode to base64 the next page token
+	result.NextPageToken = base64.StdEncoding.EncodeToString([]byte(nextPageToken))
+	result.TotalSize = totalSize
 
 	return result, err
 }

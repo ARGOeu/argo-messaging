@@ -3,6 +3,7 @@ package stores
 import (
 	"errors"
 	"sort"
+	"strconv"
 	"time"
 )
 
@@ -423,6 +424,68 @@ func (mk *MockStore) QueryUsers(projectUUID string, uuid string, name string) ([
 
 }
 
+func (mk *MockStore) PaginatedQueryUsers(pageToken string, pageSize int32) ([]QUser, int32, string, error) {
+
+	var qUsers []QUser
+	var totalSize int32
+	var nextPageToken string
+	var err error
+	var pg int
+	var limit int
+
+	if pageSize == 0 {
+		limit = len(mk.UserList)
+	} else {
+		limit = int(pageSize) + 1
+	}
+
+	if pageToken != "" {
+		if pg, err = strconv.Atoi(pageToken); err != nil {
+			return qUsers, totalSize, nextPageToken, err
+		}
+	}
+
+	sort.Slice(mk.UserList, func(i, j int) bool {
+		id1 := mk.UserList[i].ID.(int)
+		id2 := mk.UserList[j].ID.(int)
+		return id1 > id2
+	})
+
+	for _, user := range mk.UserList {
+
+		if limit == 0 {
+			break
+		}
+
+		if pageToken != "" {
+
+			if user.ID.(int) <= pg {
+
+				qUsers = append(qUsers, user)
+				limit--
+
+			}
+
+		} else {
+
+			qUsers = append(qUsers, user)
+			limit--
+
+		}
+
+	}
+
+	totalSize = int32(len(mk.UserList))
+
+	if len(qUsers) > 0 && len(qUsers) == int(pageSize)+1 {
+		nextPageToken = strconv.Itoa(qUsers[int(pageSize)].ID.(int))
+		qUsers = qUsers[:len(qUsers)-1]
+	}
+
+	return qUsers, totalSize, nextPageToken, err
+
+}
+
 // UpdateSubPull updates next offset info after a pull
 func (mk *MockStore) UpdateSubPull(projectUUID string, name string, offset int64, ts string) error {
 	for i, item := range mk.SubList {
@@ -436,7 +499,7 @@ func (mk *MockStore) UpdateSubPull(projectUUID string, name string, offset int64
 
 }
 
-// Initialize is used to initalize the mock
+// Initialize is used to initialize the mock
 func (mk *MockStore) Initialize() {
 	mk.OpMetrics = make(map[string]QopMetric)
 
@@ -475,18 +538,18 @@ func (mk *MockStore) Initialize() {
 
 	// populate Users
 	qRole := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"consumer", "publisher"}}}
-	qUsr := QUser{"uuid0", qRole, "Test", "S3CR3T", "Test@test.com", []string{}, created, modified, ""}
+	qUsr := QUser{0, "uuid0", qRole, "Test", "S3CR3T", "Test@test.com", []string{}, created, modified, ""}
 
 	mk.UserList = append(mk.UserList, qUsr)
 
 	qRoleConsumerPub := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"publisher", "consumer"}}}
 
-	mk.UserList = append(mk.UserList, QUser{"uuid1", qRole, "UserA", "S3CR3T1", "foo-email", []string{}, created, modified, ""})
-	mk.UserList = append(mk.UserList, QUser{"uuid2", qRole, "UserB", "S3CR3T2", "foo-email", []string{}, created, modified, "uuid1"})
-	mk.UserList = append(mk.UserList, QUser{"uuid3", qRoleConsumerPub, "UserX", "S3CR3T3", "foo-email", []string{}, created, modified, "uuid1"})
-	mk.UserList = append(mk.UserList, QUser{"uuid4", qRoleConsumerPub, "UserZ", "S3CR3T4", "foo-email", []string{}, created, modified, "uuid1"})
-	mk.UserList = append(mk.UserList, QUser{"same_uuid", qRoleConsumerPub, "UserSame1", "S3CR3T41", "foo-email", []string{}, created, modified, "uuid1"})
-	mk.UserList = append(mk.UserList, QUser{"same_uuid", qRoleConsumerPub, "UserSame2", "S3CR3T42", "foo-email", []string{}, created, modified, "uuid1"})
+	mk.UserList = append(mk.UserList, QUser{1, "uuid1", qRole, "UserA", "S3CR3T1", "foo-email", []string{}, created, modified, ""})
+	mk.UserList = append(mk.UserList, QUser{2, "uuid2", qRole, "UserB", "S3CR3T2", "foo-email", []string{}, created, modified, "uuid1"})
+	mk.UserList = append(mk.UserList, QUser{3, "uuid3", qRoleConsumerPub, "UserX", "S3CR3T3", "foo-email", []string{}, created, modified, "uuid1"})
+	mk.UserList = append(mk.UserList, QUser{4, "uuid4", qRoleConsumerPub, "UserZ", "S3CR3T4", "foo-email", []string{}, created, modified, "uuid1"})
+	mk.UserList = append(mk.UserList, QUser{5, "same_uuid", qRoleConsumerPub, "UserSame1", "S3CR3T41", "foo-email", []string{}, created, modified, "uuid1"})
+	mk.UserList = append(mk.UserList, QUser{6, "same_uuid", qRoleConsumerPub, "UserSame2", "S3CR3T42", "foo-email", []string{}, created, modified, "uuid1"})
 
 	qRole1 := QRole{"topics:list_all", []string{"admin", "reader", "publisher"}}
 	qRole2 := QRole{"topics:publish", []string{"admin", "publisher"}}
