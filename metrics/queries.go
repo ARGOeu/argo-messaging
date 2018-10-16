@@ -6,7 +6,7 @@ import (
 )
 
 func GetProjectTopics(projectUUID string, store stores.Store) (int64, error) {
-	topics, err := store.QueryTopics(projectUUID, "")
+	topics, _, _, err := store.QueryTopics(projectUUID, "", "", 0)
 	return int64(len(topics)), err
 }
 

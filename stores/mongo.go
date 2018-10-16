@@ -471,25 +471,72 @@ func (mong *MongoStore) QueryTopicsByACL(projectUUID, user string) ([]QTopic, er
 }
 
 // QueryTopics Query Subscription info from store
-func (mong *MongoStore) QueryTopics(projectUUID string, name string) ([]QTopic, error) {
+func (mong *MongoStore) QueryTopics(projectUUID string, name string, pageToken string, pageSize int32) ([]QTopic, int32, string, error) {
+
+	var err error
+	var totalSize int32
+	var limit int32
+	var nextPageToken string
+	var qTopics []QTopic
+	var ok bool
+	var size int
 
 	// By default return all topics of a given project
 	query := bson.M{"project_uuid": projectUUID}
 
-	// If name is given return only the specific topic
-	if name != "" {
-		query = bson.M{"project_uuid": projectUUID, "name": name}
+	// if the page size is other than zero(where zero means, no limit), try to grab one more document to check if there
+	// will be a next page after the current one
+	if pageSize > 0 {
+
+		limit = pageSize + 1
+
 	}
+
+	// first check if an pageToken is provided and whether or not is a valid bson ID
+	if pageToken != "" {
+		if ok = bson.IsObjectIdHex(pageToken); !ok {
+			err = errors.New(fmt.Sprintf("Page token %v is not a valid bson ObjectId", pageToken))
+			log.Errorf("Page token %v is not a valid bson ObjectId", pageToken)
+			return qTopics, totalSize, nextPageToken, err
+		}
+
+		bsonId := bson.ObjectIdHex(pageToken)
+
+		query["_id"] = bson.M{"$lte": bsonId}
+
+	} else if name != "" {
+
+		query["name"] = name
+	}
+
 	db := mong.Session.DB(mong.Database)
 	c := db.C("topics")
-	var results []QTopic
-	err := c.Find(query).All(&results)
 
-	if err != nil {
+	if err = c.Find(query).Sort("-_id").Limit(int(limit)).All(&qTopics); err != nil {
 		log.Fatal("STORE", "\t", err.Error())
 	}
 
-	return results, err
+	if name == "" {
+
+		if size, err = c.Find(bson.M{"project_uuid": projectUUID}).Count(); err != nil {
+			log.Fatal("STORE", "\t", err.Error())
+
+		}
+
+		totalSize = int32(size)
+
+		// if the amount of topics that were found was equal to the limit, its a sign that there are topics to populate the next page
+		// so pick the last element's pageToken to use as the starting point for the next page
+		// and eliminate the extra element from the current response
+		if len(qTopics) > 0 && len(qTopics) == int(limit) {
+
+			nextPageToken = qTopics[limit-1].ID.(bson.ObjectId).Hex()
+			qTopics = qTopics[:len(qTopics)-1]
+		}
+	}
+
+	return qTopics, totalSize, nextPageToken, err
+
 }
 
 // QueryDailyTopicMsgCount returns results regarding the number of messages published to a topic

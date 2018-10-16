@@ -1058,6 +1058,8 @@ paths:
         The Topics endpoint returns a list of available topics for a given project
       parameters:
         - $ref: '#/parameters/ApiKey'
+        - $ref: '#/parameters/PageToken'
+        - $ref: '#/parameters/PageSize'
         - name: PROJECT
           in: path
           description: Name of the project
@@ -1362,7 +1364,7 @@ parameters:
   PageSize:
     name: pageSize
     in: query
-    description: the amount of users the page will contain. The default value 0 will return all the results
+    description: the amount of objects the page will contain. The default value 0 will return all the results
     required: false
     type: integer
     default: 0
@@ -1555,6 +1557,10 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/Topic'
+      nextPageToken:
+        type: string
+      totalSize:
+        type: integer
 
   Subscriptions:
     type: object

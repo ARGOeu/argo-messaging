@@ -9,7 +9,7 @@ type Store interface {
 	QueryTopicsByACL(projectUUID, user string) ([]QTopic, error)
 	QuerySubsByACL(projectUUID, user string) ([]QSub, error)
 	QuerySubs(projectUUID string, name string) ([]QSub, error)
-	QueryTopics(projectUUID string, name string) ([]QTopic, error)
+	QueryTopics(projectUUID string, name string, pageToken string, pageSize int32) ([]QTopic, int32, string, error)
 	QueryDailyTopicMsgCount(projectUUID string, name string, date time.Time) ([]QDailyTopicMsgCount, error)
 	RemoveTopic(projectUUID string, name string) error
 	RemoveSub(projectUUID string, name string) error

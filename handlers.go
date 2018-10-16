@@ -1958,7 +1958,7 @@ func TopicListOne(w http.ResponseWriter, r *http.Request) {
 	refStr := context.Get(r, "str").(stores.Store)
 	projectUUID := context.Get(r, "auth_project_uuid").(string)
 
-	results, err := topics.Find(projectUUID, urlVars["topic"], refStr)
+	results, err := topics.Find(projectUUID, urlVars["topic"], "", 0, refStr)
 
 	if err != nil {
 		err := APIErrGenericBackend()
@@ -1972,7 +1972,7 @@ func TopicListOne(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res := results.List[0]
+	res := results.Topics[0]
 
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
@@ -2184,6 +2184,11 @@ func SubListAll(w http.ResponseWriter, r *http.Request) {
 // TopicListAll (GET) all topics
 func TopicListAll(w http.ResponseWriter, r *http.Request) {
 
+	var err error
+	var strPageSize string
+	var pageSize int
+	var res topics.PaginatedTopics
+
 	// Init output
 	output := []byte("")
 
@@ -2196,9 +2201,21 @@ func TopicListAll(w http.ResponseWriter, r *http.Request) {
 	refStr := context.Get(r, "str").(stores.Store)
 	projectUUID := context.Get(r, "auth_project_uuid").(string)
 
-	res, err := topics.Find(projectUUID, "", refStr)
-	if err != nil {
-		err := APIErrGenericBackend()
+	urlValues := r.URL.Query()
+	pageToken := urlValues.Get("pageToken")
+	strPageSize = urlValues.Get("pageSize")
+
+	if strPageSize != "" {
+		if pageSize, err = strconv.Atoi(strPageSize); err != nil {
+			log.Errorf("Pagesize %v produced an error  while being converted to int: %v", strPageSize, err.Error())
+			err := APIErrorInvalidData("Invalid page size")
+			respondErr(w, err)
+			return
+		}
+	}
+
+	if res, err = topics.Find(projectUUID, "", pageToken, int32(pageSize), refStr); err != nil {
+		err := APIErrorInvalidData("Invalid page token")
 		respondErr(w, err)
 		return
 	}
