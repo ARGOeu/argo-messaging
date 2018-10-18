@@ -44,7 +44,7 @@ type QProject struct {
 
 // QUser are the results of the QUser query
 type QUser struct {
-	ID           interface{}     `bson:"_id"`
+	ID           interface{}     `bson:"_id,omitempty"`
 	UUID         string          `bson:"uuid"`
 	Projects     []QProjectRoles `bson:"projects"`
 	Name         string          `bson:"name"`
