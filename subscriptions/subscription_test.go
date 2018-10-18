@@ -63,11 +63,11 @@ func (suite *SubTestSuite) TestGetSubByName() {
 	cfgAPI.LoadStrJSON(suite.cfgStr)
 	store := stores.NewMockStore(cfgAPI.StoreHost, cfgAPI.StoreDB)
 
-	result, _ := Find("argo_uuid", "sub1", store)
+	result, _ := Find("argo_uuid", "sub1", "", 0, store)
 	expSub := New("argo_uuid", "ARGO", "sub1", "topic1")
 	expSub.PushCfg.RetPol.PolicyType = ""
 	expSub.PushCfg.RetPol.Period = 0
-	suite.Equal(expSub, result.List[0])
+	suite.Equal(expSub, result.Subscriptions[0])
 
 }
 
@@ -95,7 +95,6 @@ func (suite *SubTestSuite) TestGetSubsByProject() {
 
 	store := stores.NewMockStore(cfgAPI.StoreHost, cfgAPI.StoreDB)
 
-	result, _ := Find("argo_uuid", "", store)
 	expSub1 := New("argo_uuid", "ARGO", "sub1", "topic1")
 	expSub1.PushCfg.RetPol.PolicyType = ""
 	expSub1.PushCfg.RetPol.Period = 0
@@ -110,12 +109,43 @@ func (suite *SubTestSuite) TestGetSubsByProject() {
 	expSub4.PushCfg.RetPol.Period = 300
 	rp := RetryPolicy{"linear", 300}
 	expSub4.PushCfg = PushConfig{"endpoint.foo", rp}
-	expSubs := Subscriptions{}
-	expSubs.List = append(expSubs.List, expSub1)
-	expSubs.List = append(expSubs.List, expSub2)
-	expSubs.List = append(expSubs.List, expSub3)
-	expSubs.List = append(expSubs.List, expSub4)
-	suite.Equal(expSubs, result)
+
+	// retrieve all subs
+	expSubs1 := []Subscription{}
+	expSubs1 = append(expSubs1, expSub4)
+	expSubs1 = append(expSubs1, expSub3)
+	expSubs1 = append(expSubs1, expSub2)
+	expSubs1 = append(expSubs1, expSub1)
+	result1, _ := Find("argo_uuid", "", "", 0, store)
+
+	// retrieve first two subs
+	expSubs2 := []Subscription{}
+	expSubs2 = append(expSubs2, expSub4)
+	expSubs2 = append(expSubs2, expSub3)
+	result2, _ := Find("argo_uuid", "", "", 2, store)
+
+	//retrieve the next two subs
+	expSubs3 := []Subscription{}
+	expSubs3 = append(expSubs3, expSub2)
+	expSubs3 = append(expSubs3, expSub1)
+	result3, _ := Find("argo_uuid", "", "MQ==", 2, store)
+
+	// provide an invalid page token
+	_, err := Find("", "", "invalid", 0, store)
+
+	suite.Equal(expSubs1, result1.Subscriptions)
+	suite.Equal("", result1.NextPageToken)
+	suite.Equal(int32(4), result1.TotalSize)
+
+	suite.Equal(expSubs2, result2.Subscriptions)
+	suite.Equal("MQ==", result2.NextPageToken)
+	suite.Equal(int32(4), result2.TotalSize)
+
+	suite.Equal(expSubs3, result3.Subscriptions)
+	suite.Equal("", result3.NextPageToken)
+	suite.Equal(int32(4), result3.TotalSize)
+
+	suite.Equal("illegal base64 data at input byte 4", err.Error())
 }
 
 func (suite *SubTestSuite) TestLoadFromCfg() {
@@ -123,7 +153,7 @@ func (suite *SubTestSuite) TestLoadFromCfg() {
 	cfgAPI.LoadStrJSON(suite.cfgStr)
 
 	store := stores.NewMockStore(cfgAPI.StoreHost, cfgAPI.StoreDB)
-	results, _ := Find("argo_uuid", "", store)
+	results, _ := Find("argo_uuid", "", "", 0, store)
 	expSub1 := New("argo_uuid", "ARGO", "sub1", "topic1")
 	expSub1.PushCfg.RetPol.PolicyType = ""
 	expSub1.PushCfg.RetPol.Period = 0
@@ -138,12 +168,12 @@ func (suite *SubTestSuite) TestLoadFromCfg() {
 	expSub4.PushCfg.RetPol.Period = 300
 	rp := RetryPolicy{"linear", 300}
 	expSub4.PushCfg = PushConfig{"endpoint.foo", rp}
-	expSubs := Subscriptions{}
-	expSubs.List = append(expSubs.List, expSub1)
-	expSubs.List = append(expSubs.List, expSub2)
-	expSubs.List = append(expSubs.List, expSub3)
-	expSubs.List = append(expSubs.List, expSub4)
-	suite.Equal(expSubs, results)
+	expSubs := []Subscription{}
+	expSubs = append(expSubs, expSub4)
+	expSubs = append(expSubs, expSub3)
+	expSubs = append(expSubs, expSub2)
+	expSubs = append(expSubs, expSub1)
+	suite.Equal(expSubs, results.Subscriptions)
 
 }
 
@@ -227,9 +257,9 @@ func (suite *SubTestSuite) TestExportJson() {
 
 	store := stores.NewMockStore(cfgAPI.StoreHost, cfgAPI.StoreDB)
 
-	res, _ := Find("argo_uuid", "sub1", store)
+	res, _ := Find("argo_uuid", "sub1", "", 0, store)
 
-	outJSON, _ := res.List[0].ExportJSON()
+	outJSON, _ := res.Subscriptions[0].ExportJSON()
 	expJSON := `{
    "name": "/projects/ARGO/subscriptions/sub1",
    "topic": "/projects/ARGO/topics/topic1",
@@ -244,8 +274,20 @@ func (suite *SubTestSuite) TestExportJson() {
 	expJSON2 := `{
    "subscriptions": [
       {
-         "name": "/projects/ARGO/subscriptions/sub1",
-         "topic": "/projects/ARGO/topics/topic1",
+         "name": "/projects/ARGO/subscriptions/sub4",
+         "topic": "/projects/ARGO/topics/topic4",
+         "pushConfig": {
+            "pushEndpoint": "endpoint.foo",
+            "retryPolicy": {
+               "type": "linear",
+               "period": 300
+            }
+         },
+         "ackDeadlineSeconds": 10
+      },
+      {
+         "name": "/projects/ARGO/subscriptions/sub3",
+         "topic": "/projects/ARGO/topics/topic3",
          "pushConfig": {
             "pushEndpoint": "",
             "retryPolicy": {}
@@ -262,29 +304,19 @@ func (suite *SubTestSuite) TestExportJson() {
          "ackDeadlineSeconds": 10
       },
       {
-         "name": "/projects/ARGO/subscriptions/sub3",
-         "topic": "/projects/ARGO/topics/topic3",
+         "name": "/projects/ARGO/subscriptions/sub1",
+         "topic": "/projects/ARGO/topics/topic1",
          "pushConfig": {
             "pushEndpoint": "",
             "retryPolicy": {}
          },
          "ackDeadlineSeconds": 10
-      },
-      {
-         "name": "/projects/ARGO/subscriptions/sub4",
-         "topic": "/projects/ARGO/topics/topic4",
-         "pushConfig": {
-            "pushEndpoint": "endpoint.foo",
-            "retryPolicy": {
-               "type": "linear",
-               "period": 300
-            }
-         },
-         "ackDeadlineSeconds": 10
       }
-   ]
+   ],
+   "nextPageToken": "",
+   "totalSize": 4
 }`
-	results, _ := Find("argo_uuid", "", store)
+	results, _ := Find("argo_uuid", "", "", 0, store)
 	outJSON2, _ := results.ExportJSON()
 	suite.Equal(expJSON2, outJSON2)
 

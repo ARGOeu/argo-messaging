@@ -965,13 +965,13 @@ func SubAck(w http.ResponseWriter, r *http.Request) {
 
 	// Check if sub exists
 
-	cur_sub, err := subscriptions.Find(projectUUID, subName, refStr)
+	cur_sub, err := subscriptions.Find(projectUUID, subName, "", 0, refStr)
 	if err != nil {
 		err := APIErrHandlingAcknowledgement()
 		respondErr(w, err)
 		return
 	}
-	if len(cur_sub.List) == 0 {
+	if len(cur_sub.Subscriptions) == 0 {
 		err := APIErrorNotFound("Subscription")
 		respondErr(w, err)
 		return
@@ -1054,7 +1054,7 @@ func SubListOne(w http.ResponseWriter, r *http.Request) {
 	refStr := context.Get(r, "str").(stores.Store)
 	projectUUID := context.Get(r, "auth_project_uuid").(string)
 
-	results, err := subscriptions.Find(projectUUID, urlVars["subscription"], refStr)
+	results, err := subscriptions.Find(projectUUID, urlVars["subscription"], "", 0, refStr)
 
 	if err != nil {
 		err := APIErrGenericBackend()
@@ -1070,7 +1070,7 @@ func SubListOne(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Output result to JSON
-	resJSON, err := results.List[0].ExportJSON()
+	resJSON, err := results.Subscriptions[0].ExportJSON()
 
 	if err != nil {
 		err := APIErrExportJSON()
@@ -1124,7 +1124,7 @@ func SubSetOffset(w http.ResponseWriter, r *http.Request) {
 	projectUUID := context.Get(r, "auth_project_uuid").(string)
 
 	// Find Subscription
-	results, err := subscriptions.Find(projectUUID, urlVars["subscription"], refStr)
+	results, err := subscriptions.Find(projectUUID, urlVars["subscription"], "", 0, refStr)
 
 	if err != nil {
 		err := APIErrGenericBackend()
@@ -1138,7 +1138,7 @@ func SubSetOffset(w http.ResponseWriter, r *http.Request) {
 		respondErr(w, err)
 		return
 	}
-	brk_topic := projectUUID + "." + results.List[0].Topic
+	brk_topic := projectUUID + "." + results.Subscriptions[0].Topic
 	min_offset := refBrk.GetMinOffset(brk_topic)
 	max_offset := refBrk.GetMaxOffset(brk_topic)
 
@@ -1177,7 +1177,7 @@ func SubGetOffsets(w http.ResponseWriter, r *http.Request) {
 
 	projectUUID := context.Get(r, "auth_project_uuid").(string)
 
-	results, err := subscriptions.Find(projectUUID, urlVars["subscription"], refStr)
+	results, err := subscriptions.Find(projectUUID, urlVars["subscription"], "", 0, refStr)
 
 	if err != nil {
 		err := APIErrGenericBackend()
@@ -1193,8 +1193,8 @@ func SubGetOffsets(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Output result to JSON
-	brk_topic := projectUUID + "." + results.List[0].Topic
-	cur_offset := results.List[0].Offset
+	brk_topic := projectUUID + "." + results.Subscriptions[0].Topic
+	cur_offset := results.Subscriptions[0].Offset
 	min_offset := refBrk.GetMinOffset(brk_topic)
 	max_offset := refBrk.GetMaxOffset(brk_topic)
 
@@ -1479,7 +1479,7 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 	refStr := context.Get(r, "str").(stores.Store)
 
 	// Get Result Object
-	res, err := subscriptions.Find(projectUUID, subName, refStr)
+	res, err := subscriptions.Find(projectUUID, subName, "", 0, refStr)
 
 	if err != nil {
 		err := APIErrGenericBackend()
@@ -1492,7 +1492,7 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 		respondErr(w, err)
 		return
 	}
-	old := res.List[0]
+	old := res.Subscriptions[0]
 
 	err = subscriptions.ModSubPush(projectUUID, subName, pushEnd, rPolicy, rPeriod, refStr)
 
@@ -2149,6 +2149,11 @@ func SubMetrics(w http.ResponseWriter, r *http.Request) {
 //SubListAll (GET) all subscriptions
 func SubListAll(w http.ResponseWriter, r *http.Request) {
 
+	var err error
+	var strPageSize string
+	var pageSize int
+	var res subscriptions.PaginatedSubscriptions
+
 	// Init output
 	output := []byte("")
 
@@ -2161,12 +2166,25 @@ func SubListAll(w http.ResponseWriter, r *http.Request) {
 	refStr := context.Get(r, "str").(stores.Store)
 	projectUUID := context.Get(r, "auth_project_uuid").(string)
 
-	res, err := subscriptions.Find(projectUUID, "", refStr)
-	if err != nil {
-		err := APIErrGenericBackend()
+	urlValues := r.URL.Query()
+	pageToken := urlValues.Get("pageToken")
+	strPageSize = urlValues.Get("pageSize")
+
+	if strPageSize != "" {
+		if pageSize, err = strconv.Atoi(strPageSize); err != nil {
+			log.Errorf("Pagesize %v produced an error  while being converted to int: %v", strPageSize, err.Error())
+			err := APIErrorInvalidData("Invalid page size")
+			respondErr(w, err)
+			return
+		}
+	}
+
+	if res, err = subscriptions.Find(projectUUID, "", pageToken, int32(pageSize), refStr); err != nil {
+		err := APIErrorInvalidData("Invalid page token")
 		respondErr(w, err)
 		return
 	}
+
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
 	if err != nil {
@@ -2412,7 +2430,7 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	recList := messages.RecList{}
 
 	// Get the subscription info
-	results, err := subscriptions.Find(projectUUID, urlSub, refStr)
+	results, err := subscriptions.Find(projectUUID, urlSub, "", 0, refStr)
 	if err != nil {
 		err := APIErrGenericBackend()
 		respondErr(w, err)
@@ -2423,7 +2441,7 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 		respondErr(w, err)
 		return
 	}
-	targSub := results.List[0]
+	targSub := results.Subscriptions[0]
 
 	fullTopic := targSub.ProjectUUID + "." + targSub.Topic
 	retImm := true

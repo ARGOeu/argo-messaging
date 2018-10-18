@@ -1363,8 +1363,20 @@ func (suite *HandlerTestSuite) TestSubListAll() {
 	expResp := `{
    "subscriptions": [
       {
-         "name": "/projects/ARGO/subscriptions/sub1",
-         "topic": "/projects/ARGO/topics/topic1",
+         "name": "/projects/ARGO/subscriptions/sub4",
+         "topic": "/projects/ARGO/topics/topic4",
+         "pushConfig": {
+            "pushEndpoint": "endpoint.foo",
+            "retryPolicy": {
+               "type": "linear",
+               "period": 300
+            }
+         },
+         "ackDeadlineSeconds": 10
+      },
+      {
+         "name": "/projects/ARGO/subscriptions/sub3",
+         "topic": "/projects/ARGO/topics/topic3",
          "pushConfig": {
             "pushEndpoint": "",
             "retryPolicy": {}
@@ -1381,27 +1393,17 @@ func (suite *HandlerTestSuite) TestSubListAll() {
          "ackDeadlineSeconds": 10
       },
       {
-         "name": "/projects/ARGO/subscriptions/sub3",
-         "topic": "/projects/ARGO/topics/topic3",
+         "name": "/projects/ARGO/subscriptions/sub1",
+         "topic": "/projects/ARGO/topics/topic1",
          "pushConfig": {
             "pushEndpoint": "",
             "retryPolicy": {}
          },
          "ackDeadlineSeconds": 10
-      },
-      {
-         "name": "/projects/ARGO/subscriptions/sub4",
-         "topic": "/projects/ARGO/topics/topic4",
-         "pushConfig": {
-            "pushEndpoint": "endpoint.foo",
-            "retryPolicy": {
-               "type": "linear",
-               "period": 300
-            }
-         },
-         "ackDeadlineSeconds": 10
       }
-   ]
+   ],
+   "nextPageToken": "",
+   "totalSize": 4
 }`
 
 	cfgKafka := config.NewAPICfg()
@@ -1414,6 +1416,190 @@ func (suite *HandlerTestSuite) TestSubListAll() {
 	router.HandleFunc("/v1/projects/{project}/subscriptions", WrapMockAuthConfig(SubListAll, cfgKafka, &brk, str, &mgr))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestSubListAllFirstPage() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/subscriptions?pageSize=2", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "subscriptions": [
+      {
+         "name": "/projects/ARGO/subscriptions/sub4",
+         "topic": "/projects/ARGO/topics/topic4",
+         "pushConfig": {
+            "pushEndpoint": "endpoint.foo",
+            "retryPolicy": {
+               "type": "linear",
+               "period": 300
+            }
+         },
+         "ackDeadlineSeconds": 10
+      },
+      {
+         "name": "/projects/ARGO/subscriptions/sub3",
+         "topic": "/projects/ARGO/topics/topic3",
+         "pushConfig": {
+            "pushEndpoint": "",
+            "retryPolicy": {}
+         },
+         "ackDeadlineSeconds": 10
+      }
+   ],
+   "nextPageToken": "MQ==",
+   "totalSize": 4
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := push.Manager{}
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions", WrapMockAuthConfig(SubListAll, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestSubListAllNextPage() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/subscriptions?pageSize=2&pageToken=MQ==", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "subscriptions": [
+      {
+         "name": "/projects/ARGO/subscriptions/sub2",
+         "topic": "/projects/ARGO/topics/topic2",
+         "pushConfig": {
+            "pushEndpoint": "",
+            "retryPolicy": {}
+         },
+         "ackDeadlineSeconds": 10
+      },
+      {
+         "name": "/projects/ARGO/subscriptions/sub1",
+         "topic": "/projects/ARGO/topics/topic1",
+         "pushConfig": {
+            "pushEndpoint": "",
+            "retryPolicy": {}
+         },
+         "ackDeadlineSeconds": 10
+      }
+   ],
+   "nextPageToken": "",
+   "totalSize": 4
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := push.Manager{}
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions", WrapMockAuthConfig(SubListAll, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestSubListAllEmpty() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/subscriptions", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "subscriptions": [],
+   "nextPageToken": "",
+   "totalSize": 0
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	// empty the store
+	str.SubList = []stores.QSub{}
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := push.Manager{}
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions", WrapMockAuthConfig(SubListAll, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestSubListAllInvalidPageSize() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/subscriptions?pageSize=invalid", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "error": {
+      "code": 400,
+      "message": "Invalid page size",
+      "status": "INVALID_ARGUMENT"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/subscriptions", WrapMockAuthConfig(SubListAll, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(400, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestSubListAllInvalidPageToken() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/subscriptions?pageToken=invalid", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "error": {
+      "code": 400,
+      "message": "Invalid page token",
+      "status": "INVALID_ARGUMENT"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/subscriptions", WrapMockAuthConfig(SubListAll, cfgKafka, &brk, str, &mgr))
+	router.ServeHTTP(w, req)
+	suite.Equal(400, w.Code)
 	suite.Equal(expResp, w.Body.String())
 
 }

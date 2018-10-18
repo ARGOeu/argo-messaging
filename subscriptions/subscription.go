@@ -6,8 +6,10 @@ import (
 	"strconv"
 	"strings"
 
+	"encoding/base64"
 	"github.com/ARGOeu/argo-messaging/projects"
 	"github.com/ARGOeu/argo-messaging/stores"
+	log "github.com/sirupsen/logrus"
 )
 
 // Subscription struct to hold information for a given topic
@@ -42,9 +44,11 @@ type RetryPolicy struct {
 	Period     int    `json:"period,omitempty"`
 }
 
-// Subscriptions holds a list of Topic items
-type Subscriptions struct {
-	List []Subscription `json:"subscriptions,omitempty"`
+// PaginatedSubscriptions holds information about a subscriptions' page and how to access the next page
+type PaginatedSubscriptions struct {
+	Subscriptions []Subscription `json:"subscriptions"`
+	NextPageToken string         `json:"nextPageToken"`
+	TotalSize     int32          `json:"totalSize"`
 }
 
 // SubPullOptions holds info about a pull operation on a subscription
@@ -78,7 +82,7 @@ type AckDeadline struct {
 // FindMetric returns the metric of a specific subscription
 func FindMetric(projectUUID string, name string, store stores.Store) (SubMetrics, error) {
 	result := SubMetrics{MsgNum: 0}
-	subs, err := store.QuerySubs(projectUUID, name)
+	subs, _, _, err := store.QuerySubs(projectUUID, name, "", 0)
 
 	// check if sub exists
 	if len(subs) == 0 {
@@ -98,8 +102,8 @@ func FindMetric(projectUUID string, name string, store stores.Store) (SubMetrics
 }
 
 // Empty returns true if Subscriptions list has no items
-func (sl *Subscriptions) Empty() bool {
-	return len(sl.List) <= 0
+func (sl *PaginatedSubscriptions) Empty() bool {
+	return len(sl.Subscriptions) <= 0
 }
 
 // GetAckFromJSON retrieves ack ids from json
@@ -165,20 +169,39 @@ func (sub *Subscription) ExportJSON() (string, error) {
 }
 
 // ExportJSON exports whole sub List Structure as a json string
-func (sl *Subscriptions) ExportJSON() (string, error) {
+func (sl *PaginatedSubscriptions) ExportJSON() (string, error) {
 	output, err := json.MarshalIndent(sl, "", "   ")
 	return string(output[:]), err
 }
 
 // Find searches the store for all subscriptions of a given project or a specific one
-func Find(projectUUID string, name string, store stores.Store) (Subscriptions, error) {
-	result := Subscriptions{}
-	subs, err := store.QuerySubs(projectUUID, name)
-	for _, item := range subs {
-		projectName := projects.GetNameByUUID(item.ProjectUUID, store)
-		if projectName == "" {
-			return result, errors.New("invalid project")
-		}
+func Find(projectUUID string, name string, pageToken string, pageSize int32, store stores.Store) (PaginatedSubscriptions, error) {
+
+	var err error
+	var qSubs []stores.QSub
+	var totalSize int32
+	var nextPageToken string
+	var pageTokenBytes []byte
+
+	result := PaginatedSubscriptions{Subscriptions: []Subscription{}}
+
+	// decode the base64 pageToken
+	if pageTokenBytes, err = base64.StdEncoding.DecodeString(pageToken); err != nil {
+		log.Errorf("Page token %v produced an error while being decoded to base64: %v", pageToken, err.Error())
+		return result, err
+	}
+
+	if qSubs, totalSize, nextPageToken, err = store.QuerySubs(projectUUID, name, string(pageTokenBytes), pageSize); err != nil {
+		return result, err
+	}
+
+	projectName := projects.GetNameByUUID(projectUUID, store)
+
+	if projectName == "" {
+		return result, errors.New("invalid project")
+	}
+
+	for _, item := range qSubs {
 		curSub := New(item.ProjectUUID, projectName, item.Name, item.Topic)
 		curSub.Offset = item.Offset
 		curSub.NextOffset = item.NextOffset
@@ -187,15 +210,18 @@ func Find(projectUUID string, name string, store stores.Store) (Subscriptions, e
 			rp := RetryPolicy{item.RetPolicy, item.RetPeriod}
 			curSub.PushCfg = PushConfig{item.PushEndpoint, rp}
 		}
-		result.List = append(result.List, curSub)
+		result.Subscriptions = append(result.Subscriptions, curSub)
 	}
+
+	result.NextPageToken = base64.StdEncoding.EncodeToString([]byte(nextPageToken))
+	result.TotalSize = totalSize
+
 	return result, err
 }
 
 // LoadPushSubs returns all subscriptions defined in store that have a push configuration
-func LoadPushSubs(store stores.Store) Subscriptions {
-	result := Subscriptions{}
-	result.List = []Subscription{}
+func LoadPushSubs(store stores.Store) PaginatedSubscriptions {
+	result := PaginatedSubscriptions{Subscriptions: []Subscription{}}
 	subs := store.QueryPushSubs()
 	for _, item := range subs {
 		projectName := projects.GetNameByUUID(item.ProjectUUID, store)
@@ -206,7 +232,7 @@ func LoadPushSubs(store stores.Store) Subscriptions {
 		rp := RetryPolicy{item.RetPolicy, item.RetPeriod}
 		curSub.PushCfg = PushConfig{item.PushEndpoint, rp}
 
-		result.List = append(result.List, curSub)
+		result.Subscriptions = append(result.Subscriptions, curSub)
 	}
 	return result
 }
@@ -226,12 +252,12 @@ func CreateSub(projectUUID string, name string, topic string, push string, offse
 		return Subscription{}, errors.New("backend error")
 	}
 
-	results, err := Find(projectUUID, name, store)
-	if len(results.List) != 1 {
+	results, err := Find(projectUUID, name, "", 0, store)
+	if len(results.Subscriptions) != 1 {
 		return Subscription{}, errors.New("backend error")
 	}
 
-	return results.List[0], err
+	return results.Subscriptions[0], err
 }
 
 // ModAck updates the subscription's acknowledgment timeout
@@ -270,8 +296,8 @@ func RemoveSub(projectUUID string, name string, store stores.Store) error {
 
 // HasSub returns true if project & subscription combination exist
 func HasSub(projectUUID string, name string, store stores.Store) bool {
-	res, err := Find(projectUUID, name, store)
-	if len(res.List) > 0 && err == nil {
+	res, err := Find(projectUUID, name, "", 0, store)
+	if len(res.Subscriptions) > 0 && err == nil {
 		return true
 	}
 

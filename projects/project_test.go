@@ -172,8 +172,8 @@ func (suite *ProjectsTestSuite) TestProjects() {
 
 	resTop, _, _, _ := store.QueryTopics("argo_uuid", "", "", 0)
 	suite.Equal(0, len(resTop))
-	resSub, _ := store.QuerySubs("argo_uuid", "")
-	suite.Equal([]stores.QSub{}, resSub)
+	resSub, _, _, _ := store.QuerySubs("argo_uuid", "", "", 0)
+	suite.Equal(0, len(resSub))
 
 }
 
