@@ -504,9 +504,9 @@ func (mk *MockStore) Initialize() {
 	mk.OpMetrics = make(map[string]QopMetric)
 
 	// populate topics
-	qtop1 := QTopic{"argo_uuid", "topic1", 0, 0}
-	qtop2 := QTopic{"argo_uuid", "topic2", 0, 0}
-	qtop3 := QTopic{"argo_uuid", "topic3", 0, 0}
+	qtop1 := QTopic{0, "argo_uuid", "topic1", 0, 0}
+	qtop2 := QTopic{1, "argo_uuid", "topic2", 0, 0}
+	qtop3 := QTopic{2, "argo_uuid", "topic3", 0, 0}
 	mk.TopicList = append(mk.TopicList, qtop1)
 	mk.TopicList = append(mk.TopicList, qtop2)
 	mk.TopicList = append(mk.TopicList, qtop3)
@@ -654,7 +654,7 @@ func (mk *MockStore) HasProject(name string) bool {
 
 // InsertTopic inserts a new topic object to the store
 func (mk *MockStore) InsertTopic(projectUUID string, name string) error {
-	topic := QTopic{ProjectUUID: projectUUID, Name: name, MsgNum: 0, TotalBytes: 0}
+	topic := QTopic{ID: len(mk.TopicList), ProjectUUID: projectUUID, Name: name, MsgNum: 0, TotalBytes: 0}
 	mk.TopicList = append(mk.TopicList, topic)
 	return nil
 }
@@ -827,19 +827,88 @@ func (mk *MockStore) QueryTopicsByACL(projectUUID, user string) ([]QTopic, error
 }
 
 // QueryTopics Query Subscription info from store
-func (mk *MockStore) QueryTopics(projectUUID string, name string) ([]QTopic, error) {
-	result := []QTopic{}
-	for _, item := range mk.TopicList {
-		if projectUUID == item.ProjectUUID {
-			if name == "" {
-				result = append(result, item)
-			} else if name == item.Name {
-				return []QTopic{item}, nil
-			}
+func (mk *MockStore) QueryTopics(projectUUID string, name string, pageToken string, pageSize int32) ([]QTopic, int32, string, error) {
+
+	var qTopics []QTopic
+	var totalSize int32
+	var nextPageToken string
+	var err error
+	var pg int
+	var limit int
+	var counter int
+
+	for _, topic := range mk.TopicList {
+		if topic.ProjectUUID == projectUUID {
+			counter++
 		}
 	}
 
-	return result, nil
+	switch name == "" {
+	case true:
+
+		if pageSize == 0 {
+			limit = counter
+		} else {
+			limit = int(pageSize) + 1
+		}
+
+		if pageToken != "" {
+			if pg, err = strconv.Atoi(pageToken); err != nil {
+				return qTopics, totalSize, nextPageToken, err
+			}
+		}
+
+		sort.Slice(mk.TopicList, func(i, j int) bool {
+			id1 := mk.TopicList[i].ID.(int)
+			id2 := mk.TopicList[j].ID.(int)
+			return id1 > id2
+		})
+
+		for _, topic := range mk.TopicList {
+
+			if limit == 0 {
+				break
+			}
+
+			if pageToken != "" {
+
+				if topic.ID.(int) <= pg && topic.ProjectUUID == projectUUID {
+
+					qTopics = append(qTopics, topic)
+					limit--
+
+				}
+
+			} else {
+
+				if topic.ProjectUUID == projectUUID {
+
+					qTopics = append(qTopics, topic)
+					limit--
+
+				}
+			}
+
+		}
+
+		totalSize = int32(counter)
+
+		if len(qTopics) > 0 && len(qTopics) == int(pageSize)+1 {
+			nextPageToken = strconv.Itoa(qTopics[int(pageSize)].ID.(int))
+			qTopics = qTopics[:len(qTopics)-1]
+		}
+
+	case false:
+		for _, topic := range mk.TopicList {
+			if topic.ProjectUUID == projectUUID && topic.Name == name {
+				qTopics = append(qTopics, topic)
+				break
+			}
+		}
+
+	}
+
+	return qTopics, totalSize, nextPageToken, nil
 }
 
 //IncrementTopicMsgNum increase number of messages published in a topic

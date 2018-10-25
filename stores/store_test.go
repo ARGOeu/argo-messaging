@@ -18,17 +18,47 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal("mockhost", store.Server)
 	suite.Equal("mockbase", store.Database)
 
-	eTopList := []QTopic{QTopic{"argo_uuid", "topic1", 0, 0},
-		QTopic{"argo_uuid", "topic2", 0, 0},
-		QTopic{"argo_uuid", "topic3", 0, 0}}
+	eTopList := []QTopic{
+		{2, "argo_uuid", "topic3", 0, 0},
+		{1, "argo_uuid", "topic2", 0, 0},
+		{0, "argo_uuid", "topic1", 0, 0}}
 
 	eSubList := []QSub{QSub{"argo_uuid", "sub1", "topic1", 0, 0, "", "", 10, "linear", 300, 0, 0},
 		QSub{"argo_uuid", "sub2", "topic2", 0, 0, "", "", 10, "linear", 300, 0, 0},
 		QSub{"argo_uuid", "sub3", "topic3", 0, 0, "", "", 10, "linear", 300, 0, 0},
 		QSub{"argo_uuid", "sub4", "topic4", 0, 0, "", "endpoint.foo", 10, "linear", 300, 0, 0}}
 
-	tpList, _ := store.QueryTopics("argo_uuid", "")
+	// retrieve all topics
+	tpList, ts1, pg1, _ := store.QueryTopics("argo_uuid", "", "", 0)
 	suite.Equal(eTopList, tpList)
+	suite.Equal(int32(3), ts1)
+	suite.Equal("", pg1)
+
+	// retrieve first 2
+	eTopList1st2 := []QTopic{
+		{2, "argo_uuid", "topic3", 0, 0},
+		{1, "argo_uuid", "topic2", 0, 0}}
+	tpList2, ts2, pg2, _ := store.QueryTopics("argo_uuid", "", "", 2)
+	suite.Equal(eTopList1st2, tpList2)
+	suite.Equal(int32(3), ts2)
+	suite.Equal("0", pg2)
+
+	// retrieve the last one
+	eTopList3 := []QTopic{
+		{0, "argo_uuid", "topic1", 0, 0}}
+	tpList3, ts3, pg3, _ := store.QueryTopics("argo_uuid", "", "0", 1)
+	suite.Equal(eTopList3, tpList3)
+	suite.Equal(int32(3), ts3)
+	suite.Equal("", pg3)
+
+	// retrieve a single topic
+	eTopList4 := []QTopic{
+		{0, "argo_uuid", "topic1", 0, 0}}
+	tpList4, ts4, pg4, _ := store.QueryTopics("argo_uuid", "topic1", "", 0)
+	suite.Equal(eTopList4, tpList4)
+	suite.Equal(int32(0), ts4)
+	suite.Equal("", pg4)
+
 	subList, _ := store.QuerySubs("argo_uuid", "")
 	suite.Equal(eSubList, subList)
 
@@ -69,10 +99,12 @@ func (suite *StoreTestSuite) TestMockStore() {
 	store.InsertTopic("argo_uuid", "topicFresh")
 	store.InsertSub("argo_uuid", "subFresh", "topicFresh", 0, 10, "", "linear", 300)
 
-	eTopList2 := []QTopic{QTopic{"argo_uuid", "topic1", 0, 0},
-		QTopic{"argo_uuid", "topic2", 0, 0},
-		QTopic{"argo_uuid", "topic3", 0, 0},
-		QTopic{"argo_uuid", "topicFresh", 0, 0}}
+	eTopList2 := []QTopic{
+		{3, "argo_uuid", "topicFresh", 0, 0},
+		{2, "argo_uuid", "topic3", 0, 0},
+		{1, "argo_uuid", "topic2", 0, 0},
+		{0, "argo_uuid", "topic1", 0, 0},
+	}
 
 	eSubList2 := []QSub{QSub{"argo_uuid", "sub1", "topic1", 0, 0, "", "", 10, "linear", 300, 0, 0},
 		QSub{"argo_uuid", "sub2", "topic2", 0, 0, "", "", 10, "linear", 300, 0, 0},
@@ -80,7 +112,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 		QSub{"argo_uuid", "sub4", "topic4", 0, 0, "", "endpoint.foo", 10, "linear", 300, 0, 0},
 		QSub{"argo_uuid", "subFresh", "topicFresh", 0, 0, "", "", 10, "linear", 300, 0, 0}}
 
-	tpList, _ = store.QueryTopics("argo_uuid", "")
+	tpList, _, _, _ = store.QueryTopics("argo_uuid", "", "", 0)
 	suite.Equal(eTopList2, tpList)
 	subList, _ = store.QuerySubs("argo_uuid", "")
 	suite.Equal(eSubList2, subList)
@@ -88,7 +120,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 	// Test delete on topic
 	err := store.RemoveTopic("argo_uuid", "topicFresh")
 	suite.Equal(nil, err)
-	tpList, _ = store.QueryTopics("argo_uuid", "")
+	tpList, _, _, _ = store.QueryTopics("argo_uuid", "", "", 0)
 	suite.Equal(eTopList, tpList)
 	err = store.RemoveTopic("argo_uuid", "topicFresh")
 	suite.Equal("not found", err.Error())
@@ -219,8 +251,8 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal("2016-10-11T12:00:35:15Z", qSubUpd[0].PendingAck)
 	// Test RemoveProjectTopics
 	store.RemoveProjectTopics("argo_uuid")
-	resTop, _ := store.QueryTopics("argo_uuid", "")
-	suite.Equal([]QTopic{}, resTop)
+	resTop, _, _, _ := store.QueryTopics("argo_uuid", "", "", 0)
+	suite.Equal(0, len(resTop))
 	store.RemoveProjectSubs("argo_uuid")
 	resSub, _ := store.QuerySubs("argo_uuid", "")
 	suite.Equal([]QSub{}, resSub)

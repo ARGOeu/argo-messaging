@@ -36,9 +36,48 @@ func (suite *TopicTestSuite) TestGetTopicByName() {
 	APIcfg := config.NewAPICfg()
 	APIcfg.LoadStrJSON(suite.cfgStr)
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
-	myTopics, _ := Find("argo_uuid", "topic1", store)
+	myTopics, _ := Find("argo_uuid", "topic1", "", 0, store)
 	expTopic := New("argo_uuid", "ARGO", "topic1")
-	suite.Equal(expTopic, myTopics.List[0])
+	suite.Equal(expTopic, myTopics.Topics[0])
+}
+
+func (suite *TopicTestSuite) TestGetPaginatedTopics() {
+
+	store := stores.NewMockStore("", "")
+
+	// retrieve all topics
+	expPt1 := PaginatedTopics{Topics: []Topic{
+		{"argo_uuid", "topic3", "/projects/ARGO/topics/topic3"},
+		{"argo_uuid", "topic2", "/projects/ARGO/topics/topic2"},
+		{"argo_uuid", "topic1", "/projects/ARGO/topics/topic1"}},
+		NextPageToken: "", TotalSize: 3}
+	pgTopics1, err1 := Find("argo_uuid", "", "", 0, store)
+
+	// retrieve first 2 topics
+	expPt2 := PaginatedTopics{Topics: []Topic{
+		{"argo_uuid", "topic3", "/projects/ARGO/topics/topic3"},
+		{"argo_uuid", "topic2", "/projects/ARGO/topics/topic2"}},
+		NextPageToken: "MA==", TotalSize: 3}
+	pgTopics2, err2 := Find("argo_uuid", "", "", 2, store)
+
+	// retrieve the next topic
+	expPt3 := PaginatedTopics{Topics: []Topic{
+		{"argo_uuid", "topic1", "/projects/ARGO/topics/topic1"}},
+		NextPageToken: "", TotalSize: 3}
+	pgTopics3, err3 := Find("argo_uuid", "", "MA==", 1, store)
+
+	// invalid page token
+	_, err4 := Find("", "", "invalid", 0, store)
+
+	suite.Equal(expPt1, pgTopics1)
+	suite.Equal(expPt2, pgTopics2)
+	suite.Equal(expPt3, pgTopics3)
+
+	suite.Nil(err1)
+	suite.Nil(err2)
+	suite.Nil(err3)
+	suite.Equal("illegal base64 data at input byte 4", err4.Error())
+
 }
 
 func (suite *TopicTestSuite) TestGetTopicMetric() {
@@ -51,7 +90,7 @@ func (suite *TopicTestSuite) TestGetTopicMetric() {
 }
 
 // Find searches and returns a specific topic metric
-func (suite *TopicTestSuite) TestGetTopicMetrcs() {
+func (suite *TopicTestSuite) TestGetTopicMetrics() {
 	APIcfg := config.NewAPICfg()
 	APIcfg.LoadStrJSON(suite.cfgStr)
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
@@ -105,8 +144,8 @@ func (suite *TopicTestSuite) TestExportJson() {
 
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
 
-	topics, _ := Find("argo_uuid", "topic1", store)
-	outJSON, _ := topics.List[0].ExportJSON()
+	topics, _ := Find("argo_uuid", "topic1", "", 0, store)
+	outJSON, _ := topics.Topics[0].ExportJSON()
 	expJSON := `{
    "name": "/projects/ARGO/topics/topic1"
 }`
@@ -115,17 +154,19 @@ func (suite *TopicTestSuite) TestExportJson() {
 	expJSON2 := `{
    "topics": [
       {
-         "name": "/projects/ARGO/topics/topic1"
+         "name": "/projects/ARGO/topics/topic3"
       },
       {
          "name": "/projects/ARGO/topics/topic2"
       },
       {
-         "name": "/projects/ARGO/topics/topic3"
+         "name": "/projects/ARGO/topics/topic1"
       }
-   ]
+   ],
+   "nextPageToken": "",
+   "totalSize": 3
 }`
-	topics2, _ := Find("argo_uuid", "", store)
+	topics2, _ := Find("argo_uuid", "", "", 0, store)
 	outJSON2, _ := topics2.ExportJSON()
 	suite.Equal(expJSON2, outJSON2)
 
