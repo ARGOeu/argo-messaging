@@ -795,8 +795,7 @@ func (mong *MongoStore) InsertOpMetric(hostname string, cpu float64, mem float64
 
 	upsertdata := bson.M{"$set": opMetric}
 
-	info, err := c.UpsertId(opMetric.Hostname, upsertdata)
-	log.Info(info)
+	_, err := c.UpsertId(opMetric.Hostname, upsertdata)
 	if err != nil {
 		log.Error(err)
 	}
