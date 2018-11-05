@@ -512,10 +512,10 @@ func (mk *MockStore) Initialize() {
 	mk.TopicList = append(mk.TopicList, qtop3)
 
 	// populate Subscriptions
-	qsub1 := QSub{"argo_uuid", "sub1", "topic1", 0, 0, "", "", 10, "linear", 300, 0, 0}
-	qsub2 := QSub{"argo_uuid", "sub2", "topic2", 0, 0, "", "", 10, "linear", 300, 0, 0}
-	qsub3 := QSub{"argo_uuid", "sub3", "topic3", 0, 0, "", "", 10, "linear", 300, 0, 0}
-	qsub4 := QSub{"argo_uuid", "sub4", "topic4", 0, 0, "", "endpoint.foo", 10, "linear", 300, 0, 0}
+	qsub1 := QSub{0, "argo_uuid", "sub1", "topic1", 0, 0, "", "", 10, "linear", 300, 0, 0}
+	qsub2 := QSub{1, "argo_uuid", "sub2", "topic2", 0, 0, "", "", 10, "linear", 300, 0, 0}
+	qsub3 := QSub{2, "argo_uuid", "sub3", "topic3", 0, 0, "", "", 10, "linear", 300, 0, 0}
+	qsub4 := QSub{3, "argo_uuid", "sub4", "topic4", 0, 0, "", "endpoint.foo", 10, "linear", 300, 0, 0}
 	mk.SubList = append(mk.SubList, qsub1)
 	mk.SubList = append(mk.SubList, qsub2)
 	mk.SubList = append(mk.SubList, qsub3)
@@ -661,7 +661,7 @@ func (mk *MockStore) InsertTopic(projectUUID string, name string) error {
 
 // InsertSub inserts a new sub object to the store
 func (mk *MockStore) InsertSub(projectUUID string, name string, topic string, offset int64, ack int, push string, rPolicy string, rPeriod int) error {
-	sub := QSub{projectUUID, name, topic, offset, 0, "", push, ack, rPolicy, rPeriod, 0, 0}
+	sub := QSub{len(mk.SubList), projectUUID, name, topic, offset, 0, "", push, ack, rPolicy, rPeriod, 0, 0}
 	mk.SubList = append(mk.SubList, sub)
 	return nil
 }
@@ -769,19 +769,89 @@ func (mk *MockStore) QueryPushSubs() []QSub {
 }
 
 // QuerySubs Query Subscription info from store
-func (mk *MockStore) QuerySubs(projectUUID string, name string) ([]QSub, error) {
-	result := []QSub{}
-	for _, item := range mk.SubList {
-		if projectUUID == item.ProjectUUID {
-			if name == "" {
-				result = append(result, item)
-			} else if name == item.Name {
-				return []QSub{item}, nil
-			}
+func (mk *MockStore) QuerySubs(projectUUID string, name string, pageToken string, pageSize int32) ([]QSub, int32, string, error) {
+
+	var qSubs []QSub
+	var totalSize int32
+	var nextPageToken string
+	var err error
+	var pg int
+	var limit int
+	var counter int
+
+	for _, sub := range mk.SubList {
+		if sub.ProjectUUID == projectUUID {
+			counter++
 		}
 	}
 
-	return result, nil
+	switch name == "" {
+	case true:
+
+		if pageSize == 0 {
+			limit = counter
+		} else {
+			limit = int(pageSize) + 1
+		}
+
+		if pageToken != "" {
+			if pg, err = strconv.Atoi(pageToken); err != nil {
+				return qSubs, totalSize, nextPageToken, err
+			}
+		}
+
+		sort.Slice(mk.SubList, func(i, j int) bool {
+			id1 := mk.SubList[i].ID.(int)
+			id2 := mk.SubList[j].ID.(int)
+			return id1 > id2
+		})
+
+		for _, sub := range mk.SubList {
+
+			if limit == 0 {
+				break
+			}
+
+			if pageToken != "" {
+
+				if sub.ID.(int) <= pg && sub.ProjectUUID == projectUUID {
+
+					qSubs = append(qSubs, sub)
+					limit--
+
+				}
+
+			} else {
+
+				if sub.ProjectUUID == projectUUID {
+
+					qSubs = append(qSubs, sub)
+					limit--
+
+				}
+			}
+
+		}
+
+		totalSize = int32(counter)
+
+		if len(qSubs) > 0 && len(qSubs) == int(pageSize)+1 {
+			nextPageToken = strconv.Itoa(qSubs[int(pageSize)].ID.(int))
+			qSubs = qSubs[:len(qSubs)-1]
+		}
+
+	case false:
+		for _, sub := range mk.SubList {
+			if sub.ProjectUUID == projectUUID && sub.Name == name {
+				qSubs = append(qSubs, sub)
+				break
+			}
+		}
+
+	}
+
+	return qSubs, totalSize, nextPageToken, nil
+
 }
 
 func (mk *MockStore) QuerySubsByTopic(projectUUID, topic string) ([]QSub, error) {

@@ -39,7 +39,27 @@ Success Response
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
 
-## [GET] Manage Subscriptions - List Subscriptions
+## [GET] Manage Subscriptions - List All Subscriptions
+
+This request lists all available subscriptions under a specific project in the service using pagination
+
+It is important to note that if there are no results to return the service will return the following:
+
+Success Response
+`200 OK`
+
+```json
+{
+ "users": [],
+  "nextPageToken": "",
+  "totalSize": 0
+ }
+```
+Also the default value for `pageSize = 0` and `pageToken = "`.
+
+`Pagesize = 0` returns all the results.
+
+### Paginated Request that returns all subscriptions under the specified project
 
 This request lists all subscriptions  in a project with a GET  request
 ### Request
@@ -49,7 +69,7 @@ This request lists all subscriptions  in a project with a GET  request
 - Project_name: Name of the project to list the subscriptions
 
 ### Example request
-```json
+```
 curl -X PUT -H "Content-Type: application/json"
   "https://{URL}/v1/projects/BRAND_NEW/subscriptions?key=S3CR3T"
 ```
@@ -60,14 +80,93 @@ Success Response
 `200 OK`
 
 ```json
- "subscriptions": [
  {
-  "name": "projects/BRAND_NEW/subscriptions/alert_engine",
-  "topic": "projects/BRAND_NEW/topics/monitoring",
-  "pushConfig": {},
-  "ackDeadlineSeconds": 10
- }
-]
+  "subscriptions":[
+  {
+    "name": "projects/BRAND_NEW/subscriptions/alert_engine",
+    "topic": "projects/BRAND_NEW/topics/monitoring",
+    "pushConfig": {},
+    "ackDeadlineSeconds": 10
+  },
+ {
+   "name": "projects/BRAND_NEW/subscriptions/alert_engine2",
+   "topic": "projects/BRAND_NEW/topics/monitoring",
+   "pushConfig": {},
+   "ackDeadlineSeconds": 10
+ }],
+ "nextPageToken": "",
+ "totalSize": 2
+}
+```
+
+### Paginated Request that returns the next page of a specific size
+
+This request lists subscriptions  in a project with a GET  request
+### Request
+`GET /v1/projects/{project_name}/subscriptions`
+
+### Where
+- Project_name: Name of the project to list the subscriptions
+
+### Example request
+```
+curl -X PUT -H "Content-Type: application/json"
+  "https://{URL}/v1/projects/BRAND_NEW/subscriptions?key=S3CR3T&pageSize=1&pageToken=some_token"
+```
+
+
+### Responses  
+Success Response
+`200 OK`
+
+```json
+ {
+  "subscriptions":[
+   {
+    "name": "projects/BRAND_NEW/subscriptions/alert_engine",
+    "topic": "projects/BRAND_NEW/topics/monitoring",
+    "pushConfig": {},
+    "ackDeadlineSeconds": 10
+  }
+ ],
+ "nextPageToken": "",
+ "totalSize": 2
+}
+```
+
+### Paginated Request that returns the first page of a specific size
+
+This request lists subscriptions  in a project with a GET  request
+### Request
+`GET /v1/projects/{project_name}/subscriptions`
+
+### Where
+- Project_name: Name of the project to list the subscriptions
+
+### Example request
+```
+curl -X PUT -H "Content-Type: application/json"
+  "https://{URL}/v1/projects/BRAND_NEW/subscriptions?key=S3CR3T&pageSize=1"
+```
+
+
+### Responses  
+Success Response
+`200 OK`
+
+```json
+ {
+ "subscriptions":[
+  {
+    "name": "projects/BRAND_NEW/subscriptions/alert_engine2",
+    "topic": "projects/BRAND_NEW/topics/monitoring",
+    "pushConfig": {},
+    "ackDeadlineSeconds": 10
+  }
+ ],
+ "nextPageToken": "some_token",
+ "totalSize": 2
+}
 ```
 
 ### Errors

@@ -43,7 +43,7 @@ func (mgr *Manager) LoadPushSubs() {
 	results := subscriptions.LoadPushSubs(mgr.store)
 
 	// Add all of them
-	for _, item := range results.List {
+	for _, item := range results.Subscriptions {
 		mgr.Add(item.ProjectUUID, item.Name)
 	}
 }
@@ -97,14 +97,14 @@ func (p *Pusher) push(brk brokers.Broker, store stores.Store) {
 	log.Debug("pid ", p.id, "pushing")
 	// update sub details
 
-	subs, err := subscriptions.Find(p.sub.ProjectUUID, p.sub.Name, store)
+	subs, err := subscriptions.Find(p.sub.ProjectUUID, p.sub.Name, "", 0, store)
 
 	// If subscription doesn't exist in store stop and remove it from manager
-	if err == nil && len(subs.List) == 0 {
+	if err == nil && len(subs.Subscriptions) == 0 {
 		p.stop <- 1
 		return
 	}
-	p.sub = subs.List[0]
+	p.sub = subs.Subscriptions[0]
 	// Init Received Message List
 
 	fullTopic := p.sub.ProjectUUID + "." + p.sub.Topic
@@ -252,7 +252,7 @@ func (mgr *Manager) Refresh(projectUUID string, sub string) error {
 
 	if p, err := mgr.Get(projectUUID + "/" + sub); err == nil {
 
-		subs, err := subscriptions.Find(projectUUID, sub, mgr.store)
+		subs, err := subscriptions.Find(projectUUID, sub, "", 0, mgr.store)
 
 		if err != nil {
 			return errors.New("backend error")
@@ -262,9 +262,9 @@ func (mgr *Manager) Refresh(projectUUID string, sub string) error {
 			return errors.New("Not Found")
 		}
 
-		p.endpoint = subs.List[0].PushCfg.Pend
-		p.retryPolicy = subs.List[0].PushCfg.RetPol.PolicyType
-		p.retryPeriod = subs.List[0].PushCfg.RetPol.Period
+		p.endpoint = subs.Subscriptions[0].PushCfg.Pend
+		p.retryPolicy = subs.Subscriptions[0].PushCfg.RetPol.PolicyType
+		p.retryPeriod = subs.Subscriptions[0].PushCfg.RetPol.Period
 		p.rate = time.Duration(p.retryPeriod) * time.Millisecond
 	}
 
@@ -279,7 +279,7 @@ func (mgr *Manager) Add(projectUUID string, subName string) error {
 		return errors.New("Push Manager not set")
 	}
 	// Check if subscription exists
-	subs, err := subscriptions.Find(projectUUID, subName, mgr.store)
+	subs, err := subscriptions.Find(projectUUID, subName, "", 0, mgr.store)
 
 	if err != nil {
 		return errors.New("Backend error")
@@ -292,12 +292,12 @@ func (mgr *Manager) Add(projectUUID string, subName string) error {
 	// Create new pusher
 	pushr := Pusher{}
 	pushr.id = len(mgr.list)
-	pushr.sub = subs.List[0]
-	pushr.endpoint = subs.List[0].PushCfg.Pend
+	pushr.sub = subs.Subscriptions[0]
+	pushr.endpoint = subs.Subscriptions[0].PushCfg.Pend
 	pushr.running = false
 	pushr.stop = make(chan int, 2)
-	pushr.retryPolicy = subs.List[0].PushCfg.RetPol.PolicyType
-	pushr.retryPeriod = subs.List[0].PushCfg.RetPol.Period
+	pushr.retryPolicy = subs.Subscriptions[0].PushCfg.RetPol.PolicyType
+	pushr.retryPeriod = subs.Subscriptions[0].PushCfg.RetPol.Period
 	pushr.rate = time.Duration(pushr.retryPeriod) * time.Millisecond
 	pushr.sndr = mgr.sender
 	pushr.mgr = mgr
