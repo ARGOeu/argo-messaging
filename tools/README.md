@@ -1,5 +1,33 @@
-AMS data migration tools
+AMS data tools
 ========================
+
+bulk_producer
+----------------
+Bulk producer is a script that allows you to connect to an AMS endpoint and create projects/topics/subscriptions
+and publish a predefined amount of messages in order to test the functionality of the service.
+
+Requirements
+------------
+
+- requests
+- argo_ams_library
+
+How to run bulk_producer
+------------------------
+
+`./bulk_producer.py --host some.ams.host --port 443 --token some_ams_token --projects-number 2 --topics-number 4 --subscriptions-number 4
+--messages-number 1000 --message-size 1024 --push-endpoint https://127.0.0.1:5000/receive_here --verify`
+
+- `-host, --host` is the AMS endpoint to connect to.
+- `-port, --port` is the AMS port.
+- `-token, --token` is the AMS token that will grant you access to perform all the needed actions.
+- `pn, --projects-number` is the number of AMS projects to be created, `default=1`.
+- `tn, --topics-number` is the number of topics to create under each project, `default=4`.
+- `sn, --subscriptions-number` is the amount of subscriptions to assign to each topic, `default=4`.
+- `-mn, messages-number` is the amount of messages to publish to each topic, `default=500`.
+- `-ms, --message-size` is the size of each size in bytes, `default=1024`.
+- `pe, --push-endpoint` is the end where the subscriptions will push the messages they consume, `if left undeclared, the subscriptions will be in pull mode`.
+- `-v, --verify` whether or not to do ssl verification, `if left undeclared, it will not verify`.
 
 ams_kafka_export
 ----------------
@@ -17,7 +45,7 @@ To run the script you need python 2.7 and the following libraries:
 How to run for export
 ---------------------
 
-In a node with network access to both the AMS kafka backend and AMS mongo instance issue issue the following:
+In a node with network access to both the AMS kafka backend and AMS mongo instance issue the following:
 
 $ `./ams-migrate.py --mongo "localhost:27017" --brokers "localhost:9092" --timeout 300 --data ./ export`
 or
