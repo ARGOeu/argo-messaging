@@ -212,7 +212,7 @@ func ProjectDelete(w http.ResponseWriter, r *http.Request) {
 
 	// Grab context references
 	refStr := context.Get(r, "str").(stores.Store)
-	refMgr := context.Get(r, "mgr").(*push.Manager)
+
 	// Get Result Object
 	// Get project UUID First to use as reference
 	projectUUID := context.Get(r, "auth_project_uuid").(string)
@@ -228,11 +228,9 @@ func ProjectDelete(w http.ResponseWriter, r *http.Request) {
 		respondErr(w, err)
 		return
 	}
-	// Stop any relevant push subscriptions
-	if err := refMgr.RemoveProjectAll(projectUUID); err != nil {
-		err := APIErrGenericInternal(err.Error())
-		respondErr(w, err)
-	}
+
+	// TODO Stop any relevant push subscriptions when deleting a project
+
 	// Write empty response if anything ok
 	respondOK(w, output)
 
@@ -1266,7 +1264,6 @@ func SubDelete(w http.ResponseWriter, r *http.Request) {
 
 	// Grab context references
 	refStr := context.Get(r, "str").(stores.Store)
-	refMgr := context.Get(r, "mgr").(*push.Manager)
 	projectUUID := context.Get(r, "auth_project_uuid").(string)
 
 	// Get Result Object
@@ -1284,7 +1281,7 @@ func SubDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	refMgr.Stop(urlVars["project"], urlVars["subscription"])
+	// TODO stop push subscription upon deletion
 
 	// Write empty response if anything ok
 	respondOK(w, output)
@@ -1434,7 +1431,6 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 	urlVars := mux.Vars(r)
 	subName := urlVars["subscription"]
 
-	refMgr := context.Get(r, "mgr").(*push.Manager)
 	// Get project UUID First to use as reference
 	projectUUID := context.Get(r, "auth_project_uuid").(string)
 
@@ -1492,7 +1488,6 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 		respondErr(w, err)
 		return
 	}
-	old := res.Subscriptions[0]
 
 	err = subscriptions.ModSubPush(projectUUID, subName, pushEnd, rPolicy, rPeriod, refStr)
 
@@ -1508,20 +1503,7 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// According to push cfg set start/stop pushing
-	if pushEnd != "" {
-		if old.PushCfg.Pend == "" {
-			refMgr.Add(projectUUID, subName)
-			refMgr.Launch(projectUUID, subName)
-		} else if old.PushCfg.Pend != pushEnd {
-			refMgr.Restart(projectUUID, subName)
-		} else if old.PushCfg.RetPol.PolicyType != rPolicy || old.PushCfg.RetPol.Period != rPeriod {
-			refMgr.Restart(projectUUID, subName)
-		}
-	} else {
-		refMgr.Stop(projectUUID, subName)
-
-	}
+	// TODO start or stop subscription based on its push config modification
 
 	// Write empty response if anything ok
 	respondOK(w, output)
@@ -1604,7 +1586,6 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 	// Grab context references
 	refStr := context.Get(r, "str").(stores.Store)
 	refBrk := context.Get(r, "brk").(brokers.Broker)
-	refMgr := context.Get(r, "mgr").(*push.Manager)
 	projectUUID := context.Get(r, "auth_project_uuid").(string)
 
 	// Read POST JSON body
@@ -1678,11 +1659,7 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Enable pushManager if subscription has pushConfiguration
-	if pushEnd != "" {
-		refMgr.Add(res.ProjectUUID, res.Name)
-		refMgr.Launch(res.ProjectUUID, res.Name)
-	}
+	//TODO if subscription is push enabled, activate it
 
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
