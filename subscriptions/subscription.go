@@ -24,6 +24,7 @@ type Subscription struct {
 	Offset      int64      `json:"-"`
 	NextOffset  int64      `json:"-"`
 	PendingAck  string     `json:"-"`
+	PushStatus  string     `json:"push_status,omitempty"`
 }
 
 // PushConfig holds optional configuration for push operations
@@ -209,6 +210,7 @@ func Find(projectUUID string, name string, pageToken string, pageSize int32, sto
 		if item.PushEndpoint != "" {
 			rp := RetryPolicy{item.RetPolicy, item.RetPeriod}
 			curSub.PushCfg = PushConfig{item.PushEndpoint, rp}
+			curSub.PushStatus = item.PushStatus
 		}
 		result.Subscriptions = append(result.Subscriptions, curSub)
 	}
@@ -238,7 +240,7 @@ func LoadPushSubs(store stores.Store) PaginatedSubscriptions {
 }
 
 // CreateSub creates a new subscription
-func CreateSub(projectUUID string, name string, topic string, push string, offset int64, ack int, retPolicy string, retPeriod int, store stores.Store) (Subscription, error) {
+func CreateSub(projectUUID string, name string, topic string, push string, offset int64, ack int, retPolicy string, retPeriod int, status string, store stores.Store) (Subscription, error) {
 
 	if HasSub(projectUUID, name, store) {
 		return Subscription{}, errors.New("exists")
@@ -247,7 +249,7 @@ func CreateSub(projectUUID string, name string, topic string, push string, offse
 	if ack == 0 {
 		ack = 10
 	}
-	err := store.InsertSub(projectUUID, name, topic, offset, ack, push, retPolicy, retPeriod)
+	err := store.InsertSub(projectUUID, name, topic, offset, ack, push, retPolicy, retPeriod, status)
 	if err != nil {
 		return Subscription{}, errors.New("backend error")
 	}
@@ -275,13 +277,13 @@ func ModAck(projectUUID string, name string, ack int, store stores.Store) error 
 }
 
 // ModSubPush updates the subscription push config
-func ModSubPush(projectUUID string, name string, push string, retPolicy string, retPeriod int, store stores.Store) error {
+func ModSubPush(projectUUID string, name string, push string, retPolicy string, retPeriod int, status string, store stores.Store) error {
 
 	if HasSub(projectUUID, name, store) == false {
 		return errors.New("not found")
 	}
 
-	return store.ModSubPush(projectUUID, name, push, retPolicy, retPeriod)
+	return store.ModSubPush(projectUUID, name, push, retPolicy, retPeriod, status)
 }
 
 // RemoveSub removes an existing subscription

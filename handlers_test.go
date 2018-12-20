@@ -1093,7 +1093,8 @@ func (suite *HandlerTestSuite) TestSubModPushConfig() {
          "period": 3000
       }
    },
-   "ackDeadlineSeconds": 10
+   "ackDeadlineSeconds": 10,
+   "push_status": "push enabled"
 }`
 
 	cfgKafka := config.NewAPICfg()
@@ -1147,7 +1148,8 @@ func (suite *HandlerTestSuite) TestSubCreatePushConfig() {
          "period": 3000
       }
    },
-   "ackDeadlineSeconds": 10
+   "ackDeadlineSeconds": 10,
+   "push_status": "push enabled"
 }`
 
 	cfgKafka := config.NewAPICfg()
@@ -1372,7 +1374,8 @@ func (suite *HandlerTestSuite) TestSubListAll() {
                "period": 300
             }
          },
-         "ackDeadlineSeconds": 10
+         "ackDeadlineSeconds": 10,
+         "push_status": "push enabled"
       },
       {
          "name": "/projects/ARGO/subscriptions/sub3",
@@ -1439,7 +1442,8 @@ func (suite *HandlerTestSuite) TestSubListAllFirstPage() {
                "period": 300
             }
          },
-         "ackDeadlineSeconds": 10
+         "ackDeadlineSeconds": 10,
+         "push_status": "push enabled"
       },
       {
          "name": "/projects/ARGO/subscriptions/sub3",
