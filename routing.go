@@ -7,7 +7,8 @@ import (
 
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
-	"github.com/ARGOeu/argo-messaging/push"
+	push2 "github.com/ARGOeu/argo-messaging/push"
+	push "github.com/ARGOeu/argo-messaging/push/grpc/client"
 	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
@@ -28,7 +29,7 @@ type APIRoute struct {
 }
 
 // NewRouting creates a new routing object including mux.Router and routes definitions
-func NewRouting(cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *push.Manager, routes []APIRoute) *API {
+func NewRouting(cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *push2.Manager, c push.Client, routes []APIRoute) *API {
 	// Create the api Object
 	ar := API{}
 	// Create a new router and reference him in API object
@@ -52,7 +53,7 @@ func NewRouting(cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *p
 		}
 
 		handler = WrapValidate(handler)
-		handler = WrapConfig(handler, cfg, brk, str, mgr)
+		handler = WrapConfig(handler, cfg, brk, str, mgr, c)
 
 		ar.Router.
 			PathPrefix("/v1").

@@ -13,6 +13,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	context2 "context"
 	"github.com/ARGOeu/argo-messaging/auth"
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
@@ -20,6 +21,7 @@ import (
 	"github.com/ARGOeu/argo-messaging/metrics"
 	"github.com/ARGOeu/argo-messaging/projects"
 	"github.com/ARGOeu/argo-messaging/push"
+	push2 "github.com/ARGOeu/argo-messaging/push/grpc/client"
 	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/ARGOeu/argo-messaging/subscriptions"
 	"github.com/ARGOeu/argo-messaging/topics"
@@ -58,7 +60,7 @@ func WrapValidate(hfn http.HandlerFunc) http.HandlerFunc {
 }
 
 // WrapMockAuthConfig handle wrapper is used in tests were some auth context is needed
-func WrapMockAuthConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *push.Manager) http.HandlerFunc {
+func WrapMockAuthConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *push.Manager, c push2.Client) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		urlVars := mux.Vars(r)
@@ -71,6 +73,7 @@ func WrapMockAuthConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Br
 		context.Set(r, "brk", brk)
 		context.Set(r, "str", nStr)
 		context.Set(r, "mgr", mgr)
+		context.Set(r, "apsc", c)
 		context.Set(r, "auth_resource", cfg.ResAuth)
 		context.Set(r, "auth_user", "UserA")
 		context.Set(r, "auth_user_uuid", "uuid1")
@@ -81,7 +84,7 @@ func WrapMockAuthConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Br
 }
 
 // WrapConfig handle wrapper to retrieve kafka configuration
-func WrapConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *push.Manager) http.HandlerFunc {
+func WrapConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *push.Manager, c push2.Client) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		nStr := str.Clone()
@@ -89,6 +92,7 @@ func WrapConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Broker, st
 		context.Set(r, "brk", brk)
 		context.Set(r, "str", nStr)
 		context.Set(r, "mgr", mgr)
+		context.Set(r, "apsc", c)
 		context.Set(r, "auth_resource", cfg.ResAuth)
 		context.Set(r, "auth_service_token", cfg.ServiceToken)
 		hfn.ServeHTTP(w, r)
@@ -1267,10 +1271,22 @@ func SubDelete(w http.ResponseWriter, r *http.Request) {
 	projectUUID := context.Get(r, "auth_project_uuid").(string)
 
 	// Get Result Object
-	err := subscriptions.RemoveSub(projectUUID, urlVars["subscription"], refStr)
-
+	results, err := subscriptions.Find(projectUUID, urlVars["subscription"], "", 0, refStr)
 	if err != nil {
+		err := APIErrGenericBackend()
+		respondErr(w, err)
+		return
+	}
 
+	// If not found
+	if results.Empty() {
+		err := APIErrorNotFound("Subscription")
+		respondErr(w, err)
+		return
+	}
+
+	err = subscriptions.RemoveSub(projectUUID, urlVars["subscription"], refStr)
+	if err != nil {
 		if err.Error() == "not found" {
 			err := APIErrorNotFound("Subscription")
 			respondErr(w, err)
@@ -1281,11 +1297,25 @@ func SubDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// if it is a push sub, deactivate it
+	if results.Subscriptions[0].PushCfg != (subscriptions.PushConfig{}) {
+
+		pr := make(map[string]string)
+		apsc := context.Get(r, "apsc").(push2.Client)
+
+		err = apsc.Dial()
+		defer apsc.Close()
+		if err != nil {
+			pr["message"] = err.Error()
+		} else {
+			pr["message"] = apsc.DeactivateSubscription(context2.TODO(), results.Subscriptions[0].FullName).Result()
+		}
+		b, _ := json.Marshal(pr)
+		output = b
+	}
 	// TODO stop push subscription upon deletion
 
-	// Write empty response if anything ok
 	respondOK(w, output)
-
 }
 
 // TopicModACL (PUT) modifies the ACL
@@ -1664,6 +1694,17 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//TODO if subscription is push enabled, activate it
+	if postBody.PushCfg != (subscriptions.PushConfig{}) {
+
+		apsc := context.Get(r, "apsc").(push2.Client)
+
+		err := apsc.Dial()
+		defer apsc.Close()
+		if err != nil {
+			res.PushStatus = err.Error()
+		}
+		res.PushStatus = apsc.ActivateSubscription(context2.TODO(), res.FullName, res.FullName, pushEnd, rPolicy, uint32(rPeriod)).Result()
+	}
 
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()

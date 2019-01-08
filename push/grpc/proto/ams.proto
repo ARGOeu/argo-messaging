@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+// Manages subscriptions.
+service PushService {
+    // Activates a subscription in order for the service to start handling the push functionality
+    rpc ActivateSubscription(ActivateSubscriptionRequest) returns (ActivateSubscriptionResponse) {}
+
+    //  Deactivates a subscription in order for the service to stop handling the push functionality
+    rpc DeactivateSubscription(DeactivateSubscriptionRequest) returns (DeactivateSubscriptionResponse) {}
+}
+
+// Wrapper for subscription
+message DeactivateSubscriptionResponse {
+    // Message response
+    string message = 1;
+}
+
+// Contains which subscription to deactivate
+message DeactivateSubscriptionRequest {
+    // Required. The full resource name of the subscrption.
+    string full_name = 1;
+}
+
+// Wrapper for subscription
+message ActivateSubscriptionResponse {
+    // Message response
+    string message = 1;
+}
+
+// Wrapper for subscription.
+message ActivateSubscriptionRequest {
+    // Required. A subscription.
+    Subscription subscription = 1;
+}
+
+// Subscription holds informaton related to how the push functionality should operate.
+message Subscription {
+    // Required. The full resource name of the subscription.
+    string full_name = 1;
+    // The full topic name of the topic that the subscription is associated.
+    string full_topic = 2;
+    // Required. Information regarding the push functionality.
+    PushConfig pushConfig = 4;
+}
+
+// PushConfig holds information on how a push subscription functions.
+message PushConfig {
+    // Required. An https endpoint to where the messages will be pushed.
+    string push_endpoint = 1;
+    // Required. Retry policy.
+    RetryPolicy retryPolicy = 2;
+}
+
+// RetryPolicy holds information regarding the retry policy.
+message RetryPolicy {
+    // Required. Type of the retry policy used (Only linear policy supported).
+    string type = 1;
+    // Required. Retry period in milliseconds.
+    uint32 period = 2;
+}
+

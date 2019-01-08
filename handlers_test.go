@@ -18,6 +18,7 @@ import (
 	"github.com/ARGOeu/argo-messaging/metrics"
 	"github.com/ARGOeu/argo-messaging/projects"
 	"github.com/ARGOeu/argo-messaging/push"
+	push2 "github.com/ARGOeu/argo-messaging/push/grpc/client"
 	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/suite"
@@ -96,7 +97,7 @@ func (suite *HandlerTestSuite) TestUserCreate() {
 	router := mux.NewRouter().StrictSlash(true)
 	mgr := push.Manager{}
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/users/{user}", WrapMockAuthConfig(UserCreate, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/users/{user}", WrapMockAuthConfig(UserCreate, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	usrOut, _ := auth.GetUserFromJSON([]byte(w.Body.String()))
@@ -121,7 +122,7 @@ func (suite *HandlerTestSuite) TestRefreshToken() {
 	router := mux.NewRouter().StrictSlash(true)
 	mgr := push.Manager{}
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/users/{user}:refreshToken", WrapMockAuthConfig(RefreshToken, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/users/{user}:refreshToken", WrapMockAuthConfig(RefreshToken, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	userOut, _ := auth.GetUserFromJSON([]byte(w.Body.String()))
@@ -147,7 +148,7 @@ func (suite *HandlerTestSuite) TestUserUpdate() {
 	router := mux.NewRouter().StrictSlash(true)
 	mgr := push.Manager{}
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/users/{user}", WrapMockAuthConfig(UserUpdate, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/users/{user}", WrapMockAuthConfig(UserUpdate, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	userOut, _ := auth.GetUserFromJSON([]byte(w.Body.String()))
@@ -200,7 +201,7 @@ func (suite *HandlerTestSuite) TestUserListByToken() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/users:byToken/{token}", WrapMockAuthConfig(UserListByToken, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/users:byToken/{token}", WrapMockAuthConfig(UserListByToken, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -249,7 +250,7 @@ func (suite *HandlerTestSuite) TestUserListByUUID() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/users:byUUID/{uuid}", WrapMockAuthConfig(UserListByUUID, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/users:byUUID/{uuid}", WrapMockAuthConfig(UserListByUUID, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -279,7 +280,7 @@ func (suite *HandlerTestSuite) TestUserListByUUIDNotFound() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/users:byUUID/{uuid}", WrapMockAuthConfig(UserListByUUID, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/users:byUUID/{uuid}", WrapMockAuthConfig(UserListByUUID, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(404, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -309,7 +310,7 @@ func (suite *HandlerTestSuite) TestUserListByUUIDConflict() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/users:byUUID/{uuid}", WrapMockAuthConfig(UserListByUUID, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/users:byUUID/{uuid}", WrapMockAuthConfig(UserListByUUID, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(500, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -359,7 +360,7 @@ func (suite *HandlerTestSuite) TestUserListOne() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/users/{user}", WrapMockAuthConfig(UserListOne, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/users/{user}", WrapMockAuthConfig(UserListOne, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -556,7 +557,7 @@ func (suite *HandlerTestSuite) TestUserListAll() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/users", WrapMockAuthConfig(UserListAll, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/users", WrapMockAuthConfig(UserListAll, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -627,7 +628,7 @@ func (suite *HandlerTestSuite) TestUserListAllStartingPage() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/users", WrapMockAuthConfig(UserListAll, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/users", WrapMockAuthConfig(UserListAll, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -657,7 +658,7 @@ func (suite *HandlerTestSuite) TestUserListAllEmptyCollection() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/users", WrapMockAuthConfig(UserListAll, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/users", WrapMockAuthConfig(UserListAll, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -737,7 +738,7 @@ func (suite *HandlerTestSuite) TestUserListAllIntermediatePage() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/users", WrapMockAuthConfig(UserListAll, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/users", WrapMockAuthConfig(UserListAll, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -767,7 +768,7 @@ func (suite *HandlerTestSuite) TestUserListAllInvalidPageSize() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/users", WrapMockAuthConfig(UserListAll, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/users", WrapMockAuthConfig(UserListAll, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(400, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -797,7 +798,7 @@ func (suite *HandlerTestSuite) TestUserListAllInvalidPageToken() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/users", WrapMockAuthConfig(UserListAll, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/users", WrapMockAuthConfig(UserListAll, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(400, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -820,7 +821,7 @@ func (suite *HandlerTestSuite) TestUserDelete() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/users/{user}", WrapMockAuthConfig(UserDelete, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/users/{user}", WrapMockAuthConfig(UserDelete, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -842,7 +843,7 @@ func (suite *HandlerTestSuite) TestUserDelete() {
 
 	router = mux.NewRouter().StrictSlash(true)
 	w = httptest.NewRecorder()
-	router.HandleFunc("/v1/users/{user}", WrapMockAuthConfig(UserListOne, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/users/{user}", WrapMockAuthConfig(UserListOne, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(404, w.Code)
 	suite.Equal(expResp2, w.Body.String())
@@ -865,7 +866,7 @@ func (suite *HandlerTestSuite) TestProjectDelete() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}", WrapMockAuthConfig(ProjectDelete, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}", WrapMockAuthConfig(ProjectDelete, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -890,7 +891,7 @@ func (suite *HandlerTestSuite) TestProjectUpdate() {
 	router := mux.NewRouter().StrictSlash(true)
 	mgr := push.Manager{}
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}", WrapMockAuthConfig(ProjectUpdate, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}", WrapMockAuthConfig(ProjectUpdate, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	projOut, _ := projects.GetFromJSON([]byte(w.Body.String()))
@@ -918,7 +919,7 @@ func (suite *HandlerTestSuite) TestProjectCreate() {
 	router := mux.NewRouter().StrictSlash(true)
 	mgr := push.Manager{}
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}", WrapMockAuthConfig(ProjectCreate, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}", WrapMockAuthConfig(ProjectCreate, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	projOut, _ := projects.GetFromJSON([]byte(w.Body.String()))
@@ -963,7 +964,7 @@ func (suite *HandlerTestSuite) TestProjectListAll() {
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
 
-	router.HandleFunc("/v1/projects", WrapMockAuthConfig(ProjectListAll, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects", WrapMockAuthConfig(ProjectListAll, cfgKafka, &brk, str, &mgr, nil))
 
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
@@ -994,7 +995,7 @@ func (suite *HandlerTestSuite) TestProjectListOneNotFound() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}", WrapMockAuthConfig(ProjectListOne, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}", WrapMockAuthConfig(ProjectListOne, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(404, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -1024,7 +1025,7 @@ func (suite *HandlerTestSuite) TestProjectListOne() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}", WrapMockAuthConfig(ProjectListOne, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}", WrapMockAuthConfig(ProjectListOne, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -1061,7 +1062,7 @@ func (suite *HandlerTestSuite) TestSubModPushConfigError() {
 	router := mux.NewRouter().StrictSlash(true)
 	mgr := push.Manager{}
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modifyPushConfig", WrapMockAuthConfig(SubModPush, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modifyPushConfig", WrapMockAuthConfig(SubModPush, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(400, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -1104,7 +1105,7 @@ func (suite *HandlerTestSuite) TestSubModPushConfig() {
 	router := mux.NewRouter().StrictSlash(true)
 	mgr := push.Manager{}
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modifyPushConfig", WrapMockAuthConfig(SubModPush, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modifyPushConfig", WrapMockAuthConfig(SubModPush, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal("", w.Body.String())
@@ -1116,7 +1117,7 @@ func (suite *HandlerTestSuite) TestSubModPushConfig() {
 	}
 	router2 := mux.NewRouter().StrictSlash(true)
 	w2 := httptest.NewRecorder()
-	router2.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubListOne, cfgKafka, &brk, str, &mgr))
+	router2.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubListOne, cfgKafka, &brk, str, &mgr, nil))
 	router2.ServeHTTP(w2, req2)
 	suite.Equal(200, w2.Code)
 	suite.Equal(expResp, w2.Body.String())
@@ -1149,7 +1150,7 @@ func (suite *HandlerTestSuite) TestSubCreatePushConfig() {
       }
    },
    "ackDeadlineSeconds": 10,
-   "push_status": "push enabled"
+   "push_status": "Subscription /projects/ARGO/subscriptions/subNew activated"
 }`
 
 	cfgKafka := config.NewAPICfg()
@@ -1158,12 +1159,55 @@ func (suite *HandlerTestSuite) TestSubCreatePushConfig() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	mgr := push.Manager{}
+	pc := new(push2.MockClient)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubCreate, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubCreate, cfgKafka, &brk, str, &mgr, pc))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
+}
 
+func (suite *HandlerTestSuite) TestSubCreatePushConfigPushServerError() {
+
+	postJSON := `{
+	"topic":"projects/ARGO/topics/topic1",
+	"pushConfig": {
+		 "pushEndpoint": "https://www.example.com",
+		 "retryPolicy": {}
+	}
+}`
+
+	req, err := http.NewRequest("PUT", "http://localhost:8080/v1/projects/ARGO/subscriptions/errorSub", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "name": "/projects/ARGO/subscriptions/errorSub",
+   "topic": "/projects/ARGO/topics/topic1",
+   "pushConfig": {
+      "pushEndpoint": "https://www.example.com",
+      "retryPolicy": {
+         "type": "linear",
+         "period": 3000
+      }
+   },
+   "ackDeadlineSeconds": 10,
+   "push_status": "Subscription /projects/ARGO/subscriptions/errorSub is already active"
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := push.Manager{}
+	pc := new(push2.MockClient)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubCreate, cfgKafka, &brk, str, &mgr, pc))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
 }
 
 func (suite *HandlerTestSuite) TestSubCreatePushConfigError() {
@@ -1196,7 +1240,7 @@ func (suite *HandlerTestSuite) TestSubCreatePushConfigError() {
 	router := mux.NewRouter().StrictSlash(true)
 	mgr := push.Manager{}
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubCreate, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubCreate, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(400, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -1231,7 +1275,7 @@ func (suite *HandlerTestSuite) TestSubCreate() {
 	router := mux.NewRouter().StrictSlash(true)
 	mgr := push.Manager{}
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubCreate, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubCreate, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -1264,7 +1308,7 @@ func (suite *HandlerTestSuite) TestSubCreateExists() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubCreate, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubCreate, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(409, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -1296,7 +1340,7 @@ func (suite *HandlerTestSuite) TestSubCreateErrorTopic() {
 	mgr := push.Manager{}
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubCreate, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubCreate, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(404, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -1317,7 +1361,56 @@ func (suite *HandlerTestSuite) TestSubDelete() {
 	mgr := push.Manager{}
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubDelete, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubDelete, cfgKafka, &brk, str, &mgr, nil))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+}
+
+func (suite *HandlerTestSuite) TestSubWithPushConfigDelete() {
+
+	req, err := http.NewRequest("DELETE", "http://localhost:8080/v1/projects/ARGO/subscriptions/sub4", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{"message":"Subscription /projects/ARGO/subscriptions/sub4 deactivated"}`
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	mgr := push.Manager{}
+	router := mux.NewRouter().StrictSlash(true)
+	pc := new(push2.MockClient)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubDelete, cfgKafka, &brk, str, &mgr, pc))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+}
+
+func (suite *HandlerTestSuite) TestSubWithPushConfigDeletePushServerError() {
+
+	req, err := http.NewRequest("DELETE", "http://localhost:8080/v1/projects/ARGO/subscriptions/errorSub", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{"message":"Subscription /projects/ARGO/subscriptions/errorSub is not active"}`
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	str.SubList = append(str.SubList, stores.QSub{
+		Name:         "errorSub",
+		ProjectUUID:  "argo_uuid",
+		PushEndpoint: "example.com",
+	})
+	mgr := push.Manager{}
+	router := mux.NewRouter().StrictSlash(true)
+	pc := new(push2.MockClient)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubDelete, cfgKafka, &brk, str, &mgr, pc))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -1348,7 +1441,7 @@ func (suite *HandlerTestSuite) TestSubListOne() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubListOne, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubListOne, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -1416,7 +1509,7 @@ func (suite *HandlerTestSuite) TestSubListAll() {
 	router := mux.NewRouter().StrictSlash(true)
 	mgr := push.Manager{}
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/subscriptions", WrapMockAuthConfig(SubListAll, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/subscriptions", WrapMockAuthConfig(SubListAll, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -1466,7 +1559,7 @@ func (suite *HandlerTestSuite) TestSubListAllFirstPage() {
 	router := mux.NewRouter().StrictSlash(true)
 	mgr := push.Manager{}
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/subscriptions", WrapMockAuthConfig(SubListAll, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/subscriptions", WrapMockAuthConfig(SubListAll, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -1512,7 +1605,7 @@ func (suite *HandlerTestSuite) TestSubListAllNextPage() {
 	router := mux.NewRouter().StrictSlash(true)
 	mgr := push.Manager{}
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/subscriptions", WrapMockAuthConfig(SubListAll, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/subscriptions", WrapMockAuthConfig(SubListAll, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -1541,7 +1634,7 @@ func (suite *HandlerTestSuite) TestSubListAllEmpty() {
 	router := mux.NewRouter().StrictSlash(true)
 	mgr := push.Manager{}
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/subscriptions", WrapMockAuthConfig(SubListAll, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/subscriptions", WrapMockAuthConfig(SubListAll, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -1571,7 +1664,7 @@ func (suite *HandlerTestSuite) TestSubListAllInvalidPageSize() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/subscriptions", WrapMockAuthConfig(SubListAll, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/subscriptions", WrapMockAuthConfig(SubListAll, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(400, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -1601,7 +1694,7 @@ func (suite *HandlerTestSuite) TestSubListAllInvalidPageToken() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/subscriptions", WrapMockAuthConfig(SubListAll, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/subscriptions", WrapMockAuthConfig(SubListAll, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(400, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -1624,7 +1717,7 @@ func (suite *HandlerTestSuite) TestTopicDelete() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapMockAuthConfig(TopicDelete, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapMockAuthConfig(TopicDelete, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -1651,7 +1744,7 @@ func (suite *HandlerTestSuite) TestSubDeleteNotfound() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubDelete, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubDelete, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(404, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -1680,7 +1773,7 @@ func (suite *HandlerTestSuite) TestTopicDeleteNotfound() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapMockAuthConfig(TopicDelete, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapMockAuthConfig(TopicDelete, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(404, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -1706,7 +1799,7 @@ func (suite *HandlerTestSuite) TestTopicCreate() {
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
 
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapMockAuthConfig(TopicCreate, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapMockAuthConfig(TopicCreate, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -1734,7 +1827,7 @@ func (suite *HandlerTestSuite) TestTopicCreateExists() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapMockAuthConfig(TopicCreate, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapMockAuthConfig(TopicCreate, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(409, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -1758,7 +1851,7 @@ func (suite *HandlerTestSuite) TestTopicListOne() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapMockAuthConfig(TopicListOne, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapMockAuthConfig(TopicListOne, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -1811,7 +1904,7 @@ func (suite *HandlerTestSuite) TestSubMetrics() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:metrics", WrapMockAuthConfig(SubMetrics, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:metrics", WrapMockAuthConfig(SubMetrics, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 
@@ -1848,7 +1941,7 @@ func (suite *HandlerTestSuite) TestSubMetricsNotFound() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:metrics", WrapMockAuthConfig(SubMetrics, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:metrics", WrapMockAuthConfig(SubMetrics, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(404, w.Code)
 	suite.Equal(expRes, w.Body.String())
@@ -2032,7 +2125,7 @@ func (suite *HandlerTestSuite) TestProjectMetrics() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}:metrics", WrapMockAuthConfig(ProjectMetrics, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}:metrics", WrapMockAuthConfig(ProjectMetrics, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	metricOut, _ := metrics.GetMetricsFromJSON([]byte(w.Body.String()))
@@ -2111,7 +2204,7 @@ func (suite *HandlerTestSuite) TestOpMetrics() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/metrics", WrapMockAuthConfig(OpMetrics, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/metrics", WrapMockAuthConfig(OpMetrics, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	metricOut, _ := metrics.GetMetricsFromJSON([]byte(w.Body.String()))
@@ -2208,7 +2301,7 @@ func (suite *HandlerTestSuite) TestTopicMetrics() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}:metrics", WrapMockAuthConfig(TopicMetrics, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:metrics", WrapMockAuthConfig(TopicMetrics, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	metricOut, _ := metrics.GetMetricsFromJSON([]byte(w.Body.String()))
@@ -2250,7 +2343,7 @@ func (suite *HandlerTestSuite) TestTopicMetricsNotFound() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}:metrics", WrapMockAuthConfig(TopicMetrics, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:metrics", WrapMockAuthConfig(TopicMetrics, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(404, w.Code)
 	suite.Equal(expRes, w.Body.String())
@@ -2277,7 +2370,7 @@ func (suite *HandlerTestSuite) TestTopicACL01() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}:acl", WrapMockAuthConfig(TopicACL, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:acl", WrapMockAuthConfig(TopicACL, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -2304,7 +2397,7 @@ func (suite *HandlerTestSuite) TestTopicACL02() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}:acl", WrapMockAuthConfig(TopicACL, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:acl", WrapMockAuthConfig(TopicACL, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -2335,7 +2428,7 @@ func (suite *HandlerTestSuite) TestModTopicACLWrong() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}:modAcl", WrapMockAuthConfig(TopicModACL, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:modAcl", WrapMockAuthConfig(TopicModACL, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(404, w.Code)
 	suite.Equal(expRes, w.Body.String())
@@ -2366,7 +2459,7 @@ func (suite *HandlerTestSuite) TestModSubACLWrong() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modAcl", WrapMockAuthConfig(SubModACL, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modAcl", WrapMockAuthConfig(SubModACL, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(404, w.Code)
 	suite.Equal(expRes, w.Body.String())
@@ -2389,7 +2482,7 @@ func (suite *HandlerTestSuite) TestModTopicACL01() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}:modAcl", WrapMockAuthConfig(TopicModACL, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:modAcl", WrapMockAuthConfig(TopicModACL, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal("", w.Body.String())
@@ -2398,7 +2491,7 @@ func (suite *HandlerTestSuite) TestModTopicACL01() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}:acl", WrapMockAuthConfig(TopicACL, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:acl", WrapMockAuthConfig(TopicACL, cfgKafka, &brk, str, &mgr, nil))
 	w2 := httptest.NewRecorder()
 	router.ServeHTTP(w2, req2)
 	suite.Equal(200, w2.Code)
@@ -2430,7 +2523,7 @@ func (suite *HandlerTestSuite) TestModSubACL01() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/subscription/{subscription}:modAcl", WrapMockAuthConfig(SubModACL, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/subscription/{subscription}:modAcl", WrapMockAuthConfig(SubModACL, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal("", w.Body.String())
@@ -2439,7 +2532,7 @@ func (suite *HandlerTestSuite) TestModSubACL01() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	router.HandleFunc("/v1/projects/{project}/subscription/{subscription}:acl", WrapMockAuthConfig(SubACL, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/subscription/{subscription}:acl", WrapMockAuthConfig(SubACL, cfgKafka, &brk, str, &mgr, nil))
 	w2 := httptest.NewRecorder()
 	router.ServeHTTP(w2, req2)
 	suite.Equal(200, w2.Code)
@@ -2476,7 +2569,7 @@ func (suite *HandlerTestSuite) TestSubACL01() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/subscription/{subscription}:acl", WrapMockAuthConfig(SubACL, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/subscription/{subscription}:acl", WrapMockAuthConfig(SubACL, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -2505,7 +2598,7 @@ func (suite *HandlerTestSuite) TestSubACL02() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:acl", WrapMockAuthConfig(SubACL, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:acl", WrapMockAuthConfig(SubACL, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -2542,7 +2635,7 @@ func (suite *HandlerTestSuite) TestTopicListAll() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics", WrapMockAuthConfig(TopicListAll, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/topics", WrapMockAuthConfig(TopicListAll, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -2576,7 +2669,7 @@ func (suite *HandlerTestSuite) TestTopicListAllFirstPage() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics", WrapMockAuthConfig(TopicListAll, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/topics", WrapMockAuthConfig(TopicListAll, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -2607,7 +2700,7 @@ func (suite *HandlerTestSuite) TestTopicListAllNextPage() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics", WrapMockAuthConfig(TopicListAll, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/topics", WrapMockAuthConfig(TopicListAll, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -2636,7 +2729,7 @@ func (suite *HandlerTestSuite) TestTopicListAllEmpty() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics", WrapMockAuthConfig(TopicListAll, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/topics", WrapMockAuthConfig(TopicListAll, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -2666,7 +2759,7 @@ func (suite *HandlerTestSuite) TestTopicListAllInvalidPageSize() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics", WrapMockAuthConfig(TopicListAll, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/topics", WrapMockAuthConfig(TopicListAll, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(400, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -2696,7 +2789,7 @@ func (suite *HandlerTestSuite) TestTopicListAllInvalidPageToken() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics", WrapMockAuthConfig(TopicListAll, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/topics", WrapMockAuthConfig(TopicListAll, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(400, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -2736,7 +2829,7 @@ func (suite *HandlerTestSuite) TestPublish() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapMockAuthConfig(TopicPublish, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapMockAuthConfig(TopicPublish, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expJSON, w.Body.String())
@@ -2795,7 +2888,7 @@ func (suite *HandlerTestSuite) TestPublishMultiple() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapMockAuthConfig(TopicPublish, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapMockAuthConfig(TopicPublish, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expJSON, w.Body.String())
@@ -2844,7 +2937,7 @@ func (suite *HandlerTestSuite) TestPublishError() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapMockAuthConfig(TopicPublish, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapMockAuthConfig(TopicPublish, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(400, w.Code)
 	suite.Equal(expJSON, w.Body.String())
@@ -2896,7 +2989,7 @@ func (suite *HandlerTestSuite) TestPublishNoTopic() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapMockAuthConfig(TopicPublish, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapMockAuthConfig(TopicPublish, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(404, w.Code)
 	suite.Equal(expJSON, w.Body.String())
@@ -2939,7 +3032,7 @@ func (suite *HandlerTestSuite) TestSubPullOne() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:pull", WrapMockAuthConfig(SubPull, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:pull", WrapMockAuthConfig(SubPull, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expJSON, w.Body.String())
@@ -2985,7 +3078,7 @@ func (suite *HandlerTestSuite) TestSubModAck() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modifyAckDeadline", WrapMockAuthConfig(SubModAck, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modifyAckDeadline", WrapMockAuthConfig(SubModAck, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expJSON1, w.Body.String())
@@ -2997,7 +3090,7 @@ func (suite *HandlerTestSuite) TestSubModAck() {
 	router2 := mux.NewRouter().StrictSlash(true)
 	w2 := httptest.NewRecorder()
 	mgr = push.Manager{}
-	router2.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modifyAckDeadline", WrapMockAuthConfig(SubModAck, cfgKafka, &brk, str, &mgr))
+	router2.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modifyAckDeadline", WrapMockAuthConfig(SubModAck, cfgKafka, &brk, str, &mgr, nil))
 	router2.ServeHTTP(w2, req2)
 	suite.Equal(400, w2.Code)
 	suite.Equal(expJSON2, w2.Body.String())
@@ -3006,7 +3099,7 @@ func (suite *HandlerTestSuite) TestSubModAck() {
 	router3 := mux.NewRouter().StrictSlash(true)
 	w3 := httptest.NewRecorder()
 	mgr = push.Manager{}
-	router3.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modifyAckDeadline", WrapMockAuthConfig(SubModAck, cfgKafka, &brk, str, &mgr))
+	router3.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modifyAckDeadline", WrapMockAuthConfig(SubModAck, cfgKafka, &brk, str, &mgr, nil))
 	router3.ServeHTTP(w3, req3)
 	suite.Equal(400, w3.Code)
 	suite.Equal(expJSON2, w3.Body.String())
@@ -3058,7 +3151,7 @@ func (suite *HandlerTestSuite) TestSubAck() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:acknowledge", WrapMockAuthConfig(SubAck, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:acknowledge", WrapMockAuthConfig(SubAck, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(400, w.Code)
 	suite.Equal(expJSON1, w.Body.String())
@@ -3074,7 +3167,7 @@ func (suite *HandlerTestSuite) TestSubAck() {
 	router2 := mux.NewRouter().StrictSlash(true)
 	w2 := httptest.NewRecorder()
 	mgr = push.Manager{}
-	router2.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:acknowledge", WrapMockAuthConfig(SubAck, cfgKafka, &brk, str, &mgr))
+	router2.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:acknowledge", WrapMockAuthConfig(SubAck, cfgKafka, &brk, str, &mgr, nil))
 	router2.ServeHTTP(w2, req2)
 	suite.Equal(200, w2.Code)
 	suite.Equal("{}", w2.Body.String())
@@ -3089,7 +3182,7 @@ func (suite *HandlerTestSuite) TestSubAck() {
 	router3 := mux.NewRouter().StrictSlash(true)
 	w3 := httptest.NewRecorder()
 	mgr = push.Manager{}
-	router3.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:acknowledge", WrapMockAuthConfig(SubAck, cfgKafka, &brk, str, &mgr))
+	router3.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:acknowledge", WrapMockAuthConfig(SubAck, cfgKafka, &brk, str, &mgr, nil))
 	router3.ServeHTTP(w3, req3)
 	suite.Equal(408, w3.Code)
 	suite.Equal(expJSON2, w3.Body.String())
@@ -3124,7 +3217,7 @@ func (suite *HandlerTestSuite) TestSubError() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:pull", WrapMockAuthConfig(SubPull, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:pull", WrapMockAuthConfig(SubPull, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(404, w.Code)
 	suite.Equal(expJSON, w.Body.String())
@@ -3189,7 +3282,7 @@ func (suite *HandlerTestSuite) TestSubPullAll() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := push.Manager{}
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:pull", WrapMockAuthConfig(SubPull, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:pull", WrapMockAuthConfig(SubPull, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expJSON, w.Body.String())
@@ -3246,7 +3339,7 @@ func (suite *HandlerTestSuite) TestValidationInSubs() {
 		req, err := http.NewRequest("GET", url, bytes.NewBuffer([]byte("")))
 		router := mux.NewRouter().StrictSlash(true)
 		mgr := push.Manager{}
-		router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapValidate(WrapMockAuthConfig(SubListOne, cfgKafka, &brk, str, &mgr)))
+		router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapValidate(WrapMockAuthConfig(SubListOne, cfgKafka, &brk, str, &mgr, nil)))
 
 		if err != nil {
 			log.Fatal(err)
@@ -3319,7 +3412,7 @@ func (suite *HandlerTestSuite) TestValidationInTopics() {
 		req, err := http.NewRequest("GET", url, bytes.NewBuffer([]byte("")))
 		router := mux.NewRouter().StrictSlash(true)
 		mgr := push.Manager{}
-		router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapValidate(WrapMockAuthConfig(TopicListOne, cfgKafka, &brk, str, &mgr)))
+		router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapValidate(WrapMockAuthConfig(TopicListOne, cfgKafka, &brk, str, &mgr, nil)))
 
 		if err != nil {
 			log.Fatal(err)
@@ -3367,7 +3460,7 @@ func (suite *HandlerTestSuite) TestHealthCheck() {
 	router := mux.NewRouter().StrictSlash(true)
 	mgr := push.Manager{}
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/status", WrapMockAuthConfig(HealthCheck, cfgKafka, &brk, str, &mgr))
+	router.HandleFunc("/v1/status", WrapMockAuthConfig(HealthCheck, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
