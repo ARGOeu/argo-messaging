@@ -52,9 +52,17 @@ func GetACL(projectUUID string, resourceType string, resourceName string, store 
 		return result, err
 	}
 	for _, item := range acl.ACL {
+
 		// Get Username from user uuid
 		username := GetNameByUUID(item, store)
+		// if username is empty, meaning that the user with this id probably doesn't exists
+		// skip it and don't pollute the acl with empty ""
+		if username == "" {
+			continue
+		}
+
 		result.AuthUsers = append(result.AuthUsers, username)
 	}
+
 	return result, err
 }
