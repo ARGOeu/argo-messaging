@@ -17,6 +17,20 @@ func (*MockClient) ActivateSubscription(ctx context.Context, fullSub, fullTopic,
 		return &MockClientStatus{
 			Status: fmt.Sprintf("Subscription %v activated", fullSub),
 		}
+
+	case "/projects/ARGO/subscriptions/sub1":
+
+		return &GrpcClientStatus{
+			err:     nil,
+			message: fmt.Sprintf("Subscription %v activated", fullSub),
+		}
+
+	case "/projects/ARGO/subscriptions/sub4":
+
+		return &GrpcClientStatus{
+			err:     nil,
+			message: fmt.Sprintf("Subscription %v activated", fullSub),
+		}
 	}
 
 	return &MockClientStatus{

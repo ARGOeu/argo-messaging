@@ -7,10 +7,10 @@ import (
 
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
-	push2 "github.com/ARGOeu/argo-messaging/push"
-	push "github.com/ARGOeu/argo-messaging/push/grpc/client"
+	oldPush "github.com/ARGOeu/argo-messaging/push"
+	"github.com/ARGOeu/argo-messaging/push/grpc/client"
 	"github.com/ARGOeu/argo-messaging/stores"
-	"github.com/gorilla/context"
+	gorillaContext "github.com/gorilla/context"
 	"github.com/gorilla/mux"
 )
 
@@ -29,7 +29,7 @@ type APIRoute struct {
 }
 
 // NewRouting creates a new routing object including mux.Router and routes definitions
-func NewRouting(cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *push2.Manager, c push.Client, routes []APIRoute) *API {
+func NewRouting(cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *oldPush.Manager, c push.Client, routes []APIRoute) *API {
 	// Create the api Object
 	ar := API{}
 	// Create a new router and reference him in API object
@@ -60,7 +60,7 @@ func NewRouting(cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *p
 			Methods(route.Method).
 			Path(route.Path).
 			Name(route.Name).
-			Handler(context.ClearHandler(handler))
+			Handler(gorillaContext.ClearHandler(handler))
 	}
 
 	log.Info("API", "\t", "API Router initialized! Ready to start listening...")

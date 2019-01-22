@@ -9,7 +9,7 @@ import (
 
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
-	push2 "github.com/ARGOeu/argo-messaging/push"
+	oldPush "github.com/ARGOeu/argo-messaging/push"
 	"github.com/ARGOeu/argo-messaging/push/grpc/client"
 	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/gorilla/handlers"
@@ -39,7 +39,7 @@ func main() {
 	broker := brokers.NewKafkaBroker(cfg.GetBrokerInfo())
 	defer broker.CloseConnections()
 
-	mgr := &push2.Manager{}
+	mgr := &oldPush.Manager{}
 
 	// ams push server pushClient
 	pushClient := push.NewGrpcClient(cfg)

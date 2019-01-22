@@ -240,7 +240,7 @@ func (suite *SubTestSuite) TestModSubPush() {
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
 
 	// modify push config
-	err1 := ModSubPush("argo_uuid", "sub1", "example.com", "linear", 400, "push enabled", store)
+	err1 := ModSubPush("argo_uuid", "sub1", "example.com", "linear", 400, store)
 
 	suite.Nil(err1)
 
@@ -248,10 +248,9 @@ func (suite *SubTestSuite) TestModSubPush() {
 	suite.Equal("example.com", sub1.PushEndpoint)
 	suite.Equal("linear", sub1.RetPolicy)
 	suite.Equal(400, sub1.RetPeriod)
-	suite.Equal("push enabled", sub1.PushStatus)
 
 	// test error case
-	err2 := ModSubPush("argo_uuid", "unknown", "", "", 0, "", store)
+	err2 := ModSubPush("argo_uuid", "unknown", "", "", 0, store)
 	suite.Equal("not found", err2.Error())
 }
 
