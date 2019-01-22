@@ -816,11 +816,21 @@ func (mong *MongoStore) InsertProject(uuid string, name string, createdOn time.T
 }
 
 // InsertSub inserts a subscription to the store
-func (mong *MongoStore) InsertSub(projectUUID string, name string, topic string, offset int64, ack int, push string, rPolicy string, rPeriod int, status string) error {
+func (mong *MongoStore) InsertSub(projectUUID string, name string, topic string, offset int64, ack int, push string, rPolicy string, rPeriod int) error {
 	sub := QSub{
-		ProjectUUID: projectUUID, Name: name, Topic: topic, Offset: offset, NextOffset: 0,
-		PendingAck: "", Ack: ack, PushEndpoint: push, RetPolicy: rPolicy, RetPeriod: rPeriod,
-		PushStatus: status, MsgNum: 0, TotalBytes: 0}
+		ProjectUUID:  projectUUID,
+		Name:         name,
+		Topic:        topic,
+		Offset:       offset,
+		NextOffset:   0,
+		PendingAck:   "",
+		Ack:          ack,
+		PushEndpoint: push,
+		RetPolicy:    rPolicy,
+		RetPeriod:    rPeriod,
+		MsgNum:       0,
+		TotalBytes:   0,
+	}
 	return mong.InsertResource("subscriptions", sub)
 }
 
@@ -927,6 +937,22 @@ func (mong *MongoStore) ModSubPush(projectUUID string, name string, push string,
 			"retry_policy":  rPolicy,
 			"retry_period":  rPeriod,
 			"push_status":   status,
+		},
+		})
+	return err
+}
+
+// ModSubPushStatus modifies the push status
+func (mong *MongoStore) ModSubPushStatus(projectUUID string, name string, status string) error {
+	db := mong.Session.DB(mong.Database)
+	c := db.C("subscriptions")
+
+	err := c.Update(bson.M{
+		"project_uuid": projectUUID,
+		"name":         name,
+	},
+		bson.M{"$set": bson.M{
+			"push_status": status,
 		},
 		})
 	return err

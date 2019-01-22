@@ -314,6 +314,17 @@ func (mk *MockStore) ModSubPush(projectUUID string, name string, push string, rP
 	return errors.New("not found")
 }
 
+// ModSubPush modifies the subscription push configuration
+func (mk *MockStore) ModSubPushStatus(projectUUID string, name string, status string) error {
+	for i, item := range mk.SubList {
+		if item.ProjectUUID == projectUUID && item.Name == name {
+			mk.SubList[i].PushStatus = status
+			return nil
+		}
+	}
+	return errors.New("not found")
+}
+
 // UpdateSubOffsetAck updates the offset of the current subscription
 func (mk *MockStore) UpdateSubOffsetAck(projectUUID string, name string, offset int64, ts string) error {
 	// find sub
@@ -651,7 +662,7 @@ func (mk *MockStore) InsertTopic(projectUUID string, name string) error {
 }
 
 // InsertSub inserts a new sub object to the store
-func (mk *MockStore) InsertSub(projectUUID string, name string, topic string, offset int64, ack int, push string, rPolicy string, rPeriod int, status string) error {
+func (mk *MockStore) InsertSub(projectUUID string, name string, topic string, offset int64, ack int, push string, rPolicy string, rPeriod int) error {
 	sub := QSub{
 		ID:           len(mk.SubList),
 		ProjectUUID:  projectUUID,
@@ -664,7 +675,6 @@ func (mk *MockStore) InsertSub(projectUUID string, name string, topic string, of
 		RetPeriod:    rPeriod,
 		MsgNum:       0,
 		TotalBytes:   0,
-		PushStatus:   status,
 	}
 	mk.SubList = append(mk.SubList, sub)
 	return nil
