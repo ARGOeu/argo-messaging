@@ -84,6 +84,12 @@ Success Response
 
 ```json
 {
-  "status": "ok"
+  "status": "ok",
+  "push_servers": [
+    {
+      "endpoint": "localhost:5555",
+      "status": "Success: SERVING"
+    }
+  ]
 }
 ```

@@ -7,6 +7,17 @@ import (
 
 type MockClient struct{}
 
+func (*MockClient) HealthCheck(ctx context.Context) *GrpcClientStatus {
+	return &GrpcClientStatus{
+		err:     nil,
+		message: "SERVING",
+	}
+}
+
+func (*MockClient) Target() string {
+	return "localhost:5555"
+}
+
 func (*MockClient) Dial() error { return nil }
 
 func (*MockClient) ActivateSubscription(ctx context.Context, fullSub, fullTopic, pushEndpoint, retryType string, retryPeriod uint32) ClientStatus {

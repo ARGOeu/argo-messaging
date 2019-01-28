@@ -9,12 +9,14 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/status"
 )
 
 // GrpcClient is used to interface with ams push server
 type GrpcClient struct {
 	psc          amsPb.PushServiceClient
+	hsc          grpc_health_v1.HealthClient
 	dialOptions  []grpc.DialOption
 	conn         *grpc.ClientConn
 	pushEndpoint string
@@ -66,6 +68,11 @@ func NewGrpcClient(cfg *config.APICfg) *GrpcClient {
 	return client
 }
 
+// Target returns the grpc endpoint that the client is connected to
+func (c *GrpcClient) Target() string {
+	return c.pushEndpoint
+}
+
 // Dial connects to the specified grpc endpoint from the api config
 func (c *GrpcClient) Dial() error {
 
@@ -77,6 +84,7 @@ func (c *GrpcClient) Dial() error {
 	c.conn = conn
 
 	c.psc = amsPb.NewPushServiceClient(conn)
+	c.hsc = grpc_health_v1.NewHealthClient(conn)
 
 	return nil
 }
@@ -118,6 +126,18 @@ func (c *GrpcClient) DeactivateSubscription(ctx context.Context, fullSub string)
 	return &GrpcClientStatus{
 		err:     err,
 		message: r.GetMessage(),
+	}
+}
+
+func (c *GrpcClient) HealthCheck(ctx context.Context) *GrpcClientStatus {
+
+	r, err := c.hsc.Check(ctx, &grpc_health_v1.HealthCheckRequest{
+		Service: "api.v1.grpc.PushService"},
+	)
+
+	return &GrpcClientStatus{
+		err:     err,
+		message: r.GetStatus().String(),
 	}
 }
 
