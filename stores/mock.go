@@ -68,7 +68,7 @@ func (mk *MockStore) InsertUser(uuid string, projects []QProjectRoles, name stri
 
 //GetAllRoles returns a list of all available roles
 func (mk *MockStore) GetAllRoles() []string {
-	return []string{"service_admin", "admin", "project_admin", "viewer", "consumer", "producer"}
+	return []string{"service_admin", "admin", "project_admin", "viewer", "consumer", "producer", "push_worker"}
 }
 
 // UpdateUserToken updates user's token
