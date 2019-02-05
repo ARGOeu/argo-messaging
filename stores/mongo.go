@@ -938,6 +938,30 @@ func (mong *MongoStore) AppendToACL(projectUUID string, resource string, name st
 	return err
 }
 
+func (mong *MongoStore) RemoveFromACL(projectUUID string, resource string, name string, acl []string) error {
+
+	db := mong.Session.DB(mong.Database)
+
+	if resource != "topics" && resource != "subscriptions" {
+		return errors.New("wrong resource type")
+	}
+
+	c := db.C(resource)
+
+	err := c.Update(
+		bson.M{
+			"project_uuid": projectUUID,
+			"name":         name,
+		},
+		bson.M{
+			"$pullAll": bson.M{
+				"acl": acl,
+			},
+		})
+
+	return err
+}
+
 // ModAck modifies the subscription's ack timeout field in mongodb
 func (mong *MongoStore) ModAck(projectUUID string, name string, ack int) error {
 	log.Info("Modifying Ack Deadline", ack)

@@ -196,6 +196,44 @@ func appendUniqueValues(existingValues []string, newValues ...string) []string {
 	return existingValues
 }
 
+func (mk *MockStore) RemoveFromACL(projectUUID string, resource string, name string, acl []string) error {
+	if resource == "topics" {
+		if qACL, exists := mk.TopicsACL[name]; exists {
+			qACL.ACL = removeValues(qACL.ACL, acl...)
+			mk.TopicsACL[name] = qACL
+			return nil
+		}
+	} else if resource == "subscriptions" {
+		if qACL, exists := mk.SubsACL[name]; exists {
+			qACL.ACL = removeValues(qACL.ACL, acl...)
+			mk.SubsACL[name] = qACL
+			return nil
+		}
+	}
+
+	return errors.New("wrong resource type")
+}
+
+func removeValues(existingValues []string, valuesToRemove ...string) []string {
+
+	for _, value := range valuesToRemove {
+		existingValues = removeSingleValue(existingValues, value)
+	}
+
+	return existingValues
+}
+
+func removeSingleValue(existingValues []string, valueToRemove string) []string {
+
+	for idx, value := range existingValues {
+		if value == valueToRemove {
+			existingValues = append(existingValues[:idx], existingValues[idx+1:]...)
+		}
+	}
+
+	return existingValues
+}
+
 // UpdateProject updates project information
 func (mk *MockStore) UpdateProject(projectUUID string, name string, description string, modifiedOn time.Time) error {
 

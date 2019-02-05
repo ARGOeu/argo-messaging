@@ -50,6 +50,7 @@ type Store interface {
 	QueryACL(projectUUID string, resource string, name string) (QAcl, error)
 	ModACL(projectUUID string, resource string, name string, acl []string) error
 	AppendToACL(projectUUID string, resource string, name string, acl []string) error
+	RemoveFromACL(projectUUID string, resource string, name string, acl []string) error
 	ModAck(projectUUID string, name string, ack int) error
 	GetAllRoles() []string
 	Clone() Store

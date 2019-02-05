@@ -57,6 +57,19 @@ func AppendToACL(projectUUID string, resourceType string, resourceName string, a
 	return store.AppendToACL(projectUUID, resourceType, resourceName, userUUIDs)
 }
 
+// AppendToACL is used to remove users from a topic's or sub's acl
+func RemoveFromACL(projectUUID string, resourceType string, resourceName string, acl []string, store stores.Store) error {
+
+	// Transform user name to user uuid
+	userUUIDs := []string{}
+	for _, username := range acl {
+		userUUID := GetUUIDByName(username, store)
+		userUUIDs = append(userUUIDs, userUUID)
+	}
+
+	return store.RemoveFromACL(projectUUID, resourceType, resourceName, userUUIDs)
+}
+
 // GetACL returns an authorized list of user for the resource (topic or subscription)
 func GetACL(projectUUID string, resourceType string, resourceName string, store stores.Store) (ACL, error) {
 	result := ACL{}
