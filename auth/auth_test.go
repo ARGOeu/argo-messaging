@@ -655,6 +655,46 @@ func (suite *AuthTestSuite) TestTopicACL() {
 	suite.Equal(expJSON01deleted, outJSONd)
 }
 
+func (suite *AuthTestSuite) TestModACL() {
+
+	store := stores.NewMockStore("", "")
+
+	e1 := ModACL("argo_uuid", "topics", "topic1", []string{"UserX", "UserZ"}, store)
+	suite.Nil(e1)
+
+	tACL1, _ := store.TopicsACL["topic1"]
+	suite.Equal([]string{"uuid3", "uuid4"}, tACL1.ACL)
+
+	e2 := ModACL("argo_uuid", "subscriptions", "sub1", []string{"UserX", "UserZ"}, store)
+	suite.Nil(e2)
+
+	sACL1, _ := store.SubsACL["sub1"]
+	suite.Equal([]string{"uuid3", "uuid4"}, sACL1.ACL)
+
+	e3 := ModACL("argo_uuid", "mistype", "sub1", []string{"UserX", "UserZ"}, store)
+	suite.Equal("wrong resource type", e3.Error())
+}
+
+func (suite *AuthTestSuite) TestAppendToACL() {
+
+	store := stores.NewMockStore("", "")
+
+	e1 := AppendToACL("argo_uuid", "topics", "topic1", []string{"UserX", "UserZ", "UserZ"}, store)
+	suite.Nil(e1)
+
+	tACL1, _ := store.TopicsACL["topic1"]
+	suite.Equal([]string{"uuid1", "uuid2", "uuid3", "uuid4"}, tACL1.ACL)
+
+	e2 := AppendToACL("argo_uuid", "subscriptions", "sub1", []string{"UserX", "UserZ", "UserZ"}, store)
+	suite.Nil(e2)
+
+	sACL1, _ := store.SubsACL["sub1"]
+	suite.Equal([]string{"uuid1", "uuid2", "uuid3", "uuid4"}, sACL1.ACL)
+
+	e3 := AppendToACL("argo_uuid", "mistype", "sub1", []string{"UserX", "UserZ"}, store)
+	suite.Equal("wrong resource type", e3.Error())
+}
+
 func TestAuthTestSuite(t *testing.T) {
 	suite.Run(t, new(AuthTestSuite))
 }

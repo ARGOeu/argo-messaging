@@ -224,6 +224,34 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal(QAcl{}, QAcl08)
 	suite.Equal(errors.New("not found"), err08)
 
+	// test mod acl
+	eModAcl1 := store.ModACL("argo_uuid", "topics", "topic1", []string{"u1", "u2"})
+	suite.Nil(eModAcl1)
+	tACL := store.TopicsACL["topic1"].ACL
+	suite.Equal([]string{"u1", "u2"}, tACL)
+
+	eModAcl2 := store.ModACL("argo_uuid", "subscriptions", "sub1", []string{"u1", "u2"})
+	suite.Nil(eModAcl2)
+	sACL := store.SubsACL["sub1"].ACL
+	suite.Equal([]string{"u1", "u2"}, sACL)
+
+	eModAcl3 := store.ModACL("argo_uuid", "mistype", "sub1", []string{"u1", "u2"})
+	suite.Equal("wrong resource type", eModAcl3.Error())
+
+	// test append acl
+	eAppAcl1 := store.AppendToACL("argo_uuid", "topics", "topic1", []string{"u3", "u4", "u4"})
+	suite.Nil(eAppAcl1)
+	tACLapp := store.TopicsACL["topic1"].ACL
+	suite.Equal([]string{"u1", "u2", "u3", "u4"}, tACLapp)
+
+	eAppAcl2 := store.AppendToACL("argo_uuid", "subscriptions", "sub1", []string{"u3", "u4", "u4"})
+	suite.Nil(eAppAcl2)
+	sACLapp := store.SubsACL["sub1"].ACL
+	suite.Equal([]string{"u1", "u2", "u3", "u4"}, sACLapp)
+
+	eAppAcl3 := store.AppendToACL("argo_uuid", "mistype", "sub1", []string{"u3", "u4", "u4"})
+	suite.Equal("wrong resource type", eAppAcl3.Error())
+
 	//Check has users
 	allFound, notFound := store.HasUsers("argo_uuid", []string{"UserA", "UserB", "FooUser"})
 	suite.Equal(false, allFound)

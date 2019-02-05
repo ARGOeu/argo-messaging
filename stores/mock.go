@@ -159,7 +159,41 @@ func (mk *MockStore) ModACL(projectUUID string, resource string, name string, ac
 		}
 	}
 
-	return errors.New("not found")
+	return errors.New("wrong resource type")
+}
+
+func (mk *MockStore) AppendToACL(projectUUID string, resource string, name string, acl []string) error {
+	if resource == "topics" {
+		if qACL, exists := mk.TopicsACL[name]; exists {
+			qACL.ACL = appendUniqueValues(qACL.ACL, acl...)
+			mk.TopicsACL[name] = qACL
+			return nil
+		}
+	} else if resource == "subscriptions" {
+		if qACL, exists := mk.SubsACL[name]; exists {
+			qACL.ACL = appendUniqueValues(qACL.ACL, acl...)
+			mk.SubsACL[name] = qACL
+			return nil
+		}
+	}
+
+	return errors.New("wrong resource type")
+}
+
+func appendUniqueValues(existingValues []string, newValues ...string) []string {
+	for _, value := range newValues {
+		found := false
+		for _, ev := range existingValues {
+			if ev == value {
+				found = true
+				break
+			}
+		}
+		if !found {
+			existingValues = append(existingValues, value)
+		}
+	}
+	return existingValues
 }
 
 // UpdateProject updates project information
