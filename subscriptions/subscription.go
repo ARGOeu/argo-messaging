@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"encoding/base64"
+	"fmt"
 	"github.com/ARGOeu/argo-messaging/projects"
 	"github.com/ARGOeu/argo-messaging/stores"
 	log "github.com/sirupsen/logrus"
@@ -83,6 +84,16 @@ type AckDeadline struct {
 // PushStatus utility struct
 type PushStatus struct {
 	PushStatus string `json:"push_status"`
+}
+
+type NamesList struct {
+	Subscriptions []string `json:"subscriptions"`
+}
+
+func NewNamesList() NamesList {
+	return NamesList{
+		Subscriptions: make([]string, 0),
+	}
 }
 
 // FindMetric returns the metric of a specific subscription
@@ -230,6 +241,25 @@ func Find(projectUUID string, name string, pageToken string, pageSize int32, sto
 	result.TotalSize = totalSize
 
 	return result, err
+}
+
+// FindByTopic retrieves all subscriptions associated with the given topic
+func FindByTopic(projectUUID string, topicName string, store stores.Store) (NamesList, error) {
+
+	subs, err := store.QuerySubsByTopic(projectUUID, topicName)
+	if err != nil {
+		return NewNamesList(), err
+	}
+
+	subNames := NewNamesList()
+	projectName := projects.GetNameByUUID(projectUUID, store)
+
+	for _, sub := range subs {
+		subNames.Subscriptions = append(subNames.Subscriptions,
+			fmt.Sprintf("/projects/%v/subscriptions/%v", projectName, sub.Name))
+	}
+
+	return subNames, nil
 }
 
 // LoadPushSubs returns all subscriptions defined in store that have a push configuration
