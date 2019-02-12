@@ -68,7 +68,7 @@ func (mk *MockStore) InsertUser(uuid string, projects []QProjectRoles, name stri
 
 //GetAllRoles returns a list of all available roles
 func (mk *MockStore) GetAllRoles() []string {
-	return []string{"service_admin", "admin", "project_admin", "viewer", "consumer", "producer", "push_worker"}
+	return []string{"service_admin", "admin", "project_admin", "viewer", "consumer", "producer", "publisher", "push_worker"}
 }
 
 // UpdateUserToken updates user's token
@@ -90,6 +90,36 @@ func (mk *MockStore) GetOpMetrics() []QopMetric {
 		results = append(results, v)
 	}
 	return results
+}
+
+func (mk *MockStore) AppendToUserProjects(userUUID string, projectUUID string, pRoles ...string) error {
+
+	for idx, user := range mk.UserList {
+
+		if user.UUID == userUUID {
+			projectFound := false
+
+			for _, p := range user.Projects {
+
+				if p.ProjectUUID == projectUUID {
+					projectFound = true
+					break
+				}
+			}
+
+			if !projectFound {
+				mk.UserList[idx].Projects = append(mk.UserList[idx].Projects, QProjectRoles{
+					ProjectUUID: projectUUID,
+					Roles:       pRoles,
+				})
+			}
+
+			break
+		}
+	}
+
+	return nil
+
 }
 
 // UpdateUser updates user information

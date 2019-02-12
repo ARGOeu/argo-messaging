@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/ARGOeu/argo-messaging/projects"
 	"github.com/ARGOeu/argo-messaging/stores"
 	log "github.com/sirupsen/logrus"
@@ -373,6 +374,30 @@ func UpdateUserToken(uuid string, token string, store stores.Store) (User, error
 	// reflect stored object
 	stored, err := FindUsers("", uuid, "", store)
 	return stored.One(), err
+}
+
+// AppendToUserProjects appends a unique project to the user's project list
+func AppendToUserProjects(userUUID string, projectUUID string, store stores.Store, pRoles ...string) error {
+
+	pName := projects.GetNameByUUID(projectUUID, store)
+	if pName == "" {
+		return fmt.Errorf("invalid project %v", projectUUID)
+	}
+
+	validRoles := store.GetAllRoles()
+
+	for _, role := range pRoles {
+		if !IsRoleValid(role, validRoles) {
+			return fmt.Errorf("invalid role %v", role)
+		}
+	}
+
+	err := store.AppendToUserProjects(userUUID, projectUUID, pRoles...)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // UpdateUser updates an existing user's information

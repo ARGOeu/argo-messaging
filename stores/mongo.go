@@ -138,6 +138,31 @@ func (mong *MongoStore) UpdateUserToken(uuid string, token string) error {
 
 }
 
+// AppendToUserProjects appends a new unique project to the user's projects
+func (mong *MongoStore) AppendToUserProjects(userUUID string, projectUUID string, pRoles ...string) error {
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C("users")
+
+	err := c.Update(
+		bson.M{"uuid": userUUID},
+		bson.M{
+			"$addToSet": bson.M{
+				"projects": QProjectRoles{
+					ProjectUUID: projectUUID,
+					Roles:       pRoles,
+				},
+			},
+		},
+	)
+
+	if err != nil {
+		log.Fatal("STORE", "\t", err.Error())
+	}
+
+	return nil
+}
+
 // UpdateUser updates user information
 func (mong *MongoStore) UpdateUser(uuid string, projects []QProjectRoles, name string, email string, serviceRoles []string, modifiedOn time.Time) error {
 	db := mong.Session.DB(mong.Database)
