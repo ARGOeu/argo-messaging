@@ -7,7 +7,12 @@
   "store_db":"argo_msg",
   "certificate":"/etc/pki/tls/certs/localhost.crt",
   "certificate_key":"/etc/pki/tls/private/localhost.key",
+  "certificate_authorities_dir": "/etc/grid-security/certificates",
   "service_token":"b328c3861f061f87cbd34cf34f36ba2ae20883a5",
   "log_level":"INFO",
-  "push_enabled":false
+  "push_enabled":false,
+  "push_tls_enabled": true,
+  "push_server_host": "localhost",
+  "push_server_port": 5555,
+  "verify_push_server": true
 }
