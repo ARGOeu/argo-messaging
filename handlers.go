@@ -1299,22 +1299,12 @@ func SubDelete(w http.ResponseWriter, r *http.Request) {
 
 	// if it is a push sub, deactivate it
 	if results.Subscriptions[0].PushCfg != (subscriptions.PushConfig{}) {
-
 		pr := make(map[string]string)
 		apsc := context.Get(r, "apsc").(push2.Client)
-
-		err = apsc.Dial()
-		defer apsc.Close()
-		if err != nil {
-			pr["message"] = err.Error()
-		} else {
-			pr["message"] = apsc.DeactivateSubscription(context2.TODO(), results.Subscriptions[0].FullName).Result()
-		}
+		pr["message"] = apsc.DeactivateSubscription(context2.TODO(), results.Subscriptions[0].FullName).Result()
 		b, _ := json.Marshal(pr)
 		output = b
 	}
-	// TODO stop push subscription upon deletion
-
 	respondOK(w, output)
 }
 
@@ -1693,16 +1683,8 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//TODO if subscription is push enabled, activate it
 	if postBody.PushCfg != (subscriptions.PushConfig{}) {
-
 		apsc := context.Get(r, "apsc").(push2.Client)
-
-		err := apsc.Dial()
-		defer apsc.Close()
-		if err != nil {
-			res.PushStatus = err.Error()
-		}
 		res.PushStatus = apsc.ActivateSubscription(context2.TODO(), res.FullName, res.FullName, pushEnd, rPolicy, uint32(rPeriod)).Result()
 	}
 

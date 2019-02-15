@@ -43,6 +43,12 @@ func main() {
 
 	// ams push server pushClient
 	pushClient := push.NewGrpcClient(cfg)
+	err := pushClient.Dial()
+	if err != nil {
+		log.Errorf("Could not connect to ams push server, %v", err.Error())
+	}
+
+	defer pushClient.Close()
 
 	// create and initialize API routing object
 	API := NewRouting(cfg, broker, store, mgr, pushClient, defaultRoutes)
@@ -60,7 +66,7 @@ func main() {
 	server := &http.Server{Addr: ":" + strconv.Itoa(cfg.Port), Handler: handlers.CORS(xReqWithConType, allowVerbs)(API.Router), TLSConfig: config}
 
 	// Web service binds to server. Requests served over HTTPS.
-	err := server.ListenAndServeTLS(cfg.Cert, cfg.CertKey)
+	err = server.ListenAndServeTLS(cfg.Cert, cfg.CertKey)
 	if err != nil {
 		log.Fatal("API", "\t", "ListenAndServe:", err)
 	}
