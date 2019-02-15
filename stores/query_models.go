@@ -19,6 +19,7 @@ type QSub struct {
 	RetPeriod    int         `bson:"retry_period"`
 	MsgNum       int64       `bson:"msg_num"`
 	TotalBytes   int64       `bson:"total_bytes"`
+	PushStatus   string      `bson:"push_status,omitempty"`
 }
 
 // QAcl holds a list of authorized users queried from topic or subscription collections

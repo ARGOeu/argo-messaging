@@ -109,6 +109,7 @@ func (suite *SubTestSuite) TestGetSubsByProject() {
 	expSub4.PushCfg.RetPol.Period = 300
 	rp := RetryPolicy{"linear", 300}
 	expSub4.PushCfg = PushConfig{"endpoint.foo", rp}
+	expSub4.PushStatus = "push enabled"
 
 	// retrieve all subs
 	expSubs1 := []Subscription{}
@@ -168,6 +169,7 @@ func (suite *SubTestSuite) TestLoadFromCfg() {
 	expSub4.PushCfg.RetPol.Period = 300
 	rp := RetryPolicy{"linear", 300}
 	expSub4.PushCfg = PushConfig{"endpoint.foo", rp}
+	expSub4.PushStatus = "push enabled"
 	expSubs := []Subscription{}
 	expSubs = append(expSubs, expSub4)
 	expSubs = append(expSubs, expSub3)
@@ -199,11 +201,11 @@ func (suite *SubTestSuite) TestCreateSubStore() {
 
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
 
-	sub, err := CreateSub("argo_uuid", "sub1", "topic1", "", 0, 0, "linear", 300, store)
+	sub, err := CreateSub("argo_uuid", "sub1", "topic1", "", 0, 0, "linear", 300, "", store)
 	suite.Equal(Subscription{}, sub)
 	suite.Equal("exists", err.Error())
 
-	sub2, err2 := CreateSub("argo_uuid", "subNew", "topicNew", "", 0, 0, "linear", 300, store)
+	sub2, err2 := CreateSub("argo_uuid", "subNew", "topicNew", "", 0, 0, "linear", 300, "", store)
 	expSub := New("argo_uuid", "ARGO", "subNew", "topicNew")
 	suite.Equal(expSub, sub2)
 	suite.Equal(nil, err2)
@@ -228,6 +230,29 @@ func (suite *SubTestSuite) TestModAck() {
 
 	err = ModAck("argo_uuid", "sub1", 601, store)
 	suite.Equal(errors.New("wrong value"), err)
+}
+
+func (suite *SubTestSuite) TestModSubPush() {
+
+	APIcfg := config.NewAPICfg()
+	APIcfg.LoadStrJSON(suite.cfgStr)
+
+	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
+
+	// modify push config
+	err1 := ModSubPush("argo_uuid", "sub1", "example.com", "linear", 400, "push enabled", store)
+
+	suite.Nil(err1)
+
+	sub1, _ := store.QueryOneSub("argo_uuid", "sub1")
+	suite.Equal("example.com", sub1.PushEndpoint)
+	suite.Equal("linear", sub1.RetPolicy)
+	suite.Equal(400, sub1.RetPeriod)
+	suite.Equal("push enabled", sub1.PushStatus)
+
+	// test error case
+	err2 := ModSubPush("argo_uuid", "unknown", "", "", 0, "", store)
+	suite.Equal("not found", err2.Error())
 }
 
 func (suite *SubTestSuite) TestExtractFullTopic() {
@@ -283,7 +308,8 @@ func (suite *SubTestSuite) TestExportJson() {
                "period": 300
             }
          },
-         "ackDeadlineSeconds": 10
+         "ackDeadlineSeconds": 10,
+         "push_status": "push enabled"
       },
       {
          "name": "/projects/ARGO/subscriptions/sub3",

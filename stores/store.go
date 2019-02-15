@@ -33,7 +33,7 @@ type Store interface {
 	IncrementTopicBytes(projectUUID string, name string, totalBytes int64) error
 	IncrementSubBytes(projectUUID string, name string, totalBytes int64) error
 	IncrementSubMsgNum(projectUUID string, name string, num int64) error
-	InsertSub(projectUUID string, name string, topic string, offest int64, ack int, push string, rPolicy string, rPeriod int) error
+	InsertSub(projectUUID string, name string, topic string, offest int64, ack int, push string, rPolicy string, rPeriod int, status string) error
 	HasProject(name string) bool
 	HasUsers(projectUUID string, users []string) (bool, []string)
 	QueryOneSub(projectUUID string, name string) (QSub, error)
@@ -45,7 +45,7 @@ type Store interface {
 	UpdateSubOffset(projectUUID string, name string, offset int64)
 	UpdateSubPull(projectUUID string, name string, offset int64, ts string) error
 	UpdateSubOffsetAck(projectUUID string, name string, offset int64, ts string) error
-	ModSubPush(projectUUID string, name string, push string, rPolicy string, rPeriod int) error
+	ModSubPush(projectUUID string, name string, push string, rPolicy string, rPeriod int, status string) error
 	QueryACL(projectUUID string, resource string, name string) (QAcl, error)
 	ModACL(projectUUID string, resource string, name string, acl []string) error
 	ModAck(projectUUID string, name string, ack int) error

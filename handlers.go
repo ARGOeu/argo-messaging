@@ -1450,6 +1450,7 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	pushStatus := ""
 	pushEnd := ""
 	rPolicy := ""
 	rPeriod := 0
@@ -1469,6 +1470,7 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 		if rPeriod <= 0 {
 			rPeriod = 3000
 		}
+		pushStatus = "push enabled"
 	}
 
 	// Grab context references
@@ -1489,7 +1491,7 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = subscriptions.ModSubPush(projectUUID, subName, pushEnd, rPolicy, rPeriod, refStr)
+	err = subscriptions.ModSubPush(projectUUID, subName, pushEnd, rPolicy, rPeriod, pushStatus, refStr)
 
 	if err != nil {
 
@@ -1625,6 +1627,7 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 	curOff := refBrk.GetMaxOffset(fullTopic)
 
 	pushEnd := ""
+	pushStatus := ""
 	rPolicy := ""
 	rPeriod := 0
 	if postBody.PushCfg != (subscriptions.PushConfig{}) {
@@ -1643,10 +1646,11 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 		if rPeriod <= 0 {
 			rPeriod = 3000
 		}
+		pushStatus = "push enabled"
 	}
 
 	// Get Result Object
-	res, err := subscriptions.CreateSub(projectUUID, urlVars["subscription"], tName, pushEnd, curOff, postBody.Ack, rPolicy, rPeriod, refStr)
+	res, err := subscriptions.CreateSub(projectUUID, urlVars["subscription"], tName, pushEnd, curOff, postBody.Ack, rPolicy, rPeriod, pushStatus, refStr)
 
 	if err != nil {
 		if err.Error() == "exists" {
