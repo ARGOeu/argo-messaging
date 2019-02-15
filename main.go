@@ -9,7 +9,8 @@ import (
 
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
-	"github.com/ARGOeu/argo-messaging/push"
+	push2 "github.com/ARGOeu/argo-messaging/push"
+	"github.com/ARGOeu/argo-messaging/push/grpc/client"
 	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/gorilla/handlers"
 	log "github.com/sirupsen/logrus"
@@ -38,10 +39,13 @@ func main() {
 	broker := brokers.NewKafkaBroker(cfg.GetBrokerInfo())
 	defer broker.CloseConnections()
 
-	mgr := &push.Manager{}
+	mgr := &push2.Manager{}
+
+	// ams push server pushClient
+	pushClient := push.NewGrpcClient(cfg)
 
 	// create and initialize API routing object
-	API := NewRouting(cfg, broker, store, mgr, defaultRoutes)
+	API := NewRouting(cfg, broker, store, mgr, pushClient, defaultRoutes)
 
 	//Configure TLS support only
 	config := &tls.Config{
