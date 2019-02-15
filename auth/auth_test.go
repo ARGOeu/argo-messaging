@@ -556,6 +556,12 @@ func (suite *AuthTestSuite) TestSubACL() {
    "authorized_users": []
 }`
 
+	expJSON01deleted := `{
+   "authorized_users": [
+      "UserB"
+   ]
+}`
+
 	APIcfg := config.NewAPICfg()
 	APIcfg.LoadStrJSON(suite.cfgStr)
 
@@ -580,6 +586,13 @@ func (suite *AuthTestSuite) TestSubACL() {
 	sACL5 := ACL{}
 	outJSON5, _ := sACL5.ExportJSON()
 	suite.Equal(expJSON05, outJSON5)
+
+	// make sure that the acl doesn't contain empty "" in the spot of the deleted user
+	store.RemoveUser("uuid1")
+	dACL, _ := GetACL("argo_uuid", "subscriptions", "sub1", store)
+	outJSONd, _ := dACL.ExportJSON()
+	suite.Equal(expJSON01deleted, outJSONd)
+
 }
 
 func (suite *AuthTestSuite) TestTopicACL() {
@@ -608,6 +621,12 @@ func (suite *AuthTestSuite) TestTopicACL() {
    "authorized_users": []
 }`
 
+	expJSON01deleted := `{
+   "authorized_users": [
+      "UserB"
+   ]
+}`
+
 	APIcfg := config.NewAPICfg()
 	APIcfg.LoadStrJSON(suite.cfgStr)
 
@@ -628,6 +647,12 @@ func (suite *AuthTestSuite) TestTopicACL() {
 	tACL4 := ACL{}
 	outJSON4, _ := tACL4.ExportJSON()
 	suite.Equal(expJSON04, outJSON4)
+
+	// make sure that the acl doesn't contain empty "" in the spot of the deleted user
+	store.RemoveUser("uuid1")
+	dACL, _ := GetACL("argo_uuid", "topics", "topic1", store)
+	outJSONd, _ := dACL.ExportJSON()
+	suite.Equal(expJSON01deleted, outJSONd)
 }
 
 func TestAuthTestSuite(t *testing.T) {
