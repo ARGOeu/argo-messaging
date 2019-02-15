@@ -38,13 +38,8 @@ func main() {
 	broker := brokers.NewKafkaBroker(cfg.GetBrokerInfo())
 	defer broker.CloseConnections()
 
-	sndr := push.NewHTTPSender(1)
+	mgr := &push.Manager{}
 
-	mgr := push.NewManager(broker, store, sndr)
-	if cfg.PushEnabled {
-		mgr.LoadPushSubs()
-		mgr.StartAll()
-	}
 	// create and initialize API routing object
 	API := NewRouting(cfg, broker, store, mgr, defaultRoutes)
 
