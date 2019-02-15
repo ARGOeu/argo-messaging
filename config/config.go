@@ -43,6 +43,8 @@ type APICfg struct {
 	PushServerPort int
 	// If tls is enabled, whether or not it should verify the push server's certificate
 	VerifyPushServer bool
+	// The token that corresponds to the registered push worker user
+	PushWorkerToken string
 }
 
 // NewAPICfg creates a new kafka configuration object
@@ -240,6 +242,8 @@ func (cfg *APICfg) LoadTest() {
 	log.Info("CONFIG", "\t", "Parameter Loaded - push_server_port: ", cfg.PushServerPort)
 	cfg.VerifyPushServer = viper.GetBool("verify_push_server")
 	log.Info("CONFIG", "\t", "Parameter Loaded - verify_push_server: ", cfg.VerifyPushServer)
+	cfg.PushWorkerToken = viper.GetString("push_worker_token")
+	log.Info("CONFIG", "\t", "Parameter Loaded - push_worker_token: ", cfg.PushWorkerToken)
 }
 
 // Load the configuration
@@ -300,6 +304,9 @@ func (cfg *APICfg) Load() {
 		pflag.Bool("push-verify", true, "verify push server's certificate if tls is enabled")
 		viper.BindPFlag("verify_push_server", pflag.Lookup("push-verify"))
 
+		pflag.String("push-worker-token", "", "token corresponding to the registered push worker user")
+		viper.BindPFlag("push_worker_token", pflag.Lookup("push-worker-token"))
+
 		configPath = pflag.String("config-dir", "", "directory path to an alternative json config file")
 
 		pflag.Parse()
@@ -356,6 +363,8 @@ func (cfg *APICfg) Load() {
 	log.Info("CONFIG", "\t", "Parameter Loaded - push_server_port: ", cfg.PushServerPort)
 	cfg.VerifyPushServer = viper.GetBool("verify_push_server")
 	log.Info("CONFIG", "\t", "Parameter Loaded - verify_push_server: ", cfg.VerifyPushServer)
+	cfg.PushWorkerToken = viper.GetString("push_worker_token")
+	log.Info("CONFIG", "\t", "Parameter Loaded - push_worker_token: ", cfg.PushWorkerToken)
 }
 
 // LoadStrJSON Loads configuration from a JSON string
@@ -395,4 +404,6 @@ func (cfg *APICfg) LoadStrJSON(input string) {
 	log.Info("CONFIG", "\t", "Parameter Loaded - push_server_port: ", cfg.PushServerPort)
 	cfg.VerifyPushServer = viper.GetBool("verify_push_server")
 	log.Info("CONFIG", "\t", "Parameter Loaded - verify_push_server: ", cfg.VerifyPushServer)
+	cfg.PushWorkerToken = viper.GetString("push_worker_token")
+	log.Info("CONFIG", "\t", "Parameter Loaded - push_worker_token: ", cfg.PushWorkerToken)
 }

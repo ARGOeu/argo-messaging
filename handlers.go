@@ -78,6 +78,8 @@ func WrapMockAuthConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Br
 		gorillaContext.Set(r, "auth_user", "UserA")
 		gorillaContext.Set(r, "auth_user_uuid", "uuid1")
 		gorillaContext.Set(r, "auth_roles", []string{"publisher", "consumer"})
+		gorillaContext.Set(r, "push_worker_token", cfg.PushWorkerToken)
+		gorillaContext.Set(r, "push_enabled", cfg.PushEnabled)
 		hfn.ServeHTTP(w, r)
 
 	})
@@ -1454,6 +1456,9 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 	// Get project UUID First to use as reference
 	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+
 	// Read POST JSON body
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -1474,6 +1479,23 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 	rPolicy := ""
 	rPeriod := 0
 	if postBody.PushCfg != (subscriptions.PushConfig{}) {
+
+		pwToken := gorillaContext.Get(r, "push_worker_token").(string)
+		pushEnabled := gorillaContext.Get(r, "push_enabled").(bool)
+
+		// check the state of the push functionality
+		if !pushEnabled {
+			err := APIErrorPushConflict()
+			respondErr(w, err)
+			return
+		}
+		_, err := auth.GetPushWorker(pwToken, refStr)
+		if err != nil {
+			err := APIErrInternalPush()
+			respondErr(w, err)
+			return
+		}
+
 		pushEnd = postBody.PushCfg.Pend
 		// Check if push endpoint is not a valid https:// endpoint
 		if !(isValidHTTPS(pushEnd)) {
@@ -1490,9 +1512,6 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 			rPeriod = 3000
 		}
 	}
-
-	// Grab context references
-	refStr := gorillaContext.Get(r, "str").(stores.Store)
 
 	// Get Result Object
 	res, err := subscriptions.Find(projectUUID, subName, "", 0, refStr)
@@ -1740,7 +1759,26 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 	pushEnd := ""
 	rPolicy := ""
 	rPeriod := 0
+
 	if postBody.PushCfg != (subscriptions.PushConfig{}) {
+
+		// check the state of the push functionality
+		pwToken := gorillaContext.Get(r, "push_worker_token").(string)
+		pushEnabled := gorillaContext.Get(r, "push_enabled").(bool)
+
+		if !pushEnabled {
+			err := APIErrorPushConflict()
+			respondErr(w, err)
+			return
+		}
+
+		_, err := auth.GetPushWorker(pwToken, refStr)
+		if err != nil {
+			err := APIErrInternalPush()
+			respondErr(w, err)
+			return
+		}
+
 		pushEnd = postBody.PushCfg.Pend
 		// Check if push endpoint is not a valid https:// endpoint
 		if !(isValidHTTPS(pushEnd)) {
@@ -2699,6 +2737,17 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
+	pwToken := gorillaContext.Get(r, "push_worker_token").(string)
+	pushEnabled := gorillaContext.Get(r, "push_enabled").(bool)
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+
+	if pushEnabled {
+		_, err := auth.GetPushWorker(pwToken, refStr)
+		if err != nil {
+			healthMsg.Status = "warning"
+			log.Error("push worker could not be retrieved")
+		}
+	}
 	if bytes, err = json.MarshalIndent(healthMsg, "", " "); err != nil {
 		err := APIErrGenericInternal(err.Error())
 		respondErr(w, err)
@@ -2825,6 +2874,20 @@ var APIErrorConflict = func(resource string) APIErrorRoot {
 	return APIErrorRoot{Body: apiErrBody}
 }
 
+// api error to be used when push enabled false
+var APIErrorPushConflict = func() APIErrorRoot {
+
+	apiErrBody := APIErrorBody{
+		Code:    http.StatusConflict,
+		Message: "Push functionality is currently disabled",
+		Status:  "CONFLICT",
+	}
+
+	return APIErrorRoot{
+		Body: apiErrBody,
+	}
+}
+
 // api err for dealing with too large messages
 var APIErrTooLargeMessage = func(resource string) APIErrorRoot {
 	apiErrBody := APIErrorBody{Code: http.StatusRequestEntityTooLarge, Message: "Message size is too large", Status: "INVALID_ARGUMENT"}
@@ -2859,4 +2922,18 @@ var APIErrHandlingAcknowledgement = func() APIErrorRoot {
 var APIErrGenericBackend = func() APIErrorRoot {
 	apiErrBody := APIErrorBody{Code: http.StatusInternalServerError, Message: "Backend Error", Status: "INTERNAL_SERVER_ERROR"}
 	return APIErrorRoot{Body: apiErrBody}
+}
+
+// api error to be used when push enabled true but push worker was not able to be retrieved
+var APIErrInternalPush = func() APIErrorRoot {
+
+	apiErrBody := APIErrorBody{
+		Code:    http.StatusInternalServerError,
+		Message: "Push functionality is currently unavailable",
+		Status:  "INTERNAL_SERVER_ERROR",
+	}
+
+	return APIErrorRoot{
+		Body: apiErrBody,
+	}
 }

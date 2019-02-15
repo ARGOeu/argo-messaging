@@ -14,5 +14,6 @@
   "push_tls_enabled": true,
   "push_server_host": "localhost",
   "push_server_port": 5555,
-  "verify_push_server": true
+  "verify_push_server": true,
+  "push_worker_token": "18492e78a1e95be564c00ba4537c4171ec628f98"
 }

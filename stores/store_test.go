@@ -446,12 +446,12 @@ func (suite *StoreTestSuite) TestMockStore() {
 
 	suite.Equal(store2.UserList, qUsers1)
 	suite.Equal("", pg1)
-	suite.Equal(int32(7), ts1)
+	suite.Equal(int32(8), ts1)
 
-	suite.Equal(6, qUsers2[0].ID)
-	suite.Equal(5, qUsers2[1].ID)
-	suite.Equal("4", pg2)
-	suite.Equal(int32(7), ts2)
+	suite.Equal(7, qUsers2[0].ID)
+	suite.Equal(6, qUsers2[1].ID)
+	suite.Equal("5", pg2)
+	suite.Equal(int32(8), ts2)
 
 	suite.Equal(0, len(qUsers3))
 	suite.Equal("", pg3)
@@ -460,7 +460,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal(4, qUsers4[0].ID)
 	suite.Equal(3, qUsers4[1].ID)
 	suite.Equal("2", pg4)
-	suite.Equal(int32(7), ts4)
+	suite.Equal(int32(8), ts4)
 
 }
 

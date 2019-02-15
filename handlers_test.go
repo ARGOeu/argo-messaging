@@ -39,7 +39,9 @@ func (suite *HandlerTestSuite) SetupTest() {
 	"store_db":"argo_msg",
 	"certificate":"/etc/pki/tls/certs/localhost.crt",
 	"certificate_key":"/etc/pki/tls/private/localhost.key",
-	"per_resource_auth":"true"
+	"per_resource_auth":"true",
+	"push_enabled": "true",
+	"push_worker_token": "push_token"
 	}`
 
 	log.SetOutput(ioutil.Discard)
@@ -377,6 +379,18 @@ func (suite *HandlerTestSuite) TestUserListAll() {
 	expResp := `{
    "users": [
       {
+         "uuid": "uuid7",
+         "projects": [],
+         "name": "push_worker_0",
+         "token": "push_token",
+         "email": "foo-email",
+         "service_roles": [
+            "push_worker"
+         ],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z"
+      },
+      {
          "uuid": "same_uuid",
          "projects": [
             {
@@ -546,7 +560,7 @@ func (suite *HandlerTestSuite) TestUserListAll() {
       }
    ],
    "nextPageToken": "",
-   "totalSize": 7
+   "totalSize": 8
 }`
 
 	cfgKafka := config.NewAPICfg()
@@ -574,6 +588,18 @@ func (suite *HandlerTestSuite) TestUserListAllStartingPage() {
 	expResp := `{
    "users": [
       {
+         "uuid": "uuid7",
+         "projects": [],
+         "name": "push_worker_0",
+         "token": "push_token",
+         "email": "foo-email",
+         "service_roles": [
+            "push_worker"
+         ],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z"
+      },
+      {
          "uuid": "same_uuid",
          "projects": [
             {
@@ -593,31 +619,10 @@ func (suite *HandlerTestSuite) TestUserListAllStartingPage() {
          "created_on": "2009-11-10T23:00:00Z",
          "modified_on": "2009-11-10T23:00:00Z",
          "created_by": "UserA"
-      },
-      {
-         "uuid": "same_uuid",
-         "projects": [
-            {
-               "project": "ARGO",
-               "roles": [
-                  "publisher",
-                  "consumer"
-               ],
-               "topics": [],
-               "subscriptions": []
-            }
-         ],
-         "name": "UserSame1",
-         "token": "S3CR3T41",
-         "email": "foo-email",
-         "service_roles": [],
-         "created_on": "2009-11-10T23:00:00Z",
-         "modified_on": "2009-11-10T23:00:00Z",
-         "created_by": "UserA"
       }
    ],
-   "nextPageToken": "NA==",
-   "totalSize": 7
+   "nextPageToken": "NQ==",
+   "totalSize": 8
 }`
 
 	cfgKafka := config.NewAPICfg()
@@ -727,7 +732,7 @@ func (suite *HandlerTestSuite) TestUserListAllIntermediatePage() {
       }
    ],
    "nextPageToken": "Mg==",
-   "totalSize": 7
+   "totalSize": 8
 }`
 
 	cfgKafka := config.NewAPICfg()
@@ -1138,6 +1143,77 @@ func (suite *HandlerTestSuite) TestSubModPushConfigToInactive() {
 	suite.Equal("Subscription /projects/ARGO/subscriptions/sub4 deactivated", sub.PushStatus)
 }
 
+// TestSubModPushConfigToInactivePushDisabled tests the use case where the user modifies the push configuration
+// in order to deactivate the subscription on the push server
+// the push configuration has values before the call and turns into an empty one by the end of the call
+// push enabled is false, but turning a subscription from push to pull should always be available as an api action
+func (suite *HandlerTestSuite) TestSubModPushConfigToInactivePushDisabled() {
+
+	postJSON := `{
+	"pushConfig": {}
+}`
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/projects/ARGO/subscriptions/sub4:modifyPushConfig", strings.NewReader(postJSON))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	cfgKafka.PushEnabled = false
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modifyPushConfig", WrapMockAuthConfig(SubModPush, cfgKafka, &brk, str, &mgr, pc))
+	router.ServeHTTP(w, req)
+	sub, _ := str.QueryOneSub("argo_uuid", "sub4")
+	suite.Equal(200, w.Code)
+	suite.Equal("", w.Body.String())
+	suite.Equal("", sub.PushEndpoint)
+	suite.Equal(0, sub.RetPeriod)
+	suite.Equal("", sub.RetPolicy)
+	suite.Equal("Subscription /projects/ARGO/subscriptions/sub4 deactivated", sub.PushStatus)
+}
+
+// TestSubModPushConfigToInactiveMissingPushWorker tests the use case where the user modifies the push configuration
+// in order to deactivate the subscription on the push server
+// the push configuration has values before the call and turns into an empty one by the end of the call
+// push enabled is true, we cannot retrieve the push worker user in order to remove him fro, the subscription's acl
+// but turning a subscription from push to pull should always be available as an api action
+func (suite *HandlerTestSuite) TestSubModPushConfigToInactiveMissingPushWorker() {
+
+	postJSON := `{
+	"pushConfig": {}
+}`
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/projects/ARGO/subscriptions/sub4:modifyPushConfig", strings.NewReader(postJSON))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	cfgKafka.PushWorkerToken = "missing"
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modifyPushConfig", WrapMockAuthConfig(SubModPush, cfgKafka, &brk, str, &mgr, pc))
+	router.ServeHTTP(w, req)
+	sub, _ := str.QueryOneSub("argo_uuid", "sub4")
+	suite.Equal(200, w.Code)
+	suite.Equal("", w.Body.String())
+	suite.Equal("", sub.PushEndpoint)
+	suite.Equal(0, sub.RetPeriod)
+	suite.Equal("", sub.RetPolicy)
+	suite.Equal("Subscription /projects/ARGO/subscriptions/sub4 deactivated", sub.PushStatus)
+}
+
 // TestSubModPushConfigToActive tests the case where the user modifies the push configuration,
 // in order to activate the subscription on the push server
 // the push configuration was empty before the api call
@@ -1175,6 +1251,92 @@ func (suite *HandlerTestSuite) TestSubModPushConfigUpdate() {
 	suite.Equal(5000, sub.RetPeriod)
 	suite.Equal("linear", sub.RetPolicy)
 	suite.Equal("Success: Subscription /projects/ARGO/subscriptions/sub4 activated", sub.PushStatus)
+}
+
+// TestSubModPushConfigToActiveORUpdatePushDisabled tests the case where the user modifies the push configuration,
+// in order to activate the subscription on the push server
+// the push enabled config option is set to false
+func (suite *HandlerTestSuite) TestSubModPushConfigToActiveORUpdatePushDisabled() {
+
+	postJSON := `{
+	"pushConfig": {
+		 "pushEndpoint": "https://www.example2.com",
+		 "retryPolicy": {
+             "type":"linear",
+             "period": 5000
+         }
+	}
+}`
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/projects/ARGO/subscriptions/sub4:modifyPushConfig", strings.NewReader(postJSON))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "error": {
+      "code": 409,
+      "message": "Push functionality is currently disabled",
+      "status": "CONFLICT"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	cfgKafka.PushEnabled = false
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modifyPushConfig", WrapMockAuthConfig(SubModPush, cfgKafka, &brk, str, &mgr, pc))
+	router.ServeHTTP(w, req)
+	suite.Equal(409, w.Code)
+	suite.Equal(expResp, w.Body.String())
+}
+
+// TestSubModPushConfigToActiveORUpdateMissingWorker tests the case where the user modifies the push configuration,
+// in order to activate the subscription on the push server
+// push enabled is true, but ams can't retrieve the push worker user
+func (suite *HandlerTestSuite) TestSubModPushConfigToActiveORUpdateMissingWorker() {
+
+	postJSON := `{
+	"pushConfig": {
+		 "pushEndpoint": "https://www.example2.com",
+		 "retryPolicy": {
+             "type":"linear",
+             "period": 5000
+         }
+	}
+}`
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/projects/ARGO/subscriptions/sub4:modifyPushConfig", strings.NewReader(postJSON))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "error": {
+      "code": 500,
+      "message": "Push functionality is currently unavailable",
+      "status": "INTERNAL_SERVER_ERROR"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	cfgKafka.PushWorkerToken = "missing"
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modifyPushConfig", WrapMockAuthConfig(SubModPush, cfgKafka, &brk, str, &mgr, pc))
+	router.ServeHTTP(w, req)
+	suite.Equal(500, w.Code)
+	suite.Equal(expResp, w.Body.String())
 }
 
 func (suite *HandlerTestSuite) TestSubCreatePushConfig() {
@@ -1220,6 +1382,90 @@ func (suite *HandlerTestSuite) TestSubCreatePushConfig() {
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
 	suite.Equal("Subscription /projects/ARGO/subscriptions/subNew activated", sub.PushStatus)
+}
+
+func (suite *HandlerTestSuite) TestSubCreatePushConfigMissingPushWorker() {
+
+	postJSON := `{
+	"topic":"projects/ARGO/topics/topic1",
+	"pushConfig": {
+		 "pushEndpoint": "https://www.example.com",
+		 "retryPolicy": {}
+	}
+}`
+
+	req, err := http.NewRequest("PUT", "http://localhost:8080/v1/projects/ARGO/subscriptions/subNew", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "error": {
+      "code": 500,
+      "message": "Push functionality is currently unavailable",
+      "status": "INTERNAL_SERVER_ERROR"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	cfgKafka.PushWorkerToken = "missing"
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubCreate, cfgKafka, &brk, str, &mgr, pc))
+	router.ServeHTTP(w, req)
+	// subscription should not have been inserted to the store if it has push configuration
+	// but we can't retrieve the push worker
+	_, errSub := str.QueryOneSub("argo_uuid", "subNew")
+	suite.Equal(500, w.Code)
+	suite.Equal(expResp, w.Body.String())
+	suite.Equal("empty", errSub.Error())
+}
+
+func (suite *HandlerTestSuite) TestSubCreatePushConfigPushDisabled() {
+
+	postJSON := `{
+	"topic":"projects/ARGO/topics/topic1",
+	"pushConfig": {
+		 "pushEndpoint": "https://www.example.com",
+		 "retryPolicy": {}
+	}
+}`
+
+	req, err := http.NewRequest("PUT", "http://localhost:8080/v1/projects/ARGO/subscriptions/subNew", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "error": {
+      "code": 409,
+      "message": "Push functionality is currently disabled",
+      "status": "CONFLICT"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	cfgKafka.PushEnabled = false
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubCreate, cfgKafka, &brk, str, &mgr, pc))
+	router.ServeHTTP(w, req)
+	// subscription should not have been inserted to the store if it has push configuration
+	// but push enables is false
+	_, errSub := str.QueryOneSub("argo_uuid", "subNew")
+	suite.Equal(409, w.Code)
+	suite.Equal(expResp, w.Body.String())
+	suite.Equal("empty", errSub.Error())
 }
 
 func (suite *HandlerTestSuite) TestSubCreatePushConfigPushServerError() {
@@ -3654,6 +3900,42 @@ func (suite *HandlerTestSuite) TestHealthCheck() {
 
 	cfgKafka := config.NewAPICfg()
 	cfgKafka.LoadStrJSON(suite.cfgStr)
+	cfgKafka.PushEnabled = true
+	cfgKafka.PushWorkerToken = "push_token"
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/status", WrapMockAuthConfig(HealthCheck, cfgKafka, &brk, str, &mgr, pc))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+}
+
+func (suite *HandlerTestSuite) TestHealthCheckPushWorkerMissing() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/status", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+ "status": "warning",
+ "push_servers": [
+  {
+   "endpoint": "localhost:5555",
+   "status": "Success: SERVING"
+  }
+ ]
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	cfgKafka.PushEnabled = true
+	// add a wrong push worker token
+	cfgKafka.PushWorkerToken = "missing"
 	brk := brokers.MockBroker{}
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)

@@ -469,6 +469,7 @@ func (suite *AuthTestSuite) TestAuth() {
 	modified := "2009-11-10T23:00:00Z"
 
 	var qUsers1 []User
+	qUsers1 = append(qUsers1, User{"uuid7", []ProjectRoles{}, "push_worker_0", "push_token", "foo-email", []string{"push_worker"}, created, modified, ""})
 	qUsers1 = append(qUsers1, User{"same_uuid", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{}, []string{}}}, "UserSame2", "S3CR3T42", "foo-email", []string{}, created, modified, "UserA"})
 	qUsers1 = append(qUsers1, User{"same_uuid", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{}, []string{}}}, "UserSame1", "S3CR3T41", "foo-email", []string{}, created, modified, "UserA"})
 	qUsers1 = append(qUsers1, User{"uuid4", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{"topic2"}, []string{"sub3", "sub4"}}}, "UserZ", "S3CR3T4", "foo-email", []string{}, created, modified, "UserA"})
@@ -480,8 +481,9 @@ func (suite *AuthTestSuite) TestAuth() {
 	pu1, e1 := PaginatedFindUsers("", 0, store2)
 
 	var qUsers2 []User
+	qUsers2 = append(qUsers2, User{"uuid7", []ProjectRoles{}, "push_worker_0", "push_token", "foo-email", []string{"push_worker"}, created, modified, ""})
 	qUsers2 = append(qUsers2, User{"same_uuid", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{}, []string{}}}, "UserSame2", "S3CR3T42", "foo-email", []string{}, created, modified, "UserA"})
-	qUsers2 = append(qUsers2, User{"same_uuid", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{}, []string{}}}, "UserSame1", "S3CR3T41", "foo-email", []string{}, created, modified, "UserA"})
+
 	// return the first page with 2 users
 	pu2, e2 := PaginatedFindUsers("", 2, store2)
 
@@ -500,17 +502,17 @@ func (suite *AuthTestSuite) TestAuth() {
 	_, e5 := PaginatedFindUsers("invalid", 0, store2)
 
 	suite.Equal(qUsers1, pu1.Users)
-	suite.Equal(int32(7), pu1.TotalSize)
+	suite.Equal(int32(8), pu1.TotalSize)
 	suite.Equal("", pu1.NextPageToken)
 	suite.Nil(e1)
 
 	suite.Equal(qUsers2, pu2.Users)
-	suite.Equal(int32(7), pu2.TotalSize)
-	suite.Equal("NA==", pu2.NextPageToken)
+	suite.Equal(int32(8), pu2.TotalSize)
+	suite.Equal("NQ==", pu2.NextPageToken)
 	suite.Nil(e2)
 
 	suite.Equal(qUsers3, pu3.Users)
-	suite.Equal(int32(7), pu3.TotalSize)
+	suite.Equal(int32(8), pu3.TotalSize)
 	suite.Equal("Mg==", pu3.NextPageToken)
 	suite.Nil(e3)
 
@@ -739,6 +741,21 @@ func (suite *AuthTestSuite) TestRemoveFromACL() {
 
 	e3 := RemoveFromACL("argo_uuid", "mistype", "sub1", []string{"UserX", "UserZ"}, store)
 	suite.Equal("wrong resource type", e3.Error())
+}
+
+func (suite *AuthTestSuite) TestGetPushWorkerToken() {
+
+	store := stores.NewMockStore("", "")
+
+	// normal case of push enabled true and correct push worker token
+	u1, err1 := GetPushWorker("push_token", store)
+	suite.Equal(User{"uuid7", []ProjectRoles{}, "push_worker_0", "push_token", "foo-email", []string{"push_worker"}, "2009-11-10T23:00:00Z", "2009-11-10T23:00:00Z", ""}, u1)
+	suite.Nil(err1)
+
+	//  incorrect push worker token
+	u4, err4 := GetPushWorker("missing", store)
+	suite.Equal(User{}, u4)
+	suite.Equal("push_500", err4.Error())
 }
 
 func TestAuthTestSuite(t *testing.T) {
