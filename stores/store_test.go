@@ -238,7 +238,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 	QAcl06, _ := store.QueryACL("argo_uuid", "subscriptions", "sub3")
 	suite.Equal(ExpectedACL06, QAcl06)
 
-	ExpectedACL07 := QAcl{[]string{"uuid2", "uuid4"}}
+	ExpectedACL07 := QAcl{[]string{"uuid2", "uuid4", "uuid7"}}
 	QAcl07, _ := store.QueryACL("argo_uuid", "subscriptions", "sub4")
 	suite.Equal(ExpectedACL07, QAcl07)
 
