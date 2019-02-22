@@ -316,6 +316,47 @@ Code: `200 OK`, Empty response if successful.
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
 
+## [POST] Modify Push Status
+This request modifies the push status of a subscription
+
+### Request
+`POST /v1/projects/{project_name}/subscriptions/{subscription_name}:modifyPushStatus`
+
+### Post body:
+```json
+{
+  "push_status": "push enabled"
+}
+```
+
+### Where
+- Project_name: Name of the project
+- subscription_name: The subscription name to consume
+- push_status: Contains information about the state of a subscription on the push server
+
+
+### Example request
+
+```json
+curl -X POST -H "Content-Type: application/json"  
+-d POSTDATA http://{URL}/v1/projects/BRAND_NEW/subscriptions/alert_engine:modifyPushStatus?key=S3CR3T
+```
+
+### Post body:
+```json
+{
+  "push_status": "push enabled"
+}
+```
+
+### Responses  
+
+Success Response
+Code: `200 OK`, Empty response if successful.
+
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors
+
 ## [POST] Pull messages from a subscription (Consume)
 
 This request consumes messages from a subscription in a project with a POST request

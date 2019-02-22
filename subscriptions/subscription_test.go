@@ -201,11 +201,11 @@ func (suite *SubTestSuite) TestCreateSubStore() {
 
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
 
-	sub, err := CreateSub("argo_uuid", "sub1", "topic1", "", 0, 0, "linear", 300, "", store)
+	sub, err := CreateSub("argo_uuid", "sub1", "topic1", "", 0, 0, "linear", 300, store)
 	suite.Equal(Subscription{}, sub)
 	suite.Equal("exists", err.Error())
 
-	sub2, err2 := CreateSub("argo_uuid", "subNew", "topicNew", "", 0, 0, "linear", 300, "", store)
+	sub2, err2 := CreateSub("argo_uuid", "subNew", "topicNew", "", 0, 0, "linear", 300, store)
 	expSub := New("argo_uuid", "ARGO", "subNew", "topicNew")
 	suite.Equal(expSub, sub2)
 	suite.Equal(nil, err2)
@@ -376,6 +376,15 @@ func (suite *SubTestSuite) TestGetOffsetFromAckID() {
 		suite.Equal(expOffsets[i], off)
 	}
 
+}
+
+func (suite *SubTestSuite) TestModSubPushStatus() {
+
+	store := stores.NewMockStore("", "")
+	err := ModSubPushStatus("argo_uuid", "sub4", "new push status", store)
+	sub, _ := store.QueryOneSub("argo_uuid", "sub4")
+	suite.Nil(err)
+	suite.Equal("new push status", sub.PushStatus)
 }
 
 func TestSubTestSuite(t *testing.T) {

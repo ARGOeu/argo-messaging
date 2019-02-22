@@ -1532,6 +1532,73 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// SubModPushStatus (POST) modifies the push status of a subscription
+func SubModPushStatus(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+	// Get Result Object
+	urlSub := urlVars["subscription"]
+
+	// Get project UUID First to use as reference
+	projectUUID := context.Get(r, "auth_project_uuid").(string)
+
+	refStr := context.Get(r, "str").(stores.Store)
+
+	// Read POST JSON body
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		err := APIErrorInvalidRequestBody()
+		respondErr(w, err)
+		return
+	}
+
+	pushStatus, err := subscriptions.GetPushStatusFromJSON(body)
+	if err != nil {
+		err := APIErrorInvalidArgument("PushStatus")
+		respondErr(w, err)
+		return
+	}
+
+	res, err := subscriptions.Find(projectUUID, urlSub, "", 0, refStr)
+
+	if err != nil {
+		err := APIErrGenericBackend()
+		respondErr(w, err)
+		return
+	}
+
+	if res.Empty() {
+		err := APIErrorNotFound("Subscription")
+		respondErr(w, err)
+		return
+	}
+
+	existingSub := res.Subscriptions[0]
+
+	err = subscriptions.ModSubPushStatus(projectUUID, existingSub.Name, pushStatus.PushStatus, refStr)
+	if err != nil {
+		if err.Error() == "not found" {
+			err := APIErrorNotFound("Subscription")
+			respondErr(w, err)
+			return
+		}
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	respondOK(w, output)
+}
+
 // SubModAck (POST) modifies the Ack deadline of the subscription
 func SubModAck(w http.ResponseWriter, r *http.Request) {
 
@@ -1647,7 +1714,6 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 	curOff := refBrk.GetMaxOffset(fullTopic)
 
 	pushEnd := ""
-	pushStatus := ""
 	rPolicy := ""
 	rPeriod := 0
 	if postBody.PushCfg != (subscriptions.PushConfig{}) {
@@ -1666,11 +1732,10 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 		if rPeriod <= 0 {
 			rPeriod = 3000
 		}
-		pushStatus = "push enabled"
 	}
 
 	// Get Result Object
-	res, err := subscriptions.CreateSub(projectUUID, urlVars["subscription"], tName, pushEnd, curOff, postBody.Ack, rPolicy, rPeriod, pushStatus, refStr)
+	res, err := subscriptions.CreateSub(projectUUID, urlVars["subscription"], tName, pushEnd, curOff, postBody.Ack, rPolicy, rPeriod, refStr)
 
 	if err != nil {
 		if err.Error() == "exists" {
@@ -1685,7 +1750,19 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 
 	if postBody.PushCfg != (subscriptions.PushConfig{}) {
 		apsc := context.Get(r, "apsc").(push2.Client)
-		res.PushStatus = apsc.ActivateSubscription(context2.TODO(), res.FullName, res.FullName, pushEnd, rPolicy, uint32(rPeriod)).Result()
+		res.PushStatus = apsc.ActivateSubscription(context2.TODO(), res.FullName, res.FullTopic, pushEnd, rPolicy, uint32(rPeriod)).Result()
+		// update the status of the created subscription
+		err = subscriptions.ModSubPushStatus(projectUUID, res.Name, res.PushStatus, refStr)
+		if err != nil {
+			if err.Error() == "not found" {
+				err := APIErrorNotFound("Subscription")
+				respondErr(w, err)
+				return
+			}
+			err := APIErrGenericInternal(err.Error())
+			respondErr(w, err)
+			return
+		}
 	}
 
 	// Output result to JSON

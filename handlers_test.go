@@ -1163,8 +1163,10 @@ func (suite *HandlerTestSuite) TestSubCreatePushConfig() {
 	w := httptest.NewRecorder()
 	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubCreate, cfgKafka, &brk, str, &mgr, pc))
 	router.ServeHTTP(w, req)
+	sub, _ := str.QueryOneSub("argo_uuid", "subNew")
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
+	suite.Equal("Subscription /projects/ARGO/subscriptions/subNew activated", sub.PushStatus)
 }
 
 func (suite *HandlerTestSuite) TestSubCreatePushConfigPushServerError() {
@@ -1446,6 +1448,99 @@ func (suite *HandlerTestSuite) TestSubListOne() {
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
 
+}
+
+func (suite *HandlerTestSuite) TestSubModPushStatus() {
+
+	body := `{
+  "push_status": "new push status"
+}`
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/projects/ARGO/subscriptions/sub4:modifyPushStatus", strings.NewReader(body))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modifyPushStatus", WrapMockAuthConfig(SubModPushStatus, cfgKafka, &brk, str, &mgr, nil))
+	router.ServeHTTP(w, req)
+	sub4, _ := str.QueryOneSub("argo_uuid", "sub4")
+	suite.Equal(200, w.Code)
+	suite.Equal("", w.Body.String())
+	suite.Equal("new push status", sub4.PushStatus)
+}
+
+func (suite *HandlerTestSuite) TestSubModPushStatusNotFound() {
+
+	body := `{
+  "push_status": "new push status"
+}`
+
+	expResp := `{
+   "error": {
+      "code": 404,
+      "message": "Subscription doesn't exist",
+      "status": "NOT_FOUND"
+   }
+}`
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/projects/ARGO/subscriptions/unknown:modifyPushStatus", strings.NewReader(body))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modifyPushStatus", WrapMockAuthConfig(SubModPushStatus, cfgKafka, &brk, str, &mgr, nil))
+	router.ServeHTTP(w, req)
+	suite.Equal(404, w.Code)
+	suite.Equal(expResp, w.Body.String())
+}
+
+func (suite *HandlerTestSuite) TestSubModPushStatusInvalidArgument() {
+
+	body := `{
+  "push_status": 9999
+}`
+
+	expResp := `{
+   "error": {
+      "code": 400,
+      "message": "Invalid PushStatus Arguments",
+      "status": "INVALID_ARGUMENT"
+   }
+}`
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/projects/ARGO/subscriptions/unknown:modifyPushStatus", strings.NewReader(body))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := push.Manager{}
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modifyPushStatus", WrapMockAuthConfig(SubModPushStatus, cfgKafka, &brk, str, &mgr, nil))
+	router.ServeHTTP(w, req)
+	suite.Equal(400, w.Code)
+	suite.Equal(expResp, w.Body.String())
 }
 
 func (suite *HandlerTestSuite) TestSubListAll() {

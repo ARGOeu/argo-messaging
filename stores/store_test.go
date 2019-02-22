@@ -125,7 +125,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal(true, store.HasResourceRoles("topics:publish", []string{"publisher"}))
 
 	store.InsertTopic("argo_uuid", "topicFresh")
-	store.InsertSub("argo_uuid", "subFresh", "topicFresh", 0, 10, "", "", 0, "")
+	store.InsertSub("argo_uuid", "subFresh", "topicFresh", 0, 10, "", "", 0)
 
 	eTopList2 := []QTopic{
 		{3, "argo_uuid", "topicFresh", 0, 0},
@@ -182,6 +182,15 @@ func (suite *StoreTestSuite) TestMockStore() {
 
 	e2 := store.ModSubPush("argo_uuid", "unknown", "", "", 0, "")
 	suite.Equal("not found", e2.Error())
+
+	// Test mod push sub
+	statusE1 := store.ModSubPushStatus("argo_uuid", "sub1", "status update")
+	statusSub1, _ := store.QueryOneSub("argo_uuid", "sub1")
+	suite.Nil(statusE1)
+	suite.Equal("status update", statusSub1.PushStatus)
+
+	statusE2 := store.ModSubPushStatus("argo_uuid", "unknown", "")
+	suite.Equal("not found", statusE2.Error())
 
 	// Query ACLS
 	ExpectedACL01 := QAcl{[]string{"uuid1", "uuid2"}}
