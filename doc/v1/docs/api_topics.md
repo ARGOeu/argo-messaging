@@ -98,7 +98,10 @@ Success Response
 Please refer to section [Errors](api_errors.md) to see all possible Errors
 
 ## [GET] Manage Topics - List Topics
-This request lists all available topics under a specific project in the service using pagination
+This request lists all available topics under a specific project in the service using pagination.
+
+If the `USER` making the request has only `publisher` role for the respective project, it will load
+only the topics that he has access to(being present in a topic's acl).
 
 It is important to note that if there are no results to return the service will return the following:
 

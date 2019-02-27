@@ -3083,11 +3083,74 @@ func (suite *HandlerTestSuite) TestTopicListAll() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics", WrapMockAuthConfig(TopicListAll, cfgKafka, &brk, str, &mgr, nil))
+	router.HandleFunc("/v1/projects/{project}/topics", WrapMockAuthConfig(TopicListAll, cfgKafka, &brk, str, &mgr, nil, "project_admin"))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
 
+}
+
+func (suite *HandlerTestSuite) TestTopicListAllPublisher() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/topics", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "topics": [
+      {
+         "name": "/projects/ARGO/topics/topic2"
+      },
+      {
+         "name": "/projects/ARGO/topics/topic1"
+      }
+   ],
+   "nextPageToken": "",
+   "totalSize": 2
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := oldPush.Manager{}
+	router.HandleFunc("/v1/projects/{project}/topics", WrapMockAuthConfig(TopicListAll, cfgKafka, &brk, str, &mgr, nil, "publisher"))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+}
+
+func (suite *HandlerTestSuite) TestTopicListAllPublisherWithPagination() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/topics?pageSize=1", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "topics": [
+      {
+         "name": "/projects/ARGO/topics/topic2"
+      }
+   ],
+   "nextPageToken": "MA==",
+   "totalSize": 2
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := oldPush.Manager{}
+	router.HandleFunc("/v1/projects/{project}/topics", WrapMockAuthConfig(TopicListAll, cfgKafka, &brk, str, &mgr, nil, "publisher"))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
 }
 
 func (suite *HandlerTestSuite) TestTopicListAllFirstPage() {
@@ -3117,7 +3180,7 @@ func (suite *HandlerTestSuite) TestTopicListAllFirstPage() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics", WrapMockAuthConfig(TopicListAll, cfgKafka, &brk, str, &mgr, nil))
+	router.HandleFunc("/v1/projects/{project}/topics", WrapMockAuthConfig(TopicListAll, cfgKafka, &brk, str, &mgr, nil, "project_admin"))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -3148,7 +3211,7 @@ func (suite *HandlerTestSuite) TestTopicListAllNextPage() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics", WrapMockAuthConfig(TopicListAll, cfgKafka, &brk, str, &mgr, nil))
+	router.HandleFunc("/v1/projects/{project}/topics", WrapMockAuthConfig(TopicListAll, cfgKafka, &brk, str, &mgr, nil, "project_admin"))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())

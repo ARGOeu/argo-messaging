@@ -496,7 +496,7 @@ func (mong *MongoStore) QueryTopicsByACL(projectUUID, user string) ([]QTopic, er
 }
 
 // QueryTopics Query Subscription info from store
-func (mong *MongoStore) QueryTopics(projectUUID string, name string, pageToken string, pageSize int32) ([]QTopic, int32, string, error) {
+func (mong *MongoStore) QueryTopics(projectUUID, userUUID, name, pageToken string, pageSize int32) ([]QTopic, int32, string, error) {
 
 	var err error
 	var totalSize int32
@@ -508,6 +508,11 @@ func (mong *MongoStore) QueryTopics(projectUUID string, name string, pageToken s
 
 	// By default return all topics of a given project
 	query := bson.M{"project_uuid": projectUUID}
+
+	// find all the topics for a specific user
+	if userUUID != "" {
+		query["acl"] = bson.M{"$in": []string{userUUID}}
+	}
 
 	// if the page size is other than zero(where zero means, no limit), try to grab one more document to check if there
 	// will be a next page after the current one
@@ -543,7 +548,12 @@ func (mong *MongoStore) QueryTopics(projectUUID string, name string, pageToken s
 
 	if name == "" {
 
-		if size, err = c.Find(bson.M{"project_uuid": projectUUID}).Count(); err != nil {
+		countQuery := bson.M{"project_uuid": projectUUID}
+		if userUUID != "" {
+			countQuery["acl"] = bson.M{"$in": []string{userUUID}}
+		}
+
+		if size, err = c.Find(countQuery).Count(); err != nil {
 			log.Fatal("STORE", "\t", err.Error())
 
 		}
