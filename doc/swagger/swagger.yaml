@@ -548,7 +548,9 @@ paths:
     get:
       summary: List subscriptions in a project
       description: |
-        The subscriptions endpoint returns a list of available subscriptions for a given project
+        The subscriptions endpoint returns a list of available subscriptions for a given project.
+        If the USER making the request has only consumer role for the respective project, it will load
+        only the subscriptions that he has access to(being present in a subscriptions's acl).
       parameters:
         - $ref: '#/parameters/ApiKey'
         - $ref: '#/parameters/PageToken'

@@ -21,7 +21,7 @@ func GetProjectTopicsACL(projectUUID string, username string, store stores.Store
 }
 
 func GetProjectSubs(projectUUID string, store stores.Store) (int64, error) {
-	subs, _, _, err := store.QuerySubs(projectUUID, "", "", 0)
+	subs, _, _, err := store.QuerySubs(projectUUID, "", "", "", 0)
 	return int64(len(subs)), err
 }
 

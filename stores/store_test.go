@@ -81,7 +81,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal("0", pg6)
 
 	// retrieve all subs
-	subList, ts1, pg1, err1 := store.QuerySubs("argo_uuid", "", "", 0)
+	subList, ts1, pg1, err1 := store.QuerySubs("argo_uuid", "", "", "", 0)
 	suite.Equal(eSubList, subList)
 	suite.Equal(int32(4), ts1)
 	suite.Equal("", pg3)
@@ -91,7 +91,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 		{3, "argo_uuid", "sub4", "topic4", 0, 0, "", "endpoint.foo", 10, "linear", 300, 0, 0, "push enabled"},
 		{2, "argo_uuid", "sub3", "topic3", 0, 0, "", "", 10, "", 0, 0, 0, ""}}
 
-	subList2, ts2, pg2, err2 := store.QuerySubs("argo_uuid", "", "", 2)
+	subList2, ts2, pg2, err2 := store.QuerySubs("argo_uuid", "", "", "", 2)
 	suite.Equal(eSubListFirstPage, subList2)
 	suite.Equal(int32(4), ts2)
 	suite.Equal("1", pg2)
@@ -101,14 +101,38 @@ func (suite *StoreTestSuite) TestMockStore() {
 		{1, "argo_uuid", "sub2", "topic2", 0, 0, "", "", 10, "", 0, 0, 0, ""},
 		{0, "argo_uuid", "sub1", "topic1", 0, 0, "", "", 10, "", 0, 0, 0, ""}}
 
-	subList3, ts3, pg3, err3 := store.QuerySubs("argo_uuid", "", "1", 2)
+	subList3, ts3, pg3, err3 := store.QuerySubs("argo_uuid", "", "", "1", 2)
 	suite.Equal(eSubListNextPage, subList3)
 	suite.Equal(int32(4), ts3)
 	suite.Equal("", pg3)
 
+	// retrieve user's subs
+	eSubList4 := []QSub{
+		{ID: 3, ProjectUUID: "argo_uuid", Name: "sub4", Topic: "topic4", Offset: 0, NextOffset: 0, PendingAck: "", PushEndpoint: "endpoint.foo", Ack: 10, RetPolicy: "linear", RetPeriod: 300, MsgNum: 0, TotalBytes: 0, PushStatus: "push enabled"},
+		{ID: 2, ProjectUUID: "argo_uuid", Name: "sub3", Topic: "topic3", Offset: 0, NextOffset: 0, PendingAck: "", PushEndpoint: "", Ack: 10, RetPolicy: "", RetPeriod: 0, MsgNum: 0, TotalBytes: 0, PushStatus: ""},
+		{ID: 1, ProjectUUID: "argo_uuid", Name: "sub2", Topic: "topic2", Offset: 0, NextOffset: 0, PendingAck: "", PushEndpoint: "", Ack: 10, RetPolicy: "", RetPeriod: 0, MsgNum: 0, TotalBytes: 0, PushStatus: ""}}
+
+	subList4, ts4, pg4, err4 := store.QuerySubs("argo_uuid", "uuid1", "", "", 0)
+
+	suite.Equal(int32(3), ts4)
+	suite.Equal("", pg4)
+	suite.Equal(eSubList4, subList4)
+
+	// retrieve user's subs
+	eSubList5 := []QSub{
+		{ID: 3, ProjectUUID: "argo_uuid", Name: "sub4", Topic: "topic4", Offset: 0, NextOffset: 0, PendingAck: "", PushEndpoint: "endpoint.foo", Ack: 10, RetPolicy: "linear", RetPeriod: 300, MsgNum: 0, TotalBytes: 0, PushStatus: "push enabled"},
+		{ID: 2, ProjectUUID: "argo_uuid", Name: "sub3", Topic: "topic3", Offset: 0, NextOffset: 0, PendingAck: "", PushEndpoint: "", Ack: 10, RetPolicy: "", RetPeriod: 0, MsgNum: 0, TotalBytes: 0, PushStatus: ""}}
+	subList5, ts5, pg5, err5 := store.QuerySubs("argo_uuid", "uuid1", "", "", 2)
+
+	suite.Equal(int32(3), ts5)
+	suite.Equal("1", pg5)
+	suite.Equal(eSubList5, subList5)
+
 	suite.Nil(err1)
 	suite.Nil(err2)
 	suite.Nil(err3)
+	suite.Nil(err4)
+	suite.Nil(err5)
 
 	// test retrieve subs by topic
 	subListByTopic, errSublistByTopic := store.QuerySubsByTopic("argo_uuid", "topic1")
@@ -185,7 +209,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 
 	tpList, _, _, _ = store.QueryTopics("argo_uuid", "", "", "", 0)
 	suite.Equal(eTopList2, tpList)
-	subList, _, _, _ = store.QuerySubs("argo_uuid", "", "", 0)
+	subList, _, _, _ = store.QuerySubs("argo_uuid", "", "", "", 0)
 	suite.Equal(eSubList2, subList)
 
 	// Test delete on topic
@@ -199,7 +223,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 	// Test delete on subscription
 	err = store.RemoveSub("argo_uuid", "subFresh")
 	suite.Equal(nil, err)
-	subList, _, _, _ = store.QuerySubs("argo_uuid", "", "", 0)
+	subList, _, _, _ = store.QuerySubs("argo_uuid", "", "", "", 0)
 	suite.Equal(eSubList, subList)
 	err = store.RemoveSub("argo_uuid", "subFresh")
 	suite.Equal("not found", err.Error())
@@ -379,7 +403,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 
 	// Test Sub Update Pull
 	err = store.UpdateSubPull("argo_uuid", "sub4", 4, "2016-10-11T12:00:35:15Z")
-	qSubUpd, _, _, err := store.QuerySubs("argo_uuid", "sub4", "", 0)
+	qSubUpd, _, _, err := store.QuerySubs("argo_uuid", "", "sub4", "", 0)
 	var nxtOff int64 = 4
 	suite.Equal(qSubUpd[0].NextOffset, nxtOff)
 	suite.Equal("2016-10-11T12:00:35:15Z", qSubUpd[0].PendingAck)
@@ -388,7 +412,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 	resTop, _, _, _ := store.QueryTopics("argo_uuid", "", "", "", 0)
 	suite.Equal(0, len(resTop))
 	store.RemoveProjectSubs("argo_uuid")
-	resSub, _, _, _ := store.QuerySubs("argo_uuid", "", "", 0)
+	resSub, _, _, _ := store.QuerySubs("argo_uuid", "", "", "", 0)
 	suite.Equal(0, len(resSub))
 
 	// Test RemoveProject

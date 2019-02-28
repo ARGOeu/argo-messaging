@@ -976,7 +976,7 @@ func SubAck(w http.ResponseWriter, r *http.Request) {
 
 	// Check if sub exists
 
-	cur_sub, err := subscriptions.Find(projectUUID, subName, "", 0, refStr)
+	cur_sub, err := subscriptions.Find(projectUUID, "", subName, "", 0, refStr)
 	if err != nil {
 		err := APIErrHandlingAcknowledgement()
 		respondErr(w, err)
@@ -1065,7 +1065,7 @@ func SubListOne(w http.ResponseWriter, r *http.Request) {
 	refStr := gorillaContext.Get(r, "str").(stores.Store)
 	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 
-	results, err := subscriptions.Find(projectUUID, urlVars["subscription"], "", 0, refStr)
+	results, err := subscriptions.Find(projectUUID, "", urlVars["subscription"], "", 0, refStr)
 
 	if err != nil {
 		err := APIErrGenericBackend()
@@ -1135,7 +1135,7 @@ func SubSetOffset(w http.ResponseWriter, r *http.Request) {
 	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 
 	// Find Subscription
-	results, err := subscriptions.Find(projectUUID, urlVars["subscription"], "", 0, refStr)
+	results, err := subscriptions.Find(projectUUID, "", urlVars["subscription"], "", 0, refStr)
 
 	if err != nil {
 		err := APIErrGenericBackend()
@@ -1188,7 +1188,7 @@ func SubGetOffsets(w http.ResponseWriter, r *http.Request) {
 
 	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 
-	results, err := subscriptions.Find(projectUUID, urlVars["subscription"], "", 0, refStr)
+	results, err := subscriptions.Find(projectUUID, "", urlVars["subscription"], "", 0, refStr)
 
 	if err != nil {
 		err := APIErrGenericBackend()
@@ -1280,7 +1280,7 @@ func SubDelete(w http.ResponseWriter, r *http.Request) {
 	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 
 	// Get Result Object
-	results, err := subscriptions.Find(projectUUID, urlVars["subscription"], "", 0, refStr)
+	results, err := subscriptions.Find(projectUUID, "", urlVars["subscription"], "", 0, refStr)
 	if err != nil {
 		err := APIErrGenericBackend()
 		respondErr(w, err)
@@ -1524,7 +1524,7 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get Result Object
-	res, err := subscriptions.Find(projectUUID, subName, "", 0, refStr)
+	res, err := subscriptions.Find(projectUUID, "", subName, "", 0, refStr)
 
 	if err != nil {
 		err := APIErrGenericBackend()
@@ -1654,7 +1654,7 @@ func SubModPushStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res, err := subscriptions.Find(projectUUID, urlSub, "", 0, refStr)
+	res, err := subscriptions.Find(projectUUID, "", urlSub, "", 0, refStr)
 
 	if err != nil {
 		err := APIErrGenericBackend()
@@ -2421,10 +2421,18 @@ func SubListAll(w http.ResponseWriter, r *http.Request) {
 	// Grab context references
 	refStr := gorillaContext.Get(r, "str").(stores.Store)
 	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
+	roles := gorillaContext.Get(r, "auth_roles").([]string)
 
 	urlValues := r.URL.Query()
 	pageToken := urlValues.Get("pageToken")
 	strPageSize = urlValues.Get("pageSize")
+
+	// if this route is used by a user who only  has a consumer role
+	// return all subscriptions that he has access to
+	userUUID := ""
+	if !auth.IsProjectAdmin(roles) && !auth.IsServiceAdmin(roles) && auth.IsConsumer(roles) {
+		userUUID = gorillaContext.Get(r, "auth_user_uuid").(string)
+	}
 
 	if strPageSize != "" {
 		if pageSize, err = strconv.Atoi(strPageSize); err != nil {
@@ -2435,7 +2443,7 @@ func SubListAll(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if res, err = subscriptions.Find(projectUUID, "", pageToken, int32(pageSize), refStr); err != nil {
+	if res, err = subscriptions.Find(projectUUID, userUUID, "", pageToken, int32(pageSize), refStr); err != nil {
 		err := APIErrorInvalidData("Invalid page token")
 		respondErr(w, err)
 		return
@@ -2694,7 +2702,7 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	recList := messages.RecList{}
 
 	// Get the subscription info
-	results, err := subscriptions.Find(projectUUID, urlSub, "", 0, refStr)
+	results, err := subscriptions.Find(projectUUID, "", urlSub, "", 0, refStr)
 	if err != nil {
 		err := APIErrGenericBackend()
 		respondErr(w, err)
