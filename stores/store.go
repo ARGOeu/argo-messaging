@@ -45,7 +45,7 @@ type Store interface {
 	UpdateSubOffset(projectUUID string, name string, offset int64)
 	UpdateSubPull(projectUUID string, name string, offset int64, ts string) error
 	UpdateSubOffsetAck(projectUUID string, name string, offset int64, ts string) error
-	ModSubPush(projectUUID string, name string, push string, rPolicy string, rPeriod int, status string) error
+	ModSubPush(projectUUID string, name string, push string, rPolicy string, rPeriod int) error
 	ModSubPushStatus(projectUUID string, name string, status string) error
 	QueryACL(projectUUID string, resource string, name string) (QAcl, error)
 	ModACL(projectUUID string, resource string, name string, acl []string) error

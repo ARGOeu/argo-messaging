@@ -924,7 +924,7 @@ func (mong *MongoStore) ModAck(projectUUID string, name string, ack int) error {
 }
 
 // ModSubPush modifies the push configuration
-func (mong *MongoStore) ModSubPush(projectUUID string, name string, push string, rPolicy string, rPeriod int, status string) error {
+func (mong *MongoStore) ModSubPush(projectUUID string, name string, push string, rPolicy string, rPeriod int) error {
 	db := mong.Session.DB(mong.Database)
 	c := db.C("subscriptions")
 
@@ -936,7 +936,6 @@ func (mong *MongoStore) ModSubPush(projectUUID string, name string, push string,
 			"push_endpoint": push,
 			"retry_policy":  rPolicy,
 			"retry_period":  rPeriod,
-			"push_status":   status,
 		},
 		})
 	return err

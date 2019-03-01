@@ -301,13 +301,12 @@ func (mk *MockStore) ModAck(projectUUID string, name string, ack int) error {
 }
 
 // ModSubPush modifies the subscription push configuration
-func (mk *MockStore) ModSubPush(projectUUID string, name string, push string, rPolicy string, rPeriod int, status string) error {
+func (mk *MockStore) ModSubPush(projectUUID string, name string, push string, rPolicy string, rPeriod int) error {
 	for i, item := range mk.SubList {
 		if item.ProjectUUID == projectUUID && item.Name == name {
 			mk.SubList[i].PushEndpoint = push
 			mk.SubList[i].RetPolicy = rPolicy
 			mk.SubList[i].RetPeriod = rPeriod
-			mk.SubList[i].PushStatus = status
 			return nil
 		}
 	}

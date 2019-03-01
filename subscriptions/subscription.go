@@ -221,8 +221,8 @@ func Find(projectUUID string, name string, pageToken string, pageSize int32, sto
 		if item.PushEndpoint != "" {
 			rp := RetryPolicy{item.RetPolicy, item.RetPeriod}
 			curSub.PushCfg = PushConfig{item.PushEndpoint, rp}
-			curSub.PushStatus = item.PushStatus
 		}
+		curSub.PushStatus = item.PushStatus
 		result.Subscriptions = append(result.Subscriptions, curSub)
 	}
 
@@ -288,13 +288,13 @@ func ModAck(projectUUID string, name string, ack int, store stores.Store) error 
 }
 
 // ModSubPush updates the subscription push config
-func ModSubPush(projectUUID string, name string, push string, retPolicy string, retPeriod int, status string, store stores.Store) error {
+func ModSubPush(projectUUID string, name string, push string, retPolicy string, retPeriod int, store stores.Store) error {
 
 	if HasSub(projectUUID, name, store) == false {
 		return errors.New("not found")
 	}
 
-	return store.ModSubPush(projectUUID, name, push, retPolicy, retPeriod, status)
+	return store.ModSubPush(projectUUID, name, push, retPolicy, retPeriod)
 }
 
 // ModSubPush updates the subscription push config

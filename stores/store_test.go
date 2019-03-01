@@ -172,15 +172,14 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal(66, subAck.Ack)
 
 	// Test mod push sub
-	e1 := store.ModSubPush("argo_uuid", "sub1", "example.com", "linear", 400, "push enabled")
+	e1 := store.ModSubPush("argo_uuid", "sub1", "example.com", "linear", 400)
 	sub1, _ := store.QueryOneSub("argo_uuid", "sub1")
 	suite.Nil(e1)
 	suite.Equal("example.com", sub1.PushEndpoint)
 	suite.Equal("linear", sub1.RetPolicy)
 	suite.Equal(400, sub1.RetPeriod)
-	suite.Equal("push enabled", sub1.PushStatus)
 
-	e2 := store.ModSubPush("argo_uuid", "unknown", "", "", 0, "")
+	e2 := store.ModSubPush("argo_uuid", "unknown", "", "", 0)
 	suite.Equal("not found", e2.Error())
 
 	// Test mod push sub
