@@ -44,6 +44,19 @@ func ModACL(projectUUID string, resourceType string, resourceName string, acl []
 	return store.ModACL(projectUUID, resourceType, resourceName, userUUIDs)
 }
 
+// AppendToACL is used to append unique users to a topic's or sub's ACL
+func AppendToACL(projectUUID string, resourceType string, resourceName string, acl []string, store stores.Store) error {
+
+	// Transform user name to user uuid
+	userUUIDs := []string{}
+	for _, username := range acl {
+		userUUID := GetUUIDByName(username, store)
+		userUUIDs = append(userUUIDs, userUUID)
+	}
+
+	return store.AppendToACL(projectUUID, resourceType, resourceName, userUUIDs)
+}
+
 // GetACL returns an authorized list of user for the resource (topic or subscription)
 func GetACL(projectUUID string, resourceType string, resourceName string, store stores.Store) (ACL, error) {
 	result := ACL{}

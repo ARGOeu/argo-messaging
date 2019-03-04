@@ -49,6 +49,7 @@ type Store interface {
 	ModSubPushStatus(projectUUID string, name string, status string) error
 	QueryACL(projectUUID string, resource string, name string) (QAcl, error)
 	ModACL(projectUUID string, resource string, name string, acl []string) error
+	AppendToACL(projectUUID string, resource string, name string, acl []string) error
 	ModAck(projectUUID string, name string, ack int) error
 	GetAllRoles() []string
 	Clone() Store
