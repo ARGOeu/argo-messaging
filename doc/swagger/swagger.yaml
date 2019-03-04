@@ -1755,6 +1755,18 @@ definitions:
     properties:
       status:
         type: string
+      push_servers:
+        type: array
+        items:
+          $ref: '#/definitions/PushServerInfo'
+
+  PushServerInfo:
+    type: object
+    properties:
+      endpoint:
+        type: string
+      status:
+        type: string
 
   ErrorMsg:
     type: object

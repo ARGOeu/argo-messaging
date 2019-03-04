@@ -27,3 +27,7 @@
 [prune]
   go-tests = true
   unused-packages = true
+
+[[constraint]]
+  name = "google.golang.org/grpc"
+  version = "1.17.0"

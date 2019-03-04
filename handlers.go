@@ -2638,7 +2638,17 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var bytes []byte
 
-	healthMsg := HealthStatus{Status: "ok"}
+	apsc := gorillaContext.Get(r, "apsc").(push.Client)
+
+	healthMsg := HealthStatus{
+		Status: "ok",
+		PushServers: []PushServerInfo{
+			{
+				Endpoint: apsc.Target(),
+				Status:   apsc.HealthCheck(context.TODO()).Result(),
+			},
+		},
+	}
 
 	if bytes, err = json.MarshalIndent(healthMsg, "", " "); err != nil {
 		err := APIErrGenericInternal(err.Error())
@@ -2668,7 +2678,13 @@ func respondErr(w http.ResponseWriter, apiErr APIErrorRoot) {
 }
 
 type HealthStatus struct {
-	Status string `json:"status"`
+	Status      string           `json:"status"`
+	PushServers []PushServerInfo `json:"push_servers"`
+}
+
+type PushServerInfo struct {
+	Endpoint string `json:"endpoint"`
+	Status   string `json:"status"`
 }
 
 // APIErrorRoot holds the root json object of an error response
