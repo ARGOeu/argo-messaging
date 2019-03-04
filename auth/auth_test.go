@@ -522,6 +522,32 @@ func (suite *AuthTestSuite) TestAuth() {
 	suite.Equal("illegal base64 data at input byte 4", e5.Error())
 }
 
+func (suite *AuthTestSuite) TestAppendToUserProjects() {
+
+	store := stores.NewMockStore("", "")
+	store.ProjectList = append(store.ProjectList, stores.QProject{UUID: "append_uuid", Name: "append_project"})
+	store.UserList = append(store.UserList, stores.QUser{UUID: "append_uuid"})
+
+	err1 := AppendToUserProjects("append_uuid", "append_uuid", store, "publisher")
+	u, _ := store.QueryUsers("append_uuid", "append_uuid", "")
+	suite.Equal([]stores.QProjectRoles{
+		{
+			ProjectUUID: "append_uuid",
+			Roles:       []string{"publisher"},
+		},
+	}, u[0].Projects)
+	suite.Nil(err1)
+
+	// invalid project
+	err2 := AppendToUserProjects("", "unknown", store)
+	suite.Equal("invalid project unknown", err2.Error())
+
+	// invalid role
+	err3 := AppendToUserProjects("append_uuid", "append_uuid", store, "r1")
+	suite.Equal("invalid role r1", err3.Error())
+
+}
+
 func (suite *AuthTestSuite) TestSubACL() {
 	expJSON01 := `{
    "authorized_users": [

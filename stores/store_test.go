@@ -404,6 +404,21 @@ func (suite *StoreTestSuite) TestMockStore() {
 	usr11, _ = store.QueryUsers("", "user_uuid11", "")
 	suite.Equal(usrUpdated, usr11[0])
 
+	// test append project to user
+	errUserPrj := store.AppendToUserProjects("uuid1", "p1_uuid", "r1", "r2")
+	usr, _ := store.QueryUsers("", "uuid1", "")
+	suite.Equal([]QProjectRoles{
+		{
+			ProjectUUID: "argo_uuid",
+			Roles:       []string{"consumer", "publisher"},
+		},
+		{
+			ProjectUUID: "p1_uuid",
+			Roles:       []string{"r1", "r2"},
+		},
+	}, usr[0].Projects)
+	suite.Nil(errUserPrj)
+
 	// Test Remove User
 	store.RemoveUser("user_uuid11")
 	usr11, err = store.QueryUsers("", "user_uuid11", "")
