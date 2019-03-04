@@ -94,6 +94,16 @@ func NewUser(uuid string, projects []ProjectRoles, name string, token string, em
 	return User{UUID: uuid, Projects: projects, Name: name, Token: token, Email: email, ServiceRoles: serviceRoles, CreatedOn: createdOn.Format(zuluForm), ModifiedOn: modifiedOn.Format(zuluForm), CreatedBy: createdBy}
 }
 
+func GetPushWorker(pwToken string, store stores.Store) (User, error) {
+
+	pw, err := GetUserByToken(pwToken, store)
+	if err != nil {
+		return User{}, errors.New("push_500")
+	}
+
+	return pw, nil
+}
+
 // GetUserByToken returns a specific user by his token
 func GetUserByToken(token string, store stores.Store) (User, error) {
 	result := User{}

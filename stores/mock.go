@@ -653,6 +653,7 @@ func (mk *MockStore) Initialize() {
 	mk.UserList = append(mk.UserList, QUser{4, "uuid4", qRoleConsumerPub, "UserZ", "S3CR3T4", "foo-email", []string{}, created, modified, "uuid1"})
 	mk.UserList = append(mk.UserList, QUser{5, "same_uuid", qRoleConsumerPub, "UserSame1", "S3CR3T41", "foo-email", []string{}, created, modified, "uuid1"})
 	mk.UserList = append(mk.UserList, QUser{6, "same_uuid", qRoleConsumerPub, "UserSame2", "S3CR3T42", "foo-email", []string{}, created, modified, "uuid1"})
+	mk.UserList = append(mk.UserList, QUser{7, "uuid7", []QProjectRoles{}, "push_worker_0", "push_token", "foo-email", []string{"push_worker"}, created, modified, ""})
 
 	qRole1 := QRole{"topics:list_all", []string{"admin", "reader", "publisher"}}
 	qRole2 := QRole{"topics:publish", []string{"admin", "publisher"}}
