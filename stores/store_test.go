@@ -90,6 +90,28 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Nil(err2)
 	suite.Nil(err3)
 
+	// test retrieve subs by topic
+	subListByTopic, errSublistByTopic := store.QuerySubsByTopic("argo_uuid", "topic1")
+	suite.Equal([]QSub{
+		{
+			ID:           0,
+			ProjectUUID:  "argo_uuid",
+			Name:         "sub1",
+			Topic:        "topic1",
+			Offset:       0,
+			NextOffset:   0,
+			PendingAck:   "",
+			PushEndpoint: "",
+			Ack:          10,
+			RetPolicy:    "",
+			RetPeriod:    0,
+			MsgNum:       0,
+			TotalBytes:   0,
+			PushStatus:   "",
+		},
+	}, subListByTopic)
+	suite.Nil(errSublistByTopic)
+
 	// Test Project
 	suite.Equal(true, store.HasProject("ARGO"))
 	suite.Equal(false, store.HasProject("FOO"))

@@ -2068,6 +2068,7 @@ func TopicListOne(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		err := APIErrGenericBackend()
 		respondErr(w, err)
+		return
 	}
 
 	// If not found
@@ -2091,6 +2092,54 @@ func TopicListOne(w http.ResponseWriter, r *http.Request) {
 	output = []byte(resJSON)
 	respondOK(w, output)
 
+}
+
+// ListSubsByTopic (GET) lists all subscriptions associated with the given topic
+func ListSubsByTopic(w http.ResponseWriter, r *http.Request) {
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
+
+	results, err := topics.Find(projectUUID, urlVars["topic"], "", 0, refStr)
+
+	if err != nil {
+		err := APIErrGenericBackend()
+		respondErr(w, err)
+		return
+	}
+
+	// If not found
+	if results.Empty() {
+		err := APIErrorNotFound("Topic")
+		respondErr(w, err)
+		return
+	}
+
+	subs, err := subscriptions.FindByTopic(projectUUID, results.Topics[0].Name, refStr)
+	if err != nil {
+		err := APIErrGenericBackend()
+		respondErr(w, err)
+		return
+
+	}
+
+	resJSON, err := json.Marshal(subs)
+	if err != nil {
+		err := APIErrExportJSON()
+		respondErr(w, err)
+		return
+	}
+
+	respondOK(w, resJSON)
 }
 
 // TopicACL (GET) one topic's authorized users

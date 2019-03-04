@@ -31,6 +31,27 @@ func (suite *SubTestSuite) SetupTest() {
 	log.SetOutput(ioutil.Discard)
 }
 
+func (suite *SubTestSuite) TestNewNamesLIst() {
+	nl := NewNamesList()
+	// make sure that the subscriptions slice has been initialised
+	suite.NotNil(nl.Subscriptions)
+}
+
+func (suite *SubTestSuite) TestFindByTopic() {
+
+	store := stores.NewMockStore("", "")
+
+	nl1, err1 := FindByTopic("argo_uuid", "topic1", store)
+	suite.Equal([]string{"/projects/ARGO/subscriptions/sub1"}, nl1.Subscriptions)
+	suite.Nil(err1)
+
+	// check empty case
+	store.SubList = nil
+	nl2, err2 := FindByTopic("argo_uuid", "topic1", store)
+	suite.Equal([]string{}, nl2.Subscriptions)
+	suite.Nil(err2)
+}
+
 func (suite *SubTestSuite) TestCreate() {
 	mySub := New("argo_uuid", "ARGO", "test-sub", "topic1")
 	suite.Equal("test-sub", mySub.Name)

@@ -39,6 +39,38 @@ Success Response
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
 
+## [GET] Manage Subscriptions - List All Subscriptions under a specific Topic
+
+This request lists all available subscriptions under a specific topic in the service.
+
+### Request
+`GET /v1/projects/{project_name}/topics/{topic_name}/subscriptions`
+
+### Where
+- Project_name: Name of the project the topic belongs to
+- Topic_name: Name of the topic
+
+### Example request
+```
+curl -X GET -H "Content-Type: application/json"
+  "https://{URL}/v1/projects/p1/topics/t1/subscriptions?key=S3CR3T"
+```
+
+Success Response
+`200 OK`
+
+```json
+{
+ "subscriptions": [
+ "/projects/p1/subscriptions/sub1",
+ "/projects/p1/subscriptions/sub2"
+ ]
+}
+```
+
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors
+
 ## [GET] Manage Subscriptions - List All Subscriptions
 
 This request lists all available subscriptions under a specific project in the service using pagination
@@ -50,7 +82,7 @@ Success Response
 
 ```json
 {
- "users": [],
+ "subscriptions": [],
   "nextPageToken": "",
   "totalSize": 0
  }
@@ -70,7 +102,7 @@ This request lists all subscriptions  in a project with a GET  request
 
 ### Example request
 ```
-curl -X PUT -H "Content-Type: application/json"
+curl -X GET -H "Content-Type: application/json"
   "https://{URL}/v1/projects/BRAND_NEW/subscriptions?key=S3CR3T"
 ```
 
