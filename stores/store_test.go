@@ -252,6 +252,20 @@ func (suite *StoreTestSuite) TestMockStore() {
 	eAppAcl3 := store.AppendToACL("argo_uuid", "mistype", "sub1", []string{"u3", "u4", "u4"})
 	suite.Equal("wrong resource type", eAppAcl3.Error())
 
+	// test remove acl
+	eRemAcl1 := store.RemoveFromACL("argo_uuid", "topics", "topic1", []string{"u1", "u4", "u5"})
+	suite.Nil(eRemAcl1)
+	tACLRem := store.TopicsACL["topic1"].ACL
+	suite.Equal([]string{"u2", "u3"}, tACLRem)
+
+	eRemAcl2 := store.RemoveFromACL("argo_uuid", "subscriptions", "sub1", []string{"u1", "u4", "u5"})
+	suite.Nil(eRemAcl2)
+	sACLRem := store.SubsACL["sub1"].ACL
+	suite.Equal([]string{"u2", "u3"}, sACLRem)
+
+	eRemAcl3 := store.RemoveFromACL("argo_uuid", "mistype", "sub1", []string{"u3", "u4", "u4"})
+	suite.Equal("wrong resource type", eRemAcl3.Error())
+
 	//Check has users
 	allFound, notFound := store.HasUsers("argo_uuid", []string{"UserA", "UserB", "FooUser"})
 	suite.Equal(false, allFound)

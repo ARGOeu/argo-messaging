@@ -695,6 +695,26 @@ func (suite *AuthTestSuite) TestAppendToACL() {
 	suite.Equal("wrong resource type", e3.Error())
 }
 
+func (suite *AuthTestSuite) TestRemoveFromACL() {
+
+	store := stores.NewMockStore("", "")
+
+	e1 := RemoveFromACL("argo_uuid", "topics", "topic1", []string{"UserA", "UserK"}, store)
+	suite.Nil(e1)
+
+	tACL1, _ := store.TopicsACL["topic1"]
+	suite.Equal([]string{"uuid2"}, tACL1.ACL)
+
+	e2 := RemoveFromACL("argo_uuid", "subscriptions", "sub1", []string{"UserA", "UserK"}, store)
+	suite.Nil(e2)
+
+	sACL1, _ := store.SubsACL["sub1"]
+	suite.Equal([]string{"uuid2"}, sACL1.ACL)
+
+	e3 := RemoveFromACL("argo_uuid", "mistype", "sub1", []string{"UserX", "UserZ"}, store)
+	suite.Equal("wrong resource type", e3.Error())
+}
+
 func TestAuthTestSuite(t *testing.T) {
 	suite.Run(t, new(AuthTestSuite))
 }
