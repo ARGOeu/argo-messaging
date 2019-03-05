@@ -97,7 +97,7 @@ func (p *Pusher) push(brk brokers.Broker, store stores.Store) {
 	log.Debug("pid ", p.id, "pushing")
 	// update sub details
 
-	subs, err := subscriptions.Find(p.sub.ProjectUUID, p.sub.Name, "", 0, store)
+	subs, err := subscriptions.Find(p.sub.ProjectUUID, "", p.sub.Name, "", 0, store)
 
 	// If subscription doesn't exist in store stop and remove it from manager
 	if err == nil && len(subs.Subscriptions) == 0 {
@@ -252,7 +252,7 @@ func (mgr *Manager) Refresh(projectUUID string, sub string) error {
 
 	if p, err := mgr.Get(projectUUID + "/" + sub); err == nil {
 
-		subs, err := subscriptions.Find(projectUUID, sub, "", 0, mgr.store)
+		subs, err := subscriptions.Find(projectUUID, "", sub, "", 0, mgr.store)
 
 		if err != nil {
 			return errors.New("backend error")
@@ -279,7 +279,7 @@ func (mgr *Manager) Add(projectUUID string, subName string) error {
 		return errors.New("Push Manager not set")
 	}
 	// Check if subscription exists
-	subs, err := subscriptions.Find(projectUUID, subName, "", 0, mgr.store)
+	subs, err := subscriptions.Find(projectUUID, "", subName, "", 0, mgr.store)
 
 	if err != nil {
 		return errors.New("Backend error")

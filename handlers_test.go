@@ -1912,7 +1912,7 @@ func (suite *HandlerTestSuite) TestSubListAll() {
 	router := mux.NewRouter().StrictSlash(true)
 	mgr := oldPush.Manager{}
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/subscriptions", WrapMockAuthConfig(SubListAll, cfgKafka, &brk, str, &mgr, nil))
+	router.HandleFunc("/v1/projects/{project}/subscriptions", WrapMockAuthConfig(SubListAll, cfgKafka, &brk, str, &mgr, nil, "project_admin"))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -1962,7 +1962,7 @@ func (suite *HandlerTestSuite) TestSubListAllFirstPage() {
 	router := mux.NewRouter().StrictSlash(true)
 	mgr := oldPush.Manager{}
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/subscriptions", WrapMockAuthConfig(SubListAll, cfgKafka, &brk, str, &mgr, nil))
+	router.HandleFunc("/v1/projects/{project}/subscriptions", WrapMockAuthConfig(SubListAll, cfgKafka, &brk, str, &mgr, nil, "project_admin"))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -2008,7 +2008,7 @@ func (suite *HandlerTestSuite) TestSubListAllNextPage() {
 	router := mux.NewRouter().StrictSlash(true)
 	mgr := oldPush.Manager{}
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/subscriptions", WrapMockAuthConfig(SubListAll, cfgKafka, &brk, str, &mgr, nil))
+	router.HandleFunc("/v1/projects/{project}/subscriptions", WrapMockAuthConfig(SubListAll, cfgKafka, &brk, str, &mgr, nil, "project_admin"))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -2037,7 +2037,116 @@ func (suite *HandlerTestSuite) TestSubListAllEmpty() {
 	router := mux.NewRouter().StrictSlash(true)
 	mgr := oldPush.Manager{}
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/subscriptions", WrapMockAuthConfig(SubListAll, cfgKafka, &brk, str, &mgr, nil))
+	router.HandleFunc("/v1/projects/{project}/subscriptions", WrapMockAuthConfig(SubListAll, cfgKafka, &brk, str, &mgr, nil, "project_admin"))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestSubListAllConsumer() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/subscriptions", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "subscriptions": [
+      {
+         "name": "/projects/ARGO/subscriptions/sub4",
+         "topic": "/projects/ARGO/topics/topic4",
+         "pushConfig": {
+            "pushEndpoint": "endpoint.foo",
+            "retryPolicy": {
+               "type": "linear",
+               "period": 300
+            }
+         },
+         "ackDeadlineSeconds": 10,
+         "push_status": "push enabled"
+      },
+      {
+         "name": "/projects/ARGO/subscriptions/sub3",
+         "topic": "/projects/ARGO/topics/topic3",
+         "pushConfig": {
+            "pushEndpoint": "",
+            "retryPolicy": {}
+         },
+         "ackDeadlineSeconds": 10
+      },
+      {
+         "name": "/projects/ARGO/subscriptions/sub2",
+         "topic": "/projects/ARGO/topics/topic2",
+         "pushConfig": {
+            "pushEndpoint": "",
+            "retryPolicy": {}
+         },
+         "ackDeadlineSeconds": 10
+      }
+   ],
+   "nextPageToken": "",
+   "totalSize": 3
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions", WrapMockAuthConfig(SubListAll, cfgKafka, &brk, str, &mgr, nil, "consumer"))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestSubListAllConsumerWithPagination() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/subscriptions?pageSize=2", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "subscriptions": [
+      {
+         "name": "/projects/ARGO/subscriptions/sub4",
+         "topic": "/projects/ARGO/topics/topic4",
+         "pushConfig": {
+            "pushEndpoint": "endpoint.foo",
+            "retryPolicy": {
+               "type": "linear",
+               "period": 300
+            }
+         },
+         "ackDeadlineSeconds": 10,
+         "push_status": "push enabled"
+      },
+      {
+         "name": "/projects/ARGO/subscriptions/sub3",
+         "topic": "/projects/ARGO/topics/topic3",
+         "pushConfig": {
+            "pushEndpoint": "",
+            "retryPolicy": {}
+         },
+         "ackDeadlineSeconds": 10
+      }
+   ],
+   "nextPageToken": "MQ==",
+   "totalSize": 3
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions", WrapMockAuthConfig(SubListAll, cfgKafka, &brk, str, &mgr, nil, "consumer"))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())

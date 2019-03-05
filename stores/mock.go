@@ -890,7 +890,7 @@ func (mk *MockStore) QueryPushSubs() []QSub {
 }
 
 // QuerySubs Query Subscription info from store
-func (mk *MockStore) QuerySubs(projectUUID string, name string, pageToken string, pageSize int32) ([]QSub, int32, string, error) {
+func (mk *MockStore) QuerySubs(projectUUID, userUUID, name, pageToken string, pageSize int32) ([]QSub, int32, string, error) {
 
 	var qSubs []QSub
 	var totalSize int32
@@ -902,6 +902,14 @@ func (mk *MockStore) QuerySubs(projectUUID string, name string, pageToken string
 
 	for _, sub := range mk.SubList {
 		if sub.ProjectUUID == projectUUID {
+
+			if userUUID != "" {
+				if !mk.existsInACL("subscriptions", sub.Name, userUUID) {
+					continue
+				}
+
+			}
+
 			counter++
 		}
 	}
@@ -937,6 +945,12 @@ func (mk *MockStore) QuerySubs(projectUUID string, name string, pageToken string
 
 				if sub.ID.(int) <= pg && sub.ProjectUUID == projectUUID {
 
+					if userUUID != "" {
+						if !mk.existsInACL("subscriptions", sub.Name, userUUID) {
+							continue
+						}
+					}
+
 					qSubs = append(qSubs, sub)
 					limit--
 
@@ -964,6 +978,12 @@ func (mk *MockStore) QuerySubs(projectUUID string, name string, pageToken string
 	case false:
 		for _, sub := range mk.SubList {
 			if sub.ProjectUUID == projectUUID && sub.Name == name {
+
+				if userUUID != "" {
+					if !mk.existsInACL("subscriptions", sub.Name, userUUID) {
+						continue
+					}
+				}
 				qSubs = append(qSubs, sub)
 				break
 			}

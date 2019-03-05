@@ -538,7 +538,7 @@ func IsProjectAdmin(roles []string) bool {
 // IsServiceAdmin checks if the user is a service admin
 func IsServiceAdmin(roles []string) bool {
 	for _, role := range roles {
-		if role == "project_admin" {
+		if role == "service_admin" {
 			return true
 		}
 	}

@@ -75,6 +75,9 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 
 This request lists all available subscriptions under a specific project in the service using pagination
 
+If the `USER` making the request has only `consumer` role for the respective project, it will load
+only the subscriptions that he has access to(being present in a subscriptions's acl).
+
 It is important to note that if there are no results to return the service will return the following:
 
 Success Response

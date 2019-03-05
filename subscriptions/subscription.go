@@ -99,7 +99,7 @@ func NewNamesList() NamesList {
 // FindMetric returns the metric of a specific subscription
 func FindMetric(projectUUID string, name string, store stores.Store) (SubMetrics, error) {
 	result := SubMetrics{MsgNum: 0}
-	subs, _, _, err := store.QuerySubs(projectUUID, name, "", 0)
+	subs, _, _, err := store.QuerySubs(projectUUID, "", name, "", 0)
 
 	// check if sub exists
 	if len(subs) == 0 {
@@ -198,7 +198,7 @@ func (sl *PaginatedSubscriptions) ExportJSON() (string, error) {
 }
 
 // Find searches the store for all subscriptions of a given project or a specific one
-func Find(projectUUID string, name string, pageToken string, pageSize int32, store stores.Store) (PaginatedSubscriptions, error) {
+func Find(projectUUID, userUUID, name, pageToken string, pageSize int32, store stores.Store) (PaginatedSubscriptions, error) {
 
 	var err error
 	var qSubs []stores.QSub
@@ -214,7 +214,7 @@ func Find(projectUUID string, name string, pageToken string, pageSize int32, sto
 		return result, err
 	}
 
-	if qSubs, totalSize, nextPageToken, err = store.QuerySubs(projectUUID, name, string(pageTokenBytes), pageSize); err != nil {
+	if qSubs, totalSize, nextPageToken, err = store.QuerySubs(projectUUID, userUUID, name, string(pageTokenBytes), pageSize); err != nil {
 		return result, err
 	}
 
@@ -295,7 +295,7 @@ func CreateSub(projectUUID string, name string, topic string, push string, offse
 		return Subscription{}, errors.New("backend error")
 	}
 
-	results, err := Find(projectUUID, name, "", 0, store)
+	results, err := Find(projectUUID, "", name, "", 0, store)
 	if len(results.Subscriptions) != 1 {
 		return Subscription{}, errors.New("backend error")
 	}
@@ -349,7 +349,7 @@ func RemoveSub(projectUUID string, name string, store stores.Store) error {
 
 // HasSub returns true if project & subscription combination exist
 func HasSub(projectUUID string, name string, store stores.Store) bool {
-	res, err := Find(projectUUID, name, "", 0, store)
+	res, err := Find(projectUUID, "", name, "", 0, store)
 	if len(res.Subscriptions) > 0 && err == nil {
 		return true
 	}
