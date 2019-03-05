@@ -576,7 +576,8 @@ func (suite *AuthTestSuite) TestSubACL() {
 	expJSON04 := `{
    "authorized_users": [
       "UserB",
-      "UserZ"
+      "UserZ",
+      "push_worker_0"
    ]
 }`
 

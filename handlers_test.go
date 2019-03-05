@@ -1108,6 +1108,9 @@ func (suite *HandlerTestSuite) TestSubModPushConfigToActive() {
 	suite.Equal(3000, sub.RetPeriod)
 	suite.Equal("linear", sub.RetPolicy)
 	suite.Equal("Success: Subscription /projects/ARGO/subscriptions/sub1 activated", sub.PushStatus)
+	// check to see that the push worker user has been added to the subscription's acl
+	a1, _ := str.QueryACL("argo_uuid", "subscriptions", "sub1")
+	suite.Equal([]string{"uuid1", "uuid2", "uuid7"}, a1.ACL)
 }
 
 // TestSubModPushConfigToInactive tests the use case where the user modifies the push configuration
@@ -1141,6 +1144,9 @@ func (suite *HandlerTestSuite) TestSubModPushConfigToInactive() {
 	suite.Equal(0, sub.RetPeriod)
 	suite.Equal("", sub.RetPolicy)
 	suite.Equal("Subscription /projects/ARGO/subscriptions/sub4 deactivated", sub.PushStatus)
+	// check to see that the push worker user has been removed from the subscription's acl
+	a1, _ := str.QueryACL("argo_uuid", "subscriptions", "sub4")
+	suite.Equal([]string{"uuid2", "uuid4"}, a1.ACL)
 }
 
 // TestSubModPushConfigToInactivePushDisabled tests the use case where the user modifies the push configuration
@@ -1382,6 +1388,9 @@ func (suite *HandlerTestSuite) TestSubCreatePushConfig() {
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
 	suite.Equal("Subscription /projects/ARGO/subscriptions/subNew activated", sub.PushStatus)
+	// check to see that the push worker user has been added to the subscription's acl
+	a1, _ := str.QueryACL("argo_uuid", "subscriptions", "subNew")
+	suite.Equal([]string{"uuid7"}, a1.ACL)
 }
 
 func (suite *HandlerTestSuite) TestSubCreatePushConfigMissingPushWorker() {

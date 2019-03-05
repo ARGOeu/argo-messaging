@@ -205,9 +205,11 @@ func (mk *MockStore) AppendToACL(projectUUID string, resource string, name strin
 			mk.SubsACL[name] = qACL
 			return nil
 		}
+	} else {
+		return errors.New("wrong resource type")
 	}
 
-	return errors.New("wrong resource type")
+	return errors.New("no acl found")
 }
 
 func appendUniqueValues(existingValues []string, newValues ...string) []string {
@@ -239,9 +241,11 @@ func (mk *MockStore) RemoveFromACL(projectUUID string, resource string, name str
 			mk.SubsACL[name] = qACL
 			return nil
 		}
+	} else {
+		return errors.New("wrong resource type")
 	}
 
-	return errors.New("wrong resource type")
+	return errors.New("no acl found")
 }
 
 func removeValues(existingValues []string, valuesToRemove ...string) []string {
@@ -667,7 +671,7 @@ func (mk *MockStore) Initialize() {
 	qSubACL01 := QAcl{[]string{"uuid1", "uuid2"}}
 	qSubACL02 := QAcl{[]string{"uuid1", "uuid3"}}
 	qSubACL03 := QAcl{[]string{"uuid4", "uuid2", "uuid1"}}
-	qSubACL04 := QAcl{[]string{"uuid2", "uuid4"}}
+	qSubACL04 := QAcl{[]string{"uuid2", "uuid4", "uuid7"}}
 
 	mk.TopicsACL = make(map[string]QAcl)
 	mk.SubsACL = make(map[string]QAcl)
@@ -779,6 +783,7 @@ func (mk *MockStore) InsertSub(projectUUID string, name string, topic string, of
 		TotalBytes:   0,
 	}
 	mk.SubList = append(mk.SubList, sub)
+	mk.SubsACL[name] = QAcl{}
 	return nil
 }
 
