@@ -394,7 +394,9 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 
 ## [POST] Pull messages from a subscription (Consume)
 
-This request consumes messages from a subscription in a project with a POST request
+This request consumes messages from a subscription in a project with a POST request.
+
+It's important to note that the subscription's topic must exist in order for the user to pull messages.
 
 ### Request
 `POST /v1/projects/{project_name}/subscriptions/{subscription_name}:pull`

@@ -2663,22 +2663,42 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 
 	// Get project UUID First to use as reference
 	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
-	// Check if sub exists
-	if subscriptions.HasSub(projectUUID, urlSub, refStr) == false {
+
+	// Get the subscription
+	results, err := subscriptions.Find(projectUUID, "", urlSub, "", 0, refStr)
+	if err != nil {
+		err := APIErrGenericBackend()
+		respondErr(w, err)
+		return
+	}
+
+	if results.Empty() {
 		err := APIErrorNotFound("Subscription")
 		respondErr(w, err)
 		return
 	}
 
+	targetSub := results.Subscriptions[0]
+	fullTopic := targetSub.ProjectUUID + "." + targetSub.Topic
+	retImm := true
+	max := 1
+
 	// Check Authorization per subscription
 	// - if enabled in config
 	// - if user has only consumer role
 	if refAuthResource && auth.IsConsumer(refRoles) {
-		if auth.PerResource(projectUUID, "subscriptions", urlSub, refUser, refStr) == false {
+		if auth.PerResource(projectUUID, "subscriptions", targetSub.Name, refUser, refStr) == false {
 			err := APIErrorForbidden()
 			respondErr(w, err)
 			return
 		}
+	}
+
+	// check if the subscription's topic exists
+	if !topics.HasTopic(projectUUID, targetSub.Topic, refStr) {
+		err := APIErrorPullNoTopic()
+		respondErr(w, err)
+		return
 	}
 
 	// Read POST JSON body
@@ -2698,27 +2718,6 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Init Received Message List
-	recList := messages.RecList{}
-
-	// Get the subscription info
-	results, err := subscriptions.Find(projectUUID, "", urlSub, "", 0, refStr)
-	if err != nil {
-		err := APIErrGenericBackend()
-		respondErr(w, err)
-		return
-	}
-	if results.Empty() {
-		err := APIErrorNotFound("Subscription")
-		respondErr(w, err)
-		return
-	}
-	targSub := results.Subscriptions[0]
-
-	fullTopic := targSub.ProjectUUID + "." + targSub.Topic
-	retImm := true
-	max := 1
-
 	if pullInfo.MaxMsg != "" {
 		max, err = strconv.Atoi(pullInfo.MaxMsg)
 		if err != nil {
@@ -2730,16 +2729,19 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 		retImm = false
 	}
 
-	msgs, err := refBrk.Consume(r.Context(), fullTopic, targSub.Offset, retImm, int64(max))
+	// Init Received Message List
+	recList := messages.RecList{}
+
+	msgs, err := refBrk.Consume(r.Context(), fullTopic, targetSub.Offset, retImm, int64(max))
 	if err != nil {
 		// If tracked offset is off
 		if err == brokers.ErrOffsetOff {
 			log.Debug("Will increment now...")
 			// Increment tracked offset to current min offset
-			targSub.Offset = refBrk.GetMinOffset(fullTopic)
-			refStr.UpdateSubOffset(projectUUID, targSub.Name, targSub.Offset)
+			targetSub.Offset = refBrk.GetMinOffset(fullTopic)
+			refStr.UpdateSubOffset(projectUUID, targetSub.Name, targetSub.Offset)
 			// Try again to consume
-			msgs, err = refBrk.Consume(r.Context(), fullTopic, targSub.Offset, retImm, int64(max))
+			msgs, err = refBrk.Consume(r.Context(), fullTopic, targetSub.Offset, retImm, int64(max))
 			// If still error respond and return
 			if err != nil {
 				err := APIErrGenericInternal("Cannot consume message")
@@ -2771,7 +2773,7 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		// calc the message id = message's kafka offset (read offst + msg position)
-		idOff := targSub.Offset + int64(i)
+		idOff := targetSub.Offset + int64(i)
 		curMsg.ID = strconv.FormatInt(idOff, 10)
 		curRec := messages.RecMsg{AckID: ackPrefix + curMsg.ID, Msg: curMsg}
 		recList.RecMsgs = append(recList.RecMsgs, curRec)
@@ -2793,7 +2795,7 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	zSec := "2006-01-02T15:04:05Z"
 	t := time.Now().UTC()
 	ts := t.Format(zSec)
-	refStr.UpdateSubPull(targSub.ProjectUUID, targSub.Name, int64(len(recList.RecMsgs))+targSub.Offset, ts)
+	refStr.UpdateSubPull(targetSub.ProjectUUID, targetSub.Name, int64(len(recList.RecMsgs))+targetSub.Offset, ts)
 
 	output = []byte(resJSON)
 	respondOK(w, output)
@@ -2960,6 +2962,20 @@ var APIErrorPushConflict = func() APIErrorRoot {
 	apiErrBody := APIErrorBody{
 		Code:    http.StatusConflict,
 		Message: "Push functionality is currently disabled",
+		Status:  "CONFLICT",
+	}
+
+	return APIErrorRoot{
+		Body: apiErrBody,
+	}
+}
+
+// api error to be used when push enabled false
+var APIErrorPullNoTopic = func() APIErrorRoot {
+
+	apiErrBody := APIErrorBody{
+		Code:    http.StatusConflict,
+		Message: "Subscription's topic doesn't exist",
 		Status:  "CONFLICT",
 	}
 

@@ -968,6 +968,8 @@ paths:
           $ref: "#/responses/403"
         404:
           $ref: "#/responses/404"
+        409:
+          $ref: "#/responses/409_no_topic"
         500:
           $ref: "#/responses/500"
 
@@ -1474,6 +1476,12 @@ responses:
     description: Item already exists!
     schema:
       $ref: '#/definitions/ErrorMsg'
+
+  409_no_topic:
+      description: Subscription's topic doesn't exist
+      schema:
+        $ref: '#/definitions/ErrorMsg'
+
   500:
     description: Internal Error
     schema:
