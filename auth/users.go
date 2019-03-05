@@ -524,6 +524,28 @@ func IsConsumer(roles []string) bool {
 	return false
 }
 
+// IsProjectAdmin checks if the user is a project admin
+func IsProjectAdmin(roles []string) bool {
+	for _, role := range roles {
+		if role == "project_admin" {
+			return true
+		}
+	}
+
+	return false
+}
+
+// IsServiceAdmin checks if the user is a service admin
+func IsServiceAdmin(roles []string) bool {
+	for _, role := range roles {
+		if role == "project_admin" {
+			return true
+		}
+	}
+
+	return false
+}
+
 // RemoveUser removes an existing user
 func RemoveUser(uuid string, store stores.Store) error {
 	return store.RemoveUser(uuid)

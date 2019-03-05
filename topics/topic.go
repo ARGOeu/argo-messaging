@@ -44,7 +44,7 @@ func New(projectUUID string, projectName string, name string) Topic {
 // Find searches and returns a specific topic or all topics of a given project
 func FindMetric(projectUUID string, name string, store stores.Store) (TopicMetrics, error) {
 	result := TopicMetrics{MsgNum: 0}
-	topics, _, _, err := store.QueryTopics(projectUUID, name, "", 0)
+	topics, _, _, err := store.QueryTopics(projectUUID, "", name, "", 0)
 
 	// check if the topic exists
 	if len(topics) == 0 {
@@ -64,7 +64,7 @@ func FindMetric(projectUUID string, name string, store stores.Store) (TopicMetri
 }
 
 // Find searches and returns a specific topic or all topics of a given project
-func Find(projectUUID string, name string, pageToken string, pageSize int32, store stores.Store) (PaginatedTopics, error) {
+func Find(projectUUID, userUUID, name, pageToken string, pageSize int32, store stores.Store) (PaginatedTopics, error) {
 
 	var err error
 	var qTopics []stores.QTopic
@@ -80,7 +80,7 @@ func Find(projectUUID string, name string, pageToken string, pageSize int32, sto
 		return result, err
 	}
 
-	if qTopics, totalSize, nextPageToken, err = store.QueryTopics(projectUUID, name, string(pageTokenBytes), pageSize); err != nil {
+	if qTopics, totalSize, nextPageToken, err = store.QueryTopics(projectUUID, userUUID, name, string(pageTokenBytes), pageSize); err != nil {
 		return result, err
 	}
 
@@ -134,7 +134,7 @@ func CreateTopic(projectUUID string, name string, store stores.Store) (Topic, er
 		return Topic{}, errors.New("backend error")
 	}
 
-	results, err := Find(projectUUID, name, "", 0, store)
+	results, err := Find(projectUUID, "", name, "", 0, store)
 
 	if len(results.Topics) != 1 {
 		return Topic{}, errors.New("backend error")
@@ -154,7 +154,7 @@ func RemoveTopic(projectUUID string, name string, store stores.Store) error {
 
 // HasTopic returns true if project & topic combination exist
 func HasTopic(projectUUID string, name string, store stores.Store) bool {
-	res, err := Find(projectUUID, name, "", 0, store)
+	res, err := Find(projectUUID, "", name, "", 0, store)
 	if len(res.Topics) > 0 && err == nil {
 		return true
 	}

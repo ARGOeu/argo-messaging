@@ -60,10 +60,15 @@ func WrapValidate(hfn http.HandlerFunc) http.HandlerFunc {
 }
 
 // WrapMockAuthConfig handle wrapper is used in tests were some auth context is needed
-func WrapMockAuthConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *oldPush.Manager, c push.Client) http.HandlerFunc {
+func WrapMockAuthConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *oldPush.Manager, c push.Client, roles ...string) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		urlVars := mux.Vars(r)
+
+		userRoles := []string{"publisher", "consumer"}
+		if len(roles) > 0 {
+			userRoles = roles
+		}
 
 		nStr := str.Clone()
 		defer nStr.Close()
@@ -77,7 +82,7 @@ func WrapMockAuthConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Br
 		gorillaContext.Set(r, "auth_resource", cfg.ResAuth)
 		gorillaContext.Set(r, "auth_user", "UserA")
 		gorillaContext.Set(r, "auth_user_uuid", "uuid1")
-		gorillaContext.Set(r, "auth_roles", []string{"publisher", "consumer"})
+		gorillaContext.Set(r, "auth_roles", userRoles)
 		gorillaContext.Set(r, "push_worker_token", cfg.PushWorkerToken)
 		gorillaContext.Set(r, "push_enabled", cfg.PushEnabled)
 		hfn.ServeHTTP(w, r)
@@ -1677,6 +1682,7 @@ func SubModPushStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Write empty response if everything's ok
 	respondOK(w, output)
 }
 
@@ -2159,7 +2165,7 @@ func TopicListOne(w http.ResponseWriter, r *http.Request) {
 	refStr := gorillaContext.Get(r, "str").(stores.Store)
 	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 
-	results, err := topics.Find(projectUUID, urlVars["topic"], "", 0, refStr)
+	results, err := topics.Find(projectUUID, "", urlVars["topic"], "", 0, refStr)
 
 	if err != nil {
 		err := APIErrGenericBackend()
@@ -2205,7 +2211,7 @@ func ListSubsByTopic(w http.ResponseWriter, r *http.Request) {
 	refStr := gorillaContext.Get(r, "str").(stores.Store)
 	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 
-	results, err := topics.Find(projectUUID, urlVars["topic"], "", 0, refStr)
+	results, err := topics.Find(projectUUID, "", urlVars["topic"], "", 0, refStr)
 
 	if err != nil {
 		err := APIErrGenericBackend()
@@ -2468,10 +2474,18 @@ func TopicListAll(w http.ResponseWriter, r *http.Request) {
 	// Grab context references
 	refStr := gorillaContext.Get(r, "str").(stores.Store)
 	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
+	roles := gorillaContext.Get(r, "auth_roles").([]string)
 
 	urlValues := r.URL.Query()
 	pageToken := urlValues.Get("pageToken")
 	strPageSize = urlValues.Get("pageSize")
+
+	// if this route is used by a user who only  has a publisher role
+	// return all topics that he has access to
+	userUUID := ""
+	if !auth.IsProjectAdmin(roles) && !auth.IsServiceAdmin(roles) && auth.IsPublisher(roles) {
+		userUUID = gorillaContext.Get(r, "auth_user_uuid").(string)
+	}
 
 	if strPageSize != "" {
 		if pageSize, err = strconv.Atoi(strPageSize); err != nil {
@@ -2482,7 +2496,7 @@ func TopicListAll(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if res, err = topics.Find(projectUUID, "", pageToken, int32(pageSize), refStr); err != nil {
+	if res, err = topics.Find(projectUUID, userUUID, "", pageToken, int32(pageSize), refStr); err != nil {
 		err := APIErrorInvalidData("Invalid page token")
 		respondErr(w, err)
 		return

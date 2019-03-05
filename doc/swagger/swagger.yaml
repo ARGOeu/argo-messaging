@@ -1131,7 +1131,9 @@ paths:
     get:
       summary: List topics in a project
       description: |
-        The Topics endpoint returns a list of available topics for a given project
+        The Topics endpoint returns a list of available topics for a given project.
+        If the user making the request has only publisher role for the given project, it will load
+        the topics that he has access to(being in a topic's acl).
       parameters:
         - $ref: '#/parameters/ApiKey'
         - $ref: '#/parameters/PageToken'

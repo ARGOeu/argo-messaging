@@ -1018,7 +1018,7 @@ func (mk *MockStore) QueryTopicsByACL(projectUUID, user string) ([]QTopic, error
 }
 
 // QueryTopics Query Subscription info from store
-func (mk *MockStore) QueryTopics(projectUUID string, name string, pageToken string, pageSize int32) ([]QTopic, int32, string, error) {
+func (mk *MockStore) QueryTopics(projectUUID, userUUID, name, pageToken string, pageSize int32) ([]QTopic, int32, string, error) {
 
 	var qTopics []QTopic
 	var totalSize int32
@@ -1030,6 +1030,13 @@ func (mk *MockStore) QueryTopics(projectUUID string, name string, pageToken stri
 
 	for _, topic := range mk.TopicList {
 		if topic.ProjectUUID == projectUUID {
+
+			if userUUID != "" {
+				if !mk.existsInACL("topics", topic.Name, userUUID) {
+					continue
+				}
+
+			}
 			counter++
 		}
 	}
@@ -1065,6 +1072,12 @@ func (mk *MockStore) QueryTopics(projectUUID string, name string, pageToken stri
 
 				if topic.ID.(int) <= pg && topic.ProjectUUID == projectUUID {
 
+					if userUUID != "" {
+						if !mk.existsInACL("topics", topic.Name, userUUID) {
+							continue
+						}
+					}
+
 					qTopics = append(qTopics, topic)
 					limit--
 
@@ -1073,6 +1086,12 @@ func (mk *MockStore) QueryTopics(projectUUID string, name string, pageToken stri
 			} else {
 
 				if topic.ProjectUUID == projectUUID {
+
+					if userUUID != "" {
+						if !mk.existsInACL("topics", topic.Name, userUUID) {
+							continue
+						}
+					}
 
 					qTopics = append(qTopics, topic)
 					limit--
@@ -1090,8 +1109,16 @@ func (mk *MockStore) QueryTopics(projectUUID string, name string, pageToken stri
 		}
 
 	case false:
+
 		for _, topic := range mk.TopicList {
 			if topic.ProjectUUID == projectUUID && topic.Name == name {
+
+				if userUUID != "" {
+					if !mk.existsInACL("topics", topic.Name, userUUID) {
+						continue
+					}
+				}
+
 				qTopics = append(qTopics, topic)
 				break
 			}
@@ -1100,6 +1127,27 @@ func (mk *MockStore) QueryTopics(projectUUID string, name string, pageToken stri
 	}
 
 	return qTopics, totalSize, nextPageToken, nil
+}
+
+func (mk *MockStore) existsInACL(resource, resourceName, userUUID string) bool {
+
+	var acl QAcl
+
+	if resource == "subscriptions" {
+		acl = mk.SubsACL[resourceName]
+	} else if resource == "topics" {
+		acl = mk.TopicsACL[resourceName]
+	}
+
+	for _, u := range acl.ACL {
+		if u == userUUID {
+			return true
+		}
+
+	}
+
+	return false
+
 }
 
 //IncrementTopicMsgNum increase number of messages published in a topic
