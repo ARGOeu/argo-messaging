@@ -3844,6 +3844,44 @@ func (suite *HandlerTestSuite) TestSubError() {
 
 }
 
+func (suite *HandlerTestSuite) TestSubNoTopic() {
+
+	postJSON := `{
+
+}`
+	url := "http://localhost:8080/v1/projects/ARGO/subscriptions/no_topic_sub:pull"
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expJSON := `{
+   "error": {
+      "code": 409,
+      "message": "Subscription's topic doesn't exist",
+      "status": "CONFLICT"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	// add a mock sub that is linked to a non existent topic
+	str.SubList = append(str.SubList, stores.QSub{
+		Name:        "no_topic_sub",
+		ProjectUUID: "argo_uuid",
+		Topic:       "unknown_topic"},
+	)
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := oldPush.Manager{}
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:pull", WrapMockAuthConfig(SubPull, cfgKafka, &brk, str, &mgr, nil, "project_admin"))
+	router.ServeHTTP(w, req)
+	suite.Equal(409, w.Code)
+	suite.Equal(expJSON, w.Body.String())
+}
+
 func (suite *HandlerTestSuite) TestSubPullAll() {
 
 	postJSON := `{
