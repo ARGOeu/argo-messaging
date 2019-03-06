@@ -19,6 +19,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal("mockbase", store.Database)
 
 	eTopList := []QTopic{
+		{3, "argo_uuid", "topic4", 0, 0},
 		{2, "argo_uuid", "topic3", 0, 0},
 		{1, "argo_uuid", "topic2", 0, 0},
 		{0, "argo_uuid", "topic1", 0, 0}}
@@ -32,24 +33,24 @@ func (suite *StoreTestSuite) TestMockStore() {
 	// retrieve all topics
 	tpList, ts1, pg1, _ := store.QueryTopics("argo_uuid", "", "", "", 0)
 	suite.Equal(eTopList, tpList)
-	suite.Equal(int32(3), ts1)
+	suite.Equal(int32(4), ts1)
 	suite.Equal("", pg1)
 
 	// retrieve first 2
 	eTopList1st2 := []QTopic{
-		{2, "argo_uuid", "topic3", 0, 0},
-		{1, "argo_uuid", "topic2", 0, 0}}
+		{3, "argo_uuid", "topic4", 0, 0},
+		{2, "argo_uuid", "topic3", 0, 0}}
 	tpList2, ts2, pg2, _ := store.QueryTopics("argo_uuid", "", "", "", 2)
 	suite.Equal(eTopList1st2, tpList2)
-	suite.Equal(int32(3), ts2)
-	suite.Equal("0", pg2)
+	suite.Equal(int32(4), ts2)
+	suite.Equal("1", pg2)
 
 	// retrieve the last one
 	eTopList3 := []QTopic{
 		{0, "argo_uuid", "topic1", 0, 0}}
 	tpList3, ts3, pg3, _ := store.QueryTopics("argo_uuid", "", "", "0", 1)
 	suite.Equal(eTopList3, tpList3)
-	suite.Equal(int32(3), ts3)
+	suite.Equal(int32(4), ts3)
 	suite.Equal("", pg3)
 
 	// retrieve a single topic
@@ -194,7 +195,8 @@ func (suite *StoreTestSuite) TestMockStore() {
 	store.InsertSub("argo_uuid", "subFresh", "topicFresh", 0, 10, "", "", 0)
 
 	eTopList2 := []QTopic{
-		{3, "argo_uuid", "topicFresh", 0, 0},
+		{4, "argo_uuid", "topicFresh", 0, 0},
+		{3, "argo_uuid", "topic4", 0, 0},
 		{2, "argo_uuid", "topic3", 0, 0},
 		{1, "argo_uuid", "topic2", 0, 0},
 		{0, "argo_uuid", "topic1", 0, 0},

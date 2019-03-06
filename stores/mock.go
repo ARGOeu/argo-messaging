@@ -614,9 +614,11 @@ func (mk *MockStore) Initialize() {
 	qtop1 := QTopic{0, "argo_uuid", "topic1", 0, 0}
 	qtop2 := QTopic{1, "argo_uuid", "topic2", 0, 0}
 	qtop3 := QTopic{2, "argo_uuid", "topic3", 0, 0}
+	qtop4 := QTopic{3, "argo_uuid", "topic4", 0, 0}
 	mk.TopicList = append(mk.TopicList, qtop1)
 	mk.TopicList = append(mk.TopicList, qtop2)
 	mk.TopicList = append(mk.TopicList, qtop3)
+	mk.TopicList = append(mk.TopicList, qtop4)
 
 	// populate Subscriptions
 	qsub1 := QSub{0, "argo_uuid", "sub1", "topic1", 0, 0, "", "", 10, "", 0, 0, 0, ""}

@@ -47,23 +47,24 @@ func (suite *TopicTestSuite) TestGetPaginatedTopics() {
 
 	// retrieve all topics
 	expPt1 := PaginatedTopics{Topics: []Topic{
+		{"argo_uuid", "topic4", "/projects/ARGO/topics/topic4"},
 		{"argo_uuid", "topic3", "/projects/ARGO/topics/topic3"},
 		{"argo_uuid", "topic2", "/projects/ARGO/topics/topic2"},
 		{"argo_uuid", "topic1", "/projects/ARGO/topics/topic1"}},
-		NextPageToken: "", TotalSize: 3}
+		NextPageToken: "", TotalSize: 4}
 	pgTopics1, err1 := Find("argo_uuid", "", "", "", 0, store)
 
 	// retrieve first 2 topics
 	expPt2 := PaginatedTopics{Topics: []Topic{
-		{"argo_uuid", "topic3", "/projects/ARGO/topics/topic3"},
-		{"argo_uuid", "topic2", "/projects/ARGO/topics/topic2"}},
-		NextPageToken: "MA==", TotalSize: 3}
+		{"argo_uuid", "topic4", "/projects/ARGO/topics/topic4"},
+		{"argo_uuid", "topic3", "/projects/ARGO/topics/topic3"}},
+		NextPageToken: "MQ==", TotalSize: 4}
 	pgTopics2, err2 := Find("argo_uuid", "", "", "", 2, store)
 
 	// retrieve the next topic
 	expPt3 := PaginatedTopics{Topics: []Topic{
 		{"argo_uuid", "topic1", "/projects/ARGO/topics/topic1"}},
-		NextPageToken: "", TotalSize: 3}
+		NextPageToken: "", TotalSize: 4}
 	pgTopics3, err3 := Find("argo_uuid", "", "", "MA==", 1, store)
 
 	// invalid page token
@@ -170,6 +171,9 @@ func (suite *TopicTestSuite) TestExportJson() {
 	expJSON2 := `{
    "topics": [
       {
+         "name": "/projects/ARGO/topics/topic4"
+      },
+      {
          "name": "/projects/ARGO/topics/topic3"
       },
       {
@@ -180,7 +184,7 @@ func (suite *TopicTestSuite) TestExportJson() {
       }
    ],
    "nextPageToken": "",
-   "totalSize": 3
+   "totalSize": 4
 }`
 	topics2, _ := Find("argo_uuid", "", "", "", 0, store)
 	outJSON2, _ := topics2.ExportJSON()

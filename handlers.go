@@ -2683,6 +2683,13 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	retImm := true
 	max := 1
 
+	// if the subscription is push enabled, allow only push worker and service_admin users to pull from it
+	if targetSub.PushCfg != (subscriptions.PushConfig{}) && !auth.IsPushWorker(refRoles) && !auth.IsServiceAdmin(refRoles) {
+		err := APIErrorForbidden()
+		respondErr(w, err)
+		return
+	}
+
 	// Check Authorization per subscription
 	// - if enabled in config
 	// - if user has only consumer role
