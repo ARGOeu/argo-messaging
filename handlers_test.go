@@ -2523,7 +2523,7 @@ func (suite *HandlerTestSuite) TestProjectMetrics() {
          "timeseries": [
             {
                "timestamp": "{{TS1}}",
-               "value": 3
+               "value": 4
             }
          ],
          "description": "Counter that displays the number of topics belonging to the specific project"
@@ -2879,7 +2879,7 @@ func (suite *HandlerTestSuite) TestTopicMetrics() {
 
 func (suite *HandlerTestSuite) TestTopicMetricsNotFound() {
 
-	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/topics/topic4:metrics", nil)
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/topics/topic_not_found:metrics", nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -3172,6 +3172,9 @@ func (suite *HandlerTestSuite) TestTopicListAll() {
 	expResp := `{
    "topics": [
       {
+         "name": "/projects/ARGO/topics/topic4"
+      },
+      {
          "name": "/projects/ARGO/topics/topic3"
       },
       {
@@ -3182,7 +3185,7 @@ func (suite *HandlerTestSuite) TestTopicListAll() {
       }
    ],
    "nextPageToken": "",
-   "totalSize": 3
+   "totalSize": 4
 }`
 
 	cfgKafka := config.NewAPICfg()
@@ -3272,14 +3275,14 @@ func (suite *HandlerTestSuite) TestTopicListAllFirstPage() {
 	expResp := `{
    "topics": [
       {
-         "name": "/projects/ARGO/topics/topic3"
+         "name": "/projects/ARGO/topics/topic4"
       },
       {
-         "name": "/projects/ARGO/topics/topic2"
+         "name": "/projects/ARGO/topics/topic3"
       }
    ],
-   "nextPageToken": "MA==",
-   "totalSize": 3
+   "nextPageToken": "MQ==",
+   "totalSize": 4
 }`
 
 	cfgKafka := config.NewAPICfg()
@@ -3310,7 +3313,7 @@ func (suite *HandlerTestSuite) TestTopicListAllNextPage() {
       }
    ],
    "nextPageToken": "",
-   "totalSize": 3
+   "totalSize": 4
 }`
 
 	cfgKafka := config.NewAPICfg()
@@ -3657,6 +3660,124 @@ func (suite *HandlerTestSuite) TestSubPullOne() {
 	suite.Equal(200, w.Code)
 	suite.Equal(expJSON, w.Body.String())
 
+}
+
+func (suite *HandlerTestSuite) TestSubPullFromPushEnabledAsPushWorker() {
+
+	postJSON := `{
+  "maxMessages":"1"
+}`
+	url := "http://localhost:8080/v1/projects/ARGO/subscriptions/sub4:pull"
+	req, err := http.NewRequest("POST", url, strings.NewReader(postJSON))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expJSON := `{
+   "receivedMessages": [
+      {
+         "ackId": "projects/ARGO/subscriptions/sub4:0",
+         "message": {
+            "messageId": "0",
+            "attributes": {
+               "foo": "bar"
+            },
+            "data": "YmFzZTY0ZW5jb2RlZA==",
+            "publishTime": "2016-02-24T11:55:09.786127994Z"
+         }
+      }
+   ]
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	brk.Initialize([]string{"localhost"})
+	brk.PopulateThree() // Add three messages to the broker queue
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := oldPush.Manager{}
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:pull", WrapMockAuthConfig(SubPull, cfgKafka, &brk, str, &mgr, nil, "push_worker"))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expJSON, w.Body.String())
+}
+
+func (suite *HandlerTestSuite) TestSubPullFromPushEnabledAsServiceAdmin() {
+
+	postJSON := `{
+  "maxMessages":"1"
+}`
+	url := "http://localhost:8080/v1/projects/ARGO/subscriptions/sub4:pull"
+	req, err := http.NewRequest("POST", url, strings.NewReader(postJSON))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expJSON := `{
+   "receivedMessages": [
+      {
+         "ackId": "projects/ARGO/subscriptions/sub4:0",
+         "message": {
+            "messageId": "0",
+            "attributes": {
+               "foo": "bar"
+            },
+            "data": "YmFzZTY0ZW5jb2RlZA==",
+            "publishTime": "2016-02-24T11:55:09.786127994Z"
+         }
+      }
+   ]
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	brk.Initialize([]string{"localhost"})
+	brk.PopulateThree() // Add three messages to the broker queue
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := oldPush.Manager{}
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:pull", WrapMockAuthConfig(SubPull, cfgKafka, &brk, str, &mgr, nil, "service_admin"))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expJSON, w.Body.String())
+}
+
+func (suite *HandlerTestSuite) TestSubPullFromPushEnabledNoPushWorker() {
+
+	postJSON := `{
+  "maxMessages":"1"
+}`
+	url := "http://localhost:8080/v1/projects/ARGO/subscriptions/sub4:pull"
+	req, err := http.NewRequest("POST", url, strings.NewReader(postJSON))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expJSON := `{
+   "error": {
+      "code": 403,
+      "message": "Access to this resource is forbidden",
+      "status": "FORBIDDEN"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	brk.Initialize([]string{"localhost"})
+	brk.PopulateThree() // Add three messages to the broker queue
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := oldPush.Manager{}
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:pull", WrapMockAuthConfig(SubPull, cfgKafka, &brk, str, &mgr, nil))
+	router.ServeHTTP(w, req)
+	suite.Equal(403, w.Code)
+	suite.Equal(expJSON, w.Body.String())
 }
 
 func (suite *HandlerTestSuite) TestSubModAck() {

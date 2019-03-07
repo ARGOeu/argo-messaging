@@ -524,6 +524,17 @@ func IsConsumer(roles []string) bool {
 	return false
 }
 
+// IsPushWorker Checks if a user is a push worker
+func IsPushWorker(roles []string) bool {
+	for _, role := range roles {
+		if role == "push_worker" {
+			return true
+		}
+	}
+
+	return false
+}
+
 // IsProjectAdmin checks if the user is a project admin
 func IsProjectAdmin(roles []string) bool {
 	for _, role := range roles {

@@ -138,7 +138,7 @@ func (suite *MetricsTestSuite) TestGetTopics() {
 	APIcfg.LoadStrJSON(suite.cfgStr)
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
 	n, _ := GetProjectTopics("argo_uuid", store)
-	suite.Equal(int64(3), n)
+	suite.Equal(int64(4), n)
 
 }
 func (suite *MetricsTestSuite) TestGetTopicsACL() {
