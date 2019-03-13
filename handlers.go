@@ -2818,12 +2818,6 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 
 	healthMsg := HealthStatus{
 		Status: "ok",
-		PushServers: []PushServerInfo{
-			{
-				Endpoint: apsc.Target(),
-				Status:   apsc.HealthCheck(context.TODO()).Result(),
-			},
-		},
 	}
 
 	pwToken := gorillaContext.Get(r, "push_worker_token").(string)
@@ -2836,10 +2830,22 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 			healthMsg.Status = "warning"
 			log.Error("push worker could not be retrieved")
 		}
+
+		healthMsg.PushServers = []PushServerInfo{
+			{
+				Endpoint: apsc.Target(),
+				Status:   apsc.HealthCheck(context.TODO()).Result(),
+			},
+		}
+
+	} else {
+		healthMsg.PushFunctionality = "disabled"
 	}
+
 	if bytes, err = json.MarshalIndent(healthMsg, "", " "); err != nil {
 		err := APIErrGenericInternal(err.Error())
 		respondErr(w, err)
+		return
 	}
 
 	respondOK(w, bytes)
@@ -2865,8 +2871,9 @@ func respondErr(w http.ResponseWriter, apiErr APIErrorRoot) {
 }
 
 type HealthStatus struct {
-	Status      string           `json:"status"`
-	PushServers []PushServerInfo `json:"push_servers"`
+	Status            string           `json:"status,omitempty"`
+	PushServers       []PushServerInfo `json:"push_servers,omitempty"`
+	PushFunctionality string           `json:"push_functionality,omitempty"`
 }
 
 type PushServerInfo struct {
