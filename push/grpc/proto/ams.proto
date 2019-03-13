@@ -7,7 +7,16 @@ service PushService {
 
     //  Deactivates a subscription in order for the service to stop handling the push functionality
     rpc DeactivateSubscription(DeactivateSubscriptionRequest) returns (DeactivateSubscriptionResponse) {}
+
+    //  Status returns the current state of the service
+    rpc Status(StatusRequest) returns (StatusResponse) {}
 }
+
+// Empty wrapper for status request call
+message StatusRequest {}
+
+// Empty wrapper for status response call
+message StatusResponse {}
 
 // Wrapper for subscription
 message DeactivateSubscriptionResponse {
