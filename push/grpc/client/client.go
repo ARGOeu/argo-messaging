@@ -132,8 +132,12 @@ func (c *GrpcClient) DeactivateSubscription(ctx context.Context, fullSub string)
 func (c *GrpcClient) HealthCheck(ctx context.Context) *GrpcClientStatus {
 
 	r, err := c.hsc.Check(ctx, &grpc_health_v1.HealthCheckRequest{
-		Service: "api.v1.grpc.PushService"},
+		Service: ""},
 	)
+
+	if err != nil {
+		_, err = c.psc.Status(ctx, &amsPb.StatusRequest{})
+	}
 
 	return &GrpcClientStatus{
 		err:     err,
