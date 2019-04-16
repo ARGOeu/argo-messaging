@@ -514,6 +514,25 @@ paths:
         500:
           $ref: "#/responses/500"
 
+  /users/profile:
+    get:
+      summary: Show a specific user based on the provided url key
+      description: |
+        Show a specific's user information
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+      tags:
+        - Users
+      responses:
+        200:
+          description: A User object
+          schema:
+            $ref: '#/definitions/User'
+        401:
+          $ref: "#/responses/401"
+        500:
+          $ref: "#/responses/500"
+
   /users/{USER}:refreshToken:
     post:
       summary: Refreshes the token of an existing user
