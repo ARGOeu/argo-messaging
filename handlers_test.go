@@ -80,6 +80,98 @@ func (suite *HandlerTestSuite) TestValidation() {
 
 }
 
+func (suite *HandlerTestSuite) TestUserProfile() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/users/profile?key=S3CR3T1", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "uuid": "uuid1",
+   "projects": [
+      {
+         "project": "ARGO",
+         "roles": [
+            "consumer",
+            "publisher"
+         ],
+         "topics": [
+            "topic1",
+            "topic2"
+         ],
+         "subscriptions": [
+            "sub1",
+            "sub2",
+            "sub3"
+         ]
+      }
+   ],
+   "name": "UserA",
+   "token": "S3CR3T1",
+   "email": "foo-email",
+   "service_roles": [],
+   "created_on": "2009-11-10T23:00:00Z",
+   "modified_on": "2009-11-10T23:00:00Z"
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := oldPush.Manager{}
+	router.HandleFunc("/v1/users/profile", WrapMockAuthConfig(UserProfile, cfgKafka, &brk, str, &mgr, nil))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+}
+
+func (suite *HandlerTestSuite) TestUserProfileUnauthorized() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/users/profile?key=unknonwn", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "error": {
+      "code": 401,
+      "message": "Unauthorized",
+      "status": "UNAUTHORIZED"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := oldPush.Manager{}
+
+	// unknown key
+	router.HandleFunc("/v1/users/profile", WrapMockAuthConfig(UserProfile, cfgKafka, &brk, str, &mgr, nil))
+	router.ServeHTTP(w, req)
+	suite.Equal(401, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+	// empty key
+	w2 := httptest.NewRecorder()
+	req2, err2 := http.NewRequest("GET", "http://localhost:8080/v1/users/profile", nil)
+	if err2 != nil {
+		log.Fatal(err2)
+	}
+	router.HandleFunc("/v1/users/profile", WrapMockAuthConfig(UserProfile, cfgKafka, &brk, str, &mgr, nil))
+	router.ServeHTTP(w2, req2)
+	suite.Equal(401, w2.Code)
+	suite.Equal(expResp, w2.Body.String())
+
+}
+
 func (suite *HandlerTestSuite) TestUserCreate() {
 
 	postJSON := `{

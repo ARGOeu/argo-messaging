@@ -212,6 +212,53 @@ func WrapAuthorize(hfn http.Handler, routeName string) http.HandlerFunc {
 // HandlerFunctions
 ///////////////////
 
+// UserProfile returns a user's profile based on the provided url parameter(key)
+func UserProfile(w http.ResponseWriter, r *http.Request) {
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+
+	urlValues := r.URL.Query()
+
+	// if the url parameter 'key' is empty or absent, end the request with an unauthorized response
+	if urlValues.Get("key") == "" {
+		err := APIErrorUnauthorized()
+		respondErr(w, err)
+		return
+	}
+
+	result, err := auth.GetUserByToken(urlValues.Get("key"), refStr)
+
+	if err != nil {
+		if err.Error() == "not found" {
+			err := APIErrorUnauthorized()
+			respondErr(w, err)
+			return
+		}
+		err := APIErrQueryDatastore()
+		respondErr(w, err)
+		return
+	}
+
+	// Output result to JSON
+	resJSON, err := result.ExportJSON()
+
+	if err != nil {
+		err := APIErrExportJSON()
+		respondErr(w, err)
+		return
+	}
+
+	// Write response
+	respondOK(w, []byte(resJSON))
+
+}
+
 // ProjectDelete (DEL) deletes an existing project (also removes it's topics and subscriptions)
 func ProjectDelete(w http.ResponseWriter, r *http.Request) {
 
