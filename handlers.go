@@ -2707,6 +2707,7 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	refUser := gorillaContext.Get(r, "auth_user").(string)
 	refRoles := gorillaContext.Get(r, "auth_roles").([]string)
 	refAuthResource := gorillaContext.Get(r, "auth_resource").(bool)
+	pushEnabled := gorillaContext.Get(r, "push_enabled").(bool)
 
 	// Get project UUID First to use as reference
 	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
@@ -2729,6 +2730,13 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	fullTopic := targetSub.ProjectUUID + "." + targetSub.Topic
 	retImm := true
 	max := 1
+
+	// if the subscription is push enabled but push enabled is false, don't allow push worker user to consume
+	if targetSub.PushCfg != (subscriptions.PushConfig{}) && !pushEnabled && auth.IsPushWorker(refRoles) {
+		err := APIErrorPushConflict()
+		respondErr(w, err)
+		return
+	}
 
 	// if the subscription is push enabled, allow only push worker and service_admin users to pull from it
 	if targetSub.PushCfg != (subscriptions.PushConfig{}) && !auth.IsPushWorker(refRoles) && !auth.IsServiceAdmin(refRoles) {
