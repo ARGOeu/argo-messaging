@@ -129,7 +129,12 @@ func (suite *SubTestSuite) TestGetSubsByProject() {
 	expSub4.PushCfg.RetPol.PolicyType = "linear"
 	expSub4.PushCfg.RetPol.Period = 300
 	rp := RetryPolicy{"linear", 300}
-	expSub4.PushCfg = PushConfig{"endpoint.foo", rp}
+	expSub4.PushCfg = PushConfig{
+		Pend:             "endpoint.foo",
+		RetPol:           rp,
+		VerificationHash: "push-id-1",
+		Verified:         true,
+	}
 	expSub4.PushStatus = "push enabled"
 
 	// retrieve all subs
@@ -210,7 +215,12 @@ func (suite *SubTestSuite) TestLoadFromCfg() {
 	expSub4.PushCfg.RetPol.PolicyType = "linear"
 	expSub4.PushCfg.RetPol.Period = 300
 	rp := RetryPolicy{"linear", 300}
-	expSub4.PushCfg = PushConfig{"endpoint.foo", rp}
+	expSub4.PushCfg = PushConfig{
+		Pend:             "endpoint.foo",
+		RetPol:           rp,
+		VerificationHash: "push-id-1",
+		Verified:         true,
+	}
 	expSub4.PushStatus = "push enabled"
 	expSubs := []Subscription{}
 	expSubs = append(expSubs, expSub4)
@@ -243,11 +253,11 @@ func (suite *SubTestSuite) TestCreateSubStore() {
 
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
 
-	sub, err := CreateSub("argo_uuid", "sub1", "topic1", "", 0, 0, "linear", 300, store)
+	sub, err := CreateSub("argo_uuid", "sub1", "topic1", "", 0, 0, "linear", 300, "", true, store)
 	suite.Equal(Subscription{}, sub)
 	suite.Equal("exists", err.Error())
 
-	sub2, err2 := CreateSub("argo_uuid", "subNew", "topicNew", "", 0, 0, "linear", 300, store)
+	sub2, err2 := CreateSub("argo_uuid", "subNew", "topicNew", "", 0, 0, "linear", 300, "", true, store)
 	expSub := New("argo_uuid", "ARGO", "subNew", "topicNew")
 	suite.Equal(expSub, sub2)
 	suite.Equal(nil, err2)
@@ -282,7 +292,7 @@ func (suite *SubTestSuite) TestModSubPush() {
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
 
 	// modify push config
-	err1 := ModSubPush("argo_uuid", "sub1", "example.com", "linear", 400, store)
+	err1 := ModSubPush("argo_uuid", "sub1", "example.com", "linear", 400, "hash-1", true, store)
 
 	suite.Nil(err1)
 
@@ -290,9 +300,11 @@ func (suite *SubTestSuite) TestModSubPush() {
 	suite.Equal("example.com", sub1.PushEndpoint)
 	suite.Equal("linear", sub1.RetPolicy)
 	suite.Equal(400, sub1.RetPeriod)
+	suite.Equal("hash-1", sub1.VerificationHash)
+	suite.True(sub1.Verified)
 
 	// test error case
-	err2 := ModSubPush("argo_uuid", "unknown", "", "", 0, store)
+	err2 := ModSubPush("argo_uuid", "unknown", "", "", 0, "", false, store)
 	suite.Equal("not found", err2.Error())
 }
 
@@ -331,7 +343,9 @@ func (suite *SubTestSuite) TestExportJson() {
    "topic": "/projects/ARGO/topics/topic1",
    "pushConfig": {
       "pushEndpoint": "",
-      "retryPolicy": {}
+      "retryPolicy": {},
+      "verification_hash": "",
+      "verified": false
    },
    "ackDeadlineSeconds": 10
 }`
@@ -347,7 +361,9 @@ func (suite *SubTestSuite) TestExportJson() {
             "retryPolicy": {
                "type": "linear",
                "period": 300
-            }
+            },
+            "verification_hash": "push-id-1",
+            "verified": true
          },
          "ackDeadlineSeconds": 10,
          "push_status": "push enabled"
@@ -357,7 +373,9 @@ func (suite *SubTestSuite) TestExportJson() {
          "topic": "/projects/ARGO/topics/topic3",
          "pushConfig": {
             "pushEndpoint": "",
-            "retryPolicy": {}
+            "retryPolicy": {},
+            "verification_hash": "",
+            "verified": false
          },
          "ackDeadlineSeconds": 10
       },
@@ -366,7 +384,9 @@ func (suite *SubTestSuite) TestExportJson() {
          "topic": "/projects/ARGO/topics/topic2",
          "pushConfig": {
             "pushEndpoint": "",
-            "retryPolicy": {}
+            "retryPolicy": {},
+            "verification_hash": "",
+            "verified": false
          },
          "ackDeadlineSeconds": 10
       },
@@ -375,7 +395,9 @@ func (suite *SubTestSuite) TestExportJson() {
          "topic": "/projects/ARGO/topics/topic1",
          "pushConfig": {
             "pushEndpoint": "",
-            "retryPolicy": {}
+            "retryPolicy": {},
+            "verification_hash": "",
+            "verified": false
          },
          "ackDeadlineSeconds": 10
       }

@@ -1532,6 +1532,8 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 	pushEnd := ""
 	rPolicy := ""
 	rPeriod := 0
+	vhash := ""
+	verified := false
 	pushWorker := auth.User{}
 	pwToken := gorillaContext.Get(r, "push_worker_token").(string)
 
@@ -1587,7 +1589,27 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 
 	existingSub := res.Subscriptions[0]
 
-	err = subscriptions.ModSubPush(projectUUID, subName, pushEnd, rPolicy, rPeriod, refStr)
+	// if the request wants to transform a pull subscription to a push one
+	// we need to begin the verification process
+	if postBody.PushCfg != (subscriptions.PushConfig{}) {
+
+		// if the endpoint in not the same with the old one, we need to verify it again
+		if postBody.PushCfg.Pend != existingSub.PushCfg.Pend {
+			vhash, err = auth.GenToken()
+			if err != nil {
+				log.Errorf("Could not generate verification hash for subscription %v, %v", urlVars["subscription"], err.Error())
+				err := APIErrGenericInternal("Could not generate verification hash")
+				respondErr(w, err)
+				return
+			}
+			// else keep the already existing data
+		} else {
+			vhash = existingSub.PushCfg.VerificationHash
+			verified = existingSub.PushCfg.Verified
+		}
+	}
+
+	err = subscriptions.ModSubPush(projectUUID, subName, pushEnd, rPolicy, rPeriod, vhash, verified, refStr)
 
 	if err != nil {
 		if err.Error() == "not found" {
@@ -1851,6 +1873,7 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 	rPolicy := ""
 	rPeriod := 0
 	pushWorker := auth.User{}
+	verifyHash := ""
 
 	if postBody.PushCfg != (subscriptions.PushConfig{}) {
 
@@ -1886,10 +1909,19 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 		if rPeriod <= 0 {
 			rPeriod = 3000
 		}
+
+		verifyHash, err = auth.GenToken()
+		if err != nil {
+			log.Errorf("Could not generate verification hash for subscription %v, %v", urlVars["subscription"], err.Error())
+			err := APIErrGenericInternal("Could not generate verification hash")
+			respondErr(w, err)
+			return
+		}
+
 	}
 
 	// Get Result Object
-	res, err := subscriptions.CreateSub(projectUUID, urlVars["subscription"], tName, pushEnd, curOff, postBody.Ack, rPolicy, rPeriod, refStr)
+	res, err := subscriptions.CreateSub(projectUUID, urlVars["subscription"], tName, pushEnd, curOff, postBody.Ack, rPolicy, rPeriod, verifyHash, false, refStr)
 
 	if err != nil {
 		if err.Error() == "exists" {
