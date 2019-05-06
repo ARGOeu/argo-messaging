@@ -3796,6 +3796,42 @@ func (suite *HandlerTestSuite) TestSubPullFromPushEnabledAsPushWorker() {
 	suite.Equal(expJSON, w.Body.String())
 }
 
+func (suite *HandlerTestSuite) TestSubPullFromPushEnabledAsPushWorkerDISABLED() {
+
+	postJSON := `{
+  "maxMessages":"1"
+}`
+	url := "http://localhost:8080/v1/projects/ARGO/subscriptions/sub4:pull"
+	req, err := http.NewRequest("POST", url, strings.NewReader(postJSON))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expJSON := `{
+   "error": {
+      "code": 409,
+      "message": "Push functionality is currently disabled",
+      "status": "CONFLICT"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	// disable push functionality
+	cfgKafka.PushEnabled = false
+	brk := brokers.MockBroker{}
+	brk.Initialize([]string{"localhost"})
+	brk.PopulateThree() // Add three messages to the broker queue
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := oldPush.Manager{}
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:pull", WrapMockAuthConfig(SubPull, cfgKafka, &brk, str, &mgr, nil, "push_worker"))
+	router.ServeHTTP(w, req)
+	suite.Equal(409, w.Code)
+	suite.Equal(expJSON, w.Body.String())
+}
+
 func (suite *HandlerTestSuite) TestSubPullFromPushEnabledAsServiceAdmin() {
 
 	postJSON := `{
