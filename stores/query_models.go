@@ -6,20 +6,22 @@ import (
 
 // QSub are the results of the Qsub query
 type QSub struct {
-	ID           interface{} `bson:"_id,omitempty"`
-	ProjectUUID  string      `bson:"project_uuid"`
-	Name         string      `bson:"name"`
-	Topic        string      `bson:"topic"`
-	Offset       int64       `bson:"offset"`
-	NextOffset   int64       `bson:"next_offset"`
-	PendingAck   string      `bson:"pending_ack"`
-	PushEndpoint string      `bson:"push_endpoint"`
-	Ack          int         `bson:"ack"`
-	RetPolicy    string      `bson:"retry_policy"`
-	RetPeriod    int         `bson:"retry_period"`
-	MsgNum       int64       `bson:"msg_num"`
-	TotalBytes   int64       `bson:"total_bytes"`
-	PushStatus   string      `bson:"push_status,omitempty"`
+	ID               interface{} `bson:"_id,omitempty"`
+	ProjectUUID      string      `bson:"project_uuid"`
+	Name             string      `bson:"name"`
+	Topic            string      `bson:"topic"`
+	Offset           int64       `bson:"offset"`
+	NextOffset       int64       `bson:"next_offset"`
+	PendingAck       string      `bson:"pending_ack"`
+	PushEndpoint     string      `bson:"push_endpoint"`
+	Ack              int         `bson:"ack"`
+	RetPolicy        string      `bson:"retry_policy"`
+	RetPeriod        int         `bson:"retry_period"`
+	MsgNum           int64       `bson:"msg_num"`
+	TotalBytes       int64       `bson:"total_bytes"`
+	PushStatus       string      `bson:"push_status,omitempty"`
+	VerificationHash string      `bson:"verification_hash"`
+	Verified         bool        `bson:"verified"`
 }
 
 // QAcl holds a list of authorized users queried from topic or subscription collections

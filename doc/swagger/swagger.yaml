@@ -1610,6 +1610,10 @@ definitions:
         description: endpoint url for endpoint to push messages
       retryPolicy:
         $ref: '#/definitions/RetryPolicy'
+      verification_hash:
+        type: string
+      verified:
+        type: boolean
 
   PushStatus:
     type: object

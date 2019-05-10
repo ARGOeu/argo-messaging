@@ -25,10 +25,10 @@ func (suite *StoreTestSuite) TestMockStore() {
 		{0, "argo_uuid", "topic1", 0, 0}}
 
 	eSubList := []QSub{
-		{3, "argo_uuid", "sub4", "topic4", 0, 0, "", "endpoint.foo", 10, "linear", 300, 0, 0, "push enabled"},
-		{2, "argo_uuid", "sub3", "topic3", 0, 0, "", "", 10, "", 0, 0, 0, ""},
-		{1, "argo_uuid", "sub2", "topic2", 0, 0, "", "", 10, "", 0, 0, 0, ""},
-		{0, "argo_uuid", "sub1", "topic1", 0, 0, "", "", 10, "", 0, 0, 0, ""}}
+		{3, "argo_uuid", "sub4", "topic4", 0, 0, "", "endpoint.foo", 10, "linear", 300, 0, 0, "push enabled", "push-id-1", true},
+		{2, "argo_uuid", "sub3", "topic3", 0, 0, "", "", 10, "", 0, 0, 0, "", "", false},
+		{1, "argo_uuid", "sub2", "topic2", 0, 0, "", "", 10, "", 0, 0, 0, "", "", false},
+		{0, "argo_uuid", "sub1", "topic1", 0, 0, "", "", 10, "", 0, 0, 0, "", "", false}}
 
 	// retrieve all topics
 	tpList, ts1, pg1, _ := store.QueryTopics("argo_uuid", "", "", "", 0)
@@ -89,8 +89,8 @@ func (suite *StoreTestSuite) TestMockStore() {
 
 	// retrieve first 2 subs
 	eSubListFirstPage := []QSub{
-		{3, "argo_uuid", "sub4", "topic4", 0, 0, "", "endpoint.foo", 10, "linear", 300, 0, 0, "push enabled"},
-		{2, "argo_uuid", "sub3", "topic3", 0, 0, "", "", 10, "", 0, 0, 0, ""}}
+		{3, "argo_uuid", "sub4", "topic4", 0, 0, "", "endpoint.foo", 10, "linear", 300, 0, 0, "push enabled", "push-id-1", true},
+		{2, "argo_uuid", "sub3", "topic3", 0, 0, "", "", 10, "", 0, 0, 0, "", "", false}}
 
 	subList2, ts2, pg2, err2 := store.QuerySubs("argo_uuid", "", "", "", 2)
 	suite.Equal(eSubListFirstPage, subList2)
@@ -99,8 +99,8 @@ func (suite *StoreTestSuite) TestMockStore() {
 
 	// retrieve next 2 subs
 	eSubListNextPage := []QSub{
-		{1, "argo_uuid", "sub2", "topic2", 0, 0, "", "", 10, "", 0, 0, 0, ""},
-		{0, "argo_uuid", "sub1", "topic1", 0, 0, "", "", 10, "", 0, 0, 0, ""}}
+		{1, "argo_uuid", "sub2", "topic2", 0, 0, "", "", 10, "", 0, 0, 0, "", "", false},
+		{0, "argo_uuid", "sub1", "topic1", 0, 0, "", "", 10, "", 0, 0, 0, "", "", false}}
 
 	subList3, ts3, pg3, err3 := store.QuerySubs("argo_uuid", "", "", "1", 2)
 	suite.Equal(eSubListNextPage, subList3)
@@ -109,7 +109,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 
 	// retrieve user's subs
 	eSubList4 := []QSub{
-		{ID: 3, ProjectUUID: "argo_uuid", Name: "sub4", Topic: "topic4", Offset: 0, NextOffset: 0, PendingAck: "", PushEndpoint: "endpoint.foo", Ack: 10, RetPolicy: "linear", RetPeriod: 300, MsgNum: 0, TotalBytes: 0, PushStatus: "push enabled"},
+		{ID: 3, ProjectUUID: "argo_uuid", Name: "sub4", Topic: "topic4", Offset: 0, NextOffset: 0, PendingAck: "", PushEndpoint: "endpoint.foo", Ack: 10, RetPolicy: "linear", RetPeriod: 300, MsgNum: 0, TotalBytes: 0, PushStatus: "push enabled", VerificationHash: "push-id-1", Verified: true},
 		{ID: 2, ProjectUUID: "argo_uuid", Name: "sub3", Topic: "topic3", Offset: 0, NextOffset: 0, PendingAck: "", PushEndpoint: "", Ack: 10, RetPolicy: "", RetPeriod: 0, MsgNum: 0, TotalBytes: 0, PushStatus: ""},
 		{ID: 1, ProjectUUID: "argo_uuid", Name: "sub2", Topic: "topic2", Offset: 0, NextOffset: 0, PendingAck: "", PushEndpoint: "", Ack: 10, RetPolicy: "", RetPeriod: 0, MsgNum: 0, TotalBytes: 0, PushStatus: ""}}
 
@@ -121,7 +121,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 
 	// retrieve user's subs
 	eSubList5 := []QSub{
-		{ID: 3, ProjectUUID: "argo_uuid", Name: "sub4", Topic: "topic4", Offset: 0, NextOffset: 0, PendingAck: "", PushEndpoint: "endpoint.foo", Ack: 10, RetPolicy: "linear", RetPeriod: 300, MsgNum: 0, TotalBytes: 0, PushStatus: "push enabled"},
+		{ID: 3, ProjectUUID: "argo_uuid", Name: "sub4", Topic: "topic4", Offset: 0, NextOffset: 0, PendingAck: "", PushEndpoint: "endpoint.foo", Ack: 10, RetPolicy: "linear", RetPeriod: 300, MsgNum: 0, TotalBytes: 0, PushStatus: "push enabled", VerificationHash: "push-id-1", Verified: true},
 		{ID: 2, ProjectUUID: "argo_uuid", Name: "sub3", Topic: "topic3", Offset: 0, NextOffset: 0, PendingAck: "", PushEndpoint: "", Ack: 10, RetPolicy: "", RetPeriod: 0, MsgNum: 0, TotalBytes: 0, PushStatus: ""}}
 	subList5, ts5, pg5, err5 := store.QuerySubs("argo_uuid", "uuid1", "", "", 2)
 
@@ -192,7 +192,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal(true, store.HasResourceRoles("topics:publish", []string{"publisher"}))
 
 	store.InsertTopic("argo_uuid", "topicFresh")
-	store.InsertSub("argo_uuid", "subFresh", "topicFresh", 0, 10, "", "", 0)
+	store.InsertSub("argo_uuid", "subFresh", "topicFresh", 0, 10, "", "", 0, "", false)
 
 	eTopList2 := []QTopic{
 		{4, "argo_uuid", "topicFresh", 0, 0},
@@ -203,11 +203,11 @@ func (suite *StoreTestSuite) TestMockStore() {
 	}
 
 	eSubList2 := []QSub{
-		{4, "argo_uuid", "subFresh", "topicFresh", 0, 0, "", "", 10, "", 0, 0, 0, ""},
-		{3, "argo_uuid", "sub4", "topic4", 0, 0, "", "endpoint.foo", 10, "linear", 300, 0, 0, "push enabled"},
-		{2, "argo_uuid", "sub3", "topic3", 0, 0, "", "", 10, "", 0, 0, 0, ""},
-		{1, "argo_uuid", "sub2", "topic2", 0, 0, "", "", 10, "", 0, 0, 0, ""},
-		{0, "argo_uuid", "sub1", "topic1", 0, 0, "", "", 10, "", 0, 0, 0, ""}}
+		{4, "argo_uuid", "subFresh", "topicFresh", 0, 0, "", "", 10, "", 0, 0, 0, "", "", false},
+		{3, "argo_uuid", "sub4", "topic4", 0, 0, "", "endpoint.foo", 10, "linear", 300, 0, 0, "push enabled", "push-id-1", true},
+		{2, "argo_uuid", "sub3", "topic3", 0, 0, "", "", 10, "", 0, 0, 0, "", "", false},
+		{1, "argo_uuid", "sub2", "topic2", 0, 0, "", "", 10, "", 0, 0, 0, "", "", false},
+		{0, "argo_uuid", "sub1", "topic1", 0, 0, "", "", 10, "", 0, 0, 0, "", "", false}}
 
 	tpList, _, _, _ = store.QueryTopics("argo_uuid", "", "", "", 0)
 	suite.Equal(eTopList2, tpList)
@@ -231,7 +231,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal("not found", err.Error())
 
 	sb, err := store.QueryOneSub("argo_uuid", "sub1")
-	esb := QSub{0, "argo_uuid", "sub1", "topic1", 0, 0, "", "", 10, "", 0, 0, 0, ""}
+	esb := QSub{0, "argo_uuid", "sub1", "topic1", 0, 0, "", "", 10, "", 0, 0, 0, "", "", false}
 	suite.Equal(esb, sb)
 
 	// Test modify ack deadline in store
@@ -240,14 +240,16 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal(66, subAck.Ack)
 
 	// Test mod push sub
-	e1 := store.ModSubPush("argo_uuid", "sub1", "example.com", "linear", 400)
+	e1 := store.ModSubPush("argo_uuid", "sub1", "example.com", "linear", 400, "hash-1", true)
 	sub1, _ := store.QueryOneSub("argo_uuid", "sub1")
 	suite.Nil(e1)
 	suite.Equal("example.com", sub1.PushEndpoint)
 	suite.Equal("linear", sub1.RetPolicy)
 	suite.Equal(400, sub1.RetPeriod)
+	suite.Equal("hash-1", sub1.VerificationHash)
+	suite.True(sub1.Verified)
 
-	e2 := store.ModSubPush("argo_uuid", "unknown", "", "", 0)
+	e2 := store.ModSubPush("argo_uuid", "unknown", "", "", 0, "", false)
 	suite.Equal("not found", e2.Error())
 
 	// Test mod push sub

@@ -1200,6 +1200,8 @@ func (suite *HandlerTestSuite) TestSubModPushConfigToActive() {
 	suite.Equal(3000, sub.RetPeriod)
 	suite.Equal("linear", sub.RetPolicy)
 	suite.Equal("Success: Subscription /projects/ARGO/subscriptions/sub1 activated", sub.PushStatus)
+	suite.False(sub.Verified)
+	suite.NotEqual("", sub.VerificationHash)
 	// check to see that the push worker user has been added to the subscription's acl
 	a1, _ := str.QueryACL("argo_uuid", "subscriptions", "sub1")
 	suite.Equal([]string{"uuid1", "uuid2", "uuid7"}, a1.ACL)
@@ -1235,6 +1237,8 @@ func (suite *HandlerTestSuite) TestSubModPushConfigToInactive() {
 	suite.Equal("", sub.PushEndpoint)
 	suite.Equal(0, sub.RetPeriod)
 	suite.Equal("", sub.RetPolicy)
+	suite.Equal("", sub.VerificationHash)
+	suite.False(sub.Verified)
 	suite.Equal("Subscription /projects/ARGO/subscriptions/sub4 deactivated", sub.PushStatus)
 	// check to see that the push worker user has been removed from the subscription's acl
 	a1, _ := str.QueryACL("argo_uuid", "subscriptions", "sub4")
@@ -1348,6 +1352,9 @@ func (suite *HandlerTestSuite) TestSubModPushConfigUpdate() {
 	suite.Equal("https://www.example2.com", sub.PushEndpoint)
 	suite.Equal(5000, sub.RetPeriod)
 	suite.Equal("linear", sub.RetPolicy)
+	suite.False(sub.Verified)
+	suite.NotEqual("", sub.VerificationHash)
+	suite.NotEqual("push-id-1", sub.VerificationHash)
 	suite.Equal("Success: Subscription /projects/ARGO/subscriptions/sub4 activated", sub.PushStatus)
 }
 
@@ -1460,7 +1467,9 @@ func (suite *HandlerTestSuite) TestSubCreatePushConfig() {
       "retryPolicy": {
          "type": "linear",
          "period": 3000
-      }
+      },
+      "verification_hash": "{{VHASH}}",
+      "verified": false
    },
    "ackDeadlineSeconds": 10,
    "push_status": "Subscription /projects/ARGO/subscriptions/subNew activated"
@@ -1477,6 +1486,7 @@ func (suite *HandlerTestSuite) TestSubCreatePushConfig() {
 	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubCreate, cfgKafka, &brk, str, &mgr, pc))
 	router.ServeHTTP(w, req)
 	sub, _ := str.QueryOneSub("argo_uuid", "subNew")
+	expResp = strings.Replace(expResp, "{{VHASH}}", sub.VerificationHash, 1)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
 	suite.Equal("Subscription /projects/ARGO/subscriptions/subNew activated", sub.PushStatus)
@@ -1592,7 +1602,9 @@ func (suite *HandlerTestSuite) TestSubCreatePushConfigPushServerError() {
       "retryPolicy": {
          "type": "linear",
          "period": 3000
-      }
+      },
+      "verification_hash": "{{VHASH}}",
+      "verified": false
    },
    "ackDeadlineSeconds": 10,
    "push_status": "Subscription /projects/ARGO/subscriptions/errorSub is already active"
@@ -1608,8 +1620,13 @@ func (suite *HandlerTestSuite) TestSubCreatePushConfigPushServerError() {
 	w := httptest.NewRecorder()
 	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubCreate, cfgKafka, &brk, str, &mgr, pc))
 	router.ServeHTTP(w, req)
+	sub, _ := str.QueryOneSub("argo_uuid", "errorSub")
+	expResp = strings.Replace(expResp, "{{VHASH}}", sub.VerificationHash, 1)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
+	// check to see that the push worker user has been added to the subscription's acl
+	a1, _ := str.QueryACL("argo_uuid", "subscriptions", "errorSub")
+	suite.Equal([]string{"uuid7"}, a1.ACL)
 }
 
 func (suite *HandlerTestSuite) TestSubCreatePushConfigError() {
@@ -1665,7 +1682,9 @@ func (suite *HandlerTestSuite) TestSubCreate() {
    "topic": "/projects/ARGO/topics/topic1",
    "pushConfig": {
       "pushEndpoint": "",
-      "retryPolicy": {}
+      "retryPolicy": {},
+      "verification_hash": "",
+      "verified": false
    },
    "ackDeadlineSeconds": 10
 }`
@@ -1830,7 +1849,9 @@ func (suite *HandlerTestSuite) TestSubListOne() {
    "topic": "/projects/ARGO/topics/topic1",
    "pushConfig": {
       "pushEndpoint": "",
-      "retryPolicy": {}
+      "retryPolicy": {},
+      "verification_hash": "",
+      "verified": false
    },
    "ackDeadlineSeconds": 10
 }`
@@ -1960,7 +1981,9 @@ func (suite *HandlerTestSuite) TestSubListAll() {
             "retryPolicy": {
                "type": "linear",
                "period": 300
-            }
+            },
+            "verification_hash": "push-id-1",
+            "verified": true
          },
          "ackDeadlineSeconds": 10,
          "push_status": "push enabled"
@@ -1970,7 +1993,9 @@ func (suite *HandlerTestSuite) TestSubListAll() {
          "topic": "/projects/ARGO/topics/topic3",
          "pushConfig": {
             "pushEndpoint": "",
-            "retryPolicy": {}
+            "retryPolicy": {},
+            "verification_hash": "",
+            "verified": false
          },
          "ackDeadlineSeconds": 10
       },
@@ -1979,7 +2004,9 @@ func (suite *HandlerTestSuite) TestSubListAll() {
          "topic": "/projects/ARGO/topics/topic2",
          "pushConfig": {
             "pushEndpoint": "",
-            "retryPolicy": {}
+            "retryPolicy": {},
+            "verification_hash": "",
+            "verified": false
          },
          "ackDeadlineSeconds": 10
       },
@@ -1988,7 +2015,9 @@ func (suite *HandlerTestSuite) TestSubListAll() {
          "topic": "/projects/ARGO/topics/topic1",
          "pushConfig": {
             "pushEndpoint": "",
-            "retryPolicy": {}
+            "retryPolicy": {},
+            "verification_hash": "",
+            "verified": false
          },
          "ackDeadlineSeconds": 10
       }
@@ -2028,7 +2057,9 @@ func (suite *HandlerTestSuite) TestSubListAllFirstPage() {
             "retryPolicy": {
                "type": "linear",
                "period": 300
-            }
+            },
+            "verification_hash": "push-id-1",
+            "verified": true
          },
          "ackDeadlineSeconds": 10,
          "push_status": "push enabled"
@@ -2038,7 +2069,9 @@ func (suite *HandlerTestSuite) TestSubListAllFirstPage() {
          "topic": "/projects/ARGO/topics/topic3",
          "pushConfig": {
             "pushEndpoint": "",
-            "retryPolicy": {}
+            "retryPolicy": {},
+            "verification_hash": "",
+            "verified": false
          },
          "ackDeadlineSeconds": 10
       }
@@ -2075,7 +2108,9 @@ func (suite *HandlerTestSuite) TestSubListAllNextPage() {
          "topic": "/projects/ARGO/topics/topic2",
          "pushConfig": {
             "pushEndpoint": "",
-            "retryPolicy": {}
+            "retryPolicy": {},
+            "verification_hash": "",
+            "verified": false
          },
          "ackDeadlineSeconds": 10
       },
@@ -2084,7 +2119,9 @@ func (suite *HandlerTestSuite) TestSubListAllNextPage() {
          "topic": "/projects/ARGO/topics/topic1",
          "pushConfig": {
             "pushEndpoint": "",
-            "retryPolicy": {}
+            "retryPolicy": {},
+            "verification_hash": "",
+            "verified": false
          },
          "ackDeadlineSeconds": 10
       }
@@ -2153,7 +2190,9 @@ func (suite *HandlerTestSuite) TestSubListAllConsumer() {
             "retryPolicy": {
                "type": "linear",
                "period": 300
-            }
+            },
+            "verification_hash": "push-id-1",
+            "verified": true
          },
          "ackDeadlineSeconds": 10,
          "push_status": "push enabled"
@@ -2163,7 +2202,9 @@ func (suite *HandlerTestSuite) TestSubListAllConsumer() {
          "topic": "/projects/ARGO/topics/topic3",
          "pushConfig": {
             "pushEndpoint": "",
-            "retryPolicy": {}
+            "retryPolicy": {},
+            "verification_hash": "",
+            "verified": false
          },
          "ackDeadlineSeconds": 10
       },
@@ -2172,7 +2213,9 @@ func (suite *HandlerTestSuite) TestSubListAllConsumer() {
          "topic": "/projects/ARGO/topics/topic2",
          "pushConfig": {
             "pushEndpoint": "",
-            "retryPolicy": {}
+            "retryPolicy": {},
+            "verification_hash": "",
+            "verified": false
          },
          "ackDeadlineSeconds": 10
       }
@@ -2212,7 +2255,9 @@ func (suite *HandlerTestSuite) TestSubListAllConsumerWithPagination() {
             "retryPolicy": {
                "type": "linear",
                "period": 300
-            }
+            },
+            "verification_hash": "push-id-1",
+            "verified": true
          },
          "ackDeadlineSeconds": 10,
          "push_status": "push enabled"
@@ -2222,7 +2267,9 @@ func (suite *HandlerTestSuite) TestSubListAllConsumerWithPagination() {
          "topic": "/projects/ARGO/topics/topic3",
          "pushConfig": {
             "pushEndpoint": "",
-            "retryPolicy": {}
+            "retryPolicy": {},
+            "verification_hash": "",
+            "verified": false
          },
          "ackDeadlineSeconds": 10
       }
@@ -4210,7 +4257,9 @@ func (suite *HandlerTestSuite) TestValidationInSubs() {
    "topic": "/projects/ARGO/topics/topic1",
    "pushConfig": {
       "pushEndpoint": "",
-      "retryPolicy": {}
+      "retryPolicy": {},
+      "verification_hash": "",
+      "verified": false
    },
    "ackDeadlineSeconds": 10
 }`

@@ -36,6 +36,44 @@ Success Response
 }
 ```
 
+### Push Enabled Subscriptions
+Whenever a subscription is created with a valid push configuration, the service will also generate a unique hash that
+should be later used to validate the ownership of the registered push endpoint, and will mark the subscription as 
+unverified.
+
+## Request to create Push Enabled Subscription
+```json
+{
+ "topic": "projects/BRAND_NEW/topics/monitoring",
+ "ackDeadlineSeconds":10,
+  "pushConfig": {
+    "pushEndpoint": "https://127.0.0.1:5000/receive_here",
+    "retryPolicy": {
+      "type": "linear", 
+      "period": 1000              	
+    }
+   }
+}
+```
+### Response
+```json
+{
+ "name": "projects/BRAND_NEW/subscriptions/alert_engine",
+ "topic": "projects/BRAND_NEW/topics/monitoring",
+ "ackDeadlineSeconds": 10,
+  "pushConfig": {
+    "pushEndpoint": "https://127.0.0.1:5000/receive_here",
+    "retryPolicy": {
+      "type": "linear", 
+      "period": 1000              	
+    },
+    "verification_hash": "9d5189f7f758e380a5f8bc4fdb4fe980c565b67b",
+    "verified": false
+    }    
+}
+```
+
+
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
 
@@ -347,6 +385,13 @@ curl -X POST -H "Content-Type: application/json"
 
 Success Response
 Code: `200 OK`, Empty response if successful.
+
+Whenever a subscription is created with a valid push configuration, the service will also generate a unique hash that
+should be later used to validate the ownership of the registered push endpoint, and will mark the subscription as 
+unverified.
+
+**NOTE** Changing the push endpoint of a push enabled subscription, or removing the push configuration and then re-applying
+will mark the subscription as unverified and a new verification process should take place.
 
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
