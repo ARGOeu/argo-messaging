@@ -6,11 +6,14 @@ import (
 	"strconv"
 	"strings"
 
+	"bytes"
 	"encoding/base64"
 	"fmt"
 	"github.com/ARGOeu/argo-messaging/projects"
 	"github.com/ARGOeu/argo-messaging/stores"
 	log "github.com/sirupsen/logrus"
+	"net/http"
+	"net/url"
 )
 
 // Subscription struct to hold information for a given topic
@@ -193,10 +196,76 @@ func (sub *Subscription) ExportJSON() (string, error) {
 	return string(output[:]), err
 }
 
+// PushEndpointHost extracts the host:port of a push endpoint
+func (sub *Subscription) PushEndpointHost() string {
+
+	if sub.PushCfg.Pend == "" {
+		return ""
+	}
+
+	u, err := url.Parse(sub.PushCfg.Pend)
+	if err != nil {
+		return ""
+	}
+
+	return u.Host
+}
+
 // ExportJSON exports whole sub List Structure as a json string
 func (sl *PaginatedSubscriptions) ExportJSON() (string, error) {
 	output, err := json.MarshalIndent(sl, "", "   ")
 	return string(output[:]), err
+}
+
+// VerifyPushEndpoint verifies the ownership of a push endpoint
+func VerifyPushEndpoint(sub Subscription, c *http.Client, store stores.Store) error {
+
+	// extract the push endpoint host
+	pu := sub.PushEndpointHost()
+	if pu == "" {
+		return errors.New("Could not retrieve push endpoint host")
+	}
+
+	// create a new url that will be used to retrieve the verification hash
+	u := url.URL{
+		Scheme: "https",
+		Host:   pu,
+		Path:   "ams_verification_hash",
+	}
+
+	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
+	if err != nil {
+		return err
+	}
+
+	resp, err := c.Do(req)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("Push endpoint responded with a status code of %v instead of %v",
+			resp.StatusCode, http.StatusOK)
+	} else {
+		// read the response
+		buf := bytes.Buffer{}
+		buf.ReadFrom(resp.Body)
+
+		defer resp.Body.Close()
+
+		if sub.PushCfg.VerificationHash != buf.String() {
+			return fmt.Errorf("Verification hash mismatch. Expected %v but got %v",
+				sub.PushCfg.VerificationHash, buf.String())
+		}
+	}
+
+	// update the push config with verified true
+	err = ModSubPush(sub.ProjectUUID, sub.Name, sub.PushCfg.Pend, sub.PushCfg.RetPol.PolicyType, sub.PushCfg.RetPol.Period, sub.PushCfg.VerificationHash, true, store)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Find searches the store for all subscriptions of a given project or a specific one

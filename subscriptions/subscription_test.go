@@ -10,11 +10,59 @@ import (
 	"github.com/ARGOeu/argo-messaging/config"
 	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/stretchr/testify/suite"
+	"net/http"
+	"strings"
 )
 
 type SubTestSuite struct {
 	suite.Suite
 	cfgStr string
+}
+
+type MockPushRoundTripper struct{}
+
+func (m *MockPushRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
+
+	var resp *http.Response
+
+	header := make(http.Header)
+	header.Set("Content-type", "text/plain")
+
+	switch r.URL.Host {
+
+	case "example.com":
+
+		resp = &http.Response{
+			StatusCode: 200,
+			// Send response to be tested
+			Body: ioutil.NopCloser(strings.NewReader("vhash-1")),
+			// Must be set to non-nil value or it panics
+			Header: header,
+		}
+
+	case "example_error.com":
+
+		resp = &http.Response{
+			StatusCode: 500,
+			// Send response to be tested
+			Body: ioutil.NopCloser(strings.NewReader("Internal error")),
+			// Must be set to non-nil value or it panics
+			Header: header,
+		}
+
+	case "example_mismatch.com":
+
+		resp = &http.Response{
+			StatusCode: 200,
+			// Send response to be tested
+			Body: ioutil.NopCloser(strings.NewReader("wrong_vhash")),
+			// Must be set to non-nil value or it panics
+			Header: header,
+		}
+
+	}
+
+	return resp, nil
 }
 
 func (suite *SubTestSuite) SetupTest() {
@@ -327,6 +375,87 @@ func (suite *SubTestSuite) TestExtractFullTopic() {
 	suite.Equal("", topic3)
 	suite.Equal("wrong topic name declaration", err3.Error())
 
+}
+
+func (suite *SubTestSuite) TestPushEndpointHost() {
+
+	sub := Subscription{
+		PushCfg: PushConfig{
+			Pend: "https://example.com:8084/receive_here",
+		},
+	}
+
+	u1 := sub.PushEndpointHost()
+	suite.Equal("example.com:8084", u1)
+}
+
+func (suite *SubTestSuite) TestVerifyPushEndpoint() {
+
+	str := stores.NewMockStore("", "")
+
+	// normal case
+	s1 := Subscription{
+		Name:        "push-sub-v1",
+		ProjectUUID: "argo_uuid",
+		PushCfg: PushConfig{
+			Pend:             "https://example.com/receive_here",
+			VerificationHash: "vhash-1",
+		},
+	}
+
+	// add a temporary subscription
+	q1 := stores.QSub{
+		Name:             "push-sub-v1",
+		ProjectUUID:      "argo_uuid",
+		PushEndpoint:     "https://example.com/receive_here",
+		VerificationHash: "vhash-1",
+		Verified:         false,
+	}
+
+	str.SubList = append(str.SubList, q1)
+
+	c1 := &http.Client{
+		Transport: new(MockPushRoundTripper),
+	}
+
+	e1 := VerifyPushEndpoint(s1, c1, str)
+
+	qs1, _ := str.QueryOneSub("argo_uuid", "push-sub-v1")
+
+	suite.Nil(e1)
+	suite.True(qs1.Verified)
+
+	// wrong response from remote endpoint
+	s2 := Subscription{
+		PushCfg: PushConfig{
+			Pend:             "https://example_error.com/receive_here",
+			VerificationHash: "vhash-1",
+		},
+	}
+
+	c2 := &http.Client{
+		Transport: new(MockPushRoundTripper),
+	}
+
+	e2 := VerifyPushEndpoint(s2, c2, nil)
+
+	suite.Equal("Push endpoint responded with a status code of 500 instead of 200", e2.Error())
+
+	// mismatch
+	s3 := Subscription{
+		PushCfg: PushConfig{
+			Pend:             "https://example_mismatch.com/receive_here",
+			VerificationHash: "vhash-1",
+		},
+	}
+
+	c3 := &http.Client{
+		Transport: new(MockPushRoundTripper),
+	}
+
+	e3 := VerifyPushEndpoint(s3, c3, nil)
+
+	suite.Equal("Verification hash mismatch. Expected vhash-1 but got wrong_vhash", e3.Error())
 }
 
 func (suite *SubTestSuite) TestExportJson() {

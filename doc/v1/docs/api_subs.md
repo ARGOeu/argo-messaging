@@ -77,6 +77,44 @@ unverified.
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
 
+
+## [POST] Manage Subscriptions - Verify ownership of a push endpoint
+This request triggers the process of verifying the ownership of a registered push endpoint 
+
+### Request
+`PUT /v1/projects/{project_name}/subscriptions/{subscription_name}:verifyPushEndpoint`
+
+### Where
+- Project_name: Name of the project
+- subscription_name: The subscription name
+
+### Example request
+```json
+curl -X POST "https://{URL}/v1/projects/BRAND_NEW/subscriptions/alert_engine:verifyPushEndpoint?key=S3CR3T"`
+```
+
+### Push Enabled Subscriptions
+Whenever a subscription is created with a valid push configuration, the service will also generate a unique hash that
+should be later used to validate the ownership of the registered push endpoint, and will mark the subscription as 
+unverified.
+
+The owner of the push endpoint needs to execute the following steps in order to verify the ownership of the
+registered endpoint.
+
+- Open an api call with a path of `/ams_verification_hash`. The service will try to access this path using the `host:port`
+of the push endpoint. For example, if the push endpoint is `https://example.com:8443/receive_here`, the  push endpoint should also
+support the api route of `https://example.com:8443/ams_verification_hash`.
+
+- The api route of `https://example.com:8443/ams_verification_hash` should support the http `GET` method.
+
+- A `GET` request to `https://example.com:8443/ams_verification_hash` should return a response body 
+with only the `verification_hash`
+that is found inside the subscriptions push configuration, 
+a `status code` of `200` and the header `Content-type: plain/text`.
+
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors
+
 ## [GET] Manage Subscriptions - List All Subscriptions under a specific Topic
 
 This request lists all available subscriptions under a specific topic in the service.
