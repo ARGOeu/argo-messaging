@@ -221,15 +221,20 @@ func (sl *PaginatedSubscriptions) ExportJSON() (string, error) {
 func VerifyPushEndpoint(sub Subscription, c *http.Client, store stores.Store) error {
 
 	// extract the push endpoint host
-	pu := sub.PushEndpointHost()
-	if pu == "" {
+	if sub.PushCfg.Pend == "" {
 		return errors.New("Could not retrieve push endpoint host")
+	}
+
+	u1 := &url.URL{}
+	u1, err := url.Parse(sub.PushCfg.Pend)
+	if err != nil {
+		return err
 	}
 
 	// create a new url that will be used to retrieve the verification hash
 	u := url.URL{
-		Scheme: "https",
-		Host:   pu,
+		Scheme: u1.Scheme,
+		Host:   u1.Host,
 		Path:   "ams_verification_hash",
 	}
 

@@ -1628,48 +1628,53 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pushStatus := ""
-	// if the sub, was push enabled before the update
+	// if the sub, was push enabled before the update and the endpoint was verified
 	// we need to deactivate it on the push server
 	if existingSub.PushCfg != (subscriptions.PushConfig{}) {
+		if existingSub.PushCfg.Verified {
+			// deactivate the subscription on the push backend
+			apsc := gorillaContext.Get(r, "apsc").(push.Client)
+			pushStatus = apsc.DeactivateSubscription(context.TODO(), existingSub.FullName).Result()
 
-		// deactivate the subscription on the push backend
-		apsc := gorillaContext.Get(r, "apsc").(push.Client)
-		pushStatus = apsc.DeactivateSubscription(context.TODO(), existingSub.FullName).Result()
-
-		// remove the push worker user from the sub's acl
-		err = auth.RemoveFromACL(projectUUID, "subscriptions", existingSub.Name, []string{pushWorker.Name}, refStr)
-		if err != nil {
-			err := APIErrGenericInternal(err.Error())
-			respondErr(w, err)
-			return
+			// remove the push worker user from the sub's acl
+			err = auth.RemoveFromACL(projectUUID, "subscriptions", existingSub.Name, []string{pushWorker.Name}, refStr)
+			if err != nil {
+				err := APIErrGenericInternal(err.Error())
+				respondErr(w, err)
+				return
+			}
 		}
 	}
-
 	// if the update on push configuration is not intended to stop the push functionality
 	// activate the subscription with the new values
 	if postBody.PushCfg != (subscriptions.PushConfig{}) {
 
-		// activate the subscription on the push backend
-		apsc := gorillaContext.Get(r, "apsc").(push.Client)
-		pushStatus = apsc.ActivateSubscription(context.TODO(), existingSub.FullName, existingSub.FullTopic, pushEnd, rPolicy, uint32(rPeriod)).Result()
+		// reactivate only if the push endpoint hasn't changed and it wes already verified
+		// otherwise we need to verify the ownership again before wee activate it
+		if postBody.PushCfg.Pend == existingSub.PushCfg.Pend && existingSub.PushCfg.Verified {
 
-		// modify the sub's acl with the push worker's uuid
-		err = auth.AppendToACL(projectUUID, "subscriptions", existingSub.Name, []string{pushWorker.Name}, refStr)
-		if err != nil {
-			err := APIErrGenericInternal(err.Error())
-			respondErr(w, err)
-			return
-		}
+			// activate the subscription on the push backend
+			apsc := gorillaContext.Get(r, "apsc").(push.Client)
+			pushStatus = apsc.ActivateSubscription(context.TODO(), existingSub.FullName, existingSub.FullTopic,
+				pushEnd, rPolicy, uint32(rPeriod)).Result()
 
-		// link the sub's project with the push worker
-		err = auth.AppendToUserProjects(pushWorker.UUID, projectUUID, refStr)
-		if err != nil {
-			err := APIErrGenericInternal(err.Error())
-			respondErr(w, err)
-			return
+			// modify the sub's acl with the push worker's uuid
+			err = auth.AppendToACL(projectUUID, "subscriptions", existingSub.Name, []string{pushWorker.Name}, refStr)
+			if err != nil {
+				err := APIErrGenericInternal(err.Error())
+				respondErr(w, err)
+				return
+			}
+
+			// link the sub's project with the push worker
+			err = auth.AppendToUserProjects(pushWorker.UUID, projectUUID, refStr)
+			if err != nil {
+				err := APIErrGenericInternal(err.Error())
+				respondErr(w, err)
+				return
+			}
 		}
 	}
-
 	// update the subscription's status
 	err = subscriptions.ModSubPushStatus(projectUUID, subName, pushStatus, refStr)
 	if err != nil {
@@ -1709,6 +1714,8 @@ func SubVerifyPushEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	pushEnabled := gorillaContext.Get(r, "push_enabled").(bool)
 
+	pushW := auth.User{}
+
 	// check the state of the push functionality
 	if !pushEnabled {
 		err := APIErrorPushConflict()
@@ -1716,7 +1723,7 @@ func SubVerifyPushEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := auth.GetPushWorker(pwToken, refStr)
+	pushW, err := auth.GetPushWorker(pwToken, refStr)
 	if err != nil {
 		err := APIErrInternalPush()
 		respondErr(w, err)
@@ -1758,6 +1765,40 @@ func SubVerifyPushEndpoint(w http.ResponseWriter, r *http.Request) {
 	c := new(http.Client)
 	err = subscriptions.VerifyPushEndpoint(sub, c, refStr)
 	if err != nil {
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	// activate the subscription on the push backend
+	apsc := gorillaContext.Get(r, "apsc").(push.Client)
+	pushStatus := apsc.ActivateSubscription(context.TODO(), sub.FullName, sub.FullTopic, sub.PushCfg.Pend,
+		sub.PushCfg.RetPol.PolicyType, uint32(sub.PushCfg.RetPol.Period)).Result()
+
+	// modify the sub's acl with the push worker's uuid
+	err = auth.AppendToACL(projectUUID, "subscriptions", sub.Name, []string{pushW.Name}, refStr)
+	if err != nil {
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	// link the sub's project with the push worker
+	err = auth.AppendToUserProjects(pushW.UUID, projectUUID, refStr)
+	if err != nil {
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	// update the subscription's status
+	err = subscriptions.ModSubPushStatus(projectUUID, subName, pushStatus, refStr)
+	if err != nil {
+		if err.Error() == "not found" {
+			err := APIErrorNotFound("Subscription")
+			respondErr(w, err)
+			return
+		}
 		err := APIErrGenericInternal(err.Error())
 		respondErr(w, err)
 		return
@@ -1951,7 +1992,7 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 	pushEnd := ""
 	rPolicy := ""
 	rPeriod := 0
-	pushWorker := auth.User{}
+	//pushWorker := auth.User{}
 	verifyHash := ""
 
 	if postBody.PushCfg != (subscriptions.PushConfig{}) {
@@ -1966,7 +2007,7 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		pushWorker, err = auth.GetPushWorker(pwToken, refStr)
+		_, err = auth.GetPushWorker(pwToken, refStr)
 		if err != nil {
 			err := APIErrInternalPush()
 			respondErr(w, err)
@@ -2011,42 +2052,6 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 		err := APIErrGenericInternal(err.Error())
 		respondErr(w, err)
 		return
-	}
-
-	if postBody.PushCfg != (subscriptions.PushConfig{}) {
-
-		// activate the subscription on the push backend
-		apsc := gorillaContext.Get(r, "apsc").(push.Client)
-		res.PushStatus = apsc.ActivateSubscription(context.TODO(), res.FullName, res.FullTopic, pushEnd, rPolicy, uint32(rPeriod)).Result()
-
-		// modify the sub's acl with the push worker's uuid
-		err = auth.AppendToACL(projectUUID, "subscriptions", res.Name, []string{pushWorker.Name}, refStr)
-		if err != nil {
-			err := APIErrGenericInternal(err.Error())
-			respondErr(w, err)
-			return
-		}
-
-		// link the sub's project with the push worker
-		err = auth.AppendToUserProjects(pushWorker.UUID, projectUUID, refStr)
-		if err != nil {
-			err := APIErrGenericInternal(err.Error())
-			respondErr(w, err)
-			return
-		}
-
-		// update the status of the created subscription
-		err = subscriptions.ModSubPushStatus(projectUUID, res.Name, res.PushStatus, refStr)
-		if err != nil {
-			if err.Error() == "not found" {
-				err := APIErrorNotFound("Subscription")
-				respondErr(w, err)
-				return
-			}
-			err := APIErrGenericInternal(err.Error())
-			respondErr(w, err)
-			return
-		}
 	}
 
 	// Output result to JSON
