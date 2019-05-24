@@ -16,9 +16,9 @@
 
 from flask import Flask
 from flask import request
+from flask import Response
 import argparse
 import json
-import base64
 from logging.config import dictConfig
 import ssl
 import flask_cors
@@ -49,6 +49,7 @@ dictConfig({
     }
 })
 
+VERIFICATION_HASH = ""
 
 app = Flask(__name__)
 
@@ -81,6 +82,11 @@ def receive_msg():
         return e.message, 400
 
 
+@app.route('/ams_verification_hash', methods=['GET'])
+def return_verification_hash():
+    return Response(response=VERIFICATION_HASH, status=200, content_type="plain/text")
+
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Simple flask endpoint for push subscriptions")
@@ -97,11 +103,17 @@ if __name__ == "__main__":
         "-port", "--port", metavar="INTEGER", help="Bind port",
         default=5000, type=int, dest="port")
 
+    parser.add_argument(
+        "-vh", "--verification-hash", metavar="STRING", help="Verification hash for the push endpoint",
+        required=True, dest="vhash")
+
     args = parser.parse_args()
 
     flask_cors.CORS(app=app, methods=["OPTIONS", "HEAD", "POST"], allow_headers=["X-Requested-With", "Content-Type"])
 
     context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
     context.load_cert_chain(args.cert, args.key)
+
+    VERIFICATION_HASH = args.vhash
 
     app.run(host='0.0.0.0', port=args.port, ssl_context=context, threaded=True, debug=True)

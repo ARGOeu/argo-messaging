@@ -1687,6 +1687,85 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 	respondOK(w, output)
 }
 
+// SubVerifyPushEndpoint (POST) verifies the ownership of a push endpoint registered in a push enabled subscription
+func SubVerifyPushEndpoint(w http.ResponseWriter, r *http.Request) {
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+	subName := urlVars["subscription"]
+
+	// Get project UUID First to use as reference
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+
+	pwToken := gorillaContext.Get(r, "push_worker_token").(string)
+
+	pushEnabled := gorillaContext.Get(r, "push_enabled").(bool)
+
+	// check the state of the push functionality
+	if !pushEnabled {
+		err := APIErrorPushConflict()
+		respondErr(w, err)
+		return
+	}
+
+	_, err := auth.GetPushWorker(pwToken, refStr)
+	if err != nil {
+		err := APIErrInternalPush()
+		respondErr(w, err)
+		return
+	}
+
+	// Get Result Object
+	res, err := subscriptions.Find(projectUUID, "", subName, "", 0, refStr)
+
+	if err != nil {
+		err := APIErrGenericBackend()
+		respondErr(w, err)
+		return
+	}
+
+	if res.Empty() {
+		err := APIErrorNotFound("Subscription")
+		respondErr(w, err)
+		return
+	}
+
+	sub := res.Subscriptions[0]
+
+	// check that the subscription is push enabled
+	if sub.PushCfg == (subscriptions.PushConfig{}) {
+		err := APIErrorGenericConflict("Subscription is not in push mode")
+		respondErr(w, err)
+		return
+	}
+
+	// check that the endpoint isn't already verified
+	if sub.PushCfg.Verified {
+		err := APIErrorGenericConflict("Push endpoint is already verified")
+		respondErr(w, err)
+		return
+	}
+
+	// verify the push endpoint
+	c := new(http.Client)
+	err = subscriptions.VerifyPushEndpoint(sub, c, refStr)
+	if err != nil {
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	respondOK(w, []byte{})
+}
+
 // SubModPushStatus (POST) modifies the push status of a subscription
 func SubModPushStatus(w http.ResponseWriter, r *http.Request) {
 
@@ -3063,6 +3142,20 @@ var APIErrorPushConflict = func() APIErrorRoot {
 	apiErrBody := APIErrorBody{
 		Code:    http.StatusConflict,
 		Message: "Push functionality is currently disabled",
+		Status:  "CONFLICT",
+	}
+
+	return APIErrorRoot{
+		Body: apiErrBody,
+	}
+}
+
+// api error to be used to format generic conflict errors
+var APIErrorGenericConflict = func(msg string) APIErrorRoot {
+
+	apiErrBody := APIErrorBody{
+		Code:    http.StatusConflict,
+		Message: msg,
 		Status:  "CONFLICT",
 	}
 

@@ -1444,6 +1444,85 @@ func (suite *HandlerTestSuite) TestSubModPushConfigToActiveORUpdateMissingWorker
 	suite.Equal(expResp, w.Body.String())
 }
 
+func (suite *HandlerTestSuite) TestVerifyPushEndpointAlreadyVerified() {
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/projects/ARGO/subscriptions/push-sub-v1:verifyPushEndpoint", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "error": {
+      "code": 409,
+      "message": "Push endpoint is already verified",
+      "status": "CONFLICT"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+
+	// add a temporary subscription
+	q1 := stores.QSub{
+		Name:             "push-sub-v1",
+		ProjectUUID:      "argo_uuid",
+		PushEndpoint:     "https://example.com/receive_here",
+		VerificationHash: "vhash-1",
+		Verified:         true,
+	}
+
+	str.SubList = append(str.SubList, q1)
+
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:verifyPushEndpoint", WrapMockAuthConfig(SubVerifyPushEndpoint, cfgKafka, &brk, str, &mgr, pc))
+	router.ServeHTTP(w, req)
+	suite.Equal(409, w.Code)
+	suite.Equal(expResp, w.Body.String())
+}
+
+func (suite *HandlerTestSuite) TestVerifyPushEndpointNotPushEnabled() {
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/projects/ARGO/subscriptions/push-sub-v1:verifyPushEndpoint", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "error": {
+      "code": 409,
+      "message": "Subscription is not in push mode",
+      "status": "CONFLICT"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+
+	// add a temporary subscription
+	q1 := stores.QSub{
+		Name:        "push-sub-v1",
+		ProjectUUID: "argo_uuid",
+	}
+
+	str.SubList = append(str.SubList, q1)
+
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:verifyPushEndpoint", WrapMockAuthConfig(SubVerifyPushEndpoint, cfgKafka, &brk, str, &mgr, pc))
+	router.ServeHTTP(w, req)
+	suite.Equal(409, w.Code)
+	suite.Equal(expResp, w.Body.String())
+}
+
 func (suite *HandlerTestSuite) TestSubCreatePushConfig() {
 
 	postJSON := `{

@@ -1077,6 +1077,41 @@ paths:
         500:
           $ref: "#/responses/500"
 
+  /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}:verifyPushEndpoint:
+    post:
+      summary: Verify the ownership of the push endpoint
+      description: |
+        The service will execute a request against the registered push endpoint in order to retrieve the verification_hash that it was generated
+      parameters:
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: SUBSCRIPTION
+          in: path
+          description: Name of the subscription
+          required: true
+          type: string
+      tags:
+        - Subscriptions
+      responses:
+        200:
+          description: Empty response if successful
+          schema:
+            type: string
+            default: ""
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        409:
+          $ref: "#/responses/409_action_conflict"
+        500:
+          $ref: "#/responses/500"
+
   /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}:modifyPushStatus:
     post:
       summary: Modify the push status of th subscription
@@ -1493,6 +1528,10 @@ responses:
       $ref: '#/definitions/ErrorMsg'
   409:
     description: Item already exists!
+    schema:
+      $ref: '#/definitions/ErrorMsg'
+  409_action_conflict:
+    description: A conflict occurred due to the user's action!
     schema:
       $ref: '#/definitions/ErrorMsg'
 
