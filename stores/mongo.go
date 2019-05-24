@@ -56,7 +56,6 @@ func (mong *MongoStore) Initialize() {
 			break // connected so continue
 		}
 	}
-
 }
 
 // QueryProjects queries the database for a specific project or a list of all projects
@@ -935,6 +934,29 @@ func (mong *MongoStore) RemoveUser(uuid string) error {
 func (mong *MongoStore) RemoveSub(projectUUID string, name string) error {
 	sub := bson.M{"project_uuid": projectUUID, "name": name}
 	return mong.RemoveResource("subscriptions", sub)
+}
+
+// ExistsInACL checks if a user is part of a topic's or sub's acl
+func (mong *MongoStore) ExistsInACL(projectUUID string, resource string, resourceName string, userUUID string) error {
+
+	db := mong.Session.DB(mong.Database)
+
+	if resource != "topics" && resource != "subscriptions" {
+		return errors.New("wrong resource type")
+	}
+
+	c := db.C(resource)
+
+	query := bson.M{
+		"project_uuid": projectUUID,
+		"name":         resourceName,
+		"acl": bson.M{
+			"$in": []string{userUUID},
+		},
+	}
+	
+	res := map[string]interface{}{}
+	return c.Find(query).One(&res)
 }
 
 // ModACL modifies the push configuration

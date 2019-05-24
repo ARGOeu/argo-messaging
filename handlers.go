@@ -2230,7 +2230,7 @@ func TopicMetrics(w http.ResponseWriter, r *http.Request) {
 	// Grab context references
 	refStr := gorillaContext.Get(r, "str").(stores.Store)
 	refRoles := gorillaContext.Get(r, "auth_roles").([]string)
-	refUser := gorillaContext.Get(r, "auth_user").(string)
+	refUserUUID := gorillaContext.Get(r, "auth_user_uuid").(string)
 	refAuthResource := gorillaContext.Get(r, "auth_resource").(bool)
 
 	urlTopic := urlVars["topic"]
@@ -2243,7 +2243,7 @@ func TopicMetrics(w http.ResponseWriter, r *http.Request) {
 
 	if refAuthResource && auth.IsPublisher(refRoles) {
 
-		if auth.PerResource(projectUUID, "topics", urlTopic, refUser, refStr) == false {
+		if auth.PerResource(projectUUID, "topics", urlTopic, refUserUUID, refStr) == false {
 			err := APIErrorForbidden()
 			respondErr(w, err)
 			return
@@ -2510,7 +2510,7 @@ func SubMetrics(w http.ResponseWriter, r *http.Request) {
 	// Grab context references
 	refStr := gorillaContext.Get(r, "str").(stores.Store)
 	refRoles := gorillaContext.Get(r, "auth_roles").([]string)
-	refUser := gorillaContext.Get(r, "auth_user").(string)
+	refUserUUID := gorillaContext.Get(r, "auth_user_uuid").(string)
 	refAuthResource := gorillaContext.Get(r, "auth_resource").(bool)
 
 	urlSub := urlVars["subscription"]
@@ -2523,7 +2523,7 @@ func SubMetrics(w http.ResponseWriter, r *http.Request) {
 
 	if refAuthResource && auth.IsConsumer(refRoles) {
 
-		if auth.PerResource(projectUUID, "subscriptions", urlSub, refUser, refStr) == false {
+		if auth.PerResource(projectUUID, "subscriptions", urlSub, refUserUUID, refStr) == false {
 			err := APIErrorForbidden()
 			respondErr(w, err)
 			return
@@ -2704,7 +2704,7 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 
 	refBrk := gorillaContext.Get(r, "brk").(brokers.Broker)
 	refStr := gorillaContext.Get(r, "str").(stores.Store)
-	refUser := gorillaContext.Get(r, "auth_user").(string)
+	refUserUUID := gorillaContext.Get(r, "auth_user_uuid").(string)
 	refRoles := gorillaContext.Get(r, "auth_roles").([]string)
 	refAuthResource := gorillaContext.Get(r, "auth_resource").(bool)
 	// Get project UUID First to use as reference
@@ -2723,7 +2723,7 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 
 	if refAuthResource && auth.IsPublisher(refRoles) {
 
-		if auth.PerResource(projectUUID, "topics", urlTopic, refUser, refStr) == false {
+		if auth.PerResource(projectUUID, "topics", urlTopic, refUserUUID, refStr) == false {
 			err := APIErrorForbidden()
 			respondErr(w, err)
 			return
@@ -2820,7 +2820,7 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	// Grab context references
 	refBrk := gorillaContext.Get(r, "brk").(brokers.Broker)
 	refStr := gorillaContext.Get(r, "str").(stores.Store)
-	refUser := gorillaContext.Get(r, "auth_user").(string)
+	refUserUUID := gorillaContext.Get(r, "auth_user_uuid").(string)
 	refRoles := gorillaContext.Get(r, "auth_roles").([]string)
 	refAuthResource := gorillaContext.Get(r, "auth_resource").(bool)
 	pushEnabled := gorillaContext.Get(r, "push_enabled").(bool)
@@ -2865,7 +2865,7 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	// - if enabled in config
 	// - if user has only consumer role
 	if refAuthResource && auth.IsConsumer(refRoles) {
-		if auth.PerResource(projectUUID, "subscriptions", targetSub.Name, refUser, refStr) == false {
+		if auth.PerResource(projectUUID, "subscriptions", targetSub.Name, refUserUUID, refStr) == false {
 			err := APIErrorForbidden()
 			respondErr(w, err)
 			return

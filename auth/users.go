@@ -594,19 +594,18 @@ func AreValidUsers(projectUUID string, users []string, store stores.Store) (bool
 }
 
 // PerResource  (for topics and subscriptions)
-func PerResource(project string, resType string, resName string, user string, store stores.Store) bool {
+func PerResource(project string, resType string, resName string, userUUID string, store stores.Store) bool {
 
 	if resType == "topics" || resType == "subscriptions" {
-
-		acl, _ := GetACL(project, resType, resName, store)
-
-		for _, item := range acl.AuthUsers {
-			if item == user {
-				return true
-			}
+		err := store.ExistsInACL(project, resType, resName, userUUID)
+		if err != nil {
+			return false
+			log.Errorln(err.Error())
 		}
-	}
 
+		return true
+
+	}
 	return false
 }
 
