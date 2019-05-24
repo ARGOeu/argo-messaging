@@ -1199,12 +1199,9 @@ func (suite *HandlerTestSuite) TestSubModPushConfigToActive() {
 	suite.Equal("https://www.example.com", sub.PushEndpoint)
 	suite.Equal(3000, sub.RetPeriod)
 	suite.Equal("linear", sub.RetPolicy)
-	suite.Equal("Success: Subscription /projects/ARGO/subscriptions/sub1 activated", sub.PushStatus)
+	suite.Equal("", sub.PushStatus)
 	suite.False(sub.Verified)
 	suite.NotEqual("", sub.VerificationHash)
-	// check to see that the push worker user has been added to the subscription's acl
-	a1, _ := str.QueryACL("argo_uuid", "subscriptions", "sub1")
-	suite.Equal([]string{"uuid1", "uuid2", "uuid7"}, a1.ACL)
 }
 
 // TestSubModPushConfigToInactive tests the use case where the user modifies the push configuration
@@ -1283,7 +1280,7 @@ func (suite *HandlerTestSuite) TestSubModPushConfigToInactivePushDisabled() {
 // TestSubModPushConfigToInactiveMissingPushWorker tests the use case where the user modifies the push configuration
 // in order to deactivate the subscription on the push server
 // the push configuration has values before the call and turns into an empty one by the end of the call
-// push enabled is true, we cannot retrieve the push worker user in order to remove him fro, the subscription's acl
+// push enabled is true, we cannot retrieve the push worker user in order to remove him from the subscription's acl
 // but turning a subscription from push to pull should always be available as an api action
 func (suite *HandlerTestSuite) TestSubModPushConfigToInactiveMissingPushWorker() {
 
@@ -1319,6 +1316,8 @@ func (suite *HandlerTestSuite) TestSubModPushConfigToInactiveMissingPushWorker()
 // TestSubModPushConfigToActive tests the case where the user modifies the push configuration,
 // in order to activate the subscription on the push server
 // the push configuration was empty before the api call
+// since the push endpoint that has been registered is different from the previous verified one
+// the sub will be deactivated on the push server and turn into unverified
 func (suite *HandlerTestSuite) TestSubModPushConfigUpdate() {
 
 	postJSON := `{
@@ -1355,7 +1354,7 @@ func (suite *HandlerTestSuite) TestSubModPushConfigUpdate() {
 	suite.False(sub.Verified)
 	suite.NotEqual("", sub.VerificationHash)
 	suite.NotEqual("push-id-1", sub.VerificationHash)
-	suite.Equal("Success: Subscription /projects/ARGO/subscriptions/sub4 activated", sub.PushStatus)
+	suite.Equal("Subscription /projects/ARGO/subscriptions/sub4 deactivated", sub.PushStatus)
 }
 
 // TestSubModPushConfigToActiveORUpdatePushDisabled tests the case where the user modifies the push configuration,
@@ -1442,6 +1441,200 @@ func (suite *HandlerTestSuite) TestSubModPushConfigToActiveORUpdateMissingWorker
 	router.ServeHTTP(w, req)
 	suite.Equal(500, w.Code)
 	suite.Equal(expResp, w.Body.String())
+}
+
+func (suite *HandlerTestSuite) TestVerifyPushEndpoint() {
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("vhash-1"))
+	}))
+
+	defer ts.Close()
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/projects/ARGO/subscriptions/push-sub-v1:verifyPushEndpoint", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+
+	// add a temporary subscription
+	q1 := stores.QSub{
+		Name:             "push-sub-v1",
+		ProjectUUID:      "argo_uuid",
+		PushEndpoint:     ts.URL,
+		VerificationHash: "vhash-1",
+		Verified:         false,
+	}
+
+	str.SubList = append(str.SubList, q1)
+	str.SubsACL["push-sub-v1"] = stores.QAcl{}
+
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:verifyPushEndpoint", WrapMockAuthConfig(SubVerifyPushEndpoint, cfgKafka, &brk, str, &mgr, pc))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal("", w.Body.String())
+	// check to see that the push worker user has been added to the subscription's acl
+	a1, _ := str.QueryACL("argo_uuid", "subscriptions", "push-sub-v1")
+	suite.Equal([]string{"uuid7"}, a1.ACL)
+}
+
+func (suite *HandlerTestSuite) TestVerifyPushEndpointHashMisMatch() {
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("unknown_hash"))
+	}))
+
+	defer ts.Close()
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/projects/ARGO/subscriptions/push-sub-v1:verifyPushEndpoint", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "error": {
+      "code": 500,
+      "message": "Verification hash mismatch. Expected vhash-1 but got unknown_hash",
+      "status": "INTERNAL_SERVER_ERROR"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+
+	// add a temporary subscription
+	q1 := stores.QSub{
+		Name:             "push-sub-v1",
+		ProjectUUID:      "argo_uuid",
+		PushEndpoint:     ts.URL,
+		VerificationHash: "vhash-1",
+		Verified:         false,
+	}
+
+	str.SubList = append(str.SubList, q1)
+	str.SubsACL["push-sub-v1"] = stores.QAcl{}
+
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:verifyPushEndpoint", WrapMockAuthConfig(SubVerifyPushEndpoint, cfgKafka, &brk, str, &mgr, pc))
+	router.ServeHTTP(w, req)
+	suite.Equal(500, w.Code)
+	suite.Equal(expResp, w.Body.String())
+	// check to see that the push worker user has NOT been added to the subscription's acl
+	a1, _ := str.QueryACL("argo_uuid", "subscriptions", "push-sub-v1")
+	suite.Equal(0, len(a1.ACL))
+}
+
+func (suite *HandlerTestSuite) TestVerifyPushEndpointUnknownResponse() {
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("unknown_hash"))
+	}))
+
+	defer ts.Close()
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/projects/ARGO/subscriptions/push-sub-v1:verifyPushEndpoint", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "error": {
+      "code": 500,
+      "message": "Push endpoint responded with a status code of 500 instead of 200",
+      "status": "INTERNAL_SERVER_ERROR"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+
+	// add a temporary subscription
+	q1 := stores.QSub{
+		Name:             "push-sub-v1",
+		ProjectUUID:      "argo_uuid",
+		PushEndpoint:     ts.URL,
+		VerificationHash: "vhash-1",
+		Verified:         false,
+	}
+
+	str.SubList = append(str.SubList, q1)
+	str.SubsACL["push-sub-v1"] = stores.QAcl{}
+
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:verifyPushEndpoint", WrapMockAuthConfig(SubVerifyPushEndpoint, cfgKafka, &brk, str, &mgr, pc))
+	router.ServeHTTP(w, req)
+	suite.Equal(500, w.Code)
+	suite.Equal(expResp, w.Body.String())
+	// check to see that the push worker user has NOT been added to the subscription's acl
+	a1, _ := str.QueryACL("argo_uuid", "subscriptions", "push-sub-v1")
+	suite.Equal(0, len(a1.ACL))
+}
+
+// TestVerifyPushEndpointPushServerError tests the case where the endpoint is verified, the push worker is moved to
+// the sub's acl despite the push server being unavailable for now
+func (suite *HandlerTestSuite) TestVerifyPushEndpointPushServerError() {
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("vhash-1"))
+	}))
+
+	defer ts.Close()
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/projects/ARGO/subscriptions/errorSub:verifyPushEndpoint", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+
+	// add a temporary subscription
+	q1 := stores.QSub{
+		Name:             "errorSub",
+		ProjectUUID:      "argo_uuid",
+		PushEndpoint:     ts.URL,
+		VerificationHash: "vhash-1",
+		Verified:         false,
+	}
+
+	str.SubList = append(str.SubList, q1)
+	str.SubsACL["errorSub"] = stores.QAcl{}
+
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:verifyPushEndpoint", WrapMockAuthConfig(SubVerifyPushEndpoint, cfgKafka, &brk, str, &mgr, pc))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal("", w.Body.String())
+	// check to see that the push worker user has been added to the subscription's acl
+	a1, _ := str.QueryACL("argo_uuid", "subscriptions", "errorSub")
+	suite.Equal([]string{"uuid7"}, a1.ACL)
 }
 
 func (suite *HandlerTestSuite) TestVerifyPushEndpointAlreadyVerified() {
@@ -1550,8 +1743,7 @@ func (suite *HandlerTestSuite) TestSubCreatePushConfig() {
       "verification_hash": "{{VHASH}}",
       "verified": false
    },
-   "ackDeadlineSeconds": 10,
-   "push_status": "Subscription /projects/ARGO/subscriptions/subNew activated"
+   "ackDeadlineSeconds": 10
 }`
 
 	cfgKafka := config.NewAPICfg()
@@ -1568,10 +1760,6 @@ func (suite *HandlerTestSuite) TestSubCreatePushConfig() {
 	expResp = strings.Replace(expResp, "{{VHASH}}", sub.VerificationHash, 1)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
-	suite.Equal("Subscription /projects/ARGO/subscriptions/subNew activated", sub.PushStatus)
-	// check to see that the push worker user has been added to the subscription's acl
-	a1, _ := str.QueryACL("argo_uuid", "subscriptions", "subNew")
-	suite.Equal([]string{"uuid7"}, a1.ACL)
 }
 
 func (suite *HandlerTestSuite) TestSubCreatePushConfigMissingPushWorker() {
@@ -1656,56 +1844,6 @@ func (suite *HandlerTestSuite) TestSubCreatePushConfigPushDisabled() {
 	suite.Equal(409, w.Code)
 	suite.Equal(expResp, w.Body.String())
 	suite.Equal("empty", errSub.Error())
-}
-
-func (suite *HandlerTestSuite) TestSubCreatePushConfigPushServerError() {
-
-	postJSON := `{
-	"topic":"projects/ARGO/topics/topic1",
-	"pushConfig": {
-		 "pushEndpoint": "https://www.example.com",
-		 "retryPolicy": {}
-	}
-}`
-
-	req, err := http.NewRequest("PUT", "http://localhost:8080/v1/projects/ARGO/subscriptions/errorSub", bytes.NewBuffer([]byte(postJSON)))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	expResp := `{
-   "name": "/projects/ARGO/subscriptions/errorSub",
-   "topic": "/projects/ARGO/topics/topic1",
-   "pushConfig": {
-      "pushEndpoint": "https://www.example.com",
-      "retryPolicy": {
-         "type": "linear",
-         "period": 3000
-      },
-      "verification_hash": "{{VHASH}}",
-      "verified": false
-   },
-   "ackDeadlineSeconds": 10,
-   "push_status": "Subscription /projects/ARGO/subscriptions/errorSub is already active"
-}`
-
-	cfgKafka := config.NewAPICfg()
-	cfgKafka.LoadStrJSON(suite.cfgStr)
-	brk := brokers.MockBroker{}
-	str := stores.NewMockStore("whatever", "argo_mgs")
-	router := mux.NewRouter().StrictSlash(true)
-	mgr := oldPush.Manager{}
-	pc := new(push.MockClient)
-	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubCreate, cfgKafka, &brk, str, &mgr, pc))
-	router.ServeHTTP(w, req)
-	sub, _ := str.QueryOneSub("argo_uuid", "errorSub")
-	expResp = strings.Replace(expResp, "{{VHASH}}", sub.VerificationHash, 1)
-	suite.Equal(200, w.Code)
-	suite.Equal(expResp, w.Body.String())
-	// check to see that the push worker user has been added to the subscription's acl
-	a1, _ := str.QueryACL("argo_uuid", "subscriptions", "errorSub")
-	suite.Equal([]string{"uuid7"}, a1.ACL)
 }
 
 func (suite *HandlerTestSuite) TestSubCreatePushConfigError() {
