@@ -1503,9 +1503,9 @@ func (suite *HandlerTestSuite) TestVerifyPushEndpointHashMisMatch() {
 
 	expResp := `{
    "error": {
-      "code": 500,
-      "message": "Verification hash mismatch. Expected vhash-1 but got unknown_hash",
-      "status": "INTERNAL_SERVER_ERROR"
+      "code": 401,
+      "message": "Endpoint verification failed.Wrong verification hash",
+      "status": "UNAUTHORIZED"
    }
 }`
 
@@ -1532,7 +1532,7 @@ func (suite *HandlerTestSuite) TestVerifyPushEndpointHashMisMatch() {
 	w := httptest.NewRecorder()
 	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:verifyPushEndpoint", WrapMockAuthConfig(SubVerifyPushEndpoint, cfgKafka, &brk, str, &mgr, pc))
 	router.ServeHTTP(w, req)
-	suite.Equal(500, w.Code)
+	suite.Equal(401, w.Code)
 	suite.Equal(expResp, w.Body.String())
 	// check to see that the push worker user has NOT been added to the subscription's acl
 	a1, _ := str.QueryACL("argo_uuid", "subscriptions", "push-sub-v1")
@@ -1555,9 +1555,9 @@ func (suite *HandlerTestSuite) TestVerifyPushEndpointUnknownResponse() {
 
 	expResp := `{
    "error": {
-      "code": 500,
-      "message": "Push endpoint responded with a status code of 500 instead of 200",
-      "status": "INTERNAL_SERVER_ERROR"
+      "code": 401,
+      "message": "Endpoint verification failed.Wrong response status code",
+      "status": "UNAUTHORIZED"
    }
 }`
 
@@ -1584,7 +1584,7 @@ func (suite *HandlerTestSuite) TestVerifyPushEndpointUnknownResponse() {
 	w := httptest.NewRecorder()
 	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:verifyPushEndpoint", WrapMockAuthConfig(SubVerifyPushEndpoint, cfgKafka, &brk, str, &mgr, pc))
 	router.ServeHTTP(w, req)
-	suite.Equal(500, w.Code)
+	suite.Equal(401, w.Code)
 	suite.Equal(expResp, w.Body.String())
 	// check to see that the push worker user has NOT been added to the subscription's acl
 	a1, _ := str.QueryACL("argo_uuid", "subscriptions", "push-sub-v1")
