@@ -11,9 +11,11 @@ import (
 
 	"crypto/x509"
 	"github.com/samuel/go-zookeeper/zk"
+	lSyslog "github.com/sirupsen/logrus/hooks/syslog"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"io/ioutil"
+	"log/syslog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -45,6 +47,8 @@ type APICfg struct {
 	VerifyPushServer bool
 	// The token that corresponds to the registered push worker user
 	PushWorkerToken string
+	// Logging output(console,file,syslog etc)
+	LogFacilities []string
 }
 
 // NewAPICfg creates a new kafka configuration object
@@ -189,6 +193,36 @@ func setLogLevel(logLvl string) {
 
 }
 
+func setLogFacilities(facilities []string) {
+
+	if len(facilities) == 0 {
+		return
+	}
+
+	consoleEnabled := false
+
+	for _, f := range facilities {
+
+		if strings.ToUpper(f) == "SYSLOG" {
+			hook, err := lSyslog.NewSyslogHook("", "", syslog.LOG_INFO, "")
+			if err == nil {
+				log.AddHook(hook)
+			} else {
+				log.Errorf("Couldn't set up syslog handler, %v", err.Error())
+			}
+		}
+
+		if strings.ToUpper(f) == "CONSOLE" {
+			consoleEnabled = true
+		}
+	}
+
+	// if the console option has not been specified close the standard logging
+	if !consoleEnabled {
+		log.SetOutput(ioutil.Discard)
+	}
+}
+
 // LoadTest the configuration
 func (cfg *APICfg) LoadTest() {
 
@@ -208,6 +242,11 @@ func (cfg *APICfg) LoadTest() {
 	cfg.LogLevel = viper.GetString("log_level")
 	setLogLevel(cfg.LogLevel)
 	log.Info("CONFIG", "\t", "Parameter Loaded - log_level: ", cfg.LogLevel)
+
+	cfg.LogFacilities = viper.GetStringSlice("log_facilities")
+	log.Info("CONFIG", "\t", "Parameter Loaded - log_facilities: ", cfg.LogFacilities)
+	setLogFacilities(cfg.LogFacilities)
+
 	// Then load rest of the parameters
 
 	cfg.BindIP = viper.GetString("bind_ip")
@@ -307,6 +346,9 @@ func (cfg *APICfg) Load() {
 		pflag.String("push-worker-token", "", "token corresponding to the registered push worker user")
 		viper.BindPFlag("push_worker_token", pflag.Lookup("push-worker-token"))
 
+		pflag.String("log-facilities", "", "logging output(s)")
+		viper.BindPFlag("log_facilities", pflag.Lookup("log-facilities"))
+
 		configPath = pflag.String("config-dir", "", "directory path to an alternative json config file")
 
 		pflag.Parse()
@@ -330,6 +372,11 @@ func (cfg *APICfg) Load() {
 	cfg.LogLevel = viper.GetString("log_level")
 	setLogLevel(cfg.LogLevel)
 	log.Info("CONFIG", "\t", "Parameter Loaded - log_level: ", cfg.LogLevel)
+
+	cfg.LogFacilities = viper.GetStringSlice("log_facilities")
+	log.Info("CONFIG", "\t", "Parameter Loaded - log_facilities: ", cfg.LogFacilities)
+	setLogFacilities(cfg.LogFacilities)
+
 	// Then load rest of the parameters
 	cfg.BindIP = viper.GetString("bind_ip")
 	log.Info("CONFIG", "\t", "Parameter Loaded - bind_ip: ", cfg.BindIP)
@@ -406,4 +453,6 @@ func (cfg *APICfg) LoadStrJSON(input string) {
 	log.Info("CONFIG", "\t", "Parameter Loaded - verify_push_server: ", cfg.VerifyPushServer)
 	cfg.PushWorkerToken = viper.GetString("push_worker_token")
 	log.Info("CONFIG", "\t", "Parameter Loaded - push_worker_token: ", cfg.PushWorkerToken)
+	cfg.LogFacilities = viper.GetStringSlice("log_facilities")
+	log.Info("CONFIG", "\t", "Parameter Loaded - log_facilities: ", cfg.LogFacilities)
 }

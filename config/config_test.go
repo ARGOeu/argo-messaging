@@ -30,7 +30,8 @@ func (suite *ConfigTestSuite) SetupTest() {
 		"push_tls_enabled": "true",
 		"push_server_host": "localhost",
 		"push_server_port": 5555,
-		"verify_push_server": "true"
+		"verify_push_server": "true",
+		"log_facilities": ["SYSLOG", "CONSOLE"]
 	}`
 
 	log.SetOutput(ioutil.Discard)
@@ -64,6 +65,7 @@ func (suite *ConfigTestSuite) TestLoadConfiguration() {
 	suite.Equal("localhost", APIcfg2.PushServerHost)
 	suite.Equal(5555, APIcfg2.PushServerPort)
 	suite.True(APIcfg2.VerifyPushServer)
+	suite.Equal(0, len(APIcfg2.LogFacilities))
 }
 
 func (suite *ConfigTestSuite) TestLoadStringJSON() {
@@ -83,6 +85,7 @@ func (suite *ConfigTestSuite) TestLoadStringJSON() {
 	suite.Equal("localhost", APIcfg.PushServerHost)
 	suite.Equal(5555, APIcfg.PushServerPort)
 	suite.True(APIcfg.VerifyPushServer)
+	suite.Equal([]string{"SYSLOG", "CONSOLE"}, APIcfg.LogFacilities)
 }
 
 func TestConfigTestSuite(t *testing.T) {
