@@ -1176,6 +1176,26 @@ func (mk *MockStore) existsInACL(resource, resourceName, userUUID string) bool {
 
 }
 
+func (mk *MockStore) ExistsInACL(projectUUID string, resource string, resourceName string, userUUID string) error {
+
+	var acl QAcl
+
+	if resource == "subscriptions" {
+		acl = mk.SubsACL[resourceName]
+	} else if resource == "topics" {
+		acl = mk.TopicsACL[resourceName]
+	}
+
+	for _, u := range acl.ACL {
+		if u == userUUID {
+			return nil
+		}
+
+	}
+
+	return errors.New("not found")
+}
+
 //IncrementTopicMsgNum increase number of messages published in a topic
 func (mk *MockStore) QueryDailyTopicMsgCount(projectUUID string, topicName string, date time.Time) ([]QDailyTopicMsgCount, error) {
 

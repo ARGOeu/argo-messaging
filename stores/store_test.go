@@ -261,6 +261,13 @@ func (suite *StoreTestSuite) TestMockStore() {
 	statusE2 := store.ModSubPushStatus("argo_uuid", "unknown", "")
 	suite.Equal("not found", statusE2.Error())
 
+	// exists in acl
+	existsE1 := store.ExistsInACL("argo_uuid", "topics", "topic1", "uuid1")
+	suite.Nil(existsE1)
+
+	existsE2 := store.ExistsInACL("argo_uuid", "topics", "topic1", "unknown")
+	suite.Equal("not found", existsE2.Error())
+
 	// Query ACLS
 	ExpectedACL01 := QAcl{[]string{"uuid1", "uuid2"}}
 	QAcl01, _ := store.QueryACL("argo_uuid", "topics", "topic1")
