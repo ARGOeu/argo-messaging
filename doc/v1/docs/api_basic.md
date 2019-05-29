@@ -25,7 +25,8 @@ The ARGO Messaging Service main configuration file is config.json. An example co
   "certificate_key":"/etc/pki/tls/private/localhost.key",
   "per_resource_auth":true,
   "service_token":"S0M3T0K3N",
-  "log_level":"INFO"
+  "log_level":"INFO",
+  "log_facilities": ["syslog", "console"]
 }
 ```
 
@@ -44,6 +45,7 @@ certificate_key | path to the certificate's private key
 per_resource_auth | enable authorization per resource (topic/subscription)
 service_token | (optional) If set, enables full service-wide access to the api to initialize projects,users and resources
 log_level | set the desired log level (defaults to "INFO")
+log_facilities | logging output, if left empty, it defaults to console)
 
 **Location of config.json**: API will look first for config.json locally in the folder where the executable runs and then in the ` /etc/argo-messaging/`  location.
 
