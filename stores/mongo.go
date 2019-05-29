@@ -954,7 +954,7 @@ func (mong *MongoStore) ExistsInACL(projectUUID string, resource string, resourc
 			"$in": []string{userUUID},
 		},
 	}
-	
+
 	res := map[string]interface{}{}
 	return c.Find(query).One(&res)
 }

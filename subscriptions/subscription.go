@@ -249,8 +249,9 @@ func VerifyPushEndpoint(sub Subscription, c *http.Client, store stores.Store) er
 	}
 
 	if resp.StatusCode != 200 {
-		return fmt.Errorf("Push endpoint responded with a status code of %v instead of %v",
-			resp.StatusCode, http.StatusOK)
+		log.Errorf("failed to verify push endpoint for subscription %v. Expected status response %v but got %v",
+			sub.FullName, http.StatusOK, resp.StatusCode)
+		return errors.New("Wrong response status code")
 	} else {
 		// read the response
 		buf := bytes.Buffer{}
@@ -259,8 +260,9 @@ func VerifyPushEndpoint(sub Subscription, c *http.Client, store stores.Store) er
 		defer resp.Body.Close()
 
 		if sub.PushCfg.VerificationHash != buf.String() {
-			return fmt.Errorf("Verification hash mismatch. Expected %v but got %v",
-				sub.PushCfg.VerificationHash, buf.String())
+			log.Errorf("failed to verify push endpoint for subscription %v. Expected verification hash %v but got %v",
+				sub.FullName, sub.PushCfg.VerificationHash, buf.String())
+			return errors.New("Wrong verification hash")
 		}
 	}
 

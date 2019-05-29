@@ -1765,7 +1765,7 @@ func SubVerifyPushEndpoint(w http.ResponseWriter, r *http.Request) {
 	c := new(http.Client)
 	err = subscriptions.VerifyPushEndpoint(sub, c, refStr)
 	if err != nil {
-		err := APIErrGenericInternal(err.Error())
+		err := APIErrPushVerification(err.Error())
 		respondErr(w, err)
 		return
 	}
@@ -3192,6 +3192,16 @@ var APIErrTooLargeMessage = func(resource string) APIErrorRoot {
 // api err for dealing with generic internal errors
 var APIErrGenericInternal = func(msg string) APIErrorRoot {
 	apiErrBody := APIErrorBody{Code: http.StatusInternalServerError, Message: msg, Status: "INTERNAL_SERVER_ERROR"}
+	return APIErrorRoot{Body: apiErrBody}
+}
+
+// api err for dealing with generic internal errors
+var APIErrPushVerification = func(msg string) APIErrorRoot {
+	apiErrBody := APIErrorBody{
+		Code:    http.StatusUnauthorized,
+		Message: fmt.Sprintf("Endpoint verification failed.%v", msg),
+		Status:  "UNAUTHORIZED",
+	}
 	return APIErrorRoot{Body: apiErrBody}
 }
 

@@ -439,7 +439,7 @@ func (suite *SubTestSuite) TestVerifyPushEndpoint() {
 
 	e2 := VerifyPushEndpoint(s2, c2, nil)
 
-	suite.Equal("Push endpoint responded with a status code of 500 instead of 200", e2.Error())
+	suite.Equal("Wrong response status code", e2.Error())
 
 	// mismatch
 	s3 := Subscription{
@@ -455,7 +455,7 @@ func (suite *SubTestSuite) TestVerifyPushEndpoint() {
 
 	e3 := VerifyPushEndpoint(s3, c3, nil)
 
-	suite.Equal("Verification hash mismatch. Expected vhash-1 but got wrong_vhash", e3.Error())
+	suite.Equal("Wrong verification hash", e3.Error())
 }
 
 func (suite *SubTestSuite) TestExportJson() {
