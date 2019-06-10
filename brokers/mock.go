@@ -4,12 +4,14 @@ import (
 	"context"
 	"strconv"
 
+	"errors"
 	"github.com/ARGOeu/argo-messaging/messages"
 )
 
 // MockBroker struct
 type MockBroker struct {
 	MsgList []string
+	Topics  map[string]string
 }
 
 // PopulateOne Adds three messages to the mock broker
@@ -103,4 +105,16 @@ func (b *MockBroker) GetMinOffset(topic string) int64 {
 // Consume function to consume a message from the broker
 func (b *MockBroker) Consume(ctx context.Context, topic string, offset int64, imm bool, max int64) ([]string, error) {
 	return b.MsgList, nil
+}
+
+// Delete topic from the broker
+func (b *MockBroker) DeleteTopic(topic string) error {
+
+	_, ok := b.Topics[topic]
+	if !ok {
+		return errors.New("topic not found on the broker")
+	}
+
+	delete(b.Topics, topic)
+	return nil
 }

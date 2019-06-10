@@ -24,6 +24,7 @@ type KafkaBroker struct {
 	Producer        sarama.SyncProducer
 	Client          sarama.Client
 	Consumer        sarama.Consumer
+	ClusterAdmin    sarama.ClusterAdmin
 	Servers         []string
 }
 
@@ -69,7 +70,10 @@ func (b *KafkaBroker) CloseConnections() {
 	if err := b.Client.Close(); err != nil {
 		log.Fatalln(err)
 	}
-
+	// Close Cluster Admin
+	if err := b.ClusterAdmin.Close(); err != nil {
+		log.Fatalln(err)
+	}
 }
 
 // NewKafkaBroker creates a new kafka broker object
@@ -110,6 +114,7 @@ func (b *KafkaBroker) init(peers []string) error {
 	b.Config.Producer.RequiredAcks = sarama.WaitForAll
 	b.Config.Producer.Retry.Max = 5
 	b.Config.Producer.Return.Successes = true
+	b.Config.Version = sarama.V2_2_0_0
 	b.Servers = peers
 
 	var err error
@@ -125,6 +130,11 @@ func (b *KafkaBroker) init(peers []string) error {
 	}
 
 	b.Consumer, err = sarama.NewConsumer(b.Servers, b.Config)
+	if err != nil {
+		return err
+	}
+
+	b.ClusterAdmin, err = sarama.NewClusterAdmin(b.Servers, b.Config)
 	if err != nil {
 		return err
 	}
@@ -178,6 +188,16 @@ func (b *KafkaBroker) GetMinOffset(topic string) int64 {
 		log.Error(err.Error())
 	}
 	return loff
+}
+
+// DeleteTopic deletes the topic from the Kafka cluster
+func (b *KafkaBroker) DeleteTopic(topic string) error {
+
+	b.lockForTopic(topic)
+
+	defer b.unlockForTopic(topic)
+
+	return b.ClusterAdmin.DeleteTopic(topic)
 }
 
 // Consume function to consume a message from the broker

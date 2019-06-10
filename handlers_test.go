@@ -2581,6 +2581,8 @@ func (suite *HandlerTestSuite) TestTopicDelete() {
 	cfgKafka := config.NewAPICfg()
 	cfgKafka.LoadStrJSON(suite.cfgStr)
 	brk := brokers.MockBroker{}
+	brk.Topics = map[string]string{}
+	brk.Topics["argo_uuid.topic1"] = ""
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
@@ -2589,9 +2591,11 @@ func (suite *HandlerTestSuite) TestTopicDelete() {
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
+	// make sure the topic got deleted
+	suite.Equal(0, len(brk.Topics))
 }
 
-func (suite *HandlerTestSuite) TestSubDeleteNotfound() {
+func (suite *HandlerTestSuite) TestSubDeleteNotFound() {
 
 	req, err := http.NewRequest("DELETE", "http://localhost:8080/v1/projects/ARGO/subscriptions/subFoo", nil)
 	if err != nil {
