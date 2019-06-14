@@ -90,6 +90,7 @@ var defaultRoutes = []APIRoute{
 	{"subscriptions:list", "GET", "/projects/{project}/subscriptions", SubListAll},
 	{"subscriptions:listByTopic", "GET", "/projects/{project}/topics/{topic}/subscriptions", ListSubsByTopic},
 	{"subscriptions:offsets", "GET", "/projects/{project}/subscriptions/{subscription}:offsets", SubGetOffsets},
+	{"subscriptions:timeToOffset", "GET", "/projects/{project}/subscriptions/{subscription}:timeToOffset", SubTimeToOffset},
 	{"subscriptions:acl", "GET", "/projects/{project}/subscriptions/{subscription}:acl", SubACL},
 	{"subscriptions:metrics", "GET", "/projects/{project}/subscriptions/{subscription}:metrics", SubMetrics},
 	{"subscriptions:show", "GET", "/projects/{project}/subscriptions/{subscription}", SubListOne},

@@ -6,12 +6,19 @@ import (
 
 	"errors"
 	"github.com/ARGOeu/argo-messaging/messages"
+	"time"
 )
 
 // MockBroker struct
 type MockBroker struct {
-	MsgList []string
-	Topics  map[string]string
+	MsgList          []string
+	Topics           map[string]string
+	TopicTimeIndices map[string][]TimeToOffset
+}
+
+type TimeToOffset struct {
+	Timestamp time.Time
+	Offset    int64
 }
 
 // PopulateOne Adds three messages to the mock broker
@@ -117,4 +124,21 @@ func (b *MockBroker) DeleteTopic(topic string) error {
 
 	delete(b.Topics, topic)
 	return nil
+}
+
+func (b *MockBroker) TimeToOffset(topic string, time time.Time) (int64, error) {
+
+	topicTimeIndices, ok := b.TopicTimeIndices[topic]
+
+	if !ok {
+		return -1, errors.New("topic not found on the broker")
+	}
+
+	for _, item := range topicTimeIndices {
+		if item.Timestamp.Equal(time) || item.Timestamp.After(time) {
+			return item.Offset, nil
+		}
+	}
+
+	return -1, nil
 }

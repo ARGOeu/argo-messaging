@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/ARGOeu/argo-messaging/messages"
+	"time"
 )
 
 // Broker  Encapsulates the generic broker interface
@@ -17,6 +18,7 @@ type Broker interface {
 	GetMaxOffset(topic string) int64
 	Consume(ctx context.Context, topic string, offset int64, imm bool, max int64) ([]string, error)
 	DeleteTopic(topic string) error
+	TimeToOffset(topic string, time time.Time) (int64, error)
 }
 
 var ErrOffsetOff = errors.New("Offset is off")

@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"fmt"
 	"github.com/ARGOeu/argo-messaging/messages"
 	"github.com/Shopify/sarama"
 	log "github.com/sirupsen/logrus"
@@ -13,6 +14,10 @@ import (
 
 type topicLock struct {
 	sync.Mutex
+}
+
+type TopicOffset struct {
+	Offset int64 `json:"offset"`
 }
 
 // KafkaBroker struct
@@ -119,7 +124,7 @@ func (b *KafkaBroker) init(peers []string) error {
 
 	var err error
 
-	b.Client, err = sarama.NewClient(b.Servers, nil)
+	b.Client, err = sarama.NewClient(b.Servers, b.Config)
 	if err != nil {
 		return err
 	}
@@ -188,6 +193,12 @@ func (b *KafkaBroker) GetMinOffset(topic string) int64 {
 		log.Error(err.Error())
 	}
 	return loff
+}
+
+// TimeToOffset returns the offset of the first message with a timestamp equal or
+// greater than the time given.
+func (b *KafkaBroker) TimeToOffset(topic string, t time.Time) (int64, error) {
+	return b.Client.GetOffset(topic, 0, t.UnixNano()/int64(time.Millisecond))
 }
 
 // DeleteTopic deletes the topic from the Kafka cluster
@@ -269,6 +280,9 @@ ConsumerLoop:
 		case msg := <-partitionConsumer.Messages():
 
 			messages = append(messages, string(msg.Value[:]))
+			fmt.Println("messag timestamp")
+			fmt.Println(msg.Timestamp)
+			fmt.Println(msg.Timestamp.UnixNano() * int64(time.Nanosecond) / int64(time.Microsecond))
 
 			consumed++
 
