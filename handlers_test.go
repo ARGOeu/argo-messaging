@@ -2594,6 +2594,69 @@ func (suite *HandlerTestSuite) TestTopicDelete() {
 	// make sure the topic got deleted
 	suite.Equal(0, len(brk.Topics))
 }
+func (suite *HandlerTestSuite) TestSubTimeToOffset() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/subscriptions/sub1?time=2019-06-10T9:38:30.500Z", nil)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{"offset":93204}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	brk.TopicTimeIndices = map[string][]brokers.TimeToOffset{}
+
+	brk.TopicTimeIndices["argo_uuid.topic1"] = []brokers.TimeToOffset{
+		{Timestamp: time.Date(2019, 6, 11, 0, 0, 0, 0, time.UTC), Offset: 93204},
+		{Timestamp: time.Date(2019, 6, 12, 0, 0, 0, 0, time.UTC), Offset: 94000},
+	}
+
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := oldPush.Manager{}
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubTimeToOffset, cfgKafka, &brk, str, &mgr, nil))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+}
+
+func (suite *HandlerTestSuite) TestSubTimeToOffsetOutOfBounds() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/subscriptions/sub1?time=2020-06-10T9:38:30.500Z", nil)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "error": {
+      "code": 409,
+      "message": "Timestamp is out of bounds for the subscription's topic/partition",
+      "status": "CONFLICT"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	brk.TopicTimeIndices = map[string][]brokers.TimeToOffset{}
+	brk.TopicTimeIndices["argo_uuid.topic1"] = []brokers.TimeToOffset{
+		{Timestamp: time.Date(2019, 6, 11, 0, 0, 0, 0, time.UTC), Offset: 93204},
+		{Timestamp: time.Date(2019, 6, 12, 0, 0, 0, 0, time.UTC), Offset: 94000},
+	}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := oldPush.Manager{}
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubTimeToOffset, cfgKafka, &brk, str, &mgr, nil))
+	router.ServeHTTP(w, req)
+	suite.Equal(409, w.Code)
+	suite.Equal(expResp, w.Body.String())
+}
 
 func (suite *HandlerTestSuite) TestSubDeleteNotFound() {
 
