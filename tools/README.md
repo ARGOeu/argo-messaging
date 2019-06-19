@@ -55,6 +55,31 @@ How to run bulk_producer
 - `pe, --push-endpoint` is the end where the subscriptions will push the messages they consume, `if left undeclared, the subscriptions will be in pull mode`.
 - `-v, --verify` whether or not to do ssl verification, `if left undeclared, it will not verify`.
 
+consumer
+----------------
+Consumer is a script that allows you to connect to an AMS endpoint and consume(pull) messages
+ of configurable size indefinitely.
+
+Requirements
+------------
+
+- argo_ams_library
+
+How to run consumer
+--------------------------
+
+`./consumer.py --host some.ams.host --port 443 --token some_ams_token --project ams_project --sub sub-1
+--bulk-size 10 --fire-rate 5`
+
+- `-host, --host` is the AMS endpoint to connect to.
+- `-port, --port` is the AMS port.
+- `-token, --token` is the AMS token that will grant you access to perform all the needed actions.
+- `-project, --project` is the AMS project that the topic belongs to.
+- `sub, --sub` is the AMS sub that the messages will be consumed from.
+- `-bs, --bulk-size` is the amount of messages to publish to each topic in every request, `default=1`.
+- `fr, --fire-rate` is the interval at which the messages will be published, `default=0`.
+- `-v, --verify` whether or not to do ssl verification, `if left undeclared, it will not verify`.
+
 ams_kafka_export
 ----------------
 
