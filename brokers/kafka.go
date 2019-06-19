@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"fmt"
 	"github.com/ARGOeu/argo-messaging/messages"
 	"github.com/Shopify/sarama"
 	log "github.com/sirupsen/logrus"
@@ -280,9 +279,6 @@ ConsumerLoop:
 		case msg := <-partitionConsumer.Messages():
 
 			messages = append(messages, string(msg.Value[:]))
-			fmt.Println("messag timestamp")
-			fmt.Println(msg.Timestamp)
-			fmt.Println(msg.Timestamp.UnixNano() * int64(time.Nanosecond) / int64(time.Microsecond))
 
 			consumed++
 
