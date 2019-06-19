@@ -1290,6 +1290,7 @@ func TopicDelete(w http.ResponseWriter, r *http.Request) {
 
 	// Grab context references
 	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	refBrk := gorillaContext.Get(r, "brk").(brokers.Broker)
 	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 
 	// Get Result Object
@@ -1304,6 +1305,12 @@ func TopicDelete(w http.ResponseWriter, r *http.Request) {
 		err := APIErrGenericInternal(err.Error())
 		respondErr(w, err)
 		return
+	}
+
+	fullTopic := projectUUID + "." + urlVars["topic"]
+	err = refBrk.DeleteTopic(fullTopic)
+	if err != nil {
+		log.Errorf("Couldn't delete topic %v from broker, %v", fullTopic, err.Error())
 	}
 
 	// Write empty response if anything ok

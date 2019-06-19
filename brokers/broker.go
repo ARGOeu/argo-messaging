@@ -16,6 +16,7 @@ type Broker interface {
 	GetMinOffset(topic string) int64
 	GetMaxOffset(topic string) int64
 	Consume(ctx context.Context, topic string, offset int64, imm bool, max int64) ([]string, error)
+	DeleteTopic(topic string) error
 }
 
 var ErrOffsetOff = errors.New("Offset is off")
