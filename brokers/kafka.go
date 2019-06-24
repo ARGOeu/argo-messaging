@@ -118,7 +118,7 @@ func (b *KafkaBroker) init(peers []string) error {
 	b.Config.Producer.RequiredAcks = sarama.WaitForAll
 	b.Config.Producer.Retry.Max = 5
 	b.Config.Producer.Return.Successes = true
-	b.Config.Version = sarama.V2_2_0_0
+	b.Config.Version = sarama.V2_1_0_0
 	b.Servers = peers
 
 	var err error
