@@ -2766,10 +2766,13 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 				respondErr(w, err)
 				return
 			}
-			err := APIErrGenericInternal(err.Error())
+
+			log.Errorf("Couldn't publish to topic %v, %v", fullTopic, err.Error())
+			err := APIErrGenericBackend()
 			respondErr(w, err)
 			return
 		}
+
 		msg.ID = msgID
 		// Assertions for Succesfull Publish
 		if rTop != fullTopic {
@@ -2925,12 +2928,14 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 			msgs, err = refBrk.Consume(r.Context(), fullTopic, targetSub.Offset, retImm, int64(max))
 			// If still error respond and return
 			if err != nil {
-				err := APIErrGenericInternal("Cannot consume message")
+				log.Errorf("Couldn't consume messages for subscription %v, %v", targetSub.FullName, err.Error())
+				err := APIErrGenericBackend()
 				respondErr(w, err)
 				return
 			}
 		} else {
-			err := APIErrGenericInternal("Cannot consume message")
+			log.Errorf("Couldn't consume messages for subscription %v, %v", targetSub.FullName, err.Error())
+			err := APIErrGenericBackend()
 			respondErr(w, err)
 			return
 		}
