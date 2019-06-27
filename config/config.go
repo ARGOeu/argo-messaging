@@ -241,48 +241,157 @@ func (cfg *APICfg) LoadTest() {
 	// First check log level parameter and set logger
 	cfg.LogLevel = viper.GetString("log_level")
 	setLogLevel(cfg.LogLevel)
-	log.Info("CONFIG", "\t", "Parameter Loaded - log_level: ", cfg.LogLevel)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - log_level: %v", cfg.LogLevel)
 
 	cfg.LogFacilities = viper.GetStringSlice("log_facilities")
-	log.Info("CONFIG", "\t", "Parameter Loaded - log_facilities: ", cfg.LogFacilities)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - log_facilities: %v", cfg.LogFacilities)
 	setLogFacilities(cfg.LogFacilities)
 
 	// Then load rest of the parameters
 
+	// bind ip
 	cfg.BindIP = viper.GetString("bind_ip")
-	log.Info("CONFIG", "\t", "Parameter Loaded - bind_ip: ", cfg.BindIP)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - bind_ip: %v", cfg.BindIP)
+
+	// service port
 	cfg.Port = viper.GetInt("port")
-	log.Info("CONFIG", "\t", "Parameter Loaded - port: ", cfg.Port)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - port: %v", cfg.Port)
+
+	// zookeeper hosts
 	cfg.ZooHosts = viper.GetStringSlice("zookeeper_hosts")
-	log.Info("CONFIG", "\t", "Parameter Loaded - zookeeper_hosts: ", cfg.ZooHosts)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - zookeeper_hosts: %v", cfg.ZooHosts)
+
+	// kafka_znode
 	cfg.KafkaZnode = viper.GetString("kafka_znode")
-	log.Info("CONFIG", "\t", "Parameter Loaded - kafka_znode: ", cfg.KafkaZnode)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - kafka_znode: %v", cfg.KafkaZnode)
+
+	// store host
 	cfg.StoreHost = viper.GetString("store_host")
-	log.Info("CONFIG", "\t", "Parameter Loaded - store_host: ", cfg.StoreHost)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - store_host: %v", cfg.StoreHost)
+
+	// store name
 	cfg.StoreDB = viper.GetString("store_db")
-	log.Info("CONFIG", "\t", "Parameter Loaded - store_db: ", cfg.StoreDB)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - store_db: %v", cfg.StoreDB)
+
+	// service certificate
 	cfg.Cert = viper.GetString("certificate")
-	log.Info("CONFIG", "\t", "Parameter Loaded - certificate: ", cfg.Cert)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - certificate: %v", cfg.Cert)
+
+	// service certificate key
 	cfg.CertKey = viper.GetString("certificate_key")
-	log.Info("CONFIG", "\t", "Parameter Loaded - certificate_key: ", cfg.CertKey)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - certificate_key: %v", cfg.CertKey)
+
+	// certificate authorities directory
 	cfg.CertificateAuthoritiesDir = viper.GetString("certificate_authorities_dir")
-	log.Info("CONFIG", "\t", "Parameter Loaded - certificate_authorities_dir: ", cfg.CertificateAuthoritiesDir)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - certificate_authorities_dir: %v", cfg.CertificateAuthoritiesDir)
+
+	// per resource authorisation
 	cfg.ResAuth = viper.GetBool("per_resource_auth")
-	log.Info("CONFIG", "\t", "Parameter Loaded - per_resource_auth: ", cfg.CertKey)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - per_resource_auth: %v", cfg.ResAuth)
+
+	// service token
 	cfg.ServiceToken = viper.GetString("service_token")
-	log.Info("CONFIG", "\t", "Parameter Loaded - service_token: ", cfg.ServiceToken)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - service_token: %v", cfg.ServiceToken)
+
+	// push enabled true or false
 	cfg.PushEnabled = viper.GetBool("push_enabled")
-	log.Info("CONFIG", "\t", "Parameter Loaded - push_enabled: ", cfg.PushEnabled)
-	cfg.PushTlsEnabled = viper.GetBool("push_tls_enabled")
-	log.Info("CONFIG", "\t", "Parameter Loaded - push_tls_enabled: ", cfg.PushTlsEnabled)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - push_enabled: %v", cfg.ServiceToken)
+
+	// push TLS enabled true or false
+	cfg.PushEnabled = viper.GetBool("push_tls_enabled")
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - push_tls_enabled: %v", cfg.PushTlsEnabled)
+
+	// push server host
 	cfg.PushServerHost = viper.GetString("push_server_host")
-	log.Info("CONFIG", "\t", "Parameter Loaded - push_server_host: ", cfg.PushServerHost)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - push_server_host: %v", cfg.PushServerHost)
+
+	// push server port
 	cfg.PushServerPort = viper.GetInt("push_server_port")
-	log.Info("CONFIG", "\t", "Parameter Loaded - push_server_port: ", cfg.PushServerPort)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - push_server_port: %v", cfg.PushServerPort)
+
+	// verify push server
 	cfg.VerifyPushServer = viper.GetBool("verify_push_server")
-	log.Info("CONFIG", "\t", "Parameter Loaded - verify_push_server: ", cfg.VerifyPushServer)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - verify_push_server: %v", cfg.VerifyPushServer)
+
+	// push worker token
 	cfg.PushWorkerToken = viper.GetString("push_worker_token")
-	log.Info("CONFIG", "\t", "Parameter Loaded - push_worker_token: ", cfg.PushWorkerToken)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - push_worker_token: %v", cfg.PushWorkerToken)
 }
 
 // Load the configuration
@@ -371,47 +480,158 @@ func (cfg *APICfg) Load() {
 	// First check log level parameter and set logger
 	cfg.LogLevel = viper.GetString("log_level")
 	setLogLevel(cfg.LogLevel)
-	log.Info("CONFIG", "\t", "Parameter Loaded - log_level: ", cfg.LogLevel)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - log_level: %v", cfg.LogLevel)
 
 	cfg.LogFacilities = viper.GetStringSlice("log_facilities")
-	log.Info("CONFIG", "\t", "Parameter Loaded - log_facilities: ", cfg.LogFacilities)
 	setLogFacilities(cfg.LogFacilities)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - log_facilities: %v", cfg.LogFacilities)
 
 	// Then load rest of the parameters
+
+	// bind ip
 	cfg.BindIP = viper.GetString("bind_ip")
-	log.Info("CONFIG", "\t", "Parameter Loaded - bind_ip: ", cfg.BindIP)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - bind_ip: %v", cfg.BindIP)
+
+	// service port
 	cfg.Port = viper.GetInt("port")
-	log.Info("CONFIG", "\t", "Parameter Loaded - port: ", cfg.Port)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - port: %v", cfg.Port)
+
+	// zookeeper hosts
 	cfg.ZooHosts = viper.GetStringSlice("zookeeper_hosts")
-	log.Info("CONFIG", "\t", "Parameter Loaded - zookeeper_hosts: ", cfg.ZooHosts)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - zookeeper_hosts: %v", cfg.ZooHosts)
+
+	// kafka_znode
 	cfg.KafkaZnode = viper.GetString("kafka_znode")
-	log.Info("CONFIG", "\t", "Parameter Loaded - kafka_znode: ", cfg.KafkaZnode)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - kafka_znode: %v", cfg.KafkaZnode)
+
+	// store host
 	cfg.StoreHost = viper.GetString("store_host")
-	log.Info("CONFIG", "\t", "Parameter Loaded - store_host: ", cfg.StoreHost)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - store_host: %v", cfg.StoreHost)
+
+	// store name
 	cfg.StoreDB = viper.GetString("store_db")
-	log.Info("CONFIG", "\t", "Parameter Loaded - store_db: ", cfg.StoreDB)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - store_db: %v", cfg.StoreDB)
+
+	// service certificate
 	cfg.Cert = viper.GetString("certificate")
-	log.Info("CONFIG", "\t", "Parameter Loaded - certificate: ", cfg.Cert)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - certificate: %v", cfg.Cert)
+
+	// service certificate key
 	cfg.CertKey = viper.GetString("certificate_key")
-	log.Info("CONFIG", "\t", "Parameter Loaded - certificate_key: ", cfg.CertKey)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - certificate_key: %v", cfg.CertKey)
+
+	// certificate authorities directory
 	cfg.CertificateAuthoritiesDir = viper.GetString("certificate_authorities_dir")
-	log.Info("CONFIG", "\t", "Parameter Loaded - certificate_authorities_dir: ", cfg.CertificateAuthoritiesDir)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - certificate_authorities_dir: %v", cfg.CertificateAuthoritiesDir)
+
+	// per resource authorisation
 	cfg.ResAuth = viper.GetBool("per_resource_auth")
-	log.Info("CONFIG", "\t", "Parameter Loaded - per_resource_auth: ", cfg.ResAuth)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - per_resource_auth: %v", cfg.ResAuth)
+
+	// service token
 	cfg.ServiceToken = viper.GetString("service_token")
-	log.Info("CONFIG", "\t", "Parameter Loaded - service_token: ", cfg.ServiceToken)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - service_token: %v", cfg.ServiceToken)
+
+	// push enabled true or false
 	cfg.PushEnabled = viper.GetBool("push_enabled")
-	log.Info("CONFIG", "\t", "Parameter Loaded - push_enabled: ", cfg.PushEnabled)
-	cfg.PushTlsEnabled = viper.GetBool("push_tls_enabled")
-	log.Info("CONFIG", "\t", "Parameter Loaded - push_tls_enabled: ", cfg.PushTlsEnabled)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - push_enabled: %v", cfg.ServiceToken)
+
+	// push TLS enabled true or false
+	cfg.PushEnabled = viper.GetBool("push_tls_enabled")
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - push_tls_enabled: %v", cfg.PushTlsEnabled)
+
+	// push server host
 	cfg.PushServerHost = viper.GetString("push_server_host")
-	log.Info("CONFIG", "\t", "Parameter Loaded - push_server_host: ", cfg.PushServerHost)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - push_server_host: %v", cfg.PushServerHost)
+
+	// push server port
 	cfg.PushServerPort = viper.GetInt("push_server_port")
-	log.Info("CONFIG", "\t", "Parameter Loaded - push_server_port: ", cfg.PushServerPort)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - push_server_port: %v", cfg.PushServerPort)
+
+	// verify push server
 	cfg.VerifyPushServer = viper.GetBool("verify_push_server")
-	log.Info("CONFIG", "\t", "Parameter Loaded - verify_push_server: ", cfg.VerifyPushServer)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - verify_push_server: %v", cfg.VerifyPushServer)
+
+	// push worker token
 	cfg.PushWorkerToken = viper.GetString("push_worker_token")
-	log.Info("CONFIG", "\t", "Parameter Loaded - push_worker_token: ", cfg.PushWorkerToken)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - push_worker_token: %v", cfg.PushWorkerToken)
+
 }
 
 // LoadStrJSON Loads configuration from a JSON string
@@ -419,40 +639,145 @@ func (cfg *APICfg) LoadStrJSON(input string) {
 	viper.SetConfigType("json")
 	viper.ReadConfig(strings.NewReader(input))
 	// Load Kafka configuration
+	// bind ip
 	cfg.BindIP = viper.GetString("bind_ip")
-	log.Info("CONFIG", "\t", "Parameter Loaded - bind_ip", cfg.BindIP)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - bind_ip: %v", cfg.BindIP)
+
+	// service port
 	cfg.Port = viper.GetInt("port")
-	log.Info("CONFIG", "\t", "Parameter Loaded - port", cfg.Port)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - port: %v", cfg.Port)
+
+	// zookeeper hosts
 	cfg.ZooHosts = viper.GetStringSlice("zookeeper_hosts")
-	log.Info("CONFIG", "\t", "Parameter Loaded - zookeeper_hosts", cfg.ZooHosts)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - zookeeper_hosts: %v", cfg.ZooHosts)
+
+	// kafka_znode
 	cfg.KafkaZnode = viper.GetString("kafka_znode")
-	log.Info("CONFIG", "\t", "Parameter Loaded - store_host", cfg.KafkaZnode)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - kafka_znode: %v", cfg.KafkaZnode)
+
+	// store host
 	cfg.StoreHost = viper.GetString("store_host")
-	log.Info("CONFIG", "\t", "Parameter Loaded - store_host", cfg.StoreHost)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - store_host: %v", cfg.StoreHost)
+
+	// store name
 	cfg.StoreDB = viper.GetString("store_db")
-	log.Info("CONFIG", "\t", "Parameter Loaded - store_db", cfg.StoreDB)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - store_db: %v", cfg.StoreDB)
+
+	// service certificate
 	cfg.Cert = viper.GetString("certificate")
-	log.Info("CONFIG", "\t", "Parameter Loaded - certificate", cfg.Cert)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - certificate: %v", cfg.Cert)
+
+	// service certificate key
 	cfg.CertKey = viper.GetString("certificate_key")
-	log.Info("CONFIG", "\t", "Parameter Loaded - certificate_key", cfg.CertKey)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - certificate_key: %v", cfg.CertKey)
+
+	// certificate authorities directory
 	cfg.CertificateAuthoritiesDir = viper.GetString("certificate_authorities_dir")
-	log.Info("CONFIG", "\t", "Parameter Loaded - certificate_authorities_dir: ", cfg.CertificateAuthoritiesDir)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - certificate_authorities_dir: %v", cfg.CertificateAuthoritiesDir)
+
+	// per resource authorisation
 	cfg.ResAuth = viper.GetBool("per_resource_auth")
-	log.Info("CONFIG", "\t", "Parameter Loaded - per_resource_auth", cfg.CertKey)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - per_resource_auth: %v", cfg.ResAuth)
+
+	// service token
 	cfg.ServiceToken = viper.GetString("service_token")
-	log.Info("CONFIG", "\t", "Parameter Loaded - service_token", cfg.ServiceToken)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - service_token: %v", cfg.ServiceToken)
+
+	// push enabled true or false
 	cfg.PushEnabled = viper.GetBool("push_enabled")
-	log.Info("CONFIG", "\t", "Parameter Loaded - push_enabled: ", cfg.PushEnabled)
-	cfg.PushTlsEnabled = viper.GetBool("push_tls_enabled")
-	log.Info("CONFIG", "\t", "Parameter Loaded - push_tls_enabled: ", cfg.PushTlsEnabled)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - push_enabled: %v", cfg.ServiceToken)
+
+	// push TLS enabled true or false
+	cfg.PushEnabled = viper.GetBool("push_tls_enabled")
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - push_tls_enabled: %v", cfg.PushTlsEnabled)
+
+	// push server host
 	cfg.PushServerHost = viper.GetString("push_server_host")
-	log.Info("CONFIG", "\t", "Parameter Loaded - push_server_host: ", cfg.PushServerHost)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - push_server_host: %v", cfg.PushServerHost)
+
+	// push server port
 	cfg.PushServerPort = viper.GetInt("push_server_port")
-	log.Info("CONFIG", "\t", "Parameter Loaded - push_server_port: ", cfg.PushServerPort)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - push_server_port: %v", cfg.PushServerPort)
+
+	// verify push server
 	cfg.VerifyPushServer = viper.GetBool("verify_push_server")
-	log.Info("CONFIG", "\t", "Parameter Loaded - verify_push_server: ", cfg.VerifyPushServer)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - verify_push_server: %v", cfg.VerifyPushServer)
+
+	// push worker token
 	cfg.PushWorkerToken = viper.GetString("push_worker_token")
-	log.Info("CONFIG", "\t", "Parameter Loaded - push_worker_token: ", cfg.PushWorkerToken)
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - push_worker_token: %v", cfg.PushWorkerToken)
+
 	cfg.LogFacilities = viper.GetStringSlice("log_facilities")
-	log.Info("CONFIG", "\t", "Parameter Loaded - log_facilities: ", cfg.LogFacilities)
-}
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - log_facilities: %v", cfg.LogFacilities)}
