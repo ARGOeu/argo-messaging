@@ -3203,6 +3203,20 @@ func (suite *HandlerTestSuite) TestTopicMetrics() {
             }
          ],
          "description": "A collection of counters that represents the total number of messages published each day to a specific topic"
+      },
+      {
+         "metric": "topic.publishing_rate",
+         "metric_type": "rate",
+         "value_type": "float64",
+         "resource_type": "topic",
+         "resource_name": "topic1",
+         "timeseries": [
+            {
+               "timestamp": "2019-05-06T00:00:00Z",
+               "value": 10
+            }
+         ],
+         "description": "A rate that displays how many messages were published per second between the last two publish events"
       }
    ]
 }`
@@ -3800,6 +3814,7 @@ func (suite *HandlerTestSuite) TestPublish() {
       "1"
    ]
 }`
+	tn := time.Now().UTC()
 
 	cfgKafka := config.NewAPICfg()
 	cfgKafka.LoadStrJSON(suite.cfgStr)
@@ -3812,6 +3827,9 @@ func (suite *HandlerTestSuite) TestPublish() {
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expJSON, w.Body.String())
+	tpc, _, _, _ := str.QueryTopics("argo_uuid", "", "topic1", "", 0)
+	suite.True(tn.Before(tpc[0].LatestPublish))
+	suite.NotEqual(tpc[0].PublishRate, 10)
 
 }
 

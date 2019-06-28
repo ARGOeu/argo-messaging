@@ -9,6 +9,7 @@ import (
 	"github.com/ARGOeu/argo-messaging/config"
 	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/stretchr/testify/suite"
+	"time"
 )
 
 type TopicTestSuite struct {
@@ -38,6 +39,8 @@ func (suite *TopicTestSuite) TestGetTopicByName() {
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
 	myTopics, _ := Find("argo_uuid", "", "topic1", "", 0, store)
 	expTopic := New("argo_uuid", "ARGO", "topic1")
+	expTopic.PublishRate = 10
+	expTopic.LatestPublish = time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local)
 	suite.Equal(expTopic, myTopics.Topics[0])
 }
 
@@ -47,23 +50,23 @@ func (suite *TopicTestSuite) TestGetPaginatedTopics() {
 
 	// retrieve all topics
 	expPt1 := PaginatedTopics{Topics: []Topic{
-		{"argo_uuid", "topic4", "/projects/ARGO/topics/topic4"},
-		{"argo_uuid", "topic3", "/projects/ARGO/topics/topic3"},
-		{"argo_uuid", "topic2", "/projects/ARGO/topics/topic2"},
-		{"argo_uuid", "topic1", "/projects/ARGO/topics/topic1"}},
+		{"argo_uuid", "topic4", "/projects/ARGO/topics/topic4", time.Date(0, 0, 0, 0, 0, 0, 0, time.Local), 0},
+		{"argo_uuid", "topic3", "/projects/ARGO/topics/topic3", time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local), 8.99},
+		{"argo_uuid", "topic2", "/projects/ARGO/topics/topic2", time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local), 5.45},
+		{"argo_uuid", "topic1", "/projects/ARGO/topics/topic1", time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10}},
 		NextPageToken: "", TotalSize: 4}
 	pgTopics1, err1 := Find("argo_uuid", "", "", "", 0, store)
 
 	// retrieve first 2 topics
 	expPt2 := PaginatedTopics{Topics: []Topic{
-		{"argo_uuid", "topic4", "/projects/ARGO/topics/topic4"},
-		{"argo_uuid", "topic3", "/projects/ARGO/topics/topic3"}},
+		{"argo_uuid", "topic4", "/projects/ARGO/topics/topic4", time.Date(0, 0, 0, 0, 0, 0, 0, time.Local), 0},
+		{"argo_uuid", "topic3", "/projects/ARGO/topics/topic3", time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local), 8.99}},
 		NextPageToken: "MQ==", TotalSize: 4}
 	pgTopics2, err2 := Find("argo_uuid", "", "", "", 2, store)
 
 	// retrieve the next topic
 	expPt3 := PaginatedTopics{Topics: []Topic{
-		{"argo_uuid", "topic1", "/projects/ARGO/topics/topic1"}},
+		{"argo_uuid", "topic1", "/projects/ARGO/topics/topic1", time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10}},
 		NextPageToken: "", TotalSize: 4}
 	pgTopics3, err3 := Find("argo_uuid", "", "", "MA==", 1, store)
 
@@ -72,14 +75,14 @@ func (suite *TopicTestSuite) TestGetPaginatedTopics() {
 
 	// retrieve topics for a specific user
 	expPt5 := PaginatedTopics{Topics: []Topic{
-		{"argo_uuid", "topic2", "/projects/ARGO/topics/topic2"},
-		{"argo_uuid", "topic1", "/projects/ARGO/topics/topic1"}},
+		{"argo_uuid", "topic2", "/projects/ARGO/topics/topic2", time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local), 5.45},
+		{"argo_uuid", "topic1", "/projects/ARGO/topics/topic1", time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10}},
 		NextPageToken: "", TotalSize: 2}
 	pgTopics5, err5 := Find("argo_uuid", "uuid1", "", "", 2, store)
 
 	// retrieve topics for a specific user with pagination
 	expPt6 := PaginatedTopics{Topics: []Topic{
-		{"argo_uuid", "topic2", "/projects/ARGO/topics/topic2"}},
+		{"argo_uuid", "topic2", "/projects/ARGO/topics/topic2", time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local), 5.45}},
 		NextPageToken: "MA==", TotalSize: 2}
 	pgTopics6, err6 := Find("argo_uuid", "uuid1", "", "", 1, store)
 
@@ -103,6 +106,8 @@ func (suite *TopicTestSuite) TestGetTopicMetric() {
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
 	myTopics, _ := FindMetric("argo_uuid", "topic1", store)
 	expTopic := TopicMetrics{MsgNum: 0}
+	expTopic.LatestPublish = time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local)
+	expTopic.PublishRate = 10
 	suite.Equal(expTopic, myTopics)
 }
 
@@ -113,6 +118,8 @@ func (suite *TopicTestSuite) TestGetTopicMetrics() {
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
 	myTopics, _ := FindMetric("argo_uuid", "topic1", store)
 	expTopic := TopicMetrics{MsgNum: 0}
+	expTopic.PublishRate = 10
+	expTopic.LatestPublish = time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local)
 	suite.Equal(expTopic, myTopics)
 }
 

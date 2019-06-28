@@ -11,6 +11,8 @@ type Store interface {
 	QuerySubs(projectUUID string, userUUID string, name string, pageToken string, pageSize int32) ([]QSub, int32, string, error)
 	QueryTopics(projectUUID string, userUUID string, name string, pageToken string, pageSize int32) ([]QTopic, int32, string, error)
 	QueryDailyTopicMsgCount(projectUUID string, name string, date time.Time) ([]QDailyTopicMsgCount, error)
+	UpdateTopicLatestPublish(projectUUID string, name string, date time.Time) error
+	UpdateTopicPublishRate(projectUUID string, name string, rate float64) error
 	RemoveTopic(projectUUID string, name string) error
 	RemoveSub(projectUUID string, name string) error
 	PaginatedQueryUsers(pageToken string, pageSize int32) ([]QUser, int32, string, error)
