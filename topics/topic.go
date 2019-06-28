@@ -8,18 +8,23 @@ import (
 	"github.com/ARGOeu/argo-messaging/projects"
 	"github.com/ARGOeu/argo-messaging/stores"
 	log "github.com/sirupsen/logrus"
+	"time"
 )
 
 // Topic struct to hold information for a given topic
 type Topic struct {
-	ProjectUUID string `json:"-"`
-	Name        string `json:"-"`
-	FullName    string `json:"name"`
+	ProjectUUID   string    `json:"-"`
+	Name          string    `json:"-"`
+	FullName      string    `json:"name"`
+	LatestPublish time.Time `json:"-"`
+	PublishRate   float64   `json:"-"`
 }
 
 type TopicMetrics struct {
-	MsgNum     int64 `json:"number_of_messages"`
-	TotalBytes int64 `json:"total_bytes"`
+	MsgNum        int64     `json:"number_of_messages"`
+	TotalBytes    int64     `json:"total_bytes"`
+	LatestPublish time.Time `json:"-"`
+	PublishRate   float64   `json:"-"`
 }
 
 // PaginatedTopics holds information about a topics' page and how to access the next page
@@ -37,7 +42,13 @@ func (tl *PaginatedTopics) Empty() bool {
 // New creates a new topic based on name
 func New(projectUUID string, projectName string, name string) Topic {
 	ftn := "/projects/" + projectName + "/topics/" + name
-	t := Topic{ProjectUUID: projectUUID, Name: name, FullName: ftn}
+	t := Topic{
+		ProjectUUID:   projectUUID,
+		Name:          name,
+		FullName:      ftn,
+		LatestPublish: time.Time{},
+		PublishRate:   0,
+	}
 	return t
 }
 
@@ -59,6 +70,8 @@ func FindMetric(projectUUID string, name string, store stores.Store) (TopicMetri
 
 		result.MsgNum = item.MsgNum
 		result.TotalBytes = item.TotalBytes
+		result.PublishRate = item.PublishRate
+		result.LatestPublish = item.LatestPublish
 	}
 	return result, err
 }
@@ -93,6 +106,8 @@ func Find(projectUUID, userUUID, name, pageToken string, pageSize int32, store s
 
 	for _, item := range qTopics {
 		curTop := New(item.ProjectUUID, projectName, item.Name)
+		curTop.LatestPublish = item.LatestPublish
+		curTop.PublishRate = item.PublishRate
 		result.Topics = append(result.Topics, curTop)
 	}
 

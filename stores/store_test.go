@@ -19,10 +19,11 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal("mockbase", store.Database)
 
 	eTopList := []QTopic{
-		{3, "argo_uuid", "topic4", 0, 0},
-		{2, "argo_uuid", "topic3", 0, 0},
-		{1, "argo_uuid", "topic2", 0, 0},
-		{0, "argo_uuid", "topic1", 0, 0}}
+		{3, "argo_uuid", "topic4", 0, 0, time.Date(0, 0, 0, 0, 0, 0, 0, time.Local), 0},
+		{2, "argo_uuid", "topic3", 0, 0, time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local), 8.99},
+		{1, "argo_uuid", "topic2", 0, 0, time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local), 5.45},
+		{0, "argo_uuid", "topic1", 0, 0, time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10},
+	}
 
 	eSubList := []QSub{
 		{3, "argo_uuid", "sub4", "topic4", 0, 0, "", "endpoint.foo", 10, "linear", 300, 0, 0, "push enabled", "push-id-1", true},
@@ -38,8 +39,9 @@ func (suite *StoreTestSuite) TestMockStore() {
 
 	// retrieve first 2
 	eTopList1st2 := []QTopic{
-		{3, "argo_uuid", "topic4", 0, 0},
-		{2, "argo_uuid", "topic3", 0, 0}}
+		{3, "argo_uuid", "topic4", 0, 0, time.Date(0, 0, 0, 0, 0, 0, 0, time.Local), 0},
+		{2, "argo_uuid", "topic3", 0, 0, time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local), 8.99},
+	}
 	tpList2, ts2, pg2, _ := store.QueryTopics("argo_uuid", "", "", "", 2)
 	suite.Equal(eTopList1st2, tpList2)
 	suite.Equal(int32(4), ts2)
@@ -47,7 +49,8 @@ func (suite *StoreTestSuite) TestMockStore() {
 
 	// retrieve the last one
 	eTopList3 := []QTopic{
-		{0, "argo_uuid", "topic1", 0, 0}}
+		{0, "argo_uuid", "topic1", 0, 0, time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10},
+	}
 	tpList3, ts3, pg3, _ := store.QueryTopics("argo_uuid", "", "", "0", 1)
 	suite.Equal(eTopList3, tpList3)
 	suite.Equal(int32(4), ts3)
@@ -55,7 +58,8 @@ func (suite *StoreTestSuite) TestMockStore() {
 
 	// retrieve a single topic
 	eTopList4 := []QTopic{
-		{0, "argo_uuid", "topic1", 0, 0}}
+		{0, "argo_uuid", "topic1", 0, 0, time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10},
+	}
 	tpList4, ts4, pg4, _ := store.QueryTopics("argo_uuid", "", "topic1", "", 0)
 	suite.Equal(eTopList4, tpList4)
 	suite.Equal(int32(0), ts4)
@@ -63,8 +67,8 @@ func (suite *StoreTestSuite) TestMockStore() {
 
 	// retrieve user's topics
 	eTopList5 := []QTopic{
-		{1, "argo_uuid", "topic2", 0, 0},
-		{0, "argo_uuid", "topic1", 0, 0},
+		{1, "argo_uuid", "topic2", 0, 0, time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local), 5.45},
+		{0, "argo_uuid", "topic1", 0, 0, time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10},
 	}
 	tpList5, ts5, pg5, _ := store.QueryTopics("argo_uuid", "uuid1", "", "", 0)
 	suite.Equal(eTopList5, tpList5)
@@ -73,7 +77,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 
 	// retrieve use's topic with pagination
 	eTopList6 := []QTopic{
-		{1, "argo_uuid", "topic2", 0, 0},
+		{1, "argo_uuid", "topic2", 0, 0, time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local), 5.45},
 	}
 
 	tpList6, ts6, pg6, _ := store.QueryTopics("argo_uuid", "uuid1", "", "", 1)
@@ -195,11 +199,11 @@ func (suite *StoreTestSuite) TestMockStore() {
 	store.InsertSub("argo_uuid", "subFresh", "topicFresh", 0, 10, "", "", 0, "", false)
 
 	eTopList2 := []QTopic{
-		{4, "argo_uuid", "topicFresh", 0, 0},
-		{3, "argo_uuid", "topic4", 0, 0},
-		{2, "argo_uuid", "topic3", 0, 0},
-		{1, "argo_uuid", "topic2", 0, 0},
-		{0, "argo_uuid", "topic1", 0, 0},
+		{4, "argo_uuid", "topicFresh", 0, 0, time.Time{}, 0},
+		{3, "argo_uuid", "topic4", 0, 0, time.Date(0, 0, 0, 0, 0, 0, 0, time.Local), 0},
+		{2, "argo_uuid", "topic3", 0, 0, time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local), 8.99},
+		{1, "argo_uuid", "topic2", 0, 0, time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local), 5.45},
+		{0, "argo_uuid", "topic1", 0, 0, time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10},
 	}
 
 	eSubList2 := []QSub{
@@ -516,6 +520,18 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal(3, qUsers4[1].ID)
 	suite.Equal("2", pg4)
 	suite.Equal(int32(8), ts4)
+
+	// test update topic latest publish time
+	e1ulp := store2.UpdateTopicLatestPublish("argo_uuid", "topic1", time.Date(2019, 8, 8, 0, 0, 0, 0, time.Local))
+	suite.Nil(e1ulp)
+	tpc, _, _, _ := store2.QueryTopics("argo_uuid", "", "topic1", "", 0)
+	suite.Equal(time.Date(2019, 8, 8, 0, 0, 0, 0, time.Local), tpc[0].LatestPublish)
+
+	// test update topic publishing rate
+	e1upr := store2.UpdateTopicPublishRate("argo_uuid", "topic1", 8.44)
+	suite.Nil(e1upr)
+	tpc2, _, _, _ := store2.QueryTopics("argo_uuid", "", "topic1", "", 0)
+	suite.Equal(8.44, tpc2[0].PublishRate)
 
 }
 

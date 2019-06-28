@@ -573,6 +573,46 @@ func (mong *MongoStore) QueryTopics(projectUUID, userUUID, name, pageToken strin
 
 }
 
+// UpdateTopicLatestPublish updates the topic's latest publish time
+func (mong *MongoStore) UpdateTopicLatestPublish(projectUUID string, name string, date time.Time) error {
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C("topics")
+
+	doc := bson.M{
+		"project_uuid": projectUUID,
+		"name":         name,
+	}
+
+	change := bson.M{
+		"$set": bson.M{
+			"latest_publish": date,
+		},
+	}
+
+	return c.Update(doc, change)
+}
+
+// UpdateTopicPublishRate updates the topic's publishing rate
+func (mong *MongoStore) UpdateTopicPublishRate(projectUUID string, name string, rate float64) error {
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C("topics")
+
+	doc := bson.M{
+		"project_uuid": projectUUID,
+		"name":         name,
+	}
+
+	change := bson.M{
+		"$set": bson.M{
+			"publish_rate": rate,
+		},
+	}
+
+	return c.Update(doc, change)
+}
+
 // QueryDailyTopicMsgCount returns results regarding the number of messages published to a topic
 func (mong *MongoStore) QueryDailyTopicMsgCount(projectUUID string, topicName string, date time.Time) ([]QDailyTopicMsgCount, error) {
 
@@ -817,7 +857,16 @@ func (mong *MongoStore) HasProject(name string) bool {
 
 // InsertTopic inserts a topic to the store
 func (mong *MongoStore) InsertTopic(projectUUID string, name string) error {
-	topic := QTopic{ProjectUUID: projectUUID, Name: name, MsgNum: 0, TotalBytes: 0}
+
+	topic := QTopic{
+		ProjectUUID:   projectUUID,
+		Name:          name,
+		MsgNum:        0,
+		TotalBytes:    0,
+		LatestPublish: time.Time{},
+		PublishRate:   0,
+	}
+
 	return mong.InsertResource("topics", topic)
 }
 

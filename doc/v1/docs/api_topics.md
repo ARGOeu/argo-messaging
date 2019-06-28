@@ -446,6 +446,20 @@ Success Response
             }
          ],
          "description": "A collection of counters that represents the total number of messages published each day to a specific topic"
+      },
+      {
+         "metric": "topic.publishing_rate",
+         "metric_type": "rate",
+         "value_type": "float64",
+         "resource_type": "topic",
+         "resource_name": "topic1",
+         "timeseries": [
+            {
+               "timestamp": "2019-05-06T00:00:00Z",
+               "value": 10
+            }
+         ],
+         "description": "A rate that displays how many messages were published per second between the last two publish events"
       }
    ]
 }
