@@ -3,7 +3,7 @@
 
 Name: argo-messaging
 Summary: ARGO Messaging API for broker network
-Version: 1.0.3
+Version: 1.0.4
 Release: 1%{?dist}
 License: ASL 2.0
 Buildroot: %{_tmppath}/%{name}-buildroot
@@ -29,6 +29,9 @@ export GOPATH=$PWD
 export PATH=$PATH:$GOPATH/bin
 
 cd src/github.com/ARGOeu/argo-messaging/
+go get github.com/tools/godep
+godep restore
+godep update ...
 go install
 
 %install
@@ -61,6 +64,59 @@ go clean
 %attr(0644,root,root) /usr/lib/systemd/system/argo-messaging.service
 
 %changelog
+* Tue Jul 02 2019 Agelos Tsalapatis  <agelos.tsal@gmail.com> 1.0.4-1%{?dist}
+- ARGO-1840 Update the error response for topic:publish and subscription:pull whenever a kafka error is encountered
+- Consumer script
+- ARGO-1825 Update the request logging format
+- AO-492 Make syslog logging configurable for AMS
+- ARGO-1801 Update response Verify push endpoint call
+- ARGO-1692 Upgrade authorisation per resource handling
+- ARGO-1803 Update service file to include service restart on failure
+- ARGO-1782 Adjust push worker workflow depending on the verification of the push endpoint of each subscription
+- ARGO-1792 API Call - Verify Push Endpoint
+- ARGO-1787 Add verification_hash and verified fields for push enabled subscriptions
+- ARGO-1683 Block push worker user from pulling when push enabled is false
+- ARGO-1723 Republishing of specific messages
+- ARGO-1649 API Call that returns a user's profile based on the provided auth token
+- ARGO-1721 [GRPC status check] - Update ams push server client to use the new status rpc call
+- ARGO-1684 update status call to handle push enabled false
+- ARGO-1669 Allow only push worker user to pull from push enabled subscription
+- ARGO-1627 Check if the respective topic exists when pulling messages
+- ARGO-1632 Add ACL-based access in subscriptions:list
+- ARGO-1631 Add ACL-based access to topics:list
+- ARGO-1657 Add/remove push worker from sub's acl and link him with sub's projec
+- ARGO-1661 Ams handling of push worker initialisation
+- ARGO-1656 Internal function - append project to user's projects
+- ARGO-1639 API Call - List topic's subscriptions
+- ARGO-1651 Internal function - remove user(s) from topic/sub ACL
+- ARGO-1650 Internal function - append user(s) to topic/sub ACL
+- ARGO-1630 Push worker role
+- ARGO-1604 Add health check call for grpc backends
+- ARGO-1600 Add push server interaction on modify push config api call
+- ARGO-1606 Update push status field api call
+- ARGO-1602 Ams push server single connection
+- ARGO-1592 ACL for topic/sub should not contain empty names
+- ARGO-1553 Grpc client to interafce with the push server
+- ARGO-1554 Add a status field at the subscription struct that will contain information regarding its activation on the ams push server
+- ARGO-1252 Update config to handle push server information
+- ARGO-1550 Disable push functionality in ams
+- ARGO-1471 Create a streaming producer
+- ARGO-1454 Migrate argo-messaging to golang/dep tool
+- ARGO-1469 Create a bulk producer
+- ARGO-1446 Improve the receiver endpoint to be more robust
+- ARGO-486 Add pagination support for project subscriptions
+- ARGO-487 Add pagination support for project topics
+- ARGO-1436 Mongo _id field exposure for pagination affects user creation
+- ARGO-1432 Add pagination support for users
+- ARGO-1431 Add daily msg count for projects:metrics
+- ARGO-1399 Topic:metrics && Subscription:metrics check if topic/sub exIsts
+- ARGO-1427 Add daily msg count for topics:metrics
+- ARGO-1401 Number of messages send via the Argo Messaging Service (per day)
+- ARGO-421 Modify sub's ack deadline
+- ARGO-1410 Fix nil context bug
+- ARGO-1376 Extend ams-migrate script to support import
+- ARGO-1375 Script to export AMS kafka data
+- ARGO-1373 argo-messaging add failsafe check to not allow admin empty tokens
 * Tue Jul 30 2018 Kostas Koumantaros <kkoumantaros@gmail.com> 1.0.3-1%{?dist}
 - ARGO-1365 Add config noreplace param in spec file 
 - ARGO-1364 Set-cap option in spec file 
