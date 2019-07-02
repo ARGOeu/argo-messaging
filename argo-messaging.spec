@@ -117,7 +117,7 @@ go clean
 - ARGO-1376 Extend ams-migrate script to support import
 - ARGO-1375 Script to export AMS kafka data
 - ARGO-1373 argo-messaging add failsafe check to not allow admin empty tokens
-* Tue Jul 30 2018 Kostas Koumantaros <kkoumantaros@gmail.com> 1.0.3-1%{?dist}
+* Mon Jul 30 2018 Kostas Koumantaros <kkoumantaros@gmail.com> 1.0.3-1%{?dist}
 - ARGO-1365 Add config noreplace param in spec file 
 - ARGO-1364 Set-cap option in spec file 
 - ARGO-1359 Handle empty project_uuid references 
@@ -138,7 +138,7 @@ go clean
 - ARGO-1154 API CALL - Return User given a UUID 
 - ARGO-1085 Add info on Ack timeout error for argo-messaging service 
 - ARGO-1003 Fix publishedTime to be in UTC instead of localtime 
-* Tue Oct 27 2017 Kostas Koumantaros <kkoumantaros@gmail.com> 1.0.1-1%{?dist}
+* Fri Oct 27 2017 Kostas Koumantaros <kkoumantaros@gmail.com> 1.0.1-1%{?dist}
 * Kostas Kaggelidis <kaggis> Added Support for Metrics and CORS
 - ARGO-925 Fix return Immediately functionality in pull operation
 - ARGO-909 Fix bug on project metrics topics,sub zero values
