@@ -29,9 +29,6 @@ export GOPATH=$PWD
 export PATH=$PATH:$GOPATH/bin
 
 cd src/github.com/ARGOeu/argo-messaging/
-go get github.com/tools/godep
-godep restore
-godep update ...
 go install
 
 %install
