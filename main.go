@@ -2,28 +2,25 @@ package main
 
 import (
 	"crypto/tls"
-	"log/syslog"
-
 	"net/http"
 	"strconv"
 
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
-	"github.com/ARGOeu/argo-messaging/push"
+	oldPush "github.com/ARGOeu/argo-messaging/push"
+	"github.com/ARGOeu/argo-messaging/push/grpc/client"
 	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/gorilla/handlers"
 	log "github.com/sirupsen/logrus"
-	lSyslog "github.com/sirupsen/logrus/hooks/syslog"
 )
 
-// setup logrus' std logger with syslog hook
 func init() {
-	// dont use colors in output
-	log.SetFormatter(&log.TextFormatter{FullTimestamp: true, DisableColors: true})
-	hook, err := lSyslog.NewSyslogHook("", "", syslog.LOG_INFO, "")
-	if err == nil {
-		log.AddHook(hook)
-	}
+	// don't use colors in output
+	log.SetFormatter(
+		&log.TextFormatter{
+			FullTimestamp: true,
+			DisableColors: true},
+	)
 }
 
 func main() {
@@ -38,13 +35,19 @@ func main() {
 	broker := brokers.NewKafkaBroker(cfg.GetBrokerInfo())
 	defer broker.CloseConnections()
 
-	sndr := push.NewHTTPSender(1)
+	mgr := &oldPush.Manager{}
 
-	mgr := push.NewManager(broker, store, sndr)
-	mgr.LoadPushSubs()
-	mgr.StartAll()
+	// ams push server pushClient
+	pushClient := push.NewGrpcClient(cfg)
+	err := pushClient.Dial()
+	if err != nil {
+		log.Errorf("Could not connect to ams push server, %v", err.Error())
+	}
+
+	defer pushClient.Close()
+
 	// create and initialize API routing object
-	API := NewRouting(cfg, broker, store, mgr, defaultRoutes)
+	API := NewRouting(cfg, broker, store, mgr, pushClient, defaultRoutes)
 
 	//Configure TLS support only
 	config := &tls.Config{
@@ -59,7 +62,7 @@ func main() {
 	server := &http.Server{Addr: ":" + strconv.Itoa(cfg.Port), Handler: handlers.CORS(xReqWithConType, allowVerbs)(API.Router), TLSConfig: config}
 
 	// Web service binds to server. Requests served over HTTPS.
-	err := server.ListenAndServeTLS(cfg.Cert, cfg.CertKey)
+	err = server.ListenAndServeTLS(cfg.Cert, cfg.CertKey)
 	if err != nil {
 		log.Fatal("API", "\t", "ListenAndServe:", err)
 	}

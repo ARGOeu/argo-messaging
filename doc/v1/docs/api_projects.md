@@ -320,6 +320,24 @@ Success Response
             }
          ],
          "description": "Counter that displays the number of subscriptions that a user has access to the specific project"
+      },
+      {
+         "metric": "project.number_of_daily_messages",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "project",
+         "resource_name": "ARGO",
+         "timeseries": [
+            {
+               "timestamp": "2018-10-02",
+               "value": 30
+            },
+            {
+               "timestamp": "2018-10-01",
+               "value": 110
+            }
+         ],
+         "description": "A collection of counters that represents the total number of messages published each day to all of the project's topics"
       }
    ]
 }

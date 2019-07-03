@@ -1,9 +1,12 @@
 package metrics
 
-import "github.com/ARGOeu/argo-messaging/stores"
+import (
+	"github.com/ARGOeu/argo-messaging/stores"
+	"time"
+)
 
 func GetProjectTopics(projectUUID string, store stores.Store) (int64, error) {
-	topics, err := store.QueryTopics(projectUUID, "")
+	topics, _, _, err := store.QueryTopics(projectUUID, "", "", "", 0)
 	return int64(len(topics)), err
 }
 
@@ -18,13 +21,48 @@ func GetProjectTopicsACL(projectUUID string, username string, store stores.Store
 }
 
 func GetProjectSubs(projectUUID string, store stores.Store) (int64, error) {
-	subs, err := store.QuerySubs(projectUUID, "")
+	subs, _, _, err := store.QuerySubs(projectUUID, "", "", "", 0)
 	return int64(len(subs)), err
 }
 
 func GetProjectSubsACL(projectUUID string, username string, store stores.Store) (int64, error) {
 	subs, err := store.QuerySubsByACL(projectUUID, username)
 	return int64(len(subs)), err
+}
+
+func GetDailyTopicMsgCount(projectUUID string, topicName string, store stores.Store) ([]Timepoint, error) {
+
+	var err error
+	var qDtmc []stores.QDailyTopicMsgCount
+
+	timePoints := []Timepoint{}
+
+	if qDtmc, err = store.QueryDailyTopicMsgCount(projectUUID, topicName, time.Time{}); err != nil {
+		return timePoints, err
+	}
+	for _, qd := range qDtmc {
+		timePoints = append(timePoints, Timepoint{qd.Date.Format("2006-01-02"), qd.NumberOfMessages})
+	}
+
+	return timePoints, err
+}
+
+func GetDailyProjectMsgCount(projectUUID string, store stores.Store) ([]Timepoint, error) {
+
+	var err error
+	var qDpmc []stores.QDailyProjectMsgCount
+
+	timePoints := []Timepoint{}
+
+	if qDpmc, err = store.QueryDailyProjectMsgCount(projectUUID); err != nil {
+		return timePoints, err
+	}
+
+	for _, qdp := range qDpmc {
+		timePoints = append(timePoints, Timepoint{qdp.Date.Format("2006-01-02"), qdp.NumberOfMessages})
+	}
+
+	return timePoints, err
 }
 
 func AggrProjectUserSubs(projectUUID string, store stores.Store) (MetricList, error) {

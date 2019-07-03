@@ -7,28 +7,32 @@ import (
 
 // Metric names and descriptions
 const (
-	DescProjectTopics     string = "Counter that displays the number of topics belonging to the specific project"
-	NameProjectTopics     string = "project.number_of_topics"
-	DescProjectSubs       string = "Counter that displays the number of subscriptions belonging to the specific project"
-	NameProjectSubs       string = "project.number_of_subscriptions"
-	DescTopicSubs         string = "Counter that displays the number of subscriptions belonging to a specific topic"
-	NameTopicSubs         string = "topic.number_of_subscriptions"
-	DescTopicMsgs         string = "Counter that displays the number of messages published to the specific topic"
-	NameTopicMsgs         string = "topic.number_of_messages"
-	DescTopicBytes        string = "Counter that displays the total size of data (in bytes) published to the specific topic"
-	NameTopicBytes        string = "topic.number_of_bytes"
-	DescProjectUserSubs   string = "Counter that displays the number of subscriptions that a user has access to the specific project"
-	NameProjectUserSubs   string = "project.user.number_of_subscriptions"
-	DescProjectUserTopics string = "Counter that displays the number of topics that a user has access to the specific project"
-	NameProjectUserTopics string = "project.user.number_of_topics"
-	DescSubMsgs           string = "Counter that displays the number of messages consumed from the specific subscription"
-	NameSubMsgs           string = "subscription.number_of_messages"
-	DescSubBytes          string = "Counter that displays the total size of data (in bytes) consumed from the specific subscription"
-	NameSubBytes          string = "subscription.number_of_bytes"
-	DescOpNodeCPU         string = "Percentage value that displays the CPU usage of ams service in the specific node"
-	NameOpNodeCPU         string = "ams_node.cpu_usage"
-	DescOpNodeMEM         string = "Percentage value that displays the Memory usage of ams service in the specific node"
-	NameOpNodeMEM         string = "ams_node.memory_usage"
+	DescProjectTopics     = "Counter that displays the number of topics belonging to the specific project"
+	NameProjectTopics     = "project.number_of_topics"
+	DescProjectSubs       = "Counter that displays the number of subscriptions belonging to the specific project"
+	NameProjectSubs       = "project.number_of_subscriptions"
+	NameDailyProjectMsgs  = "project.number_of_daily_messages"
+	DescDailyProjectMsgs  = "A collection of counters that represents the total number of messages published each day to all of the project's topics"
+	DescTopicSubs         = "Counter that displays the number of subscriptions belonging to a specific topic"
+	NameTopicSubs         = "topic.number_of_subscriptions"
+	DescTopicMsgs         = "Counter that displays the number of messages published to the specific topic"
+	NameTopicMsgs         = "topic.number_of_messages"
+	DescDailyTopicMsgs    = "A collection of counters that represents the total number of messages published each day to a specific topic"
+	NameDailyTopicMsgs    = "topic.number_of_daily_messages"
+	DescTopicBytes        = "Counter that displays the total size of data (in bytes) published to the specific topic"
+	NameTopicBytes        = "topic.number_of_bytes"
+	DescProjectUserSubs   = "Counter that displays the number of subscriptions that a user has access to the specific project"
+	NameProjectUserSubs   = "project.user.number_of_subscriptions"
+	DescProjectUserTopics = "Counter that displays the number of topics that a user has access to the specific project"
+	NameProjectUserTopics = "project.user.number_of_topics"
+	DescSubMsgs           = "Counter that displays the number of messages consumed from the specific subscription"
+	NameSubMsgs           = "subscription.number_of_messages"
+	DescSubBytes          = "Counter that displays the total size of data (in bytes) consumed from the specific subscription"
+	NameSubBytes          = "subscription.number_of_bytes"
+	DescOpNodeCPU         = "Percentage value that displays the CPU usage of ams service in the specific node"
+	NameOpNodeCPU         = "ams_node.cpu_usage"
+	DescOpNodeMEM         = "Percentage value that displays the Memory usage of ams service in the specific node"
+	NameOpNodeMEM         = "ams_node.memory_usage"
 )
 
 type MetricList struct {
@@ -81,6 +85,11 @@ func NewProjectSubs(project string, value int64, tstamp string) Metric {
 	return m
 }
 
+func NewDailyProjectMsgCount(project string, timePoints []Timepoint) Metric {
+	m := Metric{Metric: NameDailyProjectMsgs, MetricType: "counter", ValueType: "int64", ResourceType: "project", Resource: project, Timeseries: timePoints, Description: DescDailyProjectMsgs}
+	return m
+}
+
 func NewTopicSubs(topic string, value int64, tstamp string) Metric {
 	// Initialize single point timeseries with the latest timestamp and value
 	ts := []Timepoint{Timepoint{Timestamp: tstamp, Value: value}}
@@ -109,6 +118,12 @@ func NewTopicMsgs(topic string, value int64, tstamp string) Metric {
 	// Initialize single point timeseries with the latest timestamp and value
 	ts := []Timepoint{Timepoint{Timestamp: tstamp, Value: value}}
 	m := Metric{Metric: NameTopicMsgs, MetricType: "counter", ValueType: "int64", ResourceType: "topic", Resource: topic, Timeseries: ts, Description: DescTopicMsgs}
+	return m
+}
+
+func NewDailyTopicMsgCount(topic string, timePoints []Timepoint) Metric {
+
+	m := Metric{Metric: NameDailyTopicMsgs, MetricType: "counter", ValueType: "int64", ResourceType: "topic", Resource: topic, Timeseries: timePoints, Description: DescDailyTopicMsgs}
 	return m
 }
 

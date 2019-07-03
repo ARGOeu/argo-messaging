@@ -13,17 +13,19 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"context"
 	"github.com/ARGOeu/argo-messaging/auth"
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
 	"github.com/ARGOeu/argo-messaging/messages"
 	"github.com/ARGOeu/argo-messaging/metrics"
 	"github.com/ARGOeu/argo-messaging/projects"
-	"github.com/ARGOeu/argo-messaging/push"
+	oldPush "github.com/ARGOeu/argo-messaging/push"
+	"github.com/ARGOeu/argo-messaging/push/grpc/client"
 	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/ARGOeu/argo-messaging/subscriptions"
 	"github.com/ARGOeu/argo-messaging/topics"
-	"github.com/gorilla/context"
+	gorillaContext "github.com/gorilla/context"
 	"github.com/gorilla/mux"
 	"github.com/twinj/uuid"
 )
@@ -58,39 +60,50 @@ func WrapValidate(hfn http.HandlerFunc) http.HandlerFunc {
 }
 
 // WrapMockAuthConfig handle wrapper is used in tests were some auth context is needed
-func WrapMockAuthConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *push.Manager) http.HandlerFunc {
+func WrapMockAuthConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *oldPush.Manager, c push.Client, roles ...string) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		urlVars := mux.Vars(r)
+
+		userRoles := []string{"publisher", "consumer"}
+		if len(roles) > 0 {
+			userRoles = roles
+		}
 
 		nStr := str.Clone()
 		defer nStr.Close()
 
 		projectUUID := projects.GetUUIDByName(urlVars["project"], nStr)
-		context.Set(r, "auth_project_uuid", projectUUID)
-		context.Set(r, "brk", brk)
-		context.Set(r, "str", nStr)
-		context.Set(r, "mgr", mgr)
-		context.Set(r, "auth_resource", cfg.ResAuth)
-		context.Set(r, "auth_user", "UserA")
-		context.Set(r, "auth_user_uuid", "uuid1")
-		context.Set(r, "auth_roles", []string{"publisher", "consumer"})
+		gorillaContext.Set(r, "auth_project_uuid", projectUUID)
+		gorillaContext.Set(r, "brk", brk)
+		gorillaContext.Set(r, "str", nStr)
+		gorillaContext.Set(r, "mgr", mgr)
+		gorillaContext.Set(r, "apsc", c)
+		gorillaContext.Set(r, "auth_resource", cfg.ResAuth)
+		gorillaContext.Set(r, "auth_user", "UserA")
+		gorillaContext.Set(r, "auth_user_uuid", "uuid1")
+		gorillaContext.Set(r, "auth_roles", userRoles)
+		gorillaContext.Set(r, "push_worker_token", cfg.PushWorkerToken)
+		gorillaContext.Set(r, "push_enabled", cfg.PushEnabled)
 		hfn.ServeHTTP(w, r)
 
 	})
 }
 
 // WrapConfig handle wrapper to retrieve kafka configuration
-func WrapConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *push.Manager) http.HandlerFunc {
+func WrapConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *oldPush.Manager, c push.Client) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		nStr := str.Clone()
 		defer nStr.Close()
-		context.Set(r, "brk", brk)
-		context.Set(r, "str", nStr)
-		context.Set(r, "mgr", mgr)
-		context.Set(r, "auth_resource", cfg.ResAuth)
-		context.Set(r, "auth_service_token", cfg.ServiceToken)
+		gorillaContext.Set(r, "brk", brk)
+		gorillaContext.Set(r, "str", nStr)
+		gorillaContext.Set(r, "mgr", mgr)
+		gorillaContext.Set(r, "apsc", c)
+		gorillaContext.Set(r, "auth_resource", cfg.ResAuth)
+		gorillaContext.Set(r, "auth_service_token", cfg.ServiceToken)
+		gorillaContext.Set(r, "push_worker_token", cfg.PushWorkerToken)
+		gorillaContext.Set(r, "push_enabled", cfg.PushEnabled)
 		hfn.ServeHTTP(w, r)
 
 	})
@@ -104,13 +117,16 @@ func WrapLog(hfn http.Handler, name string) http.HandlerFunc {
 
 		hfn.ServeHTTP(w, r)
 
-		log.Info(
-			"ACCESS", "\t",
-			r.Method, "\t",
-			r.RequestURI, "\t",
-			name, "\t",
-			time.Since(start),
-		)
+		log.WithFields(
+			log.Fields{
+				"type":            "request_log",
+				"method":          r.Method,
+				"path":            r.RequestURI,
+				"action":          name,
+				"requester":       gorillaContext.Get(r, "auth_user_uuid"),
+				"processing_time": time.Since(start).String(),
+			},
+		).Info("")
 	})
 }
 
@@ -121,8 +137,15 @@ func WrapAuthenticate(hfn http.Handler) http.HandlerFunc {
 		urlVars := mux.Vars(r)
 		urlValues := r.URL.Query()
 
-		refStr := context.Get(r, "str").(stores.Store)
-		serviceToken := context.Get(r, "auth_service_token").(string)
+		// if the url parameter 'key' is empty or absent, end the request with an unauthorized response
+		if urlValues.Get("key") == "" {
+			err := APIErrorUnauthorized()
+			respondErr(w, err)
+			return
+		}
+
+		refStr := gorillaContext.Get(r, "str").(stores.Store)
+		serviceToken := gorillaContext.Get(r, "auth_service_token").(string)
 
 		project_name := urlVars["project"]
 		projectUUID := projects.GetUUIDByName(urlVars["project"], refStr)
@@ -139,10 +162,10 @@ func WrapAuthenticate(hfn http.Handler) http.HandlerFunc {
 
 		// Check first if service token is used
 		if serviceToken != "" && serviceToken == urlValues.Get("key") {
-			context.Set(r, "auth_roles", []string{})
-			context.Set(r, "auth_user", "")
-			context.Set(r, "auth_user_uuid", "")
-			context.Set(r, "auth_project_uuid", projectUUID)
+			gorillaContext.Set(r, "auth_roles", []string{})
+			gorillaContext.Set(r, "auth_user", "")
+			gorillaContext.Set(r, "auth_user_uuid", "")
+			gorillaContext.Set(r, "auth_project_uuid", projectUUID)
 			hfn.ServeHTTP(w, r)
 			return
 		}
@@ -151,10 +174,10 @@ func WrapAuthenticate(hfn http.Handler) http.HandlerFunc {
 
 		if len(roles) > 0 {
 			userUUID := auth.GetUUIDByName(user, refStr)
-			context.Set(r, "auth_roles", roles)
-			context.Set(r, "auth_user", user)
-			context.Set(r, "auth_user_uuid", userUUID)
-			context.Set(r, "auth_project_uuid", projectUUID)
+			gorillaContext.Set(r, "auth_roles", roles)
+			gorillaContext.Set(r, "auth_user", user)
+			gorillaContext.Set(r, "auth_user_uuid", userUUID)
+			gorillaContext.Set(r, "auth_project_uuid", projectUUID)
 			hfn.ServeHTTP(w, r)
 		} else {
 			err := APIErrorUnauthorized()
@@ -164,15 +187,15 @@ func WrapAuthenticate(hfn http.Handler) http.HandlerFunc {
 	})
 }
 
-// WrapAuthorize handle wrapper to apply authentication
+// WrapAuthorize handle wrapper to apply authorization
 func WrapAuthorize(hfn http.Handler, routeName string) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		urlValues := r.URL.Query()
 
-		refStr := context.Get(r, "str").(stores.Store)
-		refRoles := context.Get(r, "auth_roles").([]string)
-		serviceToken := context.Get(r, "auth_service_token").(string)
+		refStr := gorillaContext.Get(r, "str").(stores.Store)
+		refRoles := gorillaContext.Get(r, "auth_roles").([]string)
+		serviceToken := gorillaContext.Get(r, "auth_service_token").(string)
 
 		// Check first if service token is used
 		if serviceToken != "" && serviceToken == urlValues.Get("key") {
@@ -192,6 +215,53 @@ func WrapAuthorize(hfn http.Handler, routeName string) http.HandlerFunc {
 // HandlerFunctions
 ///////////////////
 
+// UserProfile returns a user's profile based on the provided url parameter(key)
+func UserProfile(w http.ResponseWriter, r *http.Request) {
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+
+	urlValues := r.URL.Query()
+
+	// if the url parameter 'key' is empty or absent, end the request with an unauthorized response
+	if urlValues.Get("key") == "" {
+		err := APIErrorUnauthorized()
+		respondErr(w, err)
+		return
+	}
+
+	result, err := auth.GetUserByToken(urlValues.Get("key"), refStr)
+
+	if err != nil {
+		if err.Error() == "not found" {
+			err := APIErrorUnauthorized()
+			respondErr(w, err)
+			return
+		}
+		err := APIErrQueryDatastore()
+		respondErr(w, err)
+		return
+	}
+
+	// Output result to JSON
+	resJSON, err := result.ExportJSON()
+
+	if err != nil {
+		err := APIErrExportJSON()
+		respondErr(w, err)
+		return
+	}
+
+	// Write response
+	respondOK(w, []byte(resJSON))
+
+}
+
 // ProjectDelete (DEL) deletes an existing project (also removes it's topics and subscriptions)
 func ProjectDelete(w http.ResponseWriter, r *http.Request) {
 
@@ -204,11 +274,11 @@ func ProjectDelete(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
 
 	// Grab context references
-	refStr := context.Get(r, "str").(stores.Store)
-	refMgr := context.Get(r, "mgr").(*push.Manager)
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+
 	// Get Result Object
 	// Get project UUID First to use as reference
-	projectUUID := context.Get(r, "auth_project_uuid").(string)
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 	// RemoveProject removes also attached subs and topics from the datastore
 	err := projects.RemoveProject(projectUUID, refStr)
 	if err != nil {
@@ -221,11 +291,9 @@ func ProjectDelete(w http.ResponseWriter, r *http.Request) {
 		respondErr(w, err)
 		return
 	}
-	// Stop any relevant push subscriptions
-	if err := refMgr.RemoveProjectAll(projectUUID); err != nil {
-		err := APIErrGenericInternal(err.Error())
-		respondErr(w, err)
-	}
+
+	// TODO Stop any relevant push subscriptions when deleting a project
+
 	// Write empty response if anything ok
 	respondOK(w, output)
 
@@ -243,8 +311,8 @@ func ProjectUpdate(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
 
 	// Grab context references
-	refStr := context.Get(r, "str").(stores.Store)
-	projectUUID := context.Get(r, "auth_project_uuid").(string)
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 	// Read POST JSON body
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -315,8 +383,8 @@ func ProjectCreate(w http.ResponseWriter, r *http.Request) {
 	urlProject := urlVars["project"]
 
 	// Grab context references
-	refStr := context.Get(r, "str").(stores.Store)
-	refUserUUID := context.Get(r, "auth_user_uuid").(string)
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	refUserUUID := gorillaContext.Get(r, "auth_user_uuid").(string)
 
 	// Read POST JSON body
 	body, err := ioutil.ReadAll(r.Body)
@@ -378,7 +446,7 @@ func ProjectListAll(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
 
 	// Grab context references
-	refStr := context.Get(r, "str").(stores.Store)
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
 
 	// Get Results Object
 
@@ -421,7 +489,7 @@ func ProjectListOne(w http.ResponseWriter, r *http.Request) {
 	urlProject := urlVars["project"]
 
 	// Grab context references
-	refStr := context.Get(r, "str").(stores.Store)
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
 
 	// Get Results Object
 	results, err := projects.Find("", urlProject, refStr)
@@ -470,7 +538,7 @@ func RefreshToken(w http.ResponseWriter, r *http.Request) {
 	urlUser := urlVars["user"]
 
 	// Grab context references
-	refStr := context.Get(r, "str").(stores.Store)
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
 
 	// Get Result Object
 	userUUID := auth.GetUUIDByName(urlUser, refStr)
@@ -519,7 +587,7 @@ func UserUpdate(w http.ResponseWriter, r *http.Request) {
 	urlUser := urlVars["user"]
 
 	// Grab context references
-	refStr := context.Get(r, "str").(stores.Store)
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
 
 	// Read POST JSON body
 	body, err := ioutil.ReadAll(r.Body)
@@ -593,8 +661,8 @@ func UserCreate(w http.ResponseWriter, r *http.Request) {
 	urlUser := urlVars["user"]
 
 	// Grab context references
-	refStr := context.Get(r, "str").(stores.Store)
-	refUserUUID := context.Get(r, "auth_user_uuid").(string)
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	refUserUUID := gorillaContext.Get(r, "auth_user_uuid").(string)
 
 	// Read POST JSON body
 	body, err := ioutil.ReadAll(r.Body)
@@ -656,7 +724,7 @@ func OpMetrics(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
 
 	// Grab context references
-	refStr := context.Get(r, "str").(stores.Store)
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
 
 	// Get Results Object
 	res, err := metrics.GetUsageCpuMem(refStr)
@@ -698,7 +766,7 @@ func UserListByToken(w http.ResponseWriter, r *http.Request) {
 	urlToken := urlVars["token"]
 
 	// Grab context references
-	refStr := context.Get(r, "str").(stores.Store)
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
 
 	// Get Results Object
 	result, err := auth.GetUserByToken(urlToken, refStr)
@@ -745,7 +813,7 @@ func UserListOne(w http.ResponseWriter, r *http.Request) {
 	urlUser := urlVars["user"]
 
 	// Grab context references
-	refStr := context.Get(r, "str").(stores.Store)
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
 
 	// Get Results Object
 	results, err := auth.FindUsers("", "", urlUser, refStr)
@@ -793,7 +861,7 @@ func UserListByUUID(w http.ResponseWriter, r *http.Request) {
 	urlVars := mux.Vars(r)
 
 	// Grab context references
-	refStr := context.Get(r, "str").(stores.Store)
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
 
 	// Get Results Object
 	result, err := auth.GetUserByUUID(urlVars["uuid"], refStr)
@@ -832,6 +900,10 @@ func UserListByUUID(w http.ResponseWriter, r *http.Request) {
 // UserListAll (GET) all users belonging to a project
 func UserListAll(w http.ResponseWriter, r *http.Request) {
 
+	var err error
+	var pageSize int
+	var paginatedUsers auth.PaginatedUsers
+
 	// Init output
 	output := []byte("")
 
@@ -841,19 +913,31 @@ func UserListAll(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
 
 	// Grab context references
-	refStr := context.Get(r, "str").(stores.Store)
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+
+	// Grab url path variables
+	urlValues := r.URL.Query()
+	pageToken := urlValues.Get("pageToken")
+	strPageSize := urlValues.Get("pageSize")
+
+	if strPageSize != "" {
+		if pageSize, err = strconv.Atoi(strPageSize); err != nil {
+			log.Errorf("Pagesize %v produced an error  while being converted to int: %v", strPageSize, err.Error())
+			err := APIErrorInvalidData("Invalid page size")
+			respondErr(w, err)
+			return
+		}
+	}
 
 	// Get Results Object
-	res, err := auth.FindUsers("", "", "", refStr)
-
-	if err != nil && err.Error() != "not found" {
-		err := APIErrQueryDatastore()
+	if paginatedUsers, err = auth.PaginatedFindUsers(pageToken, int32(pageSize), refStr); err != nil {
+		err := APIErrorInvalidData("Invalid page token")
 		respondErr(w, err)
 		return
 	}
 
 	// Output result to JSON
-	resJSON, err := res.ExportJSON()
+	resJSON, err := paginatedUsers.ExportJSON()
 
 	if err != nil {
 		err := APIErrExportJSON()
@@ -879,7 +963,7 @@ func UserDelete(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
 
 	// Grab context references
-	refStr := context.Get(r, "str").(stores.Store)
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
 	// Grab url path variables
 	urlVars := mux.Vars(r)
 	urlUser := urlVars["user"]
@@ -918,8 +1002,8 @@ func SubAck(w http.ResponseWriter, r *http.Request) {
 	urlVars := mux.Vars(r)
 
 	// Grab context references
-	refStr := context.Get(r, "str").(stores.Store)
-	projectUUID := context.Get(r, "auth_project_uuid").(string)
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 	// Read POST JSON body
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -942,13 +1026,13 @@ func SubAck(w http.ResponseWriter, r *http.Request) {
 
 	// Check if sub exists
 
-	cur_sub, err := subscriptions.Find(projectUUID, subName, refStr)
+	cur_sub, err := subscriptions.Find(projectUUID, "", subName, "", 0, refStr)
 	if err != nil {
 		err := APIErrHandlingAcknowledgement()
 		respondErr(w, err)
 		return
 	}
-	if len(cur_sub.List) == 0 {
+	if len(cur_sub.Subscriptions) == 0 {
 		err := APIErrorNotFound("Subscription")
 		respondErr(w, err)
 		return
@@ -1028,10 +1112,10 @@ func SubListOne(w http.ResponseWriter, r *http.Request) {
 	urlVars := mux.Vars(r)
 
 	// Grab context references
-	refStr := context.Get(r, "str").(stores.Store)
-	projectUUID := context.Get(r, "auth_project_uuid").(string)
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 
-	results, err := subscriptions.Find(projectUUID, urlVars["subscription"], refStr)
+	results, err := subscriptions.Find(projectUUID, "", urlVars["subscription"], "", 0, refStr)
 
 	if err != nil {
 		err := APIErrGenericBackend()
@@ -1047,7 +1131,7 @@ func SubListOne(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Output result to JSON
-	resJSON, err := results.List[0].ExportJSON()
+	resJSON, err := results.Subscriptions[0].ExportJSON()
 
 	if err != nil {
 		err := APIErrExportJSON()
@@ -1095,13 +1179,13 @@ func SubSetOffset(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Grab context references
-	refStr := context.Get(r, "str").(stores.Store)
-	refBrk := context.Get(r, "brk").(brokers.Broker)
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	refBrk := gorillaContext.Get(r, "brk").(brokers.Broker)
 	// Get project UUID First to use as reference
-	projectUUID := context.Get(r, "auth_project_uuid").(string)
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 
 	// Find Subscription
-	results, err := subscriptions.Find(projectUUID, urlVars["subscription"], refStr)
+	results, err := subscriptions.Find(projectUUID, "", urlVars["subscription"], "", 0, refStr)
 
 	if err != nil {
 		err := APIErrGenericBackend()
@@ -1115,7 +1199,7 @@ func SubSetOffset(w http.ResponseWriter, r *http.Request) {
 		respondErr(w, err)
 		return
 	}
-	brk_topic := projectUUID + "." + results.List[0].Topic
+	brk_topic := projectUUID + "." + results.Subscriptions[0].Topic
 	min_offset := refBrk.GetMinOffset(brk_topic)
 	max_offset := refBrk.GetMaxOffset(brk_topic)
 
@@ -1149,12 +1233,12 @@ func SubGetOffsets(w http.ResponseWriter, r *http.Request) {
 	urlVars := mux.Vars(r)
 
 	// Grab context references
-	refStr := context.Get(r, "str").(stores.Store)
-	refBrk := context.Get(r, "brk").(brokers.Broker)
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	refBrk := gorillaContext.Get(r, "brk").(brokers.Broker)
 
-	projectUUID := context.Get(r, "auth_project_uuid").(string)
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 
-	results, err := subscriptions.Find(projectUUID, urlVars["subscription"], refStr)
+	results, err := subscriptions.Find(projectUUID, "", urlVars["subscription"], "", 0, refStr)
 
 	if err != nil {
 		err := APIErrGenericBackend()
@@ -1170,8 +1254,8 @@ func SubGetOffsets(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Output result to JSON
-	brk_topic := projectUUID + "." + results.List[0].Topic
-	cur_offset := results.List[0].Offset
+	brk_topic := projectUUID + "." + results.Subscriptions[0].Topic
+	cur_offset := results.Subscriptions[0].Offset
 	min_offset := refBrk.GetMinOffset(brk_topic)
 	max_offset := refBrk.GetMaxOffset(brk_topic)
 
@@ -1205,8 +1289,8 @@ func TopicDelete(w http.ResponseWriter, r *http.Request) {
 	urlVars := mux.Vars(r)
 
 	// Grab context references
-	refStr := context.Get(r, "str").(stores.Store)
-	projectUUID := context.Get(r, "auth_project_uuid").(string)
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 
 	// Get Result Object
 
@@ -1242,15 +1326,26 @@ func SubDelete(w http.ResponseWriter, r *http.Request) {
 	urlVars := mux.Vars(r)
 
 	// Grab context references
-	refStr := context.Get(r, "str").(stores.Store)
-	refMgr := context.Get(r, "mgr").(*push.Manager)
-	projectUUID := context.Get(r, "auth_project_uuid").(string)
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 
 	// Get Result Object
-	err := subscriptions.RemoveSub(projectUUID, urlVars["subscription"], refStr)
-
+	results, err := subscriptions.Find(projectUUID, "", urlVars["subscription"], "", 0, refStr)
 	if err != nil {
+		err := APIErrGenericBackend()
+		respondErr(w, err)
+		return
+	}
 
+	// If not found
+	if results.Empty() {
+		err := APIErrorNotFound("Subscription")
+		respondErr(w, err)
+		return
+	}
+
+	err = subscriptions.RemoveSub(projectUUID, urlVars["subscription"], refStr)
+	if err != nil {
 		if err.Error() == "not found" {
 			err := APIErrorNotFound("Subscription")
 			respondErr(w, err)
@@ -1261,11 +1356,15 @@ func SubDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	refMgr.Stop(urlVars["project"], urlVars["subscription"])
-
-	// Write empty response if anything ok
+	// if it is a push sub, deactivate it
+	if results.Subscriptions[0].PushCfg != (subscriptions.PushConfig{}) {
+		pr := make(map[string]string)
+		apsc := gorillaContext.Get(r, "apsc").(push.Client)
+		pr["message"] = apsc.DeactivateSubscription(context.TODO(), results.Subscriptions[0].FullName).Result()
+		b, _ := json.Marshal(pr)
+		output = b
+	}
 	respondOK(w, output)
-
 }
 
 // TopicModACL (PUT) modifies the ACL
@@ -1302,9 +1401,9 @@ func TopicModACL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Grab context references
-	refStr := context.Get(r, "str").(stores.Store)
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
 	// Get project UUID First to use as reference
-	projectUUID := context.Get(r, "auth_project_uuid").(string)
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 
 	// check if user list contain valid users for the given project
 	_, err = auth.AreValidUsers(projectUUID, postBody.AuthUsers, refStr)
@@ -1332,7 +1431,7 @@ func TopicModACL(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// SubModACL (PUT) modifies the ACL
+// SubModACL (POST) modifies the ACL
 func SubModACL(w http.ResponseWriter, r *http.Request) {
 
 	// Init output
@@ -1366,9 +1465,9 @@ func SubModACL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Grab context references
-	refStr := context.Get(r, "str").(stores.Store)
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
 	// Get project UUID First to use as reference
-	projectUUID := context.Get(r, "auth_project_uuid").(string)
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 
 	// check if user list contain valid users for the given project
 	_, err = auth.AreValidUsers(projectUUID, postBody.AuthUsers, refStr)
@@ -1396,7 +1495,7 @@ func SubModACL(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// SubModPush (PUT) modifies the push configuration
+// SubModPush (POST) modifies the push configuration
 func SubModPush(w http.ResponseWriter, r *http.Request) {
 
 	// Init output
@@ -1410,11 +1509,12 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 	// Grab url path variables
 	urlVars := mux.Vars(r)
 	subName := urlVars["subscription"]
-	project := urlVars["project"]
 
-	refMgr := context.Get(r, "mgr").(*push.Manager)
 	// Get project UUID First to use as reference
-	projectUUID := context.Get(r, "auth_project_uuid").(string)
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
 
 	// Read POST JSON body
 	body, err := ioutil.ReadAll(r.Body)
@@ -1435,7 +1535,29 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 	pushEnd := ""
 	rPolicy := ""
 	rPeriod := 0
+	vhash := ""
+	verified := false
+	pushWorker := auth.User{}
+	pwToken := gorillaContext.Get(r, "push_worker_token").(string)
+
 	if postBody.PushCfg != (subscriptions.PushConfig{}) {
+
+		pushEnabled := gorillaContext.Get(r, "push_enabled").(bool)
+
+		// check the state of the push functionality
+		if !pushEnabled {
+			err := APIErrorPushConflict()
+			respondErr(w, err)
+			return
+		}
+
+		pushWorker, err = auth.GetPushWorker(pwToken, refStr)
+		if err != nil {
+			err := APIErrInternalPush()
+			respondErr(w, err)
+			return
+		}
+
 		pushEnd = postBody.PushCfg.Pend
 		// Check if push endpoint is not a valid https:// endpoint
 		if !(isValidHTTPS(pushEnd)) {
@@ -1453,11 +1575,8 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Grab context references
-	refStr := context.Get(r, "str").(stores.Store)
-
 	// Get Result Object
-	res, err := subscriptions.Find(projectUUID, subName, refStr)
+	res, err := subscriptions.Find(projectUUID, "", subName, "", 0, refStr)
 
 	if err != nil {
 		err := APIErrGenericBackend()
@@ -1470,12 +1589,32 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 		respondErr(w, err)
 		return
 	}
-	old := res.List[0]
 
-	err = subscriptions.ModSubPush(projectUUID, subName, pushEnd, rPolicy, rPeriod, refStr)
+	existingSub := res.Subscriptions[0]
+
+	// if the request wants to transform a pull subscription to a push one
+	// we need to begin the verification process
+	if postBody.PushCfg != (subscriptions.PushConfig{}) {
+
+		// if the endpoint in not the same with the old one, we need to verify it again
+		if postBody.PushCfg.Pend != existingSub.PushCfg.Pend {
+			vhash, err = auth.GenToken()
+			if err != nil {
+				log.Errorf("Could not generate verification hash for subscription %v, %v", urlVars["subscription"], err.Error())
+				err := APIErrGenericInternal("Could not generate verification hash")
+				respondErr(w, err)
+				return
+			}
+			// else keep the already existing data
+		} else {
+			vhash = existingSub.PushCfg.VerificationHash
+			verified = existingSub.PushCfg.Verified
+		}
+	}
+
+	err = subscriptions.ModSubPush(projectUUID, subName, pushEnd, rPolicy, rPeriod, vhash, verified, refStr)
 
 	if err != nil {
-
 		if err.Error() == "not found" {
 			err := APIErrorNotFound("Subscription")
 			respondErr(w, err)
@@ -1486,22 +1625,314 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// According to push cfg set start/stop pushing
-	if pushEnd != "" {
-		if old.PushCfg.Pend == "" {
-			refMgr.Add(project, subName)
-			refMgr.Launch(project, subName)
-		} else if old.PushCfg.Pend != pushEnd {
-			refMgr.Restart(project, subName)
-		} else if old.PushCfg.RetPol.PolicyType != rPolicy || old.PushCfg.RetPol.Period != rPeriod {
-			refMgr.Restart(project, subName)
-		}
-	} else {
-		refMgr.Stop(project, subName)
-
+	// if this is an deactivate request, try to retrieve the push worker in order to remove him from the sub's acl
+	if existingSub.PushCfg != (subscriptions.PushConfig{}) && postBody.PushCfg == (subscriptions.PushConfig{}) {
+		pushWorker, _ = auth.GetPushWorker(pwToken, refStr)
 	}
 
-	// Write empty response if anything ok
+	pushStatus := ""
+	// if the sub, was push enabled before the update and the endpoint was verified
+	// we need to deactivate it on the push server
+	if existingSub.PushCfg != (subscriptions.PushConfig{}) {
+		if existingSub.PushCfg.Verified {
+			// deactivate the subscription on the push backend
+			apsc := gorillaContext.Get(r, "apsc").(push.Client)
+			pushStatus = apsc.DeactivateSubscription(context.TODO(), existingSub.FullName).Result()
+
+			// remove the push worker user from the sub's acl
+			err = auth.RemoveFromACL(projectUUID, "subscriptions", existingSub.Name, []string{pushWorker.Name}, refStr)
+			if err != nil {
+				err := APIErrGenericInternal(err.Error())
+				respondErr(w, err)
+				return
+			}
+		}
+	}
+	// if the update on push configuration is not intended to stop the push functionality
+	// activate the subscription with the new values
+	if postBody.PushCfg != (subscriptions.PushConfig{}) {
+
+		// reactivate only if the push endpoint hasn't changed and it wes already verified
+		// otherwise we need to verify the ownership again before wee activate it
+		if postBody.PushCfg.Pend == existingSub.PushCfg.Pend && existingSub.PushCfg.Verified {
+
+			// activate the subscription on the push backend
+			apsc := gorillaContext.Get(r, "apsc").(push.Client)
+			pushStatus = apsc.ActivateSubscription(context.TODO(), existingSub.FullName, existingSub.FullTopic,
+				pushEnd, rPolicy, uint32(rPeriod)).Result()
+
+			// modify the sub's acl with the push worker's uuid
+			err = auth.AppendToACL(projectUUID, "subscriptions", existingSub.Name, []string{pushWorker.Name}, refStr)
+			if err != nil {
+				err := APIErrGenericInternal(err.Error())
+				respondErr(w, err)
+				return
+			}
+
+			// link the sub's project with the push worker
+			err = auth.AppendToUserProjects(pushWorker.UUID, projectUUID, refStr)
+			if err != nil {
+				err := APIErrGenericInternal(err.Error())
+				respondErr(w, err)
+				return
+			}
+		}
+	}
+	// update the subscription's status
+	err = subscriptions.ModSubPushStatus(projectUUID, subName, pushStatus, refStr)
+	if err != nil {
+		if err.Error() == "not found" {
+			err := APIErrorNotFound("Subscription")
+			respondErr(w, err)
+			return
+		}
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	// Write empty response if everything's ok
+	respondOK(w, output)
+}
+
+// SubVerifyPushEndpoint (POST) verifies the ownership of a push endpoint registered in a push enabled subscription
+func SubVerifyPushEndpoint(w http.ResponseWriter, r *http.Request) {
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+	subName := urlVars["subscription"]
+
+	// Get project UUID First to use as reference
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+
+	pwToken := gorillaContext.Get(r, "push_worker_token").(string)
+
+	pushEnabled := gorillaContext.Get(r, "push_enabled").(bool)
+
+	pushW := auth.User{}
+
+	// check the state of the push functionality
+	if !pushEnabled {
+		err := APIErrorPushConflict()
+		respondErr(w, err)
+		return
+	}
+
+	pushW, err := auth.GetPushWorker(pwToken, refStr)
+	if err != nil {
+		err := APIErrInternalPush()
+		respondErr(w, err)
+		return
+	}
+
+	// Get Result Object
+	res, err := subscriptions.Find(projectUUID, "", subName, "", 0, refStr)
+
+	if err != nil {
+		err := APIErrGenericBackend()
+		respondErr(w, err)
+		return
+	}
+
+	if res.Empty() {
+		err := APIErrorNotFound("Subscription")
+		respondErr(w, err)
+		return
+	}
+
+	sub := res.Subscriptions[0]
+
+	// check that the subscription is push enabled
+	if sub.PushCfg == (subscriptions.PushConfig{}) {
+		err := APIErrorGenericConflict("Subscription is not in push mode")
+		respondErr(w, err)
+		return
+	}
+
+	// check that the endpoint isn't already verified
+	if sub.PushCfg.Verified {
+		err := APIErrorGenericConflict("Push endpoint is already verified")
+		respondErr(w, err)
+		return
+	}
+
+	// verify the push endpoint
+	c := new(http.Client)
+	err = subscriptions.VerifyPushEndpoint(sub, c, refStr)
+	if err != nil {
+		err := APIErrPushVerification(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	// activate the subscription on the push backend
+	apsc := gorillaContext.Get(r, "apsc").(push.Client)
+	pushStatus := apsc.ActivateSubscription(context.TODO(), sub.FullName, sub.FullTopic, sub.PushCfg.Pend,
+		sub.PushCfg.RetPol.PolicyType, uint32(sub.PushCfg.RetPol.Period)).Result()
+
+	// modify the sub's acl with the push worker's uuid
+	err = auth.AppendToACL(projectUUID, "subscriptions", sub.Name, []string{pushW.Name}, refStr)
+	if err != nil {
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	// link the sub's project with the push worker
+	err = auth.AppendToUserProjects(pushW.UUID, projectUUID, refStr)
+	if err != nil {
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	// update the subscription's status
+	err = subscriptions.ModSubPushStatus(projectUUID, subName, pushStatus, refStr)
+	if err != nil {
+		if err.Error() == "not found" {
+			err := APIErrorNotFound("Subscription")
+			respondErr(w, err)
+			return
+		}
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	respondOK(w, []byte{})
+}
+
+// SubModPushStatus (POST) modifies the push status of a subscription
+func SubModPushStatus(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+	// Get Result Object
+	urlSub := urlVars["subscription"]
+
+	// Get project UUID First to use as reference
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
+
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+
+	// Read POST JSON body
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		err := APIErrorInvalidRequestBody()
+		respondErr(w, err)
+		return
+	}
+
+	pushStatus, err := subscriptions.GetPushStatusFromJSON(body)
+	if err != nil {
+		err := APIErrorInvalidArgument("PushStatus")
+		respondErr(w, err)
+		return
+	}
+
+	res, err := subscriptions.Find(projectUUID, "", urlSub, "", 0, refStr)
+
+	if err != nil {
+		err := APIErrGenericBackend()
+		respondErr(w, err)
+		return
+	}
+
+	if res.Empty() {
+		err := APIErrorNotFound("Subscription")
+		respondErr(w, err)
+		return
+	}
+
+	existingSub := res.Subscriptions[0]
+
+	err = subscriptions.ModSubPushStatus(projectUUID, existingSub.Name, pushStatus.PushStatus, refStr)
+	if err != nil {
+		if err.Error() == "not found" {
+			err := APIErrorNotFound("Subscription")
+			respondErr(w, err)
+			return
+		}
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	// Write empty response if everything's ok
+	respondOK(w, output)
+}
+
+// SubModAck (POST) modifies the Ack deadline of the subscription
+func SubModAck(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+	// Get Result Object
+	urlSub := urlVars["subscription"]
+
+	// Read POST JSON body
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		err := APIErrorInvalidRequestBody()
+		respondErr(w, err)
+		return
+	}
+
+	// Parse pull options
+	postBody, err := subscriptions.GetAckDeadlineFromJSON(body)
+	if err != nil {
+		err := APIErrorInvalidArgument("ackDeadlineSeconds(needs value between 0 and 600)")
+		respondErr(w, err)
+		log.Error(string(body[:]))
+		return
+	}
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	// Get project UUID First to use as reference
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
+
+	err = subscriptions.ModAck(projectUUID, urlSub, postBody.AckDeadline, refStr)
+
+	if err != nil {
+		if err.Error() == "wrong value" {
+			respondErr(w, APIErrorInvalidArgument("ackDeadlineSeconds(needs value between 0 and 600)"))
+			return
+		}
+		if err.Error() == "not found" {
+			err := APIErrorNotFound("Subscription")
+			respondErr(w, err)
+			return
+		}
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+
 	respondOK(w, output)
 
 }
@@ -1521,10 +1952,9 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 	urlVars := mux.Vars(r)
 
 	// Grab context references
-	refStr := context.Get(r, "str").(stores.Store)
-	refBrk := context.Get(r, "brk").(brokers.Broker)
-	refMgr := context.Get(r, "mgr").(*push.Manager)
-	projectUUID := context.Get(r, "auth_project_uuid").(string)
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	refBrk := gorillaContext.Get(r, "brk").(brokers.Broker)
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 
 	// Read POST JSON body
 	body, err := ioutil.ReadAll(r.Body)
@@ -1565,7 +1995,28 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 	pushEnd := ""
 	rPolicy := ""
 	rPeriod := 0
+	//pushWorker := auth.User{}
+	verifyHash := ""
+
 	if postBody.PushCfg != (subscriptions.PushConfig{}) {
+
+		// check the state of the push functionality
+		pwToken := gorillaContext.Get(r, "push_worker_token").(string)
+		pushEnabled := gorillaContext.Get(r, "push_enabled").(bool)
+
+		if !pushEnabled {
+			err := APIErrorPushConflict()
+			respondErr(w, err)
+			return
+		}
+
+		_, err = auth.GetPushWorker(pwToken, refStr)
+		if err != nil {
+			err := APIErrInternalPush()
+			respondErr(w, err)
+			return
+		}
+
 		pushEnd = postBody.PushCfg.Pend
 		// Check if push endpoint is not a valid https:// endpoint
 		if !(isValidHTTPS(pushEnd)) {
@@ -1581,10 +2032,19 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 		if rPeriod <= 0 {
 			rPeriod = 3000
 		}
+
+		verifyHash, err = auth.GenToken()
+		if err != nil {
+			log.Errorf("Could not generate verification hash for subscription %v, %v", urlVars["subscription"], err.Error())
+			err := APIErrGenericInternal("Could not generate verification hash")
+			respondErr(w, err)
+			return
+		}
+
 	}
 
 	// Get Result Object
-	res, err := subscriptions.CreateSub(projectUUID, urlVars["subscription"], tName, pushEnd, curOff, postBody.Ack, rPolicy, rPeriod, refStr)
+	res, err := subscriptions.CreateSub(projectUUID, urlVars["subscription"], tName, pushEnd, curOff, postBody.Ack, rPolicy, rPeriod, verifyHash, false, refStr)
 
 	if err != nil {
 		if err.Error() == "exists" {
@@ -1595,12 +2055,6 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 		err := APIErrGenericInternal(err.Error())
 		respondErr(w, err)
 		return
-	}
-
-	// Enable pushManager if subscription has pushConfiguration
-	if pushEnd != "" {
-		refMgr.Add(res.ProjectUUID, res.Name)
-		refMgr.Launch(res.ProjectUUID, res.Name)
 	}
 
 	// Output result to JSON
@@ -1632,8 +2086,8 @@ func TopicCreate(w http.ResponseWriter, r *http.Request) {
 	urlVars := mux.Vars(r)
 
 	// Grab context references
-	refStr := context.Get(r, "str").(stores.Store)
-	projectUUID := context.Get(r, "auth_project_uuid").(string)
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 
 	// Get Result Object
 	res, err := topics.CreateTopic(projectUUID, urlVars["topic"], refStr)
@@ -1676,14 +2130,14 @@ func ProjectMetrics(w http.ResponseWriter, r *http.Request) {
 	urlVars := mux.Vars(r)
 
 	// Grab context references
-	refStr := context.Get(r, "str").(stores.Store)
-	//refRoles := context.Get(r, "auth_roles").([]string)
-	//refUser := context.Get(r, "auth_user").(string)
-	//refAuthResource := context.Get(r, "auth_resource").(bool)
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	//refRoles := gorillaContext.Get(r, "auth_roles").([]string)
+	//refUser := gorillaContext.Get(r, "auth_user").(string)
+	//refAuthResource := gorillaContext.Get(r, "auth_resource").(bool)
 
 	urlProject := urlVars["project"]
 
-	projectUUID := context.Get(r, "auth_project_uuid").(string)
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 
 	// Check Authorization per topic
 	// - if enabled in config
@@ -1706,6 +2160,15 @@ func ProjectMetrics(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	numSubs = numSubs2
+
+	var timePoints []metrics.Timepoint
+	var err error
+
+	if timePoints, err = metrics.GetDailyProjectMsgCount(projectUUID, refStr); err != nil {
+		err := APIErrGenericBackend()
+		respondErr(w, err)
+		return
+	}
 
 	m1 := metrics.NewProjectTopics(urlProject, numTopics, metrics.GetTimeNowZulu())
 	m2 := metrics.NewProjectSubs(urlProject, numSubs, metrics.GetTimeNowZulu())
@@ -1736,6 +2199,9 @@ func ProjectMetrics(w http.ResponseWriter, r *http.Request) {
 		res.Metrics = append(res.Metrics, item)
 	}
 
+	m5 := metrics.NewDailyProjectMsgCount(urlProject, timePoints)
+	res.Metrics = append(res.Metrics, m5)
+
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
 	if err != nil {
@@ -1765,14 +2231,14 @@ func TopicMetrics(w http.ResponseWriter, r *http.Request) {
 	urlVars := mux.Vars(r)
 
 	// Grab context references
-	refStr := context.Get(r, "str").(stores.Store)
-	refRoles := context.Get(r, "auth_roles").([]string)
-	refUser := context.Get(r, "auth_user").(string)
-	refAuthResource := context.Get(r, "auth_resource").(bool)
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	refRoles := gorillaContext.Get(r, "auth_roles").([]string)
+	refUserUUID := gorillaContext.Get(r, "auth_user_uuid").(string)
+	refAuthResource := gorillaContext.Get(r, "auth_resource").(bool)
 
 	urlTopic := urlVars["topic"]
 
-	projectUUID := context.Get(r, "auth_project_uuid").(string)
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 
 	// Check Authorization per topic
 	// - if enabled in config
@@ -1780,7 +2246,7 @@ func TopicMetrics(w http.ResponseWriter, r *http.Request) {
 
 	if refAuthResource && auth.IsPublisher(refRoles) {
 
-		if auth.PerResource(projectUUID, "topics", urlTopic, refUser, refStr) == false {
+		if auth.PerResource(projectUUID, "topics", urlTopic, refUserUUID, refStr) == false {
 			err := APIErrorForbidden()
 			respondErr(w, err)
 			return
@@ -1798,6 +2264,7 @@ func TopicMetrics(w http.ResponseWriter, r *http.Request) {
 		}
 		err := APIErrGenericInternal(err.Error())
 		respondErr(w, err)
+		return
 	}
 
 	numMsg := resultsMsg.MsgNum
@@ -1813,15 +2280,24 @@ func TopicMetrics(w http.ResponseWriter, r *http.Request) {
 		}
 		err := APIErrGenericBackend()
 		respondErr(w, err)
+		return
 	}
+
+	var timePoints []metrics.Timepoint
+	if timePoints, err = metrics.GetDailyTopicMsgCount(projectUUID, urlTopic, refStr); err != nil {
+		err := APIErrGenericBackend()
+		respondErr(w, err)
+		return
+	}
+
 	m1 := metrics.NewTopicSubs(urlTopic, numSubs, metrics.GetTimeNowZulu())
 	res := metrics.NewMetricList(m1)
 
 	m2 := metrics.NewTopicMsgs(urlTopic, numMsg, metrics.GetTimeNowZulu())
 	m3 := metrics.NewTopicBytes(urlTopic, numBytes, metrics.GetTimeNowZulu())
+	m4 := metrics.NewDailyTopicMsgCount(urlTopic, timePoints)
 
-	res.Metrics = append(res.Metrics, m2)
-	res.Metrics = append(res.Metrics, m3)
+	res.Metrics = append(res.Metrics, m2, m3, m4)
 
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
@@ -1852,14 +2328,15 @@ func TopicListOne(w http.ResponseWriter, r *http.Request) {
 	urlVars := mux.Vars(r)
 
 	// Grab context references
-	refStr := context.Get(r, "str").(stores.Store)
-	projectUUID := context.Get(r, "auth_project_uuid").(string)
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 
-	results, err := topics.Find(projectUUID, urlVars["topic"], refStr)
+	results, err := topics.Find(projectUUID, "", urlVars["topic"], "", 0, refStr)
 
 	if err != nil {
 		err := APIErrGenericBackend()
 		respondErr(w, err)
+		return
 	}
 
 	// If not found
@@ -1869,7 +2346,7 @@ func TopicListOne(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res := results.List[0]
+	res := results.Topics[0]
 
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
@@ -1883,6 +2360,54 @@ func TopicListOne(w http.ResponseWriter, r *http.Request) {
 	output = []byte(resJSON)
 	respondOK(w, output)
 
+}
+
+// ListSubsByTopic (GET) lists all subscriptions associated with the given topic
+func ListSubsByTopic(w http.ResponseWriter, r *http.Request) {
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
+
+	results, err := topics.Find(projectUUID, "", urlVars["topic"], "", 0, refStr)
+
+	if err != nil {
+		err := APIErrGenericBackend()
+		respondErr(w, err)
+		return
+	}
+
+	// If not found
+	if results.Empty() {
+		err := APIErrorNotFound("Topic")
+		respondErr(w, err)
+		return
+	}
+
+	subs, err := subscriptions.FindByTopic(projectUUID, results.Topics[0].Name, refStr)
+	if err != nil {
+		err := APIErrGenericBackend()
+		respondErr(w, err)
+		return
+
+	}
+
+	resJSON, err := json.Marshal(subs)
+	if err != nil {
+		err := APIErrExportJSON()
+		respondErr(w, err)
+		return
+	}
+
+	respondOK(w, resJSON)
 }
 
 // TopicACL (GET) one topic's authorized users
@@ -1901,10 +2426,10 @@ func TopicACL(w http.ResponseWriter, r *http.Request) {
 	urlTopic := urlVars["topic"]
 
 	// Grab context references
-	refStr := context.Get(r, "str").(stores.Store)
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
 
 	// Get project UUID First to use as reference
-	projectUUID := context.Get(r, "auth_project_uuid").(string)
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 	res, err := auth.GetACL(projectUUID, "topics", urlTopic, refStr)
 
 	// If not found
@@ -1944,10 +2469,10 @@ func SubACL(w http.ResponseWriter, r *http.Request) {
 	urlSub := urlVars["subscription"]
 
 	// Grab context references
-	refStr := context.Get(r, "str").(stores.Store)
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
 
 	// Get project UUID First to use as reference
-	projectUUID := context.Get(r, "auth_project_uuid").(string)
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 	res, err := auth.GetACL(projectUUID, "subscriptions", urlSub, refStr)
 
 	// If not found
@@ -1986,14 +2511,14 @@ func SubMetrics(w http.ResponseWriter, r *http.Request) {
 	urlVars := mux.Vars(r)
 
 	// Grab context references
-	refStr := context.Get(r, "str").(stores.Store)
-	refRoles := context.Get(r, "auth_roles").([]string)
-	refUser := context.Get(r, "auth_user").(string)
-	refAuthResource := context.Get(r, "auth_resource").(bool)
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	refRoles := gorillaContext.Get(r, "auth_roles").([]string)
+	refUserUUID := gorillaContext.Get(r, "auth_user_uuid").(string)
+	refAuthResource := gorillaContext.Get(r, "auth_resource").(bool)
 
 	urlSub := urlVars["subscription"]
 
-	projectUUID := context.Get(r, "auth_project_uuid").(string)
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 
 	// Check Authorization per topic
 	// - if enabled in config
@@ -2001,7 +2526,7 @@ func SubMetrics(w http.ResponseWriter, r *http.Request) {
 
 	if refAuthResource && auth.IsConsumer(refRoles) {
 
-		if auth.PerResource(projectUUID, "subscriptions", urlSub, refUser, refStr) == false {
+		if auth.PerResource(projectUUID, "subscriptions", urlSub, refUserUUID, refStr) == false {
 			err := APIErrorForbidden()
 			respondErr(w, err)
 			return
@@ -2046,6 +2571,11 @@ func SubMetrics(w http.ResponseWriter, r *http.Request) {
 //SubListAll (GET) all subscriptions
 func SubListAll(w http.ResponseWriter, r *http.Request) {
 
+	var err error
+	var strPageSize string
+	var pageSize int
+	var res subscriptions.PaginatedSubscriptions
+
 	// Init output
 	output := []byte("")
 
@@ -2055,15 +2585,36 @@ func SubListAll(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
 
 	// Grab context references
-	refStr := context.Get(r, "str").(stores.Store)
-	projectUUID := context.Get(r, "auth_project_uuid").(string)
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
+	roles := gorillaContext.Get(r, "auth_roles").([]string)
 
-	res, err := subscriptions.Find(projectUUID, "", refStr)
-	if err != nil {
-		err := APIErrGenericBackend()
+	urlValues := r.URL.Query()
+	pageToken := urlValues.Get("pageToken")
+	strPageSize = urlValues.Get("pageSize")
+
+	// if this route is used by a user who only  has a consumer role
+	// return all subscriptions that he has access to
+	userUUID := ""
+	if !auth.IsProjectAdmin(roles) && !auth.IsServiceAdmin(roles) && auth.IsConsumer(roles) {
+		userUUID = gorillaContext.Get(r, "auth_user_uuid").(string)
+	}
+
+	if strPageSize != "" {
+		if pageSize, err = strconv.Atoi(strPageSize); err != nil {
+			log.Errorf("Pagesize %v produced an error  while being converted to int: %v", strPageSize, err.Error())
+			err := APIErrorInvalidData("Invalid page size")
+			respondErr(w, err)
+			return
+		}
+	}
+
+	if res, err = subscriptions.Find(projectUUID, userUUID, "", pageToken, int32(pageSize), refStr); err != nil {
+		err := APIErrorInvalidData("Invalid page token")
 		respondErr(w, err)
 		return
 	}
+
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
 	if err != nil {
@@ -2081,6 +2632,11 @@ func SubListAll(w http.ResponseWriter, r *http.Request) {
 // TopicListAll (GET) all topics
 func TopicListAll(w http.ResponseWriter, r *http.Request) {
 
+	var err error
+	var strPageSize string
+	var pageSize int
+	var res topics.PaginatedTopics
+
 	// Init output
 	output := []byte("")
 
@@ -2090,12 +2646,32 @@ func TopicListAll(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
 
 	// Grab context references
-	refStr := context.Get(r, "str").(stores.Store)
-	projectUUID := context.Get(r, "auth_project_uuid").(string)
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
+	roles := gorillaContext.Get(r, "auth_roles").([]string)
 
-	res, err := topics.Find(projectUUID, "", refStr)
-	if err != nil {
-		err := APIErrGenericBackend()
+	urlValues := r.URL.Query()
+	pageToken := urlValues.Get("pageToken")
+	strPageSize = urlValues.Get("pageSize")
+
+	// if this route is used by a user who only  has a publisher role
+	// return all topics that he has access to
+	userUUID := ""
+	if !auth.IsProjectAdmin(roles) && !auth.IsServiceAdmin(roles) && auth.IsPublisher(roles) {
+		userUUID = gorillaContext.Get(r, "auth_user_uuid").(string)
+	}
+
+	if strPageSize != "" {
+		if pageSize, err = strconv.Atoi(strPageSize); err != nil {
+			log.Errorf("Pagesize %v produced an error  while being converted to int: %v", strPageSize, err.Error())
+			err := APIErrorInvalidData("Invalid page size")
+			respondErr(w, err)
+			return
+		}
+	}
+
+	if res, err = topics.Find(projectUUID, userUUID, "", pageToken, int32(pageSize), refStr); err != nil {
+		err := APIErrorInvalidData("Invalid page token")
 		respondErr(w, err)
 		return
 	}
@@ -2129,13 +2705,13 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 
 	// Grab context references
 
-	refBrk := context.Get(r, "brk").(brokers.Broker)
-	refStr := context.Get(r, "str").(stores.Store)
-	refUser := context.Get(r, "auth_user").(string)
-	refRoles := context.Get(r, "auth_roles").([]string)
-	refAuthResource := context.Get(r, "auth_resource").(bool)
+	refBrk := gorillaContext.Get(r, "brk").(brokers.Broker)
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	refUserUUID := gorillaContext.Get(r, "auth_user_uuid").(string)
+	refRoles := gorillaContext.Get(r, "auth_roles").([]string)
+	refAuthResource := gorillaContext.Get(r, "auth_resource").(bool)
 	// Get project UUID First to use as reference
-	projectUUID := context.Get(r, "auth_project_uuid").(string)
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 
 	// Check if Project/Topic exist
 	if topics.HasTopic(projectUUID, urlVars["topic"], refStr) == false {
@@ -2150,7 +2726,7 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 
 	if refAuthResource && auth.IsPublisher(refRoles) {
 
-		if auth.PerResource(projectUUID, "topics", urlTopic, refUser, refStr) == false {
+		if auth.PerResource(projectUUID, "topics", urlTopic, refUserUUID, refStr) == false {
 			err := APIErrorForbidden()
 			respondErr(w, err)
 			return
@@ -2190,10 +2766,13 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 				respondErr(w, err)
 				return
 			}
-			err := APIErrGenericInternal(err.Error())
+
+			log.Errorf("Couldn't publish to topic %v, %v", fullTopic, err.Error())
+			err := APIErrGenericBackend()
 			respondErr(w, err)
 			return
 		}
+
 		msg.ID = msgID
 		// Assertions for Succesfull Publish
 		if rTop != fullTopic {
@@ -2208,6 +2787,11 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 
 	// increment topic number of message metric
 	refStr.IncrementTopicMsgNum(projectUUID, urlTopic, int64(len(msgList.Msgs)))
+
+	// increment daily count of topic messages
+	year, month, day := time.Now().UTC().Date()
+	refStr.IncrementDailyTopicMsgCount(projectUUID, urlTopic, int64(len(msgList.Msgs)), time.Date(year, month, day, 0, 0, 0, 0, time.UTC))
+
 	// increment topic total bytes published
 	refStr.IncrementTopicBytes(projectUUID, urlTopic, msgList.TotalSize())
 
@@ -2240,17 +2824,45 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	urlSub := urlVars["subscription"]
 
 	// Grab context references
-	refBrk := context.Get(r, "brk").(brokers.Broker)
-	refStr := context.Get(r, "str").(stores.Store)
-	refUser := context.Get(r, "auth_user").(string)
-	refRoles := context.Get(r, "auth_roles").([]string)
-	refAuthResource := context.Get(r, "auth_resource").(bool)
+	refBrk := gorillaContext.Get(r, "brk").(brokers.Broker)
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	refUserUUID := gorillaContext.Get(r, "auth_user_uuid").(string)
+	refRoles := gorillaContext.Get(r, "auth_roles").([]string)
+	refAuthResource := gorillaContext.Get(r, "auth_resource").(bool)
+	pushEnabled := gorillaContext.Get(r, "push_enabled").(bool)
 
 	// Get project UUID First to use as reference
-	projectUUID := context.Get(r, "auth_project_uuid").(string)
-	// Check if sub exists
-	if subscriptions.HasSub(projectUUID, urlSub, refStr) == false {
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
+
+	// Get the subscription
+	results, err := subscriptions.Find(projectUUID, "", urlSub, "", 0, refStr)
+	if err != nil {
+		err := APIErrGenericBackend()
+		respondErr(w, err)
+		return
+	}
+
+	if results.Empty() {
 		err := APIErrorNotFound("Subscription")
+		respondErr(w, err)
+		return
+	}
+
+	targetSub := results.Subscriptions[0]
+	fullTopic := targetSub.ProjectUUID + "." + targetSub.Topic
+	retImm := true
+	max := 1
+
+	// if the subscription is push enabled but push enabled is false, don't allow push worker user to consume
+	if targetSub.PushCfg != (subscriptions.PushConfig{}) && !pushEnabled && auth.IsPushWorker(refRoles) {
+		err := APIErrorPushConflict()
+		respondErr(w, err)
+		return
+	}
+
+	// if the subscription is push enabled, allow only push worker and service_admin users to pull from it
+	if targetSub.PushCfg != (subscriptions.PushConfig{}) && !auth.IsPushWorker(refRoles) && !auth.IsServiceAdmin(refRoles) {
+		err := APIErrorForbidden()
 		respondErr(w, err)
 		return
 	}
@@ -2259,11 +2871,18 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	// - if enabled in config
 	// - if user has only consumer role
 	if refAuthResource && auth.IsConsumer(refRoles) {
-		if auth.PerResource(projectUUID, "subscriptions", urlSub, refUser, refStr) == false {
+		if auth.PerResource(projectUUID, "subscriptions", targetSub.Name, refUserUUID, refStr) == false {
 			err := APIErrorForbidden()
 			respondErr(w, err)
 			return
 		}
+	}
+
+	// check if the subscription's topic exists
+	if !topics.HasTopic(projectUUID, targetSub.Topic, refStr) {
+		err := APIErrorPullNoTopic()
+		respondErr(w, err)
+		return
 	}
 
 	// Read POST JSON body
@@ -2283,27 +2902,6 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Init Received Message List
-	recList := messages.RecList{}
-
-	// Get the subscription info
-	results, err := subscriptions.Find(projectUUID, urlSub, refStr)
-	if err != nil {
-		err := APIErrGenericBackend()
-		respondErr(w, err)
-		return
-	}
-	if results.Empty() {
-		err := APIErrorNotFound("Subscription")
-		respondErr(w, err)
-		return
-	}
-	targSub := results.List[0]
-
-	fullTopic := targSub.ProjectUUID + "." + targSub.Topic
-	retImm := true
-	max := 1
-
 	if pullInfo.MaxMsg != "" {
 		max, err = strconv.Atoi(pullInfo.MaxMsg)
 		if err != nil {
@@ -2315,24 +2913,29 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 		retImm = false
 	}
 
-	msgs, err := refBrk.Consume(r.Context(), fullTopic, targSub.Offset, retImm, int64(max))
+	// Init Received Message List
+	recList := messages.RecList{}
+
+	msgs, err := refBrk.Consume(r.Context(), fullTopic, targetSub.Offset, retImm, int64(max))
 	if err != nil {
 		// If tracked offset is off
 		if err == brokers.ErrOffsetOff {
 			log.Debug("Will increment now...")
 			// Increment tracked offset to current min offset
-			targSub.Offset = refBrk.GetMinOffset(fullTopic)
-			refStr.UpdateSubOffset(projectUUID, targSub.Name, targSub.Offset)
+			targetSub.Offset = refBrk.GetMinOffset(fullTopic)
+			refStr.UpdateSubOffset(projectUUID, targetSub.Name, targetSub.Offset)
 			// Try again to consume
-			msgs, err = refBrk.Consume(r.Context(), fullTopic, targSub.Offset, retImm, int64(max))
+			msgs, err = refBrk.Consume(r.Context(), fullTopic, targetSub.Offset, retImm, int64(max))
 			// If still error respond and return
 			if err != nil {
-				err := APIErrGenericInternal("Cannot consume message")
+				log.Errorf("Couldn't consume messages for subscription %v, %v", targetSub.FullName, err.Error())
+				err := APIErrGenericBackend()
 				respondErr(w, err)
 				return
 			}
 		} else {
-			err := APIErrGenericInternal("Cannot consume message")
+			log.Errorf("Couldn't consume messages for subscription %v, %v", targetSub.FullName, err.Error())
+			err := APIErrGenericBackend()
 			respondErr(w, err)
 			return
 		}
@@ -2356,7 +2959,7 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		// calc the message id = message's kafka offset (read offst + msg position)
-		idOff := targSub.Offset + int64(i)
+		idOff := targetSub.Offset + int64(i)
 		curMsg.ID = strconv.FormatInt(idOff, 10)
 		curRec := messages.RecMsg{AckID: ackPrefix + curMsg.ID, Msg: curMsg}
 		recList.RecMsgs = append(recList.RecMsgs, curRec)
@@ -2378,7 +2981,7 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	zSec := "2006-01-02T15:04:05Z"
 	t := time.Now().UTC()
 	ts := t.Format(zSec)
-	refStr.UpdateSubPull(targSub.ProjectUUID, targSub.Name, int64(len(recList.RecMsgs))+targSub.Offset, ts)
+	refStr.UpdateSubPull(targetSub.ProjectUUID, targetSub.Name, int64(len(recList.RecMsgs))+targetSub.Offset, ts)
 
 	output = []byte(resJSON)
 	respondOK(w, output)
@@ -2390,11 +2993,38 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var bytes []byte
 
-	healthMsg := HealthStatus{Status: "ok"}
+	apsc := gorillaContext.Get(r, "apsc").(push.Client)
+
+	healthMsg := HealthStatus{
+		Status: "ok",
+	}
+
+	pwToken := gorillaContext.Get(r, "push_worker_token").(string)
+	pushEnabled := gorillaContext.Get(r, "push_enabled").(bool)
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+
+	if pushEnabled {
+		_, err := auth.GetPushWorker(pwToken, refStr)
+		if err != nil {
+			healthMsg.Status = "warning"
+			log.Error("push worker could not be retrieved")
+		}
+
+		healthMsg.PushServers = []PushServerInfo{
+			{
+				Endpoint: apsc.Target(),
+				Status:   apsc.HealthCheck(context.TODO()).Result(),
+			},
+		}
+
+	} else {
+		healthMsg.PushFunctionality = "disabled"
+	}
 
 	if bytes, err = json.MarshalIndent(healthMsg, "", " "); err != nil {
 		err := APIErrGenericInternal(err.Error())
 		respondErr(w, err)
+		return
 	}
 
 	respondOK(w, bytes)
@@ -2420,7 +3050,14 @@ func respondErr(w http.ResponseWriter, apiErr APIErrorRoot) {
 }
 
 type HealthStatus struct {
-	Status string `json:"status"`
+	Status            string           `json:"status,omitempty"`
+	PushServers       []PushServerInfo `json:"push_servers,omitempty"`
+	PushFunctionality string           `json:"push_functionality,omitempty"`
+}
+
+type PushServerInfo struct {
+	Endpoint string `json:"endpoint"`
+	Status   string `json:"status"`
 }
 
 // APIErrorRoot holds the root json object of an error response
@@ -2512,6 +3149,48 @@ var APIErrorConflict = func(resource string) APIErrorRoot {
 	return APIErrorRoot{Body: apiErrBody}
 }
 
+// api error to be used when push enabled false
+var APIErrorPushConflict = func() APIErrorRoot {
+
+	apiErrBody := APIErrorBody{
+		Code:    http.StatusConflict,
+		Message: "Push functionality is currently disabled",
+		Status:  "CONFLICT",
+	}
+
+	return APIErrorRoot{
+		Body: apiErrBody,
+	}
+}
+
+// api error to be used to format generic conflict errors
+var APIErrorGenericConflict = func(msg string) APIErrorRoot {
+
+	apiErrBody := APIErrorBody{
+		Code:    http.StatusConflict,
+		Message: msg,
+		Status:  "CONFLICT",
+	}
+
+	return APIErrorRoot{
+		Body: apiErrBody,
+	}
+}
+
+// api error to be used when push enabled false
+var APIErrorPullNoTopic = func() APIErrorRoot {
+
+	apiErrBody := APIErrorBody{
+		Code:    http.StatusConflict,
+		Message: "Subscription's topic doesn't exist",
+		Status:  "CONFLICT",
+	}
+
+	return APIErrorRoot{
+		Body: apiErrBody,
+	}
+}
+
 // api err for dealing with too large messages
 var APIErrTooLargeMessage = func(resource string) APIErrorRoot {
 	apiErrBody := APIErrorBody{Code: http.StatusRequestEntityTooLarge, Message: "Message size is too large", Status: "INVALID_ARGUMENT"}
@@ -2521,6 +3200,16 @@ var APIErrTooLargeMessage = func(resource string) APIErrorRoot {
 // api err for dealing with generic internal errors
 var APIErrGenericInternal = func(msg string) APIErrorRoot {
 	apiErrBody := APIErrorBody{Code: http.StatusInternalServerError, Message: msg, Status: "INTERNAL_SERVER_ERROR"}
+	return APIErrorRoot{Body: apiErrBody}
+}
+
+// api err for dealing with generic internal errors
+var APIErrPushVerification = func(msg string) APIErrorRoot {
+	apiErrBody := APIErrorBody{
+		Code:    http.StatusUnauthorized,
+		Message: fmt.Sprintf("Endpoint verification failed.%v", msg),
+		Status:  "UNAUTHORIZED",
+	}
 	return APIErrorRoot{Body: apiErrBody}
 }
 
@@ -2546,4 +3235,18 @@ var APIErrHandlingAcknowledgement = func() APIErrorRoot {
 var APIErrGenericBackend = func() APIErrorRoot {
 	apiErrBody := APIErrorBody{Code: http.StatusInternalServerError, Message: "Backend Error", Status: "INTERNAL_SERVER_ERROR"}
 	return APIErrorRoot{Body: apiErrBody}
+}
+
+// api error to be used when push enabled true but push worker was not able to be retrieved
+var APIErrInternalPush = func() APIErrorRoot {
+
+	apiErrBody := APIErrorBody{
+		Code:    http.StatusInternalServerError,
+		Message: "Push functionality is currently unavailable",
+		Status:  "INTERNAL_SERVER_ERROR",
+	}
+
+	return APIErrorRoot{
+		Body: apiErrBody,
+	}
 }

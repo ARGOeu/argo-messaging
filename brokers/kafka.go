@@ -189,12 +189,12 @@ func (b *KafkaBroker) Consume(ctx context.Context, topic string, offset int64, i
 	loff, err := b.Client.GetOffset(topic, 0, sarama.OffsetNewest)
 
 	if err != nil {
-		log.Error(err.Error())
+		return []string{}, err
 	}
 
 	oldOff, err := b.Client.GetOffset(topic, 0, sarama.OffsetOldest)
 	if err != nil {
-		log.Error(err.Error())
+		return []string{}, err
 	}
 
 	log.Debug("consuming topic:", topic, " min_offset:", oldOff, " max_offset:", loff, " current offset:", offset)

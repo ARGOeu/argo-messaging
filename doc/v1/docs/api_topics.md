@@ -98,19 +98,37 @@ Success Response
 Please refer to section [Errors](api_errors.md) to see all possible Errors
 
 ## [GET] Manage Topics - List Topics
-This request gets the list of topics in a project with a GET request
+This request lists all available topics under a specific project in the service using pagination.
 
-### Request
+If the `USER` making the request has only `publisher` role for the respective project, it will load
+only the topics that he has access to(being present in a topic's acl).
+
+It is important to note that if there are no results to return the service will return the following:
+
+Success Response
+`200 OK`
+
 ```json
-GET "/v1/projects/{project_name}/topics"
+{
+ "users": [],
+  "nextPageToken": "",
+  "totalSize": 0
+ }
 ```
+Also the default value for `pageSize = 0` and `pageToken = "`.
+
+`Pagesize = 0` returns all the results.
+
+### Paginated Request that returns all topics under the specified project
+
+```GET "/v1/projects/{project_name}/topics"```
 
 ### Where
  - Project_name: Name of the project to get the list of topics
 
 ### Example request
 
-```json
+```
 curl -H "Content-Type: application/json"
 "https://{URL}/v1/projects/BRAND_NEW/topics/?key=S3CR3T"`
 ```
@@ -127,8 +145,72 @@ Success Response
     },
     {
       "name":"/project/BRAND_NEW/topics/accounting"
-    },
-     ]
+    }
+ ],
+  "nextPageToken": "",
+  "totalSize": 2
+}
+```
+
+### Paginated Request that returns the first page of a specific size
+
+```GET "/v1/projects/{project_name}/topics"```
+
+
+### Where
+ - Project_name: Name of the project to get the list of topics
+
+### Example request
+
+```
+curl -H "Content-Type: application/json"
+"https://{URL}/v1/projects/BRAND_NEW/topics/?key=S3CR3T&pageSize=1"`
+```
+
+### Responses  
+
+Success Response
+`200 OK`
+```json
+{
+  "topics": [
+    {
+      "name":"/project/BRAND_NEW/topics/monitoring"
+    }
+ ],
+  "nextPageToken": "some_token",
+  "totalSize": 2
+}
+```
+
+### Paginated Request that returns the next  page of a specific size
+
+```GET "/v1/projects/{project_name}/topics"```
+
+
+### Where
+ - Project_name: Name of the project to get the list of topics
+
+### Example request
+
+```
+curl -H "Content-Type: application/json"
+"https://{URL}/v1/projects/BRAND_NEW/topics/?key=S3CR3T&pageSize=1&pageToken=some_token"`
+```
+
+### Responses  
+
+Success Response
+`200 OK`
+```json
+{
+  "topics": [
+    {
+      "name":"/project/BRAND_NEW/topics/accounting"
+    }
+ ],
+  "nextPageToken": "",
+  "totalSize": 2
 }
 ```
 
@@ -346,6 +428,24 @@ Success Response
             }
          ],
          "description": "Counter that displays the total size of data (in bytes) published to the specific topic"
+      },
+      {
+         "metric": "topic.number_of_daily_messages",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "topic",
+         "resource_name": "topic1",
+         "timeseries": [
+            {
+               "timestamp": "2018-10-02",
+               "value": 30
+            },
+            {
+               "timestamp": "2018-10-01",
+               "value": 40
+            }
+         ],
+         "description": "A collection of counters that represents the total number of messages published each day to a specific topic"
       }
    ]
 }

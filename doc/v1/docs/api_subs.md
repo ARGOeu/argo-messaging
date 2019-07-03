@@ -36,10 +36,141 @@ Success Response
 }
 ```
 
+### Push Enabled Subscriptions
+Whenever a subscription is created with a valid push configuration, the service will also generate a unique hash that
+should be later used to validate the ownership of the registered push endpoint, and will mark the subscription as 
+unverified.
+
+## Request to create Push Enabled Subscription
+```json
+{
+ "topic": "projects/BRAND_NEW/topics/monitoring",
+ "ackDeadlineSeconds":10,
+  "pushConfig": {
+    "pushEndpoint": "https://127.0.0.1:5000/receive_here",
+    "retryPolicy": {
+      "type": "linear", 
+      "period": 1000              	
+    }
+   }
+}
+```
+### Response
+```json
+{
+ "name": "projects/BRAND_NEW/subscriptions/alert_engine",
+ "topic": "projects/BRAND_NEW/topics/monitoring",
+ "ackDeadlineSeconds": 10,
+  "pushConfig": {
+    "pushEndpoint": "https://127.0.0.1:5000/receive_here",
+    "retryPolicy": {
+      "type": "linear", 
+      "period": 1000              	
+    },
+    "verification_hash": "9d5189f7f758e380a5f8bc4fdb4fe980c565b67b",
+    "verified": false
+    }    
+}
+```
+
+
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
 
-## [GET] Manage Subscriptions - List Subscriptions
+
+## [POST] Manage Subscriptions - Verify ownership of a push endpoint
+This request triggers the process of verifying the ownership of a registered push endpoint 
+
+### Request
+`PUT /v1/projects/{project_name}/subscriptions/{subscription_name}:verifyPushEndpoint`
+
+### Where
+- Project_name: Name of the project
+- subscription_name: The subscription name
+
+### Example request
+```json
+curl -X POST "https://{URL}/v1/projects/BRAND_NEW/subscriptions/alert_engine:verifyPushEndpoint?key=S3CR3T"`
+```
+
+### Push Enabled Subscriptions
+Whenever a subscription is created with a valid push configuration, the service will also generate a unique hash that
+should be later used to validate the ownership of the registered push endpoint, and will mark the subscription as 
+unverified.
+
+The owner of the push endpoint needs to execute the following steps in order to verify the ownership of the
+registered endpoint.
+
+- Open an api call with a path of `/ams_verification_hash`. The service will try to access this path using the `host:port`
+of the push endpoint. For example, if the push endpoint is `https://example.com:8443/receive_here`, the  push endpoint should also
+support the api route of `https://example.com:8443/ams_verification_hash`.
+
+- The api route of `https://example.com:8443/ams_verification_hash` should support the http `GET` method.
+
+- A `GET` request to `https://example.com:8443/ams_verification_hash` should return a response body 
+with only the `verification_hash`
+that is found inside the subscriptions push configuration, 
+a `status code` of `200` and the header `Content-type: plain/text`.
+
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors
+
+## [GET] Manage Subscriptions - List All Subscriptions under a specific Topic
+
+This request lists all available subscriptions under a specific topic in the service.
+
+### Request
+`GET /v1/projects/{project_name}/topics/{topic_name}/subscriptions`
+
+### Where
+- Project_name: Name of the project the topic belongs to
+- Topic_name: Name of the topic
+
+### Example request
+```
+curl -X GET -H "Content-Type: application/json"
+  "https://{URL}/v1/projects/p1/topics/t1/subscriptions?key=S3CR3T"
+```
+
+Success Response
+`200 OK`
+
+```json
+{
+ "subscriptions": [
+ "/projects/p1/subscriptions/sub1",
+ "/projects/p1/subscriptions/sub2"
+ ]
+}
+```
+
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors
+
+## [GET] Manage Subscriptions - List All Subscriptions
+
+This request lists all available subscriptions under a specific project in the service using pagination
+
+If the `USER` making the request has only `consumer` role for the respective project, it will load
+only the subscriptions that he has access to(being present in a subscriptions's acl).
+
+It is important to note that if there are no results to return the service will return the following:
+
+Success Response
+`200 OK`
+
+```json
+{
+ "subscriptions": [],
+  "nextPageToken": "",
+  "totalSize": 0
+ }
+```
+Also the default value for `pageSize = 0` and `pageToken = "`.
+
+`Pagesize = 0` returns all the results.
+
+### Paginated Request that returns all subscriptions under the specified project
 
 This request lists all subscriptions  in a project with a GET  request
 ### Request
@@ -49,8 +180,8 @@ This request lists all subscriptions  in a project with a GET  request
 - Project_name: Name of the project to list the subscriptions
 
 ### Example request
-```json
-curl -X PUT -H "Content-Type: application/json"
+```
+curl -X GET -H "Content-Type: application/json"
   "https://{URL}/v1/projects/BRAND_NEW/subscriptions?key=S3CR3T"
 ```
 
@@ -60,14 +191,93 @@ Success Response
 `200 OK`
 
 ```json
- "subscriptions": [
  {
-  "name": "projects/BRAND_NEW/subscriptions/alert_engine",
-  "topic": "projects/BRAND_NEW/topics/monitoring",
-  "pushConfig": {},
-  "ackDeadlineSeconds": 10
- }
-]
+  "subscriptions":[
+  {
+    "name": "projects/BRAND_NEW/subscriptions/alert_engine",
+    "topic": "projects/BRAND_NEW/topics/monitoring",
+    "pushConfig": {},
+    "ackDeadlineSeconds": 10
+  },
+ {
+   "name": "projects/BRAND_NEW/subscriptions/alert_engine2",
+   "topic": "projects/BRAND_NEW/topics/monitoring",
+   "pushConfig": {},
+   "ackDeadlineSeconds": 10
+ }],
+ "nextPageToken": "",
+ "totalSize": 2
+}
+```
+
+### Paginated Request that returns the next page of a specific size
+
+This request lists subscriptions  in a project with a GET  request
+### Request
+`GET /v1/projects/{project_name}/subscriptions`
+
+### Where
+- Project_name: Name of the project to list the subscriptions
+
+### Example request
+```
+curl -X PUT -H "Content-Type: application/json"
+  "https://{URL}/v1/projects/BRAND_NEW/subscriptions?key=S3CR3T&pageSize=1&pageToken=some_token"
+```
+
+
+### Responses  
+Success Response
+`200 OK`
+
+```json
+ {
+  "subscriptions":[
+   {
+    "name": "projects/BRAND_NEW/subscriptions/alert_engine",
+    "topic": "projects/BRAND_NEW/topics/monitoring",
+    "pushConfig": {},
+    "ackDeadlineSeconds": 10
+  }
+ ],
+ "nextPageToken": "",
+ "totalSize": 2
+}
+```
+
+### Paginated Request that returns the first page of a specific size
+
+This request lists subscriptions  in a project with a GET  request
+### Request
+`GET /v1/projects/{project_name}/subscriptions`
+
+### Where
+- Project_name: Name of the project to list the subscriptions
+
+### Example request
+```
+curl -X PUT -H "Content-Type: application/json"
+  "https://{URL}/v1/projects/BRAND_NEW/subscriptions?key=S3CR3T&pageSize=1"
+```
+
+
+### Responses  
+Success Response
+`200 OK`
+
+```json
+ {
+ "subscriptions":[
+  {
+    "name": "projects/BRAND_NEW/subscriptions/alert_engine2",
+    "topic": "projects/BRAND_NEW/topics/monitoring",
+    "pushConfig": {},
+    "ackDeadlineSeconds": 10
+  }
+ ],
+ "nextPageToken": "some_token",
+ "totalSize": 2
+}
 ```
 
 ### Errors
@@ -131,6 +341,47 @@ Code: `200 OK`, Empty response if successful.
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
 
+## [POST] Modify Ack Deadline
+This request modifies the acknowledgment deadline for the subscription. The ack deadline value is measured in seconds. The minimum ack deadline value allowed is 0sec and the maximum 600sec.
+
+### Request
+`POST /v1/projects/{project_name}/subscriptions/{subscription_name}:modifyAckDeadline`
+
+### Post body:
+```
+{
+  "ackDeadlineSeconds": 20
+}
+```
+
+### Where
+- Project_name: Name of the project
+- subscription_name: The subscription name to consume
+- ackDeadlineSeconds: integer representing seconds for the acknowledgment deadline (min=0sec, max=600sec).
+
+
+### Example request
+
+```json
+curl -X POST -H "Content-Type: application/json"  
+-d POSTDATA http://{URL}/v1/projects/BRAND_NEW/subscriptions/alert_engine:modifyAckDeadline?key=S3CR3T
+```
+
+### post body:
+```
+{
+  "ackDeadlineSeconds": 30
+}
+```
+
+### Responses  
+
+Success Response
+Code: `200 OK`, Empty response if successful. The deadline will change to 30seconds
+
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors
+
 ## [POST] Modify Push Configuration
 This request modifies the push configuration of a subscription
 
@@ -156,7 +407,7 @@ This request modifies the push configuration of a subscription
 
 ```json
 curl -X POST -H "Content-Type: application/json"  
--d POSTDATA http://{URL}/v1/projects/BRAND_NEW/subscriptions/alert_engine:modifyPushConfig?key=S3CR3T"
+-d POSTDATA http://{URL}/v1/projects/BRAND_NEW/subscriptions/alert_engine:modifyPushConfig?key=S3CR3T
 ```
 
 ### post body:
@@ -173,12 +424,62 @@ curl -X POST -H "Content-Type: application/json"
 Success Response
 Code: `200 OK`, Empty response if successful.
 
+Whenever a subscription is created with a valid push configuration, the service will also generate a unique hash that
+should be later used to validate the ownership of the registered push endpoint, and will mark the subscription as 
+unverified.
+
+**NOTE** Changing the push endpoint of a push enabled subscription, or removing the push configuration and then re-applying
+will mark the subscription as unverified and a new verification process should take place.
+
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors
+
+## [POST] Modify Push Status
+This request modifies the push status of a subscription
+
+### Request
+`POST /v1/projects/{project_name}/subscriptions/{subscription_name}:modifyPushStatus`
+
+### Post body:
+```json
+{
+  "push_status": "push enabled"
+}
+```
+
+### Where
+- Project_name: Name of the project
+- subscription_name: The subscription name to consume
+- push_status: Contains information about the state of a subscription on the push server
+
+
+### Example request
+
+```json
+curl -X POST -H "Content-Type: application/json"  
+-d POSTDATA http://{URL}/v1/projects/BRAND_NEW/subscriptions/alert_engine:modifyPushStatus?key=S3CR3T
+```
+
+### Post body:
+```json
+{
+  "push_status": "push enabled"
+}
+```
+
+### Responses  
+
+Success Response
+Code: `200 OK`, Empty response if successful.
+
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
 
 ## [POST] Pull messages from a subscription (Consume)
 
-This request consumes messages from a subscription in a project with a POST request
+This request consumes messages from a subscription in a project with a POST request.
+
+It's important to note that the subscription's topic must exist in order for the user to pull messages.
 
 ### Request
 `POST /v1/projects/{project_name}/subscriptions/{subscription_name}:pull`
@@ -427,6 +728,8 @@ Success Response
    ]
 }
 ```
+
+
 
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors

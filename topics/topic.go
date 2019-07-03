@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 
+	"encoding/base64"
 	"github.com/ARGOeu/argo-messaging/projects"
 	"github.com/ARGOeu/argo-messaging/stores"
+	log "github.com/sirupsen/logrus"
 )
 
 // Topic struct to hold information for a given topic
@@ -20,14 +22,16 @@ type TopicMetrics struct {
 	TotalBytes int64 `json:"total_bytes"`
 }
 
-// Topics holds a list of Topic items
-type Topics struct {
-	List []Topic `json:"topics,omitempty"`
+// PaginatedTopics holds information about a topics' page and how to access the next page
+type PaginatedTopics struct {
+	Topics        []Topic `json:"topics"`
+	NextPageToken string  `json:"nextPageToken"`
+	TotalSize     int32   `json:"totalSize"`
 }
 
 // Empty returns true if Topics has no items
-func (tl *Topics) Empty() bool {
-	return len(tl.List) <= 0
+func (tl *PaginatedTopics) Empty() bool {
+	return len(tl.Topics) <= 0
 }
 
 // New creates a new topic based on name
@@ -40,7 +44,13 @@ func New(projectUUID string, projectName string, name string) Topic {
 // Find searches and returns a specific topic or all topics of a given project
 func FindMetric(projectUUID string, name string, store stores.Store) (TopicMetrics, error) {
 	result := TopicMetrics{MsgNum: 0}
-	topics, err := store.QueryTopics(projectUUID, name)
+	topics, _, _, err := store.QueryTopics(projectUUID, "", name, "", 0)
+
+	// check if the topic exists
+	if len(topics) == 0 {
+		return result, errors.New("not found")
+	}
+
 	for _, item := range topics {
 		projectName := projects.GetNameByUUID(item.ProjectUUID, store)
 		if projectName == "" {
@@ -54,17 +64,41 @@ func FindMetric(projectUUID string, name string, store stores.Store) (TopicMetri
 }
 
 // Find searches and returns a specific topic or all topics of a given project
-func Find(projectUUID string, name string, store stores.Store) (Topics, error) {
-	result := Topics{}
-	topics, err := store.QueryTopics(projectUUID, name)
-	for _, item := range topics {
-		projectName := projects.GetNameByUUID(item.ProjectUUID, store)
-		if projectName == "" {
-			return result, errors.New("invalid project")
-		}
-		curTop := New(item.ProjectUUID, projectName, item.Name)
-		result.List = append(result.List, curTop)
+func Find(projectUUID, userUUID, name, pageToken string, pageSize int32, store stores.Store) (PaginatedTopics, error) {
+
+	var err error
+	var qTopics []stores.QTopic
+	var totalSize int32
+	var nextPageToken string
+	var pageTokenBytes []byte
+
+	result := PaginatedTopics{Topics: []Topic{}}
+
+	// decode the base64 pageToken
+	if pageTokenBytes, err = base64.StdEncoding.DecodeString(pageToken); err != nil {
+		log.Errorf("Page token %v produced an error while being decoded to base64: %v", pageToken, err.Error())
+		return result, err
 	}
+
+	if qTopics, totalSize, nextPageToken, err = store.QueryTopics(projectUUID, userUUID, name, string(pageTokenBytes), pageSize); err != nil {
+		return result, err
+	}
+
+	projectName := projects.GetNameByUUID(projectUUID, store)
+
+	if projectName == "" {
+		return result, errors.New("invalid project")
+
+	}
+
+	for _, item := range qTopics {
+		curTop := New(item.ProjectUUID, projectName, item.Name)
+		result.Topics = append(result.Topics, curTop)
+	}
+
+	result.NextPageToken = base64.StdEncoding.EncodeToString([]byte(nextPageToken))
+	result.TotalSize = totalSize
+
 	return result, err
 }
 
@@ -83,7 +117,7 @@ func (tp *Topic) ExportJSON() (string, error) {
 }
 
 // ExportJSON exports whole Topics List Structure as a json string
-func (tl *Topics) ExportJSON() (string, error) {
+func (tl *PaginatedTopics) ExportJSON() (string, error) {
 	output, err := json.MarshalIndent(tl, "", "   ")
 	return string(output[:]), err
 }
@@ -100,13 +134,13 @@ func CreateTopic(projectUUID string, name string, store stores.Store) (Topic, er
 		return Topic{}, errors.New("backend error")
 	}
 
-	results, err := Find(projectUUID, name, store)
+	results, err := Find(projectUUID, "", name, "", 0, store)
 
-	if len(results.List) != 1 {
+	if len(results.Topics) != 1 {
 		return Topic{}, errors.New("backend error")
 	}
 
-	return results.List[0], err
+	return results.Topics[0], err
 }
 
 // RemoveTopic removes an existing topic
@@ -120,8 +154,8 @@ func RemoveTopic(projectUUID string, name string, store stores.Store) error {
 
 // HasTopic returns true if project & topic combination exist
 func HasTopic(projectUUID string, name string, store stores.Store) bool {
-	res, err := Find(projectUUID, name, store)
-	if len(res.List) > 0 && err == nil {
+	res, err := Find(projectUUID, "", name, "", 0, store)
+	if len(res.Topics) > 0 && err == nil {
 		return true
 	}
 	return false

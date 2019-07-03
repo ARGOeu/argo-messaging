@@ -7,9 +7,10 @@ import (
 
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
-	"github.com/ARGOeu/argo-messaging/push"
+	oldPush "github.com/ARGOeu/argo-messaging/push"
+	"github.com/ARGOeu/argo-messaging/push/grpc/client"
 	"github.com/ARGOeu/argo-messaging/stores"
-	"github.com/gorilla/context"
+	gorillaContext "github.com/gorilla/context"
 	"github.com/gorilla/mux"
 )
 
@@ -28,7 +29,7 @@ type APIRoute struct {
 }
 
 // NewRouting creates a new routing object including mux.Router and routes definitions
-func NewRouting(cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *push.Manager, routes []APIRoute) *API {
+func NewRouting(cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *oldPush.Manager, c push.Client, routes []APIRoute) *API {
 	// Create the api Object
 	ar := API{}
 	// Create a new router and reference him in API object
@@ -45,21 +46,21 @@ func NewRouting(cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *p
 
 		handler = WrapLog(handler, route.Name)
 
-		// skip authentication/authorization for the health status api call
-		if route.Name != "ams:healthStatus" {
+		// skip authentication/authorization for the health status and profile api calls
+		if route.Name != "ams:healthStatus" && "users:profile" != route.Name {
 			handler = WrapAuthorize(handler, route.Name)
 			handler = WrapAuthenticate(handler)
 		}
 
 		handler = WrapValidate(handler)
-		handler = WrapConfig(handler, cfg, brk, str, mgr)
+		handler = WrapConfig(handler, cfg, brk, str, mgr, c)
 
 		ar.Router.
 			PathPrefix("/v1").
 			Methods(route.Method).
 			Path(route.Path).
 			Name(route.Name).
-			Handler(context.ClearHandler(handler))
+			Handler(gorillaContext.ClearHandler(handler))
 	}
 
 	log.Info("API", "\t", "API Router initialized! Ready to start listening...")
@@ -74,6 +75,7 @@ var defaultRoutes = []APIRoute{
 	{"users:byToken", "GET", "/users:byToken/{token}", UserListByToken},
 	{"users:byUUID", "GET", "/users:byUUID/{uuid}", UserListByUUID},
 	{"users:list", "GET", "/users", UserListAll},
+	{"users:profile", "GET", "/users/profile", UserProfile},
 	{"users:show", "GET", "/users/{user}", UserListOne},
 	{"users:refreshToken", "POST", "/users/{user}:refreshToken", RefreshToken},
 	{"users:create", "POST", "/users/{user}", UserCreate},
@@ -86,6 +88,7 @@ var defaultRoutes = []APIRoute{
 	{"projects:update", "PUT", "/projects/{project}", ProjectUpdate},
 	{"projects:delete", "DELETE", "/projects/{project}", ProjectDelete},
 	{"subscriptions:list", "GET", "/projects/{project}/subscriptions", SubListAll},
+	{"subscriptions:listByTopic", "GET", "/projects/{project}/topics/{topic}/subscriptions", ListSubsByTopic},
 	{"subscriptions:offsets", "GET", "/projects/{project}/subscriptions/{subscription}:offsets", SubGetOffsets},
 	{"subscriptions:acl", "GET", "/projects/{project}/subscriptions/{subscription}:acl", SubACL},
 	{"subscriptions:metrics", "GET", "/projects/{project}/subscriptions/{subscription}:metrics", SubMetrics},
@@ -94,7 +97,10 @@ var defaultRoutes = []APIRoute{
 	{"subscriptions:delete", "DELETE", "/projects/{project}/subscriptions/{subscription}", SubDelete},
 	{"subscriptions:pull", "POST", "/projects/{project}/subscriptions/{subscription}:pull", SubPull},
 	{"subscriptions:acknowledge", "POST", "/projects/{project}/subscriptions/{subscription}:acknowledge", SubAck},
+	{"subscriptions:verifyPushEndpoint", "POST", "/projects/{project}/subscriptions/{subscription}:verifyPushEndpoint", SubVerifyPushEndpoint},
+	{"subscriptions:modifyAckDeadline", "POST", "/projects/{project}/subscriptions/{subscription}:modifyAckDeadline", SubModAck},
 	{"subscriptions:modifyPushConfig", "POST", "/projects/{project}/subscriptions/{subscription}:modifyPushConfig", SubModPush},
+	{"subscriptions:modifyPushStatus", "POST", "/projects/{project}/subscriptions/{subscription}:modifyPushStatus", SubModPushStatus},
 	{"subscriptions:modifyOffset", "POST", "/projects/{project}/subscriptions/{subscription}:modifyOffset", SubSetOffset},
 	{"subscriptions:modifyAcl", "POST", "/projects/{project}/subscriptions/{subscription}:modifyAcl", SubModACL},
 	{"topics:list", "GET", "/projects/{project}/topics", TopicListAll},

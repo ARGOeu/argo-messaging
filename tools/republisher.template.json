@@ -1,0 +1,13 @@
+{
+"syslog_socket": "/dev/log",
+"sites": ["SITE-A", "SITE-B"],
+"ams_project": "test-project",
+"ams_host": "127.0.0.1",
+"ams_port": 8080,
+"ams_token": "ams-token",
+"avro_schema": "/etc/argo-messaging/metric_data.avsc",
+"bulk_size": 100,
+"interval": 5,
+"ingest_subscription": "ams-sub"
+}
+
