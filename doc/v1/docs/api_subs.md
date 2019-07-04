@@ -724,6 +724,20 @@ Success Response
             }
          ],
          "description": "Counter that displays the total size of data (in bytes) published to the specific topic"
+      },
+      {
+         "metric": "subscription.consumption_rate",
+         "metric_type": "rate",
+         "value_type": "float64",
+         "resource_type": "subscription",
+         "resource_name": "sub1",
+         "timeseries": [
+            {
+               "timestamp": "2019-05-06T00:00:00Z",
+               "value": 10
+            }
+         ],
+         "description": "A rate that displays how many messages were consumed per second between the last two consume events"
       }
    ]
 }

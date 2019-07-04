@@ -13,6 +13,8 @@ type Store interface {
 	QueryDailyTopicMsgCount(projectUUID string, name string, date time.Time) ([]QDailyTopicMsgCount, error)
 	UpdateTopicLatestPublish(projectUUID string, name string, date time.Time) error
 	UpdateTopicPublishRate(projectUUID string, name string, rate float64) error
+	UpdateSubLatestConsume(projectUUID string, name string, date time.Time) error
+	UpdateSubConsumeRate(projectUUID string, name string, rate float64) error
 	RemoveTopic(projectUUID string, name string) error
 	RemoveSub(projectUUID string, name string) error
 	PaginatedQueryUsers(pageToken string, pageSize int32) ([]QUser, int32, string, error)

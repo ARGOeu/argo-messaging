@@ -22,6 +22,8 @@ type QSub struct {
 	PushStatus       string      `bson:"push_status,omitempty"`
 	VerificationHash string      `bson:"verification_hash"`
 	Verified         bool        `bson:"verified"`
+	LatestConsume    time.Time   `bson:"latest_consume"`
+	ConsumeRate      float64     `bson:"consume_rate"`
 }
 
 // QAcl holds a list of authorized users queried from topic or subscription collections

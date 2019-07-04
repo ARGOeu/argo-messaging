@@ -2806,6 +2806,20 @@ func (suite *HandlerTestSuite) TestSubMetrics() {
             }
          ],
          "description": "Counter that displays the total size of data (in bytes) consumed from the specific subscription"
+      },
+      {
+         "metric": "subscription.consumption_rate",
+         "metric_type": "rate",
+         "value_type": "float64",
+         "resource_type": "subscription",
+         "resource_name": "sub1",
+         "timeseries": [
+            {
+               "timestamp": "2019-05-06T00:00:00Z",
+               "value": 10
+            }
+         ],
+         "description": "A rate that displays how many messages were consumed per second between the last two consume events"
       }
    ]
 }`
@@ -4019,6 +4033,7 @@ func (suite *HandlerTestSuite) TestSubPullOne() {
       }
    ]
 }`
+	tn := time.Now().UTC()
 
 	cfgKafka := config.NewAPICfg()
 	cfgKafka.LoadStrJSON(suite.cfgStr)
@@ -4033,6 +4048,9 @@ func (suite *HandlerTestSuite) TestSubPullOne() {
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expJSON, w.Body.String())
+	spc, _, _, _ := str.QuerySubs("argo_uuid", "", "sub1", "", 0)
+	suite.True(tn.Before(spc[0].LatestConsume))
+	suite.NotEqual(spc[0].ConsumeRate, 10)
 
 }
 
