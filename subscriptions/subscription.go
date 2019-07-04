@@ -14,21 +14,24 @@ import (
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"net/url"
+	"time"
 )
 
 // Subscription struct to hold information for a given topic
 type Subscription struct {
-	ProjectUUID string     `json:"-"`
-	Name        string     `json:"-"`
-	Topic       string     `json:"-"`
-	FullName    string     `json:"name"`
-	FullTopic   string     `json:"topic"`
-	PushCfg     PushConfig `json:"pushConfig"`
-	Ack         int        `json:"ackDeadlineSeconds"`
-	Offset      int64      `json:"-"`
-	NextOffset  int64      `json:"-"`
-	PendingAck  string     `json:"-"`
-	PushStatus  string     `json:"push_status,omitempty"`
+	ProjectUUID   string     `json:"-"`
+	Name          string     `json:"-"`
+	Topic         string     `json:"-"`
+	FullName      string     `json:"name"`
+	FullTopic     string     `json:"topic"`
+	PushCfg       PushConfig `json:"pushConfig"`
+	Ack           int        `json:"ackDeadlineSeconds"`
+	Offset        int64      `json:"-"`
+	NextOffset    int64      `json:"-"`
+	PendingAck    string     `json:"-"`
+	PushStatus    string     `json:"push_status,omitempty"`
+	LatestConsume time.Time  `json:"-"`
+	ConsumeRate   float64    `json:"-"`
 }
 
 // PushConfig holds optional configuration for push operations
@@ -41,8 +44,10 @@ type PushConfig struct {
 
 // SubMetrics holds the subscription's metric details
 type SubMetrics struct {
-	MsgNum     int64 `json:"number_of_messages"`
-	TotalBytes int64 `json:"total_bytes"`
+	MsgNum        int64     `json:"number_of_messages"`
+	TotalBytes    int64     `json:"total_bytes"`
+	LatestConsume time.Time `json:"-"`
+	ConsumeRate   float64   `json:"-"`
 }
 
 // RetryPolicy holds information on retry policies
@@ -119,6 +124,9 @@ func FindMetric(projectUUID string, name string, store stores.Store) (SubMetrics
 
 		result.MsgNum = item.MsgNum
 		result.TotalBytes = item.TotalBytes
+		result.LatestConsume = item.LatestConsume
+		result.ConsumeRate = item.ConsumeRate
+
 	}
 	return result, err
 }
@@ -317,6 +325,8 @@ func Find(projectUUID, userUUID, name, pageToken string, pageSize int32, store s
 			}
 		}
 		curSub.PushStatus = item.PushStatus
+		curSub.LatestConsume = item.LatestConsume
+		curSub.ConsumeRate = item.ConsumeRate
 		result.Subscriptions = append(result.Subscriptions, curSub)
 	}
 

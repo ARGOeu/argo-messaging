@@ -623,10 +623,10 @@ func (mk *MockStore) Initialize() {
 	mk.TopicList = append(mk.TopicList, qtop4)
 
 	// populate Subscriptions
-	qsub1 := QSub{0, "argo_uuid", "sub1", "topic1", 0, 0, "", "", 10, "", 0, 0, 0, "", "", false}
-	qsub2 := QSub{1, "argo_uuid", "sub2", "topic2", 0, 0, "", "", 10, "", 0, 0, 0, "", "", false}
-	qsub3 := QSub{2, "argo_uuid", "sub3", "topic3", 0, 0, "", "", 10, "", 0, 0, 0, "", "", false}
-	qsub4 := QSub{3, "argo_uuid", "sub4", "topic4", 0, 0, "", "endpoint.foo", 10, "linear", 300, 0, 0, "push enabled", "push-id-1", true}
+	qsub1 := QSub{0, "argo_uuid", "sub1", "topic1", 0, 0, "", "", 10, "", 0, 0, 0, "", "", false, time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10}
+	qsub2 := QSub{1, "argo_uuid", "sub2", "topic2", 0, 0, "", "", 10, "", 0, 0, 0, "", "", false, time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local), 8.99}
+	qsub3 := QSub{2, "argo_uuid", "sub3", "topic3", 0, 0, "", "", 10, "", 0, 0, 0, "", "", false, time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local), 5.45}
+	qsub4 := QSub{3, "argo_uuid", "sub4", "topic4", 0, 0, "", "endpoint.foo", 10, "linear", 300, 0, 0, "push enabled", "push-id-1", true, time.Date(0, 0, 0, 0, 0, 0, 0, time.Local), 0}
 	mk.SubList = append(mk.SubList, qsub1)
 	mk.SubList = append(mk.SubList, qsub2)
 	mk.SubList = append(mk.SubList, qsub3)
@@ -795,6 +795,8 @@ func (mk *MockStore) InsertSub(projectUUID string, name string, topic string, of
 		Verified:         verified,
 		MsgNum:           0,
 		TotalBytes:       0,
+		LatestConsume:    time.Time{},
+		ConsumeRate:      0,
 	}
 	mk.SubList = append(mk.SubList, sub)
 	mk.SubsACL[name] = QAcl{}
@@ -1222,6 +1224,26 @@ func (mk *MockStore) UpdateTopicPublishRate(projectUUID string, name string, rat
 		}
 	}
 	return errors.New("topic not found")
+}
+
+func (mk *MockStore) UpdateSubLatestConsume(projectUUID string, name string, date time.Time) error {
+	for idx, topic := range mk.SubList {
+		if topic.ProjectUUID == projectUUID && topic.Name == name {
+			mk.SubList[idx].LatestConsume = date
+			return nil
+		}
+	}
+	return errors.New("subscription not found")
+}
+
+func (mk *MockStore) UpdateSubConsumeRate(projectUUID string, name string, rate float64) error {
+	for idx, topic := range mk.SubList {
+		if topic.ProjectUUID == projectUUID && topic.Name == name {
+			mk.SubList[idx].ConsumeRate = rate
+			return nil
+		}
+	}
+	return errors.New("subscription not found")
 }
 
 //IncrementTopicMsgNum increase number of messages published in a topic
