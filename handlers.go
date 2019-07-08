@@ -3053,7 +3053,6 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 		_, err := auth.GetPushWorker(pwToken, refStr)
 		if err != nil {
 			healthMsg.Status = "warning"
-			log.Error("push worker could not be retrieved")
 		}
 
 		healthMsg.PushServers = []PushServerInfo{
