@@ -98,6 +98,7 @@ func GetPushWorker(pwToken string, store stores.Store) (User, error) {
 
 	pw, err := GetUserByToken(pwToken, store)
 	if err != nil {
+		log.Errorf("Could not retrieve push worker user with token %v, %v", pwToken, err.Error())
 		return User{}, errors.New("push_500")
 	}
 
