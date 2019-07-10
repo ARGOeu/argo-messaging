@@ -613,6 +613,46 @@ func (mong *MongoStore) UpdateTopicPublishRate(projectUUID string, name string, 
 	return c.Update(doc, change)
 }
 
+// UpdateSubLatestConsume updates the subscription's latest consume time
+func (mong *MongoStore) UpdateSubLatestConsume(projectUUID string, name string, date time.Time) error {
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C("subscriptions")
+
+	doc := bson.M{
+		"project_uuid": projectUUID,
+		"name":         name,
+	}
+
+	change := bson.M{
+		"$set": bson.M{
+			"latest_consume": date,
+		},
+	}
+
+	return c.Update(doc, change)
+}
+
+// UpdateSubConsumeRate updates the subscription's consume rate
+func (mong *MongoStore) UpdateSubConsumeRate(projectUUID string, name string, rate float64) error {
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C("subscriptions")
+
+	doc := bson.M{
+		"project_uuid": projectUUID,
+		"name":         name,
+	}
+
+	change := bson.M{
+		"$set": bson.M{
+			"consume_rate": rate,
+		},
+	}
+
+	return c.Update(doc, change)
+}
+
 // QueryDailyTopicMsgCount returns results regarding the number of messages published to a topic
 func (mong *MongoStore) QueryDailyTopicMsgCount(projectUUID string, topicName string, date time.Time) ([]QDailyTopicMsgCount, error) {
 

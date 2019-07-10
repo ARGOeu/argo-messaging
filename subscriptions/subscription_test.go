@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type SubTestSuite struct {
@@ -136,6 +137,8 @@ func (suite *SubTestSuite) TestGetSubByName() {
 	expSub := New("argo_uuid", "ARGO", "sub1", "topic1")
 	expSub.PushCfg.RetPol.PolicyType = ""
 	expSub.PushCfg.RetPol.Period = 0
+	expSub.LatestConsume = time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local)
+	expSub.ConsumeRate = 10
 	suite.Equal(expSub, result.Subscriptions[0])
 
 }
@@ -145,7 +148,11 @@ func (suite *SubTestSuite) TestGetSubMetric() {
 	APIcfg.LoadStrJSON(suite.cfgStr)
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
 	mySubM, _ := FindMetric("argo_uuid", "sub1", store)
-	expTopic := SubMetrics{MsgNum: 0}
+	expTopic := SubMetrics{
+		MsgNum:        0,
+		LatestConsume: time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local),
+		ConsumeRate:   10,
+	}
 	suite.Equal(expTopic, mySubM)
 }
 
@@ -167,12 +174,18 @@ func (suite *SubTestSuite) TestGetSubsByProject() {
 	expSub1 := New("argo_uuid", "ARGO", "sub1", "topic1")
 	expSub1.PushCfg.RetPol.PolicyType = ""
 	expSub1.PushCfg.RetPol.Period = 0
+	expSub1.LatestConsume = time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local)
+	expSub1.ConsumeRate = 10
 	expSub2 := New("argo_uuid", "ARGO", "sub2", "topic2")
 	expSub2.PushCfg.RetPol.PolicyType = ""
 	expSub2.PushCfg.RetPol.Period = 0
+	expSub2.LatestConsume = time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local)
+	expSub2.ConsumeRate = 8.99
 	expSub3 := New("argo_uuid", "ARGO", "sub3", "topic3")
 	expSub3.PushCfg.RetPol.PolicyType = ""
 	expSub3.PushCfg.RetPol.Period = 0
+	expSub3.LatestConsume = time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local)
+	expSub3.ConsumeRate = 5.45
 	expSub4 := New("argo_uuid", "ARGO", "sub4", "topic4")
 	expSub4.PushCfg.RetPol.PolicyType = "linear"
 	expSub4.PushCfg.RetPol.Period = 300
@@ -183,6 +196,8 @@ func (suite *SubTestSuite) TestGetSubsByProject() {
 		VerificationHash: "push-id-1",
 		Verified:         true,
 	}
+	expSub4.LatestConsume = time.Date(0, 0, 0, 0, 0, 0, 0, time.Local)
+	expSub4.ConsumeRate = 0
 	expSub4.PushStatus = "push enabled"
 
 	// retrieve all subs
@@ -253,12 +268,18 @@ func (suite *SubTestSuite) TestLoadFromCfg() {
 	expSub1 := New("argo_uuid", "ARGO", "sub1", "topic1")
 	expSub1.PushCfg.RetPol.PolicyType = ""
 	expSub1.PushCfg.RetPol.Period = 0
+	expSub1.LatestConsume = time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local)
+	expSub1.ConsumeRate = 10
 	expSub2 := New("argo_uuid", "ARGO", "sub2", "topic2")
 	expSub2.PushCfg.RetPol.PolicyType = ""
 	expSub2.PushCfg.RetPol.Period = 0
+	expSub2.LatestConsume = time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local)
+	expSub2.ConsumeRate = 8.99
 	expSub3 := New("argo_uuid", "ARGO", "sub3", "topic3")
 	expSub3.PushCfg.RetPol.PolicyType = ""
 	expSub3.PushCfg.RetPol.Period = 0
+	expSub3.LatestConsume = time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local)
+	expSub3.ConsumeRate = 5.45
 	expSub4 := New("argo_uuid", "ARGO", "sub4", "topic4")
 	expSub4.PushCfg.RetPol.PolicyType = "linear"
 	expSub4.PushCfg.RetPol.Period = 300
@@ -269,6 +290,8 @@ func (suite *SubTestSuite) TestLoadFromCfg() {
 		VerificationHash: "push-id-1",
 		Verified:         true,
 	}
+	expSub4.LatestConsume = time.Date(0, 0, 0, 0, 0, 0, 0, time.Local)
+	expSub4.ConsumeRate = 0
 	expSub4.PushStatus = "push enabled"
 	expSubs := []Subscription{}
 	expSubs = append(expSubs, expSub4)

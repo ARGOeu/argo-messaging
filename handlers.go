@@ -2552,8 +2552,9 @@ func SubMetrics(w http.ResponseWriter, r *http.Request) {
 	m1 := metrics.NewSubMsgs(urlSub, numMsg, metrics.GetTimeNowZulu())
 	res := metrics.NewMetricList(m1)
 	m2 := metrics.NewSubBytes(urlSub, numBytes, metrics.GetTimeNowZulu())
+	m3 := metrics.NewSubRate(urlSub, resultMsg.ConsumeRate, resultMsg.LatestConsume.Format("2006-01-02T15:04:05Z"))
 
-	res.Metrics = append(res.Metrics, m2)
+	res.Metrics = append(res.Metrics, m2, m3)
 
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
@@ -2994,9 +2995,30 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 		recList.RecMsgs = append(recList.RecMsgs, curRec)
 	}
 
-	// increment subscrption number of message metric
-	refStr.IncrementSubMsgNum(projectUUID, urlSub, int64(len(msgs)))
+	// amount of messages consumed
+	msgCount := int64(len(msgs))
+
+	log.Debug(msgCount)
+
+	// consumption time
+	consumeTime := time.Now().UTC()
+
+	// increment subscription number of message metric
+	refStr.IncrementSubMsgNum(projectUUID, urlSub, msgCount)
 	refStr.IncrementSubBytes(projectUUID, urlSub, recList.TotalSize())
+	refStr.UpdateSubLatestConsume(projectUUID, targetSub.Name, consumeTime)
+
+	// count the rate of consumed messages per sec between the last two consume events
+	var dt float64 = 1
+	// if its the first consume to the subscription
+	// skip the subtraction that computes the DT between the last two consume events
+	if !targetSub.LatestConsume.IsZero() {
+		dt = consumeTime.Sub(targetSub.LatestConsume).Seconds()
+	}
+
+	log.Debug(dt)
+	log.Debugf("%+v\n", targetSub)
+	refStr.UpdateSubConsumeRate(projectUUID, targetSub.Name, float64(msgCount)/dt)
 
 	resJSON, err := recList.ExportJSON()
 
