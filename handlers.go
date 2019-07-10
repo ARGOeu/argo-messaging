@@ -2296,8 +2296,9 @@ func TopicMetrics(w http.ResponseWriter, r *http.Request) {
 	m2 := metrics.NewTopicMsgs(urlTopic, numMsg, metrics.GetTimeNowZulu())
 	m3 := metrics.NewTopicBytes(urlTopic, numBytes, metrics.GetTimeNowZulu())
 	m4 := metrics.NewDailyTopicMsgCount(urlTopic, timePoints)
+	m5 := metrics.NewTopicRate(urlTopic, resultsMsg.PublishRate, resultsMsg.LatestPublish.Format("2006-01-02T15:04:05Z"))
 
-	res.Metrics = append(res.Metrics, m2, m3, m4)
+	res.Metrics = append(res.Metrics, m2, m3, m4, m5)
 
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
@@ -2713,12 +2714,22 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 	// Get project UUID First to use as reference
 	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 
-	// Check if Project/Topic exist
-	if topics.HasTopic(projectUUID, urlVars["topic"], refStr) == false {
+	results, err := topics.Find(projectUUID, "", urlVars["topic"], "", 0, refStr)
+
+	if err != nil {
+		err := APIErrGenericBackend()
+		respondErr(w, err)
+		return
+	}
+
+	// If not found
+	if results.Empty() {
 		err := APIErrorNotFound("Topic")
 		respondErr(w, err)
 		return
 	}
+
+	res := results.Topics[0]
 
 	// Check Authorization per topic
 	// - if enabled in config
@@ -2785,15 +2796,33 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 		msgIDs.IDs = append(msgIDs.IDs, msg.ID)
 	}
 
+	// timestamp of the publish event
+	publishTime := time.Now().UTC()
+
+	// amount of messages published
+	msgCount := int64(len(msgList.Msgs))
+
 	// increment topic number of message metric
-	refStr.IncrementTopicMsgNum(projectUUID, urlTopic, int64(len(msgList.Msgs)))
+	refStr.IncrementTopicMsgNum(projectUUID, urlTopic, msgCount)
 
 	// increment daily count of topic messages
-	year, month, day := time.Now().UTC().Date()
-	refStr.IncrementDailyTopicMsgCount(projectUUID, urlTopic, int64(len(msgList.Msgs)), time.Date(year, month, day, 0, 0, 0, 0, time.UTC))
+	year, month, day := publishTime.Date()
+	refStr.IncrementDailyTopicMsgCount(projectUUID, urlTopic, msgCount, time.Date(year, month, day, 0, 0, 0, 0, time.UTC))
 
 	// increment topic total bytes published
 	refStr.IncrementTopicBytes(projectUUID, urlTopic, msgList.TotalSize())
+
+	// update latest publish date for the given topic
+	refStr.UpdateTopicLatestPublish(projectUUID, urlTopic, publishTime)
+
+	// count the rate of published messages per sec between the last two publish events
+	var dt float64 = 1
+	// if its the first publish to the topic
+	// skip the subtraction that computes the DT between the last two publish events
+	if !res.LatestPublish.IsZero() {
+		dt = publishTime.Sub(res.LatestPublish).Seconds()
+	}
+	refStr.UpdateTopicPublishRate(projectUUID, urlTopic, float64(msgCount)/dt)
 
 	// Export the msgIDs
 	resJSON, err := msgIDs.ExportJSON()

@@ -15,6 +15,8 @@ const (
 	DescDailyProjectMsgs  = "A collection of counters that represents the total number of messages published each day to all of the project's topics"
 	DescTopicSubs         = "Counter that displays the number of subscriptions belonging to a specific topic"
 	NameTopicSubs         = "topic.number_of_subscriptions"
+	DescTopicRate         = "A rate that displays how many messages were published per second between the last two publish events"
+	NameTopicRate         = "topic.publishing_rate"
 	DescTopicMsgs         = "Counter that displays the number of messages published to the specific topic"
 	NameTopicMsgs         = "topic.number_of_messages"
 	DescDailyTopicMsgs    = "A collection of counters that represents the total number of messages published each day to a specific topic"
@@ -94,6 +96,13 @@ func NewTopicSubs(topic string, value int64, tstamp string) Metric {
 	// Initialize single point timeseries with the latest timestamp and value
 	ts := []Timepoint{Timepoint{Timestamp: tstamp, Value: value}}
 	m := Metric{Metric: NameTopicSubs, MetricType: "counter", ValueType: "int64", ResourceType: "topic", Resource: topic, Timeseries: ts, Description: DescTopicSubs}
+	return m
+}
+
+func NewTopicRate(topic string, value float64, tstamp string) Metric {
+	// Initialize single point timeseries with the latest timestamp and value
+	ts := []Timepoint{Timepoint{Timestamp: tstamp, Value: value}}
+	m := Metric{Metric: NameTopicRate, MetricType: "rate", ValueType: "float64", ResourceType: "topic", Resource: topic, Timeseries: ts, Description: DescTopicRate}
 	return m
 }
 

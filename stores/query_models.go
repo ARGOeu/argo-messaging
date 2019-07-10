@@ -74,11 +74,13 @@ type QRole struct {
 
 // QTopic are the results of the QTopic query
 type QTopic struct {
-	ID          interface{} `bson:"_id,omitempty"`
-	ProjectUUID string      `bson:"project_uuid"`
-	Name        string      `bson:"name"`
-	MsgNum      int64       `bson:"msg_num"`
-	TotalBytes  int64       `bson:"total_bytes"`
+	ID            interface{} `bson:"_id,omitempty"`
+	ProjectUUID   string      `bson:"project_uuid"`
+	Name          string      `bson:"name"`
+	MsgNum        int64       `bson:"msg_num"`
+	TotalBytes    int64       `bson:"total_bytes"`
+	LatestPublish time.Time   `bson:"latest_publish"`
+	PublishRate   float64     `bson:"publish_rate"`
 }
 
 // QDailyTopicMsgCount holds information about the daily number of messages published to a topic
