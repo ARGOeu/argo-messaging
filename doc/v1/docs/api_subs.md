@@ -315,6 +315,54 @@ Success Response
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
 
+## [POST] Modify ACL of a given subscription
+The following request Modifies the authorized users list of a given subscription
+
+### Request
+```
+POST "/v1/projects/{project_name}/subscriptions/{sub_name}:modifyAcl"
+```
+
+### Where
+- project_name: Name of the project
+- sub_name: name of the subscription
+
+
+### Post data
+```
+{
+"authorized_users": [
+ "UserX","UserY"
+]
+}
+```
+
+### Example request
+
+```
+curl -X POST -H "Content-Type: application/json"  
+-d { POSTDATA } "https://{URL}/v1/projects/BRAND_NEW/subscriptions/subscription:modifyAcl?key=S3CR3T"
+```
+
+### Responses  
+
+Success Response
+`200 OK`
+
+### Errors
+If the to-be updated ACL contains users that are non-existent in the project, the API returns the following error:
+`404 NOT_FOUND`
+```
+{
+   "error": {
+      "code": 404,
+      "message": "User(s): UserFoo1,UserFoo2 do not exist",
+      "status": "NOT_FOUND"
+   }
+}
+```
+
+Please refer to section [Errors](api_errors.md) to see all possible Errors
 
 ## [DELETE] Manage Subscriptions - Delete Subscriptions
 This request deletes a subscription in a project with a DELETE request
