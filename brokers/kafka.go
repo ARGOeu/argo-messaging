@@ -2,17 +2,20 @@ package brokers
 
 import (
 	"context"
-	"strconv"
-	"sync"
-	"time"
-
 	"github.com/ARGOeu/argo-messaging/messages"
 	"github.com/Shopify/sarama"
 	log "github.com/sirupsen/logrus"
+	"strconv"
+	"sync"
+	"time"
 )
 
 type topicLock struct {
 	sync.Mutex
+}
+
+type TopicOffset struct {
+	Offset int64 `json:"offset"`
 }
 
 // KafkaBroker struct
@@ -69,7 +72,6 @@ func (b *KafkaBroker) CloseConnections() {
 	if err := b.Client.Close(); err != nil {
 		log.Fatalln(err)
 	}
-
 }
 
 // NewKafkaBroker creates a new kafka broker object
@@ -103,17 +105,21 @@ func (b *KafkaBroker) Initialize(peers []string) {
 
 // init attempts to connect to broker backend and initialize local broker-related structures
 func (b *KafkaBroker) init(peers []string) error {
+
 	b.createTopicLock = topicLock{}
 	b.consumeLock = make(map[string]*topicLock)
 	b.Config = sarama.NewConfig()
+	b.Config.Admin.Timeout = 30 * time.Second
 	b.Config.Consumer.Fetch.Default = 1000000
 	b.Config.Producer.RequiredAcks = sarama.WaitForAll
 	b.Config.Producer.Retry.Max = 5
+	b.Config.Producer.Return.Successes = true
+	b.Config.Version = sarama.V2_1_0_0
 	b.Servers = peers
 
 	var err error
 
-	b.Client, err = sarama.NewClient(b.Servers, nil)
+	b.Client, err = sarama.NewClient(b.Servers, b.Config)
 	if err != nil {
 		return err
 	}
@@ -177,6 +183,32 @@ func (b *KafkaBroker) GetMinOffset(topic string) int64 {
 		log.Error(err.Error())
 	}
 	return loff
+}
+
+// TimeToOffset returns the offset of the first message with a timestamp equal or
+// greater than the time given.
+func (b *KafkaBroker) TimeToOffset(topic string, t time.Time) (int64, error) {
+	return b.Client.GetOffset(topic, 0, t.UnixNano()/int64(time.Millisecond))
+}
+
+// DeleteTopic deletes the topic from the Kafka cluster
+func (b *KafkaBroker) DeleteTopic(topic string) error {
+
+	var err error
+
+	clusterAdmin, err := sarama.NewClusterAdmin(b.Servers, b.Config)
+	if err != nil {
+		return err
+	}
+
+	b.lockForTopic(topic)
+
+	defer func() {
+		b.unlockForTopic(topic)
+		clusterAdmin.Close()
+	}()
+
+	return clusterAdmin.DeleteTopic(topic)
 }
 
 // Consume function to consume a message from the broker

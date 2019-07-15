@@ -2,14 +2,33 @@
 
 
 [[projects]]
+  name = "github.com/DataDog/zstd"
+  packages = ["."]
+  revision = "809b919c325d7887bff7bd876162af73db53e878"
+  version = "v1.4.0"
+
+[[projects]]
   name = "github.com/Shopify/sarama"
   packages = ["."]
-  revision = "d37c73f2b2bce85f7fa16b6a550d26c5372892ef"
+  revision = "ea9ab1c316850bee881a07bb2555ee8a685cd4b6"
+  version = "v1.22.1"
+
+[[projects]]
+  name = "github.com/davecgh/go-spew"
+  packages = ["spew"]
+  revision = "8991bc29aa16c548c550c7ff78260e27b9ab7c73"
+  version = "v1.1.1"
 
 [[projects]]
   name = "github.com/eapache/go-resiliency"
   packages = ["breaker"]
   revision = "b86b1ec0dd4209a588dc1285cdd471e73525c0b3"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/eapache/go-xerial-snappy"
+  packages = ["."]
+  revision = "776d5712da21bc4762676d614db1d8a64f4238b0"
 
 [[projects]]
   name = "github.com/eapache/queue"
@@ -72,11 +91,6 @@
   revision = "197e8d3cf42199cfd53cd775deb37f3637234635"
 
 [[projects]]
-  name = "github.com/klauspost/crc32"
-  packages = ["."]
-  revision = "999f3125931f6557b991b2f8472172bdfa578d38"
-
-[[projects]]
   name = "github.com/magiconair/properties"
   packages = ["."]
   revision = "c81f9d71af8f8cba1466501d30326b99a4e56c19"
@@ -91,6 +105,21 @@
   packages = ["."]
   revision = "c01d1270ff3e442a8a57cddc1c92dc1138598194"
   version = "v1.2.0"
+
+[[projects]]
+  name = "github.com/pierrec/lz4"
+  packages = [
+    ".",
+    "internal/xxh32"
+  ]
+  revision = "d705d4371bfccdf47f10e45584e896026c83616f"
+  version = "v2.2.3"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/rcrowley/go-metrics"
+  packages = ["."]
+  revision = "3113b8401b8a98917cde58f8bbd42a1b1c03b1fd"
 
 [[projects]]
   name = "github.com/samuel/go-zookeeper"
@@ -162,7 +191,9 @@
     "http2",
     "http2/hpack",
     "idna",
+    "internal/socks",
     "internal/timeseries",
+    "proxy",
     "trace"
   ]
   revision = "e147a9138326bc0e9d4e179541ffd8af41cff8a9"
@@ -217,7 +248,6 @@
     "encoding",
     "encoding/proto",
     "grpclog",
-    "health",
     "health/grpc_health_v1",
     "internal",
     "internal/backoff",
@@ -261,6 +291,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "ada12772833b41e2a91cdde064fa3260c23e5dfc09d64436294951cf7945ae4c"
+  inputs-digest = "4d764c3f9ad80e84e23eda1f96f4eea827433585868e6e1a88d147fde35e0910"
   solver-name = "gps-cdcl"
   solver-version = 1

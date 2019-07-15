@@ -677,6 +677,39 @@ Code: `200 OK`, Empty response if successful.
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
 
+## [GET] Get Offset by Timestamp
+This request returns the offset of the first message with a timestamp equal or greater than the time given.
+
+### Request
+`GET /v1/projects/{project_name}/subscriptions/{subscription_name}:timeToOffset?time={{timestamp}}`
+
+### Where
+- Project_name: Name of the project
+- subscription_name: The subscription name to consume
+- timestamp: timestamp in Zulu format
+
+### Example request
+
+```json
+curl -X GET -H "Content-Type: application/json"  
+http://{URL}/v1/projects/BRAND_NEW/subscriptions/alert_engine:timeToOffset?key=S3CR3T"
+```
+
+### Responses  
+
+Success Response
+Code: `200 OK`
+
+### Response body:
+```
+{
+  "offset": 640,
+}
+```
+
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors
+
 ## [POST] Modify Offsets
 This request modifies the current offset of a subscription
 

@@ -946,7 +946,47 @@ paths:
         500:
           $ref: "#/responses/500"
 
-
+  /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}:timeToOffset:
+    get:
+      summary: Get the offset of the first message with a timestamp equal or greater than the time given.
+      description: |
+        Get the offset of the first message with a timestamp equal or greater than the time given.
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: SUBSCRIPTION
+          in: path
+          description: Name of the subscription
+          required: true
+          type: string
+        - name: timestamp
+          in: query
+          description: time in Zulu format
+          required: true
+          type: string
+      tags:
+        - Subscriptions
+      responses:
+        200:
+          description: A json representation of the offset of the first message with a timestamp equal or greater than the time given.
+          schema:
+            $ref: '#/definitions/Offset'
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        409:
+          $ref: "#/responses/409_no_offset_for_time"
+        500:
+          $ref: "#/responses/500"
 
 
   /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}:pull:
@@ -1537,6 +1577,11 @@ responses:
 
   409_no_topic:
       description: Subscription's topic doesn't exist
+      schema:
+        $ref: '#/definitions/ErrorMsg'
+
+  409_no_offset_for_time:
+      description: Timestamp is out of bounds for the subscription's topic/partition
       schema:
         $ref: '#/definitions/ErrorMsg'
 

@@ -1274,6 +1274,75 @@ func SubGetOffsets(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func SubTimeToOffset(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	refBrk := gorillaContext.Get(r, "brk").(brokers.Broker)
+
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
+
+	results, err := subscriptions.Find(projectUUID, "", urlVars["subscription"], "", 0, refStr)
+
+	if err != nil {
+		err := APIErrGenericBackend()
+		respondErr(w, err)
+		return
+	}
+
+	// If not found
+	if results.Empty() {
+		err := APIErrorNotFound("Subscription")
+		respondErr(w, err)
+		return
+	}
+
+	t, err := time.Parse("2006-01-02T15:04:05.000Z", r.URL.Query().Get("time"))
+	if err != nil {
+		err := APIErrorInvalidData("Time is not in valid Zulu format.")
+		respondErr(w, err)
+		return
+	}
+
+	// Output result to JSON
+	brk_topic := projectUUID + "." + results.Subscriptions[0].Topic
+	off, err := refBrk.TimeToOffset(brk_topic, t.Local())
+
+	if err != nil {
+		log.Errorf(err.Error())
+		err := APIErrGenericBackend()
+		respondErr(w, err)
+		return
+	}
+
+	if off < 0 {
+		err := APIErrorGenericConflict("Timestamp is out of bounds for the subscription's topic/partition")
+		respondErr(w, err)
+		return
+	}
+
+	topicOffset := brokers.TopicOffset{Offset: off}
+	output, err = json.Marshal(topicOffset)
+	if err != nil {
+		err := APIErrExportJSON()
+		respondErr(w, err)
+		return
+	}
+
+	respondOK(w, output)
+}
+
 // TopicDelete (DEL) deletes an existing topic
 func TopicDelete(w http.ResponseWriter, r *http.Request) {
 
@@ -1290,6 +1359,7 @@ func TopicDelete(w http.ResponseWriter, r *http.Request) {
 
 	// Grab context references
 	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	refBrk := gorillaContext.Get(r, "brk").(brokers.Broker)
 	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 
 	// Get Result Object
@@ -1304,6 +1374,12 @@ func TopicDelete(w http.ResponseWriter, r *http.Request) {
 		err := APIErrGenericInternal(err.Error())
 		respondErr(w, err)
 		return
+	}
+
+	fullTopic := projectUUID + "." + urlVars["topic"]
+	err = refBrk.DeleteTopic(fullTopic)
+	if err != nil {
+		log.Errorf("Couldn't delete topic %v from broker, %v", fullTopic, err.Error())
 	}
 
 	// Write empty response if anything ok
