@@ -7,6 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"fmt"
+
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -372,7 +373,7 @@ func (mong *MongoStore) QueryUsers(projectUUID string, uuid string, name string)
 }
 
 // PaginatedQueryUsers returns a page of users
-func (mong *MongoStore) PaginatedQueryUsers(pageToken string, pageSize int32) ([]QUser, int32, string, error) {
+func (mong *MongoStore) PaginatedQueryUsers(pageToken string, pageSize int32, projectUUID string) ([]QUser, int32, string, error) {
 
 	var qUsers []QUser
 	var totalSize int32
@@ -386,26 +387,66 @@ func (mong *MongoStore) PaginatedQueryUsers(pageToken string, pageSize int32) ([
 	// if the page size is other than zero(where zero means, no limit), try to grab one more document to check if there
 	// will be a next page after the current one
 	if pageSize > 0 {
-
 		limit = pageSize + 1
-
 	}
 
+	// if projectUUID is empty string return all users, if projectUUID has a non empty value
+	// query users that belong to that project
+	if projectUUID != "" {
+		query = bson.M{
+			"projects": bson.M{
+				"$elemMatch": bson.M{
+					"project_uuid": projectUUID,
+				},
+			},
+		}
+	}
+
+	// select db collection
+	db := mong.Session.DB(mong.Database)
+	c := db.C("users")
+
+	// check the total of the users selected by the query not taking into acount pagination
+	if size, err = c.Find(query).Count(); err != nil {
+		log.Fatal("STORE", "\t", err.Error())
+
+	}
+	totalSize = int32(size)
+
+	// now take into account if pagination is enabled and change the query accordingly
 	// first check if an pageToken is provided and whether or not is a valid bson ID
 	if pageToken != "" {
 		if ok = bson.IsObjectIdHex(pageToken); !ok {
-			err = errors.New(fmt.Sprintf("Page token %v is not a valid bson ObjectId", pageToken))
+			err = fmt.Errorf("Page token %v is not a valid bson ObjectId", pageToken)
 			log.Errorf("Page token %v is not a valid bson ObjectId", pageToken)
 			return qUsers, totalSize, nextPageToken, err
 		}
 
-		bsonId := bson.ObjectIdHex(pageToken)
+		bsonID := bson.ObjectIdHex(pageToken)
+		// now that the paginated query is constructed from start take into account again
+		// if projectUUID is provided to query only the users of a given project
+		if projectUUID != "" {
+			query = bson.M{
+				"projects": bson.M{
+					"$elemMatch": bson.M{
+						"project_uuid": projectUUID,
+					},
+				},
+				"_id": bson.M{
+					"$lte": bsonID,
+				},
+			}
 
-		query = bson.M{"_id": bson.M{"$lte": bsonId}}
+		} else {
+
+			query = bson.M{
+				"_id": bson.M{
+					"$lte": bsonID,
+				},
+			}
+		}
+
 	}
-
-	db := mong.Session.DB(mong.Database)
-	c := db.C("users")
 
 	if err = c.Find(query).Sort("-_id").Limit(int(limit)).All(&qUsers); err != nil {
 		log.Fatal("STORE", "\t", err.Error())
@@ -414,18 +455,11 @@ func (mong *MongoStore) PaginatedQueryUsers(pageToken string, pageSize int32) ([
 	// if the amount of users that were found was equal to the limit, its a sign that there are users to populate the next page
 	// so pick the last element's pageToken to use as the starting point for the next page
 	// and eliminate the extra element from the current response
-	if len(qUsers) > 0 && len(qUsers) == int(limit) {
+	if pageSize > 0 && len(qUsers) > 0 && len(qUsers) == int(limit) {
 
 		nextPageToken = qUsers[limit-1].ID.(bson.ObjectId).Hex()
 		qUsers = qUsers[:len(qUsers)-1]
 	}
-
-	if size, err = c.Count(); err != nil {
-		log.Fatal("STORE", "\t", err.Error())
-
-	}
-
-	totalSize = int32(size)
 
 	return qUsers, totalSize, nextPageToken, err
 
@@ -524,14 +558,14 @@ func (mong *MongoStore) QueryTopics(projectUUID, userUUID, name, pageToken strin
 	// first check if an pageToken is provided and whether or not is a valid bson ID
 	if pageToken != "" {
 		if ok = bson.IsObjectIdHex(pageToken); !ok {
-			err = errors.New(fmt.Sprintf("Page token %v is not a valid bson ObjectId", pageToken))
+			err = fmt.Errorf("Page token %v is not a valid bson ObjectId", pageToken)
 			log.Errorf("Page token %v is not a valid bson ObjectId", pageToken)
 			return qTopics, totalSize, nextPageToken, err
 		}
 
-		bsonId := bson.ObjectIdHex(pageToken)
+		bsonID := bson.ObjectIdHex(pageToken)
 
-		query["_id"] = bson.M{"$lte": bsonId}
+		query["_id"] = bson.M{"$lte": bsonID}
 
 	} else if name != "" {
 
@@ -729,7 +763,7 @@ func (mong *MongoStore) IncrementTopicBytes(projectUUID string, name string, tot
 	return err
 }
 
-// IncrementTopicMsgNum increments the number of messages pulled in a subscription
+// IncrementSubMsgNum increments the number of messages pulled in a subscription
 func (mong *MongoStore) IncrementSubMsgNum(projectUUID string, name string, num int64) error {
 
 	db := mong.Session.DB(mong.Database)
@@ -744,7 +778,7 @@ func (mong *MongoStore) IncrementSubMsgNum(projectUUID string, name string, num 
 
 }
 
-//IncrementSubMsgNum increases the total number of bytes consumed from a subscripion
+//IncrementSubBytes increases the total number of bytes consumed from a subscripion
 func (mong *MongoStore) IncrementSubBytes(projectUUID string, name string, totalBytes int64) error {
 	db := mong.Session.DB(mong.Database)
 	c := db.C("subscriptions")
@@ -971,6 +1005,7 @@ func (mong *MongoStore) RemoveProjectSubs(projectUUID string) error {
 	return mong.RemoveAll("subscriptions", subMatch)
 }
 
+// QueryDailyProjectMsgCount queries the total messages per day for a given project
 func (mong *MongoStore) QueryDailyProjectMsgCount(projectUUID string) ([]QDailyProjectMsgCount, error) {
 
 	var err error
@@ -1062,6 +1097,7 @@ func (mong *MongoStore) ModACL(projectUUID string, resource string, name string,
 	return err
 }
 
+// AppendToACL adds additional users to an existing ACL
 func (mong *MongoStore) AppendToACL(projectUUID string, resource string, name string, acl []string) error {
 
 	db := mong.Session.DB(mong.Database)
@@ -1086,6 +1122,7 @@ func (mong *MongoStore) AppendToACL(projectUUID string, resource string, name st
 	return err
 }
 
+// RemoveFromACL remves users for a given ACL
 func (mong *MongoStore) RemoveFromACL(projectUUID string, resource string, name string, acl []string) error {
 
 	db := mong.Session.DB(mong.Database)
@@ -1220,14 +1257,14 @@ func (mong *MongoStore) QuerySubs(projectUUID, userUUID, name, pageToken string,
 	// first check if an pageToken is provided and whether or not is a valid bson ID
 	if pageToken != "" {
 		if ok = bson.IsObjectIdHex(pageToken); !ok {
-			err = errors.New(fmt.Sprintf("Page token %v is not a valid bson ObjectId", pageToken))
+			err = fmt.Errorf("Page token %v is not a valid bson ObjectId", pageToken)
 			log.Errorf("Page token %v is not a valid bson ObjectId", pageToken)
 			return qSubs, totalSize, nextPageToken, err
 		}
 
-		bsonId := bson.ObjectIdHex(pageToken)
+		bsonID := bson.ObjectIdHex(pageToken)
 
-		query["_id"] = bson.M{"$lte": bsonId}
+		query["_id"] = bson.M{"$lte": bsonID}
 
 	} else if name != "" {
 

@@ -18,7 +18,7 @@ import (
 	"github.com/ARGOeu/argo-messaging/metrics"
 	"github.com/ARGOeu/argo-messaging/projects"
 	oldPush "github.com/ARGOeu/argo-messaging/push"
-	"github.com/ARGOeu/argo-messaging/push/grpc/client"
+	push "github.com/ARGOeu/argo-messaging/push/grpc/client"
 	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/suite"
@@ -411,6 +411,100 @@ func (suite *HandlerTestSuite) TestUserListByUUIDConflict() {
 
 }
 
+func (suite *HandlerTestSuite) TestProjectUserListOne() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/members/UserZ", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "uuid": "uuid4",
+   "projects": [
+      {
+         "project": "ARGO",
+         "roles": [
+            "publisher",
+            "consumer"
+         ],
+         "topics": [
+            "topic2"
+         ],
+         "subscriptions": [
+            "sub3",
+            "sub4"
+         ]
+      }
+   ],
+   "name": "UserZ",
+   "token": "S3CR3T4",
+   "email": "foo-email",
+   "service_roles": [],
+   "created_on": "2009-11-10T23:00:00Z",
+   "modified_on": "2009-11-10T23:00:00Z",
+   "created_by": "UserA"
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := oldPush.Manager{}
+	router.HandleFunc("/v1/projects/{project}/members/{user}", WrapMockAuthConfig(ProjectUserListOne, cfgKafka, &brk, str, &mgr, nil, "service_admin"))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+}
+
+func (suite *HandlerTestSuite) TestProjectUserListOneUnpriv() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/members/UserZ", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "uuid": "uuid4",
+   "projects": [
+      {
+         "project": "ARGO",
+         "roles": [
+            "publisher",
+            "consumer"
+         ],
+         "topics": [
+            "topic2"
+         ],
+         "subscriptions": [
+            "sub3",
+            "sub4"
+         ]
+      }
+   ],
+   "name": "UserZ",
+   "email": "foo-email",
+   "service_roles": [],
+   "created_on": "2009-11-10T23:00:00Z",
+   "modified_on": "2009-11-10T23:00:00Z"
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := oldPush.Manager{}
+	router.HandleFunc("/v1/projects/{project}/members/{user}", WrapMockAuthConfig(ProjectUserListOne, cfgKafka, &brk, str, &mgr, nil, "project_admin"))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+}
+
 func (suite *HandlerTestSuite) TestUserListOne() {
 
 	req, err := http.NewRequest("GET", "http://localhost:8080/v1/users/UserA", nil)
@@ -470,6 +564,26 @@ func (suite *HandlerTestSuite) TestUserListAll() {
 
 	expResp := `{
    "users": [
+      {
+         "uuid": "uuid8",
+         "projects": [
+            {
+               "project": "ARGO2",
+               "roles": [
+                  "consumer",
+                  "publisher"
+               ],
+               "topics": [],
+               "subscriptions": []
+            }
+         ],
+         "name": "UserZ",
+         "token": "S3CR3T1",
+         "email": "foo-email",
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z"
+      },
       {
          "uuid": "uuid7",
          "projects": [],
@@ -652,7 +766,7 @@ func (suite *HandlerTestSuite) TestUserListAll() {
       }
    ],
    "nextPageToken": "",
-   "totalSize": 8
+   "totalSize": 9
 }`
 
 	cfgKafka := config.NewAPICfg()
@@ -663,7 +777,7 @@ func (suite *HandlerTestSuite) TestUserListAll() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/users", WrapMockAuthConfig(UserListAll, cfgKafka, &brk, str, &mgr, nil))
+	router.HandleFunc("/v1/users", WrapMockAuthConfig(UserListAll, cfgKafka, &brk, str, &mgr, nil, "service_admin"))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -673,6 +787,725 @@ func (suite *HandlerTestSuite) TestUserListAll() {
 func (suite *HandlerTestSuite) TestUserListAllStartingPage() {
 
 	req, err := http.NewRequest("GET", "http://localhost:8080/v1/users?pageSize=2", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "users": [
+      {
+         "uuid": "uuid8",
+         "projects": [
+            {
+               "project": "ARGO2",
+               "roles": [
+                  "consumer",
+                  "publisher"
+               ],
+               "topics": [],
+               "subscriptions": []
+            }
+         ],
+         "name": "UserZ",
+         "token": "S3CR3T1",
+         "email": "foo-email",
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z"
+      },
+      {
+         "uuid": "uuid7",
+         "projects": [],
+         "name": "push_worker_0",
+         "token": "push_token",
+         "email": "foo-email",
+         "service_roles": [
+            "push_worker"
+         ],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z"
+      }
+   ],
+   "nextPageToken": "Ng==",
+   "totalSize": 9
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := oldPush.Manager{}
+	router.HandleFunc("/v1/users", WrapMockAuthConfig(UserListAll, cfgKafka, &brk, str, &mgr, nil, "service_admin"))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestUserListAllProjectARGO() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/users?project=ARGO", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "users": [
+      {
+         "uuid": "same_uuid",
+         "projects": [
+            {
+               "project": "ARGO",
+               "roles": [
+                  "publisher",
+                  "consumer"
+               ],
+               "topics": [],
+               "subscriptions": []
+            }
+         ],
+         "name": "UserSame2",
+         "token": "S3CR3T42",
+         "email": "foo-email",
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "UserA"
+      },
+      {
+         "uuid": "same_uuid",
+         "projects": [
+            {
+               "project": "ARGO",
+               "roles": [
+                  "publisher",
+                  "consumer"
+               ],
+               "topics": [],
+               "subscriptions": []
+            }
+         ],
+         "name": "UserSame1",
+         "token": "S3CR3T41",
+         "email": "foo-email",
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "UserA"
+      },
+      {
+         "uuid": "uuid4",
+         "projects": [
+            {
+               "project": "ARGO",
+               "roles": [
+                  "publisher",
+                  "consumer"
+               ],
+               "topics": [
+                  "topic2"
+               ],
+               "subscriptions": [
+                  "sub3",
+                  "sub4"
+               ]
+            }
+         ],
+         "name": "UserZ",
+         "token": "S3CR3T4",
+         "email": "foo-email",
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "UserA"
+      },
+      {
+         "uuid": "uuid3",
+         "projects": [
+            {
+               "project": "ARGO",
+               "roles": [
+                  "publisher",
+                  "consumer"
+               ],
+               "topics": [
+                  "topic3"
+               ],
+               "subscriptions": [
+                  "sub2"
+               ]
+            }
+         ],
+         "name": "UserX",
+         "token": "S3CR3T3",
+         "email": "foo-email",
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "UserA"
+      },
+      {
+         "uuid": "uuid2",
+         "projects": [
+            {
+               "project": "ARGO",
+               "roles": [
+                  "consumer",
+                  "publisher"
+               ],
+               "topics": [
+                  "topic1",
+                  "topic2"
+               ],
+               "subscriptions": [
+                  "sub1",
+                  "sub3",
+                  "sub4"
+               ]
+            }
+         ],
+         "name": "UserB",
+         "token": "S3CR3T2",
+         "email": "foo-email",
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "UserA"
+      },
+      {
+         "uuid": "uuid1",
+         "projects": [
+            {
+               "project": "ARGO",
+               "roles": [
+                  "consumer",
+                  "publisher"
+               ],
+               "topics": [
+                  "topic1",
+                  "topic2"
+               ],
+               "subscriptions": [
+                  "sub1",
+                  "sub2",
+                  "sub3"
+               ]
+            }
+         ],
+         "name": "UserA",
+         "token": "S3CR3T1",
+         "email": "foo-email",
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z"
+      },
+      {
+         "uuid": "uuid0",
+         "projects": [
+            {
+               "project": "ARGO",
+               "roles": [
+                  "consumer",
+                  "publisher"
+               ],
+               "topics": [],
+               "subscriptions": []
+            }
+         ],
+         "name": "Test",
+         "token": "S3CR3T",
+         "email": "Test@test.com",
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z"
+      }
+   ],
+   "nextPageToken": "",
+   "totalSize": 7
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := oldPush.Manager{}
+	router.HandleFunc("/v1/users", WrapMockAuthConfig(UserListAll, cfgKafka, &brk, str, &mgr, nil, "service_admin"))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestProjectUserListARGO() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/users", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "users": [
+      {
+         "uuid": "same_uuid",
+         "projects": [
+            {
+               "project": "ARGO",
+               "roles": [
+                  "publisher",
+                  "consumer"
+               ],
+               "topics": [],
+               "subscriptions": []
+            }
+         ],
+         "name": "UserSame2",
+         "token": "S3CR3T42",
+         "email": "foo-email",
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "UserA"
+      },
+      {
+         "uuid": "same_uuid",
+         "projects": [
+            {
+               "project": "ARGO",
+               "roles": [
+                  "publisher",
+                  "consumer"
+               ],
+               "topics": [],
+               "subscriptions": []
+            }
+         ],
+         "name": "UserSame1",
+         "token": "S3CR3T41",
+         "email": "foo-email",
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "UserA"
+      },
+      {
+         "uuid": "uuid4",
+         "projects": [
+            {
+               "project": "ARGO",
+               "roles": [
+                  "publisher",
+                  "consumer"
+               ],
+               "topics": [
+                  "topic2"
+               ],
+               "subscriptions": [
+                  "sub3",
+                  "sub4"
+               ]
+            }
+         ],
+         "name": "UserZ",
+         "token": "S3CR3T4",
+         "email": "foo-email",
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "UserA"
+      },
+      {
+         "uuid": "uuid3",
+         "projects": [
+            {
+               "project": "ARGO",
+               "roles": [
+                  "publisher",
+                  "consumer"
+               ],
+               "topics": [
+                  "topic3"
+               ],
+               "subscriptions": [
+                  "sub2"
+               ]
+            }
+         ],
+         "name": "UserX",
+         "token": "S3CR3T3",
+         "email": "foo-email",
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "UserA"
+      },
+      {
+         "uuid": "uuid2",
+         "projects": [
+            {
+               "project": "ARGO",
+               "roles": [
+                  "consumer",
+                  "publisher"
+               ],
+               "topics": [
+                  "topic1",
+                  "topic2"
+               ],
+               "subscriptions": [
+                  "sub1",
+                  "sub3",
+                  "sub4"
+               ]
+            }
+         ],
+         "name": "UserB",
+         "token": "S3CR3T2",
+         "email": "foo-email",
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "UserA"
+      },
+      {
+         "uuid": "uuid1",
+         "projects": [
+            {
+               "project": "ARGO",
+               "roles": [
+                  "consumer",
+                  "publisher"
+               ],
+               "topics": [
+                  "topic1",
+                  "topic2"
+               ],
+               "subscriptions": [
+                  "sub1",
+                  "sub2",
+                  "sub3"
+               ]
+            }
+         ],
+         "name": "UserA",
+         "token": "S3CR3T1",
+         "email": "foo-email",
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z"
+      },
+      {
+         "uuid": "uuid0",
+         "projects": [
+            {
+               "project": "ARGO",
+               "roles": [
+                  "consumer",
+                  "publisher"
+               ],
+               "topics": [],
+               "subscriptions": []
+            }
+         ],
+         "name": "Test",
+         "token": "S3CR3T",
+         "email": "Test@test.com",
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z"
+      }
+   ],
+   "nextPageToken": "",
+   "totalSize": 7
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := oldPush.Manager{}
+	router.HandleFunc("/v1/projects/{project}/users", WrapMockAuthConfig(ProjectListUsers, cfgKafka, &brk, str, &mgr, nil, "service_admin"))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestProjectUserListUnprivARGO() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/members", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "users": [
+      {
+         "uuid": "same_uuid",
+         "projects": [
+            {
+               "project": "ARGO",
+               "roles": [
+                  "publisher",
+                  "consumer"
+               ],
+               "topics": [],
+               "subscriptions": []
+            }
+         ],
+         "name": "UserSame2",
+         "email": "foo-email",
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z"
+      },
+      {
+         "uuid": "same_uuid",
+         "projects": [
+            {
+               "project": "ARGO",
+               "roles": [
+                  "publisher",
+                  "consumer"
+               ],
+               "topics": [],
+               "subscriptions": []
+            }
+         ],
+         "name": "UserSame1",
+         "email": "foo-email",
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z"
+      },
+      {
+         "uuid": "uuid4",
+         "projects": [
+            {
+               "project": "ARGO",
+               "roles": [
+                  "publisher",
+                  "consumer"
+               ],
+               "topics": [
+                  "topic2"
+               ],
+               "subscriptions": [
+                  "sub3",
+                  "sub4"
+               ]
+            }
+         ],
+         "name": "UserZ",
+         "email": "foo-email",
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z"
+      },
+      {
+         "uuid": "uuid3",
+         "projects": [
+            {
+               "project": "ARGO",
+               "roles": [
+                  "publisher",
+                  "consumer"
+               ],
+               "topics": [
+                  "topic3"
+               ],
+               "subscriptions": [
+                  "sub2"
+               ]
+            }
+         ],
+         "name": "UserX",
+         "email": "foo-email",
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z"
+      },
+      {
+         "uuid": "uuid2",
+         "projects": [
+            {
+               "project": "ARGO",
+               "roles": [
+                  "consumer",
+                  "publisher"
+               ],
+               "topics": [
+                  "topic1",
+                  "topic2"
+               ],
+               "subscriptions": [
+                  "sub1",
+                  "sub3",
+                  "sub4"
+               ]
+            }
+         ],
+         "name": "UserB",
+         "email": "foo-email",
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z"
+      },
+      {
+         "uuid": "uuid1",
+         "projects": [
+            {
+               "project": "ARGO",
+               "roles": [
+                  "consumer",
+                  "publisher"
+               ],
+               "topics": [
+                  "topic1",
+                  "topic2"
+               ],
+               "subscriptions": [
+                  "sub1",
+                  "sub2",
+                  "sub3"
+               ]
+            }
+         ],
+         "name": "UserA",
+         "email": "foo-email",
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z"
+      },
+      {
+         "uuid": "uuid0",
+         "projects": [
+            {
+               "project": "ARGO",
+               "roles": [
+                  "consumer",
+                  "publisher"
+               ],
+               "topics": [],
+               "subscriptions": []
+            }
+         ],
+         "name": "Test",
+         "email": "Test@test.com",
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z"
+      }
+   ],
+   "nextPageToken": "",
+   "totalSize": 7
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := oldPush.Manager{}
+	router.HandleFunc("/v1/projects/{project}/members", WrapMockAuthConfig(ProjectListUsers, cfgKafka, &brk, str, &mgr, nil, "project_admin"))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestUserListAllProjectARGO2() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/users?project=ARGO2", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "users": [
+      {
+         "uuid": "uuid8",
+         "projects": [
+            {
+               "project": "ARGO2",
+               "roles": [
+                  "consumer",
+                  "publisher"
+               ],
+               "topics": [],
+               "subscriptions": []
+            }
+         ],
+         "name": "UserZ",
+         "token": "S3CR3T1",
+         "email": "foo-email",
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z"
+      }
+   ],
+   "nextPageToken": "",
+   "totalSize": 1
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := oldPush.Manager{}
+	router.HandleFunc("/v1/users", WrapMockAuthConfig(UserListAll, cfgKafka, &brk, str, &mgr, nil, "service_admin"))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestUserListAllProjectUNKNOWN() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/users?project=UNKNOWN", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "error": {
+      "code": 404,
+      "message": "Project doesn't exist",
+      "status": "NOT_FOUND"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := oldPush.Manager{}
+	router.HandleFunc("/v1/users", WrapMockAuthConfig(UserListAll, cfgKafka, &brk, str, &mgr, nil, "service_admin"))
+	router.ServeHTTP(w, req)
+	suite.Equal(404, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestUserListAllStartingAtSecond() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/users?pageSize=2&pageToken=Nw==", nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -714,7 +1547,7 @@ func (suite *HandlerTestSuite) TestUserListAllStartingPage() {
       }
    ],
    "nextPageToken": "NQ==",
-   "totalSize": 8
+   "totalSize": 9
 }`
 
 	cfgKafka := config.NewAPICfg()
@@ -725,7 +1558,7 @@ func (suite *HandlerTestSuite) TestUserListAllStartingPage() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/users", WrapMockAuthConfig(UserListAll, cfgKafka, &brk, str, &mgr, nil))
+	router.HandleFunc("/v1/users", WrapMockAuthConfig(UserListAll, cfgKafka, &brk, str, &mgr, nil, "service_admin"))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -824,7 +1657,7 @@ func (suite *HandlerTestSuite) TestUserListAllIntermediatePage() {
       }
    ],
    "nextPageToken": "Mg==",
-   "totalSize": 8
+   "totalSize": 9
 }`
 
 	cfgKafka := config.NewAPICfg()
@@ -835,7 +1668,7 @@ func (suite *HandlerTestSuite) TestUserListAllIntermediatePage() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/users", WrapMockAuthConfig(UserListAll, cfgKafka, &brk, str, &mgr, nil))
+	router.HandleFunc("/v1/users", WrapMockAuthConfig(UserListAll, cfgKafka, &brk, str, &mgr, nil, "service_admin"))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())

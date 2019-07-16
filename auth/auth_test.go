@@ -305,7 +305,7 @@ func (suite *AuthTestSuite) TestAuth() {
    ]
 }`
 
-	users, _ := FindUsers("argo_uuid", "", "", store)
+	users, _ := FindUsers("argo_uuid", "", "", true, store)
 	outUserList, _ := users.ExportJSON()
 	suite.Equal(expUserList, outUserList)
 
@@ -439,7 +439,7 @@ func (suite *AuthTestSuite) TestAuth() {
 
 	// Test Create
 	CreateUser("uuid12", "johndoe", []ProjectRoles{ProjectRoles{Project: "ARGO", Roles: []string{"consumer"}}}, "johndoe@fake.email.foo", "TOK3N", []string{"service_admin"}, tm, "", store)
-	usrs, _ := FindUsers("", "uuid12", "", store)
+	usrs, _ := FindUsers("", "uuid12", "", true, store)
 	usrJSON, _ := usrs.List[0].ExportJSON()
 	suite.Equal(expUsrJSON, usrJSON)
 
@@ -467,12 +467,12 @@ func (suite *AuthTestSuite) TestAuth() {
    "modified_on": "2009-11-10T23:00:00Z"
 }`
 	UpdateUser("uuid12", "johnny_doe", nil, "", []string{"consumer", "producer"}, tm, store)
-	usrUpd, _ := FindUsers("", "uuid12", "", store)
+	usrUpd, _ := FindUsers("", "uuid12", "", true, store)
 	usrUpdJSON, _ := usrUpd.List[0].ExportJSON()
 	suite.Equal(expUpdate, usrUpdJSON)
 
 	RemoveUser("uuid12", store)
-	_, err = FindUsers("", "uuid12", "", store)
+	_, err = FindUsers("", "uuid12", "", true, store)
 	suite.Equal(errors.New("not found"), err)
 
 	store2 := stores.NewMockStore("", "")
@@ -481,6 +481,7 @@ func (suite *AuthTestSuite) TestAuth() {
 	modified := "2009-11-10T23:00:00Z"
 
 	var qUsers1 []User
+	qUsers1 = append(qUsers1, User{"uuid8", []ProjectRoles{{"ARGO2", []string{"consumer", "publisher"}, []string{}, []string{}}}, "UserZ", "S3CR3T1", "foo-email", []string{}, created, modified, ""})
 	qUsers1 = append(qUsers1, User{"uuid7", []ProjectRoles{}, "push_worker_0", "push_token", "foo-email", []string{"push_worker"}, created, modified, ""})
 	qUsers1 = append(qUsers1, User{"same_uuid", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{}, []string{}}}, "UserSame2", "S3CR3T42", "foo-email", []string{}, created, modified, "UserA"})
 	qUsers1 = append(qUsers1, User{"same_uuid", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{}, []string{}}}, "UserSame1", "S3CR3T41", "foo-email", []string{}, created, modified, "UserA"})
@@ -490,41 +491,55 @@ func (suite *AuthTestSuite) TestAuth() {
 	qUsers1 = append(qUsers1, User{"uuid1", []ProjectRoles{{"ARGO", []string{"consumer", "publisher"}, []string{"topic1", "topic2"}, []string{"sub1", "sub2", "sub3"}}}, "UserA", "S3CR3T1", "foo-email", []string{}, created, modified, ""})
 	qUsers1 = append(qUsers1, User{"uuid0", []ProjectRoles{{"ARGO", []string{"consumer", "publisher"}, []string{}, []string{}}}, "Test", "S3CR3T", "Test@test.com", []string{}, created, modified, ""})
 	// return all users
-	pu1, e1 := PaginatedFindUsers("", 0, store2)
+	pu1, e1 := PaginatedFindUsers("", 0, "", true, store2)
 
 	var qUsers2 []User
+	qUsers2 = append(qUsers2, User{"uuid8", []ProjectRoles{{"ARGO2", []string{"consumer", "publisher"}, []string{}, []string{}}}, "UserZ", "S3CR3T1", "foo-email", []string{}, created, modified, ""})
 	qUsers2 = append(qUsers2, User{"uuid7", []ProjectRoles{}, "push_worker_0", "push_token", "foo-email", []string{"push_worker"}, created, modified, ""})
 	qUsers2 = append(qUsers2, User{"same_uuid", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{}, []string{}}}, "UserSame2", "S3CR3T42", "foo-email", []string{}, created, modified, "UserA"})
 
 	// return the first page with 2 users
-	pu2, e2 := PaginatedFindUsers("", 2, store2)
+	pu2, e2 := PaginatedFindUsers("", 3, "", true, store2)
 
 	var qUsers3 []User
 	qUsers3 = append(qUsers3, User{"uuid4", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{"topic2"}, []string{"sub3", "sub4"}}}, "UserZ", "S3CR3T4", "foo-email", []string{}, created, modified, "UserA"})
 	qUsers3 = append(qUsers3, User{"uuid3", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{"topic3"}, []string{"sub2"}}}, "UserX", "S3CR3T3", "foo-email", []string{}, created, modified, "UserA"})
 	// return the next 2 users
-	pu3, e3 := PaginatedFindUsers("NA==", 2, store2)
+	pu3, e3 := PaginatedFindUsers("NA==", 2, "", true, store2)
 
 	// empty collection
 	store3 := stores.NewMockStore("", "")
 	store3.UserList = []stores.QUser{}
-	pu4, e4 := PaginatedFindUsers("", 0, store3)
+	pu4, e4 := PaginatedFindUsers("", 0, "", true, store3)
 
 	// invalid id
-	_, e5 := PaginatedFindUsers("invalid", 0, store2)
+	_, e5 := PaginatedFindUsers("invalid", 0, "", true, store2)
+
+	// check user list by project
+	var qUsersB []User
+	qUsersB = append(qUsersB, User{"uuid8", []ProjectRoles{{"ARGO2", []string{"consumer", "publisher"}, []string{}, []string{}}}, "UserZ", "S3CR3T1", "foo-email", []string{}, created, modified, ""})
+
+	// check user list by project and with unprivileged mode (token redacted)
+	var qUsersC []User
+	qUsersC = append(qUsersC, User{"uuid8", []ProjectRoles{{"ARGO2", []string{"consumer", "publisher"}, []string{}, []string{}}}, "UserZ", "", "foo-email", []string{}, created, modified, ""})
+
+	puC, e1 := PaginatedFindUsers("", 1, "argo_uuid2", false, store2)
+	suite.Equal(qUsersC, puC.Users)
+	suite.Equal(int32(1), puC.TotalSize)
+	suite.Equal("", puC.NextPageToken)
 
 	suite.Equal(qUsers1, pu1.Users)
-	suite.Equal(int32(8), pu1.TotalSize)
+	suite.Equal(int32(9), pu1.TotalSize)
 	suite.Equal("", pu1.NextPageToken)
 	suite.Nil(e1)
 
 	suite.Equal(qUsers2, pu2.Users)
-	suite.Equal(int32(8), pu2.TotalSize)
+	suite.Equal(int32(9), pu2.TotalSize)
 	suite.Equal("NQ==", pu2.NextPageToken)
 	suite.Nil(e2)
 
 	suite.Equal(qUsers3, pu3.Users)
-	suite.Equal(int32(8), pu3.TotalSize)
+	suite.Equal(int32(9), pu3.TotalSize)
 	suite.Equal("Mg==", pu3.NextPageToken)
 	suite.Nil(e3)
 

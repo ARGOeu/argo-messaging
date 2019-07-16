@@ -46,7 +46,7 @@ Success Response
        "uuid": "99bfd746-4ebe-11e8-9c2d-fa7ae01bbebw",
        "projects": [
           {
-             "project": "ARGO",
+             "project": "ARGO2",
              "roles": [
                 "consumer",
                 "publisher"
@@ -195,7 +195,7 @@ Success Response
        "uuid": "99bfd746-4ebe-11e8-9c2d-fa7ae01bbebw",
        "projects": [
           {
-             "project": "ARGO",
+             "project": "ARGO2",
              "roles": [
                 "consumer",
                 "publisher"
@@ -346,6 +346,49 @@ Success Response
 }
 ```
 
+### Paginated Request that returns all users that are members of a specific project
+
+### Example request
+```
+curl -X GET -H "Content-Type: application/json"
+  "https://{URL}/v1/users?key=S3CR3T&project=ARGO2"
+```
+
+### Responses  
+If successful, the response contains a list of all available users that are members in the project ARGO2
+
+Success Response
+`200 OK`
+
+```json
+{
+ "users": [
+    {
+       "uuid": "99bfd746-4ebe-11e8-9c2d-fa7ae01bbebw",
+       "projects": [
+          {
+             "project": "ARGO2",
+             "roles": [
+                "consumer",
+                "publisher"
+             ],
+             "topics": [],
+             "subscriptions": []
+          }
+       ],
+       "name": "Test",
+       "token": "S3CR3T",
+       "email": "Test@test.com",
+       "service_roles": [],
+       "created_on": "2009-11-10T23:00:00Z",
+       "modified_on": "2009-11-10T23:00:00Z"
+    }
+ ],
+ "nextPageToken": "",
+ "totalSize": 1
+}
+```
+
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
 
@@ -402,6 +445,9 @@ Success Response
    "modified_on": "2009-11-10T23:00:00Z"
 }
 ```
+
+
+
 
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors

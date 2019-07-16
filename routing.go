@@ -8,7 +8,7 @@ import (
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
 	oldPush "github.com/ARGOeu/argo-messaging/push"
-	"github.com/ARGOeu/argo-messaging/push/grpc/client"
+	push "github.com/ARGOeu/argo-messaging/push/grpc/client"
 	"github.com/ARGOeu/argo-messaging/stores"
 	gorillaContext "github.com/gorilla/context"
 	"github.com/gorilla/mux"
@@ -83,6 +83,8 @@ var defaultRoutes = []APIRoute{
 	{"users:delete", "DELETE", "/users/{user}", UserDelete},
 	{"projects:list", "GET", "/projects", ProjectListAll},
 	{"projects:metrics", "GET", "/projects/{project}:metrics", ProjectMetrics},
+	{"projects:showUser", "GET", "/projects/{project}/members/{user}", ProjectUserListOne},
+	{"projects:listUsers", "GET", "/projects/{project}/members", ProjectListUsers},
 	{"projects:show", "GET", "/projects/{project}", ProjectListOne},
 	{"projects:create", "POST", "/projects/{project}", ProjectCreate},
 	{"projects:update", "PUT", "/projects/{project}", ProjectUpdate},

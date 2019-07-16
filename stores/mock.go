@@ -48,6 +48,7 @@ func NewMockStore(server string, database string) *MockStore {
 	return &mk
 }
 
+// InsertOpMetric inserts a new operation metric
 func (mk *MockStore) InsertOpMetric(hostname string, cpu float64, mem float64) error {
 	qOp := QopMetric{hostname, cpu, mem}
 	mk.OpMetrics[hostname] = qOp
@@ -84,6 +85,7 @@ func (mk *MockStore) UpdateUserToken(uuid string, token string) error {
 
 }
 
+// GetOpMetrics returns operation metrics
 func (mk *MockStore) GetOpMetrics() []QopMetric {
 	results := []QopMetric{}
 	for _, v := range mk.OpMetrics {
@@ -92,6 +94,7 @@ func (mk *MockStore) GetOpMetrics() []QopMetric {
 	return results
 }
 
+// AppendToUserProjects adds project and specific roles to a users role list
 func (mk *MockStore) AppendToUserProjects(userUUID string, projectUUID string, pRoles ...string) error {
 
 	for idx, user := range mk.UserList {
@@ -176,15 +179,15 @@ func (mk *MockStore) HasUsers(projectUUID string, users []string) (bool, []strin
 
 // ModACL changes the acl in a function
 func (mk *MockStore) ModACL(projectUUID string, resource string, name string, acl []string) error {
-	newAcl := QAcl{ACL: acl}
+	newACL := QAcl{ACL: acl}
 	if resource == "topics" {
 		if _, exists := mk.TopicsACL[name]; exists {
-			mk.TopicsACL[name] = newAcl
+			mk.TopicsACL[name] = newACL
 			return nil
 		}
 	} else if resource == "subscriptions" {
 		if _, exists := mk.SubsACL[name]; exists {
-			mk.SubsACL[name] = newAcl
+			mk.SubsACL[name] = newACL
 			return nil
 		}
 	}
@@ -192,6 +195,7 @@ func (mk *MockStore) ModACL(projectUUID string, resource string, name string, ac
 	return errors.New("wrong resource type")
 }
 
+// AppendToACL adds given users to an existing ACL
 func (mk *MockStore) AppendToACL(projectUUID string, resource string, name string, acl []string) error {
 	if resource == "topics" {
 		if qACL, exists := mk.TopicsACL[name]; exists {
@@ -228,6 +232,7 @@ func appendUniqueValues(existingValues []string, newValues ...string) []string {
 	return existingValues
 }
 
+// RemoveFromACL removes given users from an existing acl
 func (mk *MockStore) RemoveFromACL(projectUUID string, resource string, name string, acl []string) error {
 	if resource == "topics" {
 		if qACL, exists := mk.TopicsACL[name]; exists {
@@ -337,7 +342,7 @@ func (mk *MockStore) IncrementTopicMsgNum(projectUUID string, name string, num i
 	return errors.New("not found")
 }
 
-//IncrementTopicMsgNum increase number of messages published in a topic
+//IncrementDailyTopicMsgCount increase number of messages published in a topic
 func (mk *MockStore) IncrementDailyTopicMsgCount(projectUUID string, topicName string, num int64, date time.Time) error {
 
 	for i, item := range mk.DailyTopicMsgCount {
@@ -393,7 +398,7 @@ func (mk *MockStore) UpdateSubOffset(projectUUID string, name string, offset int
 
 }
 
-// ModSubPush modifies the subscription ack
+// ModAck modifies the subscription ack
 func (mk *MockStore) ModAck(projectUUID string, name string, ack int) error {
 	for i, item := range mk.SubList {
 		if item.ProjectUUID == projectUUID && item.Name == name {
@@ -421,7 +426,7 @@ func (mk *MockStore) ModSubPush(projectUUID string, name string, push string, rP
 	return errors.New("not found")
 }
 
-// ModSubPush modifies the subscription push configuration
+// ModSubPushStatus modifies the subscription push status
 func (mk *MockStore) ModSubPushStatus(projectUUID string, name string, status string) error {
 	for i, item := range mk.SubList {
 		if item.ProjectUUID == projectUUID && item.Name == name {
@@ -481,6 +486,7 @@ func (mk *MockStore) QueryProjects(uuid string, name string) ([]QProject, error)
 		}
 	} else if uuid != "" {
 		for _, item := range mk.ProjectList {
+
 			if item.UUID == uuid {
 				result = append(result, item)
 				break
@@ -533,7 +539,8 @@ func (mk *MockStore) QueryUsers(projectUUID string, uuid string, name string) ([
 
 }
 
-func (mk *MockStore) PaginatedQueryUsers(pageToken string, pageSize int32) ([]QUser, int32, string, error) {
+// PaginatedQueryUsers provides query to the list of users using pagination parameters
+func (mk *MockStore) PaginatedQueryUsers(pageToken string, pageSize int32, projectUUID string) ([]QUser, int32, string, error) {
 
 	var qUsers []QUser
 	var totalSize int32
@@ -560,7 +567,23 @@ func (mk *MockStore) PaginatedQueryUsers(pageToken string, pageSize int32) ([]QU
 		return id1 > id2
 	})
 
+	totalSize = int32(len(mk.UserList))
+
 	for _, user := range mk.UserList {
+
+		if projectUUID != "" {
+			found := false
+			for _, project := range user.Projects {
+
+				if projectUUID == project.ProjectUUID {
+					found = true
+				}
+			}
+			if !found {
+				continue
+			}
+
+		}
 
 		if limit == 0 {
 			break
@@ -584,11 +607,13 @@ func (mk *MockStore) PaginatedQueryUsers(pageToken string, pageSize int32) ([]QU
 
 	}
 
-	totalSize = int32(len(mk.UserList))
-
-	if len(qUsers) > 0 && len(qUsers) == int(pageSize)+1 {
+	if pageSize > 0 && len(qUsers) > 0 && len(qUsers) == int(pageSize)+1 {
 		nextPageToken = strconv.Itoa(qUsers[int(pageSize)].ID.(int))
 		qUsers = qUsers[:len(qUsers)-1]
+	}
+
+	if projectUUID != "" {
+		totalSize = int32(len(qUsers))
 	}
 
 	return qUsers, totalSize, nextPageToken, err
@@ -649,6 +674,7 @@ func (mk *MockStore) Initialize() {
 
 	// populate Users
 	qRole := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"consumer", "publisher"}}}
+	qRoleB := []QProjectRoles{QProjectRoles{"argo_uuid2", []string{"consumer", "publisher"}}}
 	qUsr := QUser{0, "uuid0", qRole, "Test", "S3CR3T", "Test@test.com", []string{}, created, modified, ""}
 
 	mk.UserList = append(mk.UserList, qUsr)
@@ -662,6 +688,7 @@ func (mk *MockStore) Initialize() {
 	mk.UserList = append(mk.UserList, QUser{5, "same_uuid", qRoleConsumerPub, "UserSame1", "S3CR3T41", "foo-email", []string{}, created, modified, "uuid1"})
 	mk.UserList = append(mk.UserList, QUser{6, "same_uuid", qRoleConsumerPub, "UserSame2", "S3CR3T42", "foo-email", []string{}, created, modified, "uuid1"})
 	mk.UserList = append(mk.UserList, QUser{7, "uuid7", []QProjectRoles{}, "push_worker_0", "push_token", "foo-email", []string{"push_worker"}, created, modified, ""})
+	mk.UserList = append(mk.UserList, QUser{8, "uuid8", qRoleB, "UserZ", "S3CR3T1", "foo-email", []string{}, created, modified, ""})
 
 	qRole1 := QRole{"topics:list_all", []string{"admin", "reader", "publisher"}}
 	qRole2 := QRole{"topics:publish", []string{"admin", "publisher"}}
@@ -707,6 +734,7 @@ func (mk *MockStore) Clone() Store {
 	return mk
 }
 
+// GetUserFromToken retrieves specific user info from a given token
 func (mk *MockStore) GetUserFromToken(token string) (QUser, error) {
 	for _, item := range mk.UserList {
 
@@ -1011,6 +1039,7 @@ func (mk *MockStore) QuerySubs(projectUUID, userUUID, name, pageToken string, pa
 
 }
 
+// QuerySubsByTopic returns subscriptions attached to a given topic
 func (mk *MockStore) QuerySubsByTopic(projectUUID, topic string) ([]QSub, error) {
 	result := []QSub{}
 	for _, item := range mk.SubList {
@@ -1021,6 +1050,7 @@ func (mk *MockStore) QuerySubsByTopic(projectUUID, topic string) ([]QSub, error)
 	return result, nil
 }
 
+// QuerySubsByACL returns subscriptions that contain a specific user in their ACL
 func (mk *MockStore) QuerySubsByACL(projectUUID, user string) ([]QSub, error) {
 
 	result := []QSub{}
@@ -1037,6 +1067,7 @@ func (mk *MockStore) QuerySubsByACL(projectUUID, user string) ([]QSub, error) {
 	return result, nil
 }
 
+// QueryTopicsByACL returns topics that contain a specific user in their ACL
 func (mk *MockStore) QueryTopicsByACL(projectUUID, user string) ([]QTopic, error) {
 
 	result := []QTopic{}
@@ -1186,6 +1217,7 @@ func (mk *MockStore) existsInACL(resource, resourceName, userUUID string) bool {
 
 }
 
+// Checks if a users exists in an ACL resource (topic or subscription)
 func (mk *MockStore) ExistsInACL(projectUUID string, resource string, resourceName string, userUUID string) error {
 
 	var acl QAcl
@@ -1206,6 +1238,7 @@ func (mk *MockStore) ExistsInACL(projectUUID string, resource string, resourceNa
 	return errors.New("not found")
 }
 
+// UpdateTopicLatestPublish updates the topic's latest publish time
 func (mk *MockStore) UpdateTopicLatestPublish(projectUUID string, name string, date time.Time) error {
 	for idx, topic := range mk.TopicList {
 		if topic.ProjectUUID == projectUUID && topic.Name == name {
@@ -1216,6 +1249,7 @@ func (mk *MockStore) UpdateTopicLatestPublish(projectUUID string, name string, d
 	return errors.New("topic not found")
 }
 
+// UpdateTopicPublishRate updates the topic's publishing rate
 func (mk *MockStore) UpdateTopicPublishRate(projectUUID string, name string, rate float64) error {
 	for idx, topic := range mk.TopicList {
 		if topic.ProjectUUID == projectUUID && topic.Name == name {
@@ -1226,6 +1260,7 @@ func (mk *MockStore) UpdateTopicPublishRate(projectUUID string, name string, rat
 	return errors.New("topic not found")
 }
 
+// UpdateSubLatestConsume updates the subscription's latest consume time
 func (mk *MockStore) UpdateSubLatestConsume(projectUUID string, name string, date time.Time) error {
 	for idx, topic := range mk.SubList {
 		if topic.ProjectUUID == projectUUID && topic.Name == name {
@@ -1236,6 +1271,7 @@ func (mk *MockStore) UpdateSubLatestConsume(projectUUID string, name string, dat
 	return errors.New("subscription not found")
 }
 
+// UpdateSubConsumeRate updates the subscription's consume rate
 func (mk *MockStore) UpdateSubConsumeRate(projectUUID string, name string, rate float64) error {
 	for idx, topic := range mk.SubList {
 		if topic.ProjectUUID == projectUUID && topic.Name == name {
@@ -1246,7 +1282,7 @@ func (mk *MockStore) UpdateSubConsumeRate(projectUUID string, name string, rate 
 	return errors.New("subscription not found")
 }
 
-//IncrementTopicMsgNum increase number of messages published in a topic
+// QueryDailyTopicMsgCount returns results regarding the number of messages published to a topic
 func (mk *MockStore) QueryDailyTopicMsgCount(projectUUID string, topicName string, date time.Time) ([]QDailyTopicMsgCount, error) {
 
 	var qds []QDailyTopicMsgCount
