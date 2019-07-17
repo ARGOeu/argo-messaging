@@ -7,10 +7,16 @@ import (
 
 type MockClient struct{}
 
-func (*MockClient) HealthCheck(ctx context.Context) *GrpcClientStatus {
-	return &GrpcClientStatus{
-		err:     nil,
-		message: "SERVING",
+func (*MockClient) SubscriptionStatus(ctx context.Context, fullSub string) ClientStatus {
+
+	return &MockClientStatus{
+		Status: fmt.Sprintf("Subscription %v is currently active", fullSub),
+	}
+}
+
+func (*MockClient) HealthCheck(ctx context.Context) ClientStatus {
+	return &MockClientStatus{
+		Status: "SERVING",
 	}
 }
 

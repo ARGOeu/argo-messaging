@@ -18,7 +18,7 @@ func (suite *ClientTestSuite) TestResult() {
 		err:     nil,
 		message: "ok message",
 	}
-	suite.Equal("Success: ok message", grpcStatus.Result())
+	suite.Equal("ok message", grpcStatus.Result())
 
 	// error status
 	grpcStatus2 := GrpcClientStatus{

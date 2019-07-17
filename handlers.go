@@ -1130,6 +1130,15 @@ func SubListOne(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// if its a push enabled sub and it has a verified endpoint
+	// call the push server to find its real time push status
+	if results.Subscriptions[0].PushCfg != (subscriptions.PushConfig{}) {
+		if results.Subscriptions[0].PushCfg.Verified {
+			apsc := gorillaContext.Get(r, "apsc").(push.Client)
+			results.Subscriptions[0].PushStatus = apsc.SubscriptionStatus(context.TODO(), results.Subscriptions[0].FullName).Result()
+		}
+	}
+
 	// Output result to JSON
 	resJSON, err := results.Subscriptions[0].ExportJSON()
 

@@ -4665,7 +4665,7 @@ func (suite *HandlerTestSuite) TestHealthCheck() {
  "push_servers": [
   {
    "endpoint": "localhost:5555",
-   "status": "Success: SERVING"
+   "status": "SERVING"
   }
  ]
 }`
@@ -4683,6 +4683,7 @@ func (suite *HandlerTestSuite) TestHealthCheck() {
 	router.HandleFunc("/v1/status", WrapMockAuthConfig(HealthCheck, cfgKafka, &brk, str, &mgr, pc))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
+
 	suite.Equal(expResp, w.Body.String())
 }
 
@@ -4725,7 +4726,7 @@ func (suite *HandlerTestSuite) TestHealthCheckPushWorkerMissing() {
  "push_servers": [
   {
    "endpoint": "localhost:5555",
-   "status": "Success: SERVING"
+   "status": "SERVING"
   }
  ]
 }`
