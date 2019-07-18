@@ -2987,7 +2987,6 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			log.Errorf("Couldn't publish to topic %v, %v", fullTopic, err.Error())
 			err := APIErrGenericBackend()
 			respondErr(w, err)
 			return

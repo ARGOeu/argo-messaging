@@ -82,10 +82,23 @@ func (cfg *APICfg) GetBrokerInfo() []string {
 		if err != nil {
 			// If error retrieving info try again in 3 seconds
 			time.Sleep(3 * time.Second)
-			log.Error("ZK", "\t", "Broker list invalid: ", err.Error())
+			log.WithFields(
+				log.Fields{
+					"type":            "backend_log",
+					"backend_service": "zookeeper",
+					"error":           err.Error(),
+				},
+			).Error("Invalid broker list")
 		} else {
 			// Info retrieved succesfully so continue
-			log.Info("ZK", "\t", "Discovered broker list:", brkList)
+			log.WithFields(
+				log.Fields{
+					"type":            "backend_log",
+					"backend_service": "zookeeper",
+					"broker_list":     brkList,
+				},
+			).Info("Broker list discovered")
+
 			return brkList
 		}
 
@@ -94,8 +107,17 @@ func (cfg *APICfg) GetBrokerInfo() []string {
 
 // GetZooList gets broker list from zookeeper
 func (cfg *APICfg) GetZooList() ([]string, error) {
+
 	peerList := []string{}
-	log.Info("ZK", "\t", "Trying to connect zookeper hosts: ", cfg.ZooHosts, " ...")
+
+	log.WithFields(
+		log.Fields{
+			"type":            "backend_log",
+			"backend_service": "zookeeper",
+			"backend_hosts":   cfg.ZooHosts,
+		},
+	).Info("Trying to connect to Zookeeper")
+
 	zConn, _, err := zk.Connect(cfg.ZooHosts, time.Second)
 	// Check if indeed connected and can read
 	_, _, _, err = zConn.ChildrenW("/")
@@ -104,8 +126,22 @@ func (cfg *APICfg) GetZooList() ([]string, error) {
 		return peerList, err
 	}
 
-	log.Info("ZK", "\t", "Connected to zookeper hosts: ", cfg.ZooHosts)
-	log.Info("ZK", "\t", "Attempting to read broker information")
+	log.WithFields(
+		log.Fields{
+			"type":            "backend_log",
+			"backend_service": "zookeeper",
+			"backend_hosts":   cfg.ZooHosts,
+		},
+	).Info("Connection to Zookeeper established successfully")
+
+	log.WithFields(
+		log.Fields{
+			"type":            "backend_log",
+			"backend_service": "zookeeper",
+			"backend_hosts":   cfg.ZooHosts,
+		},
+	).Info("Attempting to read broker information")
+
 	brIDs, _, err := zConn.Children(cfg.KafkaZnode + "/brokers/ids")
 	if err != nil {
 		return peerList, err
