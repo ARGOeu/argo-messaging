@@ -17,7 +17,7 @@ type Store interface {
 	UpdateSubConsumeRate(projectUUID string, name string, rate float64) error
 	RemoveTopic(projectUUID string, name string) error
 	RemoveSub(projectUUID string, name string) error
-	PaginatedQueryUsers(pageToken string, pageSize int32) ([]QUser, int32, string, error)
+	PaginatedQueryUsers(pageToken string, pageSize int32, projectUUID string) ([]QUser, int32, string, error)
 	QueryUsers(projectUUID string, uuid string, name string) ([]QUser, error)
 	UpdateUser(uuid string, projects []QProjectRoles, name string, email string, serviceRoles []string, modifiedOn time.Time) error
 	AppendToUserProjects(userUUID string, projectUUID string, pRoles ...string) error

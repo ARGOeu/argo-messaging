@@ -311,46 +311,46 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal(errors.New("not found"), err08)
 
 	// test mod acl
-	eModAcl1 := store.ModACL("argo_uuid", "topics", "topic1", []string{"u1", "u2"})
-	suite.Nil(eModAcl1)
+	eModACL1 := store.ModACL("argo_uuid", "topics", "topic1", []string{"u1", "u2"})
+	suite.Nil(eModACL1)
 	tACL := store.TopicsACL["topic1"].ACL
 	suite.Equal([]string{"u1", "u2"}, tACL)
 
-	eModAcl2 := store.ModACL("argo_uuid", "subscriptions", "sub1", []string{"u1", "u2"})
-	suite.Nil(eModAcl2)
+	eModACL2 := store.ModACL("argo_uuid", "subscriptions", "sub1", []string{"u1", "u2"})
+	suite.Nil(eModACL2)
 	sACL := store.SubsACL["sub1"].ACL
 	suite.Equal([]string{"u1", "u2"}, sACL)
 
-	eModAcl3 := store.ModACL("argo_uuid", "mistype", "sub1", []string{"u1", "u2"})
-	suite.Equal("wrong resource type", eModAcl3.Error())
+	eModACL3 := store.ModACL("argo_uuid", "mistype", "sub1", []string{"u1", "u2"})
+	suite.Equal("wrong resource type", eModACL3.Error())
 
 	// test append acl
-	eAppAcl1 := store.AppendToACL("argo_uuid", "topics", "topic1", []string{"u3", "u4", "u4"})
-	suite.Nil(eAppAcl1)
+	eAppACL1 := store.AppendToACL("argo_uuid", "topics", "topic1", []string{"u3", "u4", "u4"})
+	suite.Nil(eAppACL1)
 	tACLapp := store.TopicsACL["topic1"].ACL
 	suite.Equal([]string{"u1", "u2", "u3", "u4"}, tACLapp)
 
-	eAppAcl2 := store.AppendToACL("argo_uuid", "subscriptions", "sub1", []string{"u3", "u4", "u4"})
-	suite.Nil(eAppAcl2)
+	eAppACL2 := store.AppendToACL("argo_uuid", "subscriptions", "sub1", []string{"u3", "u4", "u4"})
+	suite.Nil(eAppACL2)
 	sACLapp := store.SubsACL["sub1"].ACL
 	suite.Equal([]string{"u1", "u2", "u3", "u4"}, sACLapp)
 
-	eAppAcl3 := store.AppendToACL("argo_uuid", "mistype", "sub1", []string{"u3", "u4", "u4"})
-	suite.Equal("wrong resource type", eAppAcl3.Error())
+	eAppACL3 := store.AppendToACL("argo_uuid", "mistype", "sub1", []string{"u3", "u4", "u4"})
+	suite.Equal("wrong resource type", eAppACL3.Error())
 
 	// test remove acl
-	eRemAcl1 := store.RemoveFromACL("argo_uuid", "topics", "topic1", []string{"u1", "u4", "u5"})
-	suite.Nil(eRemAcl1)
+	eRemACL1 := store.RemoveFromACL("argo_uuid", "topics", "topic1", []string{"u1", "u4", "u5"})
+	suite.Nil(eRemACL1)
 	tACLRem := store.TopicsACL["topic1"].ACL
 	suite.Equal([]string{"u2", "u3"}, tACLRem)
 
-	eRemAcl2 := store.RemoveFromACL("argo_uuid", "subscriptions", "sub1", []string{"u1", "u4", "u5"})
-	suite.Nil(eRemAcl2)
+	eRemACL2 := store.RemoveFromACL("argo_uuid", "subscriptions", "sub1", []string{"u1", "u4", "u5"})
+	suite.Nil(eRemACL2)
 	sACLRem := store.SubsACL["sub1"].ACL
 	suite.Equal([]string{"u2", "u3"}, sACLRem)
 
-	eRemAcl3 := store.RemoveFromACL("argo_uuid", "mistype", "sub1", []string{"u3", "u4", "u4"})
-	suite.Equal("wrong resource type", eRemAcl3.Error())
+	eRemACL3 := store.RemoveFromACL("argo_uuid", "mistype", "sub1", []string{"u3", "u4", "u4"})
+	suite.Equal("wrong resource type", eRemACL3.Error())
 
 	//Check has users
 	allFound, notFound := store.HasUsers("argo_uuid", []string{"UserA", "UserB", "FooUser"})
@@ -495,27 +495,27 @@ func (suite *StoreTestSuite) TestMockStore() {
 	store2 := NewMockStore("", "")
 
 	// return all users in one page
-	qUsers1, ts1, pg1, _ := store2.PaginatedQueryUsers("", 0)
+	qUsers1, ts1, pg1, _ := store2.PaginatedQueryUsers("", 0, "")
 
 	// return a page with the first 2
-	qUsers2, ts2, pg2, _ := store2.PaginatedQueryUsers("", 2)
+	qUsers2, ts2, pg2, _ := store2.PaginatedQueryUsers("", 2, "")
 
 	// empty store
 	store3 := NewMockStore("", "")
 	store3.UserList = []QUser{}
-	qUsers3, ts3, pg3, _ := store3.PaginatedQueryUsers("", 0)
+	qUsers3, ts3, pg3, _ := store3.PaginatedQueryUsers("", 0, "")
 
 	// use page token "5" to grab another 2 results
-	qUsers4, ts4, pg4, _ := store2.PaginatedQueryUsers("4", 2)
+	qUsers4, ts4, pg4, _ := store2.PaginatedQueryUsers("4", 2, "")
 
 	suite.Equal(store2.UserList, qUsers1)
 	suite.Equal("", pg1)
-	suite.Equal(int32(8), ts1)
+	suite.Equal(int32(9), ts1)
 
-	suite.Equal(7, qUsers2[0].ID)
-	suite.Equal(6, qUsers2[1].ID)
-	suite.Equal("5", pg2)
-	suite.Equal(int32(8), ts2)
+	suite.Equal(8, qUsers2[0].ID)
+	suite.Equal(7, qUsers2[1].ID)
+	suite.Equal("6", pg2)
+	suite.Equal(int32(9), ts2)
 
 	suite.Equal(0, len(qUsers3))
 	suite.Equal("", pg3)
@@ -524,7 +524,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal(4, qUsers4[0].ID)
 	suite.Equal(3, qUsers4[1].ID)
 	suite.Equal("2", pg4)
-	suite.Equal(int32(8), ts4)
+	suite.Equal(int32(9), ts4)
 
 	// test update topic latest publish time
 	e1ulp := store2.UpdateTopicLatestPublish("argo_uuid", "topic1", time.Date(2019, 8, 8, 0, 0, 0, 0, time.Local))

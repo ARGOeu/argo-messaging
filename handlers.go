@@ -14,6 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"context"
+
 	"github.com/ARGOeu/argo-messaging/auth"
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
@@ -21,7 +22,7 @@ import (
 	"github.com/ARGOeu/argo-messaging/metrics"
 	"github.com/ARGOeu/argo-messaging/projects"
 	oldPush "github.com/ARGOeu/argo-messaging/push"
-	"github.com/ARGOeu/argo-messaging/push/grpc/client"
+	push "github.com/ARGOeu/argo-messaging/push/grpc/client"
 	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/ARGOeu/argo-messaging/subscriptions"
 	"github.com/ARGOeu/argo-messaging/topics"
@@ -147,13 +148,13 @@ func WrapAuthenticate(hfn http.Handler) http.HandlerFunc {
 		refStr := gorillaContext.Get(r, "str").(stores.Store)
 		serviceToken := gorillaContext.Get(r, "auth_service_token").(string)
 
-		project_name := urlVars["project"]
+		projectName := urlVars["project"]
 		projectUUID := projects.GetUUIDByName(urlVars["project"], refStr)
 
 		// In all cases instead of project create
 		if "projects:create" != mux.CurrentRoute(r).GetName() {
 			// Check if given a project name the project wasn't found
-			if project_name != "" && projectUUID == "" {
+			if projectName != "" && projectUUID == "" {
 				apiErr := APIErrorNotFound("project")
 				respondErr(w, apiErr)
 				return
@@ -162,7 +163,7 @@ func WrapAuthenticate(hfn http.Handler) http.HandlerFunc {
 
 		// Check first if service token is used
 		if serviceToken != "" && serviceToken == urlValues.Get("key") {
-			gorillaContext.Set(r, "auth_roles", []string{})
+			gorillaContext.Set(r, "auth_roles", []string{"service_admin"})
 			gorillaContext.Set(r, "auth_user", "")
 			gorillaContext.Set(r, "auth_user_uuid", "")
 			gorillaContext.Set(r, "auth_project_uuid", projectUUID)
@@ -797,6 +798,61 @@ func UserListByToken(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// ProjectUserListOne (GET) one user member of a specific project
+func ProjectUserListOne(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+	urlUser := urlVars["user"]
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	refRoles := gorillaContext.Get(r, "auth_roles").([]string)
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
+
+	// check that user is indeed a service admin in order to be priviledged to see full user info
+	priviledged := auth.IsServiceAdmin(refRoles)
+
+	// Get Results Object
+	results, err := auth.FindUsers(projectUUID, "", urlUser, priviledged, refStr)
+
+	if err != nil {
+		if err.Error() == "not found" {
+			err := APIErrorNotFound("User")
+			respondErr(w, err)
+			return
+		}
+
+		err := APIErrQueryDatastore()
+		respondErr(w, err)
+		return
+	}
+
+	res := results.One()
+
+	// Output result to JSON
+	resJSON, err := res.ExportJSON()
+
+	if err != nil {
+		err := APIErrExportJSON()
+		respondErr(w, err)
+		return
+	}
+
+	// Write response
+	output = []byte(resJSON)
+	respondOK(w, output)
+
+}
+
 // UserListOne (GET) one user
 func UserListOne(w http.ResponseWriter, r *http.Request) {
 
@@ -816,7 +872,7 @@ func UserListOne(w http.ResponseWriter, r *http.Request) {
 	refStr := gorillaContext.Get(r, "str").(stores.Store)
 
 	// Get Results Object
-	results, err := auth.FindUsers("", "", urlUser, refStr)
+	results, err := auth.FindUsers("", "", urlUser, true, refStr)
 
 	if err != nil {
 		if err.Error() == "not found" {
@@ -897,7 +953,66 @@ func UserListByUUID(w http.ResponseWriter, r *http.Request) {
 	respondOK(w, output)
 }
 
-// UserListAll (GET) all users belonging to a project
+// ProjectListUsers (GET) all users belonging to a project
+func ProjectListUsers(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	var pageSize int
+	var paginatedUsers auth.PaginatedUsers
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	refRoles := gorillaContext.Get(r, "auth_roles").([]string)
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
+
+	// Grab url path variables
+	urlValues := r.URL.Query()
+	pageToken := urlValues.Get("pageToken")
+	strPageSize := urlValues.Get("pageSize")
+
+	if strPageSize != "" {
+		if pageSize, err = strconv.Atoi(strPageSize); err != nil {
+			log.Errorf("Pagesize %v produced an error  while being converted to int: %v", strPageSize, err.Error())
+			err := APIErrorInvalidData("Invalid page size")
+			respondErr(w, err)
+			return
+		}
+	}
+
+	// check that user is indeed a service admin in order to be priviledged to see full user info
+	priviledged := auth.IsServiceAdmin(refRoles)
+
+	// Get Results Object - call is always priviledged because this handler is only accessible by service admins
+	if paginatedUsers, err = auth.PaginatedFindUsers(pageToken, int32(pageSize), projectUUID, priviledged, refStr); err != nil {
+		err := APIErrorInvalidData("Invalid page token")
+		respondErr(w, err)
+		return
+	}
+
+	// Output result to JSON
+	resJSON, err := paginatedUsers.ExportJSON()
+
+	if err != nil {
+		err := APIErrExportJSON()
+		respondErr(w, err)
+		return
+	}
+
+	// Write response
+	output = []byte(resJSON)
+	respondOK(w, output)
+
+}
+
+// UserListAll (GET) all users - or users belonging to a project
 func UserListAll(w http.ResponseWriter, r *http.Request) {
 
 	var err error
@@ -914,11 +1029,23 @@ func UserListAll(w http.ResponseWriter, r *http.Request) {
 
 	// Grab context references
 	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	refRoles := gorillaContext.Get(r, "auth_roles").([]string)
 
 	// Grab url path variables
 	urlValues := r.URL.Query()
 	pageToken := urlValues.Get("pageToken")
 	strPageSize := urlValues.Get("pageSize")
+	projectName := urlValues.Get("project")
+	projectUUID := ""
+
+	if projectName != "" {
+		projectUUID = projects.GetUUIDByName(projectName, refStr)
+		if projectUUID == "" {
+			err := APIErrorNotFound("Project")
+			respondErr(w, err)
+			return
+		}
+	}
 
 	if strPageSize != "" {
 		if pageSize, err = strconv.Atoi(strPageSize); err != nil {
@@ -929,8 +1056,11 @@ func UserListAll(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Get Results Object
-	if paginatedUsers, err = auth.PaginatedFindUsers(pageToken, int32(pageSize), refStr); err != nil {
+	// check that user is indeed a service admin in order to be priviledged to see full user info
+	priviledged := auth.IsServiceAdmin(refRoles)
+
+	// Get Results Object - call is always priviledged because this handler is only accessible by service admins
+	if paginatedUsers, err = auth.PaginatedFindUsers(pageToken, int32(pageSize), projectUUID, priviledged, refStr); err != nil {
 		err := APIErrorInvalidData("Invalid page token")
 		respondErr(w, err)
 		return

@@ -210,6 +210,128 @@ Code: `200 OK`, Empty response if successful.
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
 
+### [GET] List all users that are members of a specific project
+
+### Example request
+```
+curl -X GET -H "Content-Type: application/json"
+  "https://{URL}/v1/projects/ARGO2/members?key=S3CR3T"
+```
+
+### Responses  
+If successful, the response contains a list of all available users in the specific project
+
+Success Response
+`200 OK`
+
+```json
+{
+ "users": [
+    {
+       "uuid": "99bfd746-4ebe-11e8-9c2d-fa7ae01bbebw",
+       "projects": [
+          {
+             "project": "ARGO2",
+             "roles": [
+                "consumer",
+                "publisher"
+             ],
+             "topics": [],
+             "subscriptions": []
+          }
+       ],
+       "name": "Test",
+       "token": "S3CR3T",
+       "email": "Test@test.com",
+       "service_roles": [],
+       "created_on": "2009-11-10T23:00:00Z",
+       "modified_on": "2009-11-10T23:00:00Z"
+    }
+ ],
+ "nextPageToken": "",
+ "totalSize": 1
+}
+```
+
+### Unpriviledge mode (non service_admin user)
+When a user is project_admin instead of service_admin and lists a project's users the results
+returned remove user information such as `token`, `service_roles` and `created_by` For example:
+
+```json
+{
+ "users": [
+    {
+       "uuid": "99bfd746-4ebe-11e8-9c2d-fa7ae01bbebw",
+       "projects": [
+          {
+             "project": "ARGO2",
+             "roles": [
+                "consumer",
+                "publisher"
+             ],
+             "topics": [],
+             "subscriptions": []
+          }
+       ],
+       "name": "Test",
+       "token": "",
+       "email": "Test@test.com",
+       "service_roles": [],
+       "created_on": "2009-11-10T23:00:00Z",
+       "modified_on": "2009-11-10T23:00:00Z"
+    }
+ ],
+ "nextPageToken": "",
+ "totalSize": 1
+}
+```
+
+### [GET] Show a specific member user of the specific project
+
+### Example request
+```
+curl -X GET -H "Content-Type: application/json"
+  "https://{URL}/v1/projects/ARGO2/members/Test?key=S3CR3T"
+```
+
+### Responses  
+If successful, the response contains information of the specific user Test
+
+Success Response
+`200 OK`
+
+```json
+{
+ "users": [
+    {
+       "uuid": "99bfd746-4ebe-11e8-9c2d-fa7ae01bbebw",
+       "projects": [
+          {
+             "project": "ARGO2",
+             "roles": [
+                "consumer",
+                "publisher"
+             ],
+             "topics": [],
+             "subscriptions": []
+          }
+       ],
+       "name": "Test",
+       "token": "S3CR3T",
+       "email": "Test@test.com",
+       "service_roles": [],
+       "created_on": "2009-11-10T23:00:00Z",
+       "modified_on": "2009-11-10T23:00:00Z"
+    }
+ ],
+ "nextPageToken": "",
+ "totalSize": 1
+}
+```
+
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors
+
 ## [GET] Project Metrics
 The following request returns related metrics for the specific project: eg. the number of topics
 
@@ -228,6 +350,8 @@ GET "/v1/projects/{project_name}:metrics"
 curl  -H "Content-Type: application/json"
 "https://{URL}/v1/projects/BRAND_NEW:metrics?key=S3CR3T"
 ```
+
+
 
 ### Responses  
 If successful it returns projects related metrics (number of topics, number of subscriptions).

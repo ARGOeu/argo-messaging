@@ -8,10 +8,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/ARGOeu/argo-messaging/projects"
 	"github.com/ARGOeu/argo-messaging/stores"
 	log "github.com/sirupsen/logrus"
-	"time"
 )
 
 // User is the struct that holds user information
@@ -19,7 +20,7 @@ type User struct {
 	UUID         string         `json:"uuid"`
 	Projects     []ProjectRoles `json:"projects"`
 	Name         string         `json:"name"`
-	Token        string         `json:"token"`
+	Token        string         `json:"token,omitempty"`
 	Email        string         `json:"email"`
 	ServiceRoles []string       `json:"service_roles"`
 	CreatedOn    string         `json:"created_on,omitempty"`
@@ -94,6 +95,7 @@ func NewUser(uuid string, projects []ProjectRoles, name string, token string, em
 	return User{UUID: uuid, Projects: projects, Name: name, Token: token, Email: email, ServiceRoles: serviceRoles, CreatedOn: createdOn.Format(zuluForm), ModifiedOn: modifiedOn.Format(zuluForm), CreatedBy: createdBy}
 }
 
+// GetPushWorker returns a push worker user by token
 func GetPushWorker(pwToken string, store stores.Store) (User, error) {
 
 	pw, err := GetUserByToken(pwToken, store)
@@ -151,7 +153,7 @@ func GetUserByToken(token string, store stores.Store) (User, error) {
 }
 
 // FindUsers returns a specific user or a list of all available users belonging to a  project in the datastore.
-func FindUsers(projectUUID string, uuid string, name string, store stores.Store) (Users, error) {
+func FindUsers(projectUUID string, uuid string, name string, priviledged bool, store stores.Store) (Users, error) {
 	result := Users{}
 
 	users, err := store.QueryUsers(projectUUID, uuid, name)
@@ -160,17 +162,31 @@ func FindUsers(projectUUID string, uuid string, name string, store stores.Store)
 
 		// Get Username from user uuid
 
+		// Get Username from user uuid
+		serviceRoles := []string{}
+		token := ""
 		usernameC := ""
-		if item.CreatedBy != "" {
-			usr, err := store.QueryUsers("", item.CreatedBy, "")
-			if err == nil && len(usr) > 0 {
-				usernameC = usr[0].Name
 
+		// if call made by priviledged user (superuser), show service roles, token and user creator info
+		if priviledged {
+			if item.CreatedBy != "" {
+				usr, err := store.QueryUsers("", item.CreatedBy, "")
+				if err == nil && len(usr) > 0 {
+					usernameC = usr[0].Name
+
+				}
 			}
+			token = item.Token
+			serviceRoles = item.ServiceRoles
 		}
 
 		pRoles := []ProjectRoles{}
 		for _, pItem := range item.Projects {
+			// if user not priviledged (not superuser) and queried projectUUID doesn't
+			// match current role item's project UUID, skip the item
+			if !priviledged && pItem.ProjectUUID != projectUUID {
+				continue
+			}
 			prName := projects.GetNameByUUID(pItem.ProjectUUID, store)
 			// Get User topics and subscriptions
 
@@ -188,7 +204,7 @@ func FindUsers(projectUUID string, uuid string, name string, store stores.Store)
 			pRoles = append(pRoles, ProjectRoles{Project: prName, Roles: pItem.Roles, Topics: topicNames, Subs: subNames})
 		}
 
-		curUser := NewUser(item.UUID, pRoles, item.Name, item.Token, item.Email, item.ServiceRoles, item.CreatedOn.UTC(), item.ModifiedOn.UTC(), usernameC)
+		curUser := NewUser(item.UUID, pRoles, item.Name, token, item.Email, serviceRoles, item.CreatedOn.UTC(), item.ModifiedOn.UTC(), usernameC)
 
 		result.List = append(result.List, curUser)
 	}
@@ -201,7 +217,7 @@ func FindUsers(projectUUID string, uuid string, name string, store stores.Store)
 }
 
 // PaginatedFindUsers returns a page of users
-func PaginatedFindUsers(pageToken string, pageSize int32, store stores.Store) (PaginatedUsers, error) {
+func PaginatedFindUsers(pageToken string, pageSize int32, projectUUID string, priviledged bool, store stores.Store) (PaginatedUsers, error) {
 
 	var totalSize int32
 	var nextPageToken string
@@ -217,28 +233,39 @@ func PaginatedFindUsers(pageToken string, pageSize int32, store stores.Store) (P
 
 	result := PaginatedUsers{Users: []User{}}
 
-	if users, totalSize, nextPageToken, err = store.PaginatedQueryUsers(string(pageTokenBytes), pageSize); err != nil {
+	if users, totalSize, nextPageToken, err = store.PaginatedQueryUsers(string(pageTokenBytes), pageSize, projectUUID); err != nil {
 		return result, err
 	}
 
 	for _, item := range users {
 
 		// Get Username from user uuid
-
+		serviceRoles := []string{}
+		token := ""
 		usernameC := ""
-		if item.CreatedBy != "" {
-			usr, err := store.QueryUsers("", item.CreatedBy, "")
-			if err == nil && len(usr) > 0 {
-				usernameC = usr[0].Name
+		// if call made by priviledged user (superuser), show service roles, token and user creator info
+		if priviledged {
+			if item.CreatedBy != "" {
+				usr, err := store.QueryUsers("", item.CreatedBy, "")
+				if err == nil && len(usr) > 0 {
+					usernameC = usr[0].Name
 
+				}
 			}
+			token = item.Token
+			serviceRoles = item.ServiceRoles
 		}
 
 		pRoles := []ProjectRoles{}
 		for _, pItem := range item.Projects {
+			// if user not priviledged (not superuser) and queried projectUUID doesn't
+			// match current role item's project UUID, skip the item
+			if !priviledged && pItem.ProjectUUID != projectUUID {
+				continue
+			}
 			prName := projects.GetNameByUUID(pItem.ProjectUUID, store)
-			// Get User topics and subscriptions
 
+			// Get User topics and subscriptions
 			topicList, _ := store.QueryTopicsByACL(pItem.ProjectUUID, item.UUID)
 			topicNames := []string{}
 			for _, tpItem := range topicList {
@@ -253,7 +280,7 @@ func PaginatedFindUsers(pageToken string, pageSize int32, store stores.Store) (P
 			pRoles = append(pRoles, ProjectRoles{Project: prName, Roles: pItem.Roles, Topics: topicNames, Subs: subNames})
 		}
 
-		curUser := NewUser(item.UUID, pRoles, item.Name, item.Token, item.Email, item.ServiceRoles, item.CreatedOn.UTC(), item.ModifiedOn.UTC(), usernameC)
+		curUser := NewUser(item.UUID, pRoles, item.Name, token, item.Email, serviceRoles, item.CreatedOn.UTC(), item.ModifiedOn.UTC(), usernameC)
 
 		result.Users = append(result.Users, curUser)
 	}
@@ -307,6 +334,7 @@ func GetNameByUUID(uuid string, store stores.Store) string {
 	return result
 }
 
+// GetUserByUUID returns user information by UUID
 func GetUserByUUID(uuid string, store stores.Store) (User, error) {
 
 	var result User
@@ -383,7 +411,7 @@ func UpdateUserToken(uuid string, token string, store stores.Store) (User, error
 		return User{}, err
 	}
 	// reflect stored object
-	stored, err := FindUsers("", uuid, "", store)
+	stored, err := FindUsers("", uuid, "", true, store)
 	return stored.One(), err
 }
 
@@ -453,7 +481,7 @@ func UpdateUser(uuid string, name string, projectList []ProjectRoles, email stri
 	}
 
 	// reflect stored object
-	stored, err := FindUsers("", uuid, "", store)
+	stored, err := FindUsers("", uuid, "", true, store)
 	return stored.One(), err
 }
 
@@ -488,7 +516,7 @@ func CreateUser(uuid string, name string, projectList []ProjectRoles, token stri
 	}
 
 	// reflect stored object
-	stored, err := FindUsers("", "", name, store)
+	stored, err := FindUsers("", "", name, true, store)
 	return stored.One(), err
 }
 
@@ -600,8 +628,8 @@ func PerResource(project string, resType string, resName string, userUUID string
 	if resType == "topics" || resType == "subscriptions" {
 		err := store.ExistsInACL(project, resType, resName, userUUID)
 		if err != nil {
-			return false
 			log.Errorln(err.Error())
+			return false
 		}
 
 		return true

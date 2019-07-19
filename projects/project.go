@@ -91,6 +91,7 @@ func Find(uuid string, name string, store stores.Store) (Projects, error) {
 // GetNameByUUID queries projects by UUID and returns the project name. If not found, returns an empty string
 func GetNameByUUID(uuid string, store stores.Store) string {
 	result := ""
+
 	// if project string empty, returns all projects
 	projects, err := store.QueryProjects(uuid, "")
 
