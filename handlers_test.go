@@ -2876,6 +2876,8 @@ func (suite *HandlerTestSuite) TestSubWithPushConfigDeletePushServerError() {
 		Name:         "errorSub",
 		ProjectUUID:  "argo_uuid",
 		PushEndpoint: "example.com",
+		// sub needs to be verified in order to perform the call to the push server
+		Verified: true,
 	})
 	mgr := oldPush.Manager{}
 	router := mux.NewRouter().StrictSlash(true)

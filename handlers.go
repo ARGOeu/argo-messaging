@@ -1562,13 +1562,15 @@ func SubDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// if it is a push sub, deactivate it
+	// if it is a push sub and it is also has a verified push endpoint, deactivate it
 	if results.Subscriptions[0].PushCfg != (subscriptions.PushConfig{}) {
-		pr := make(map[string]string)
-		apsc := gorillaContext.Get(r, "apsc").(push.Client)
-		pr["message"] = apsc.DeactivateSubscription(context.TODO(), results.Subscriptions[0].FullName).Result()
-		b, _ := json.Marshal(pr)
-		output = b
+		if results.Subscriptions[0].PushCfg.Verified {
+			pr := make(map[string]string)
+			apsc := gorillaContext.Get(r, "apsc").(push.Client)
+			pr["message"] = apsc.DeactivateSubscription(context.TODO(), results.Subscriptions[0].FullName).Result()
+			b, _ := json.Marshal(pr)
+			output = b
+		}
 	}
 	respondOK(w, output)
 }
