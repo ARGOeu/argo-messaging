@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/ARGOeu/argo-messaging/config"
 	amsPb "github.com/ARGOeu/argo-messaging/push/grpc/proto"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -34,7 +35,12 @@ func (st *GrpcClientStatus) Result() string {
 	grpcStatus := status.Convert(st.err)
 
 	if grpcStatus.Code() == codes.OK {
-		return fmt.Sprintf("Success: %v", st.message)
+		return st.message
+	}
+
+	if grpcStatus.Code() == codes.Unavailable {
+		logrus.Infoln(grpcStatus.Message())
+		return "Push server is currently unavailable"
 	}
 
 	return fmt.Sprintf("Error: %v", grpcStatus.Message())
@@ -89,6 +95,20 @@ func (c *GrpcClient) Dial() error {
 	return nil
 }
 
+func (c *GrpcClient) SubscriptionStatus(ctx context.Context, fullSub string) ClientStatus {
+
+	statusSubR := &amsPb.SubscriptionStatusRequest{
+		FullName: fullSub,
+	}
+
+	r, err := c.psc.SubscriptionStatus(ctx, statusSubR)
+
+	return &GrpcClientStatus{
+		err:     err,
+		message: r.GetStatus(),
+	}
+}
+
 // ActivateSubscription is a wrapper over the grpc ActivateSubscription call
 func (c *GrpcClient) ActivateSubscription(ctx context.Context, fullSub, fullTopic, pushEndpoint, retryType string, retryPeriod uint32) ClientStatus {
 
@@ -129,7 +149,7 @@ func (c *GrpcClient) DeactivateSubscription(ctx context.Context, fullSub string)
 	}
 }
 
-func (c *GrpcClient) HealthCheck(ctx context.Context) *GrpcClientStatus {
+func (c *GrpcClient) HealthCheck(ctx context.Context) ClientStatus {
 
 	r, err := c.hsc.Check(ctx, &grpc_health_v1.HealthCheckRequest{
 		Service: ""},
