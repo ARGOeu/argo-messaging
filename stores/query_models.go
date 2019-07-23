@@ -19,7 +19,6 @@ type QSub struct {
 	RetPeriod        int         `bson:"retry_period"`
 	MsgNum           int64       `bson:"msg_num"`
 	TotalBytes       int64       `bson:"total_bytes"`
-	PushStatus       string      `bson:"push_status,omitempty"`
 	VerificationHash string      `bson:"verification_hash"`
 	Verified         bool        `bson:"verified"`
 	LatestConsume    time.Time   `bson:"latest_consume"`

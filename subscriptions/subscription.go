@@ -91,11 +91,6 @@ type AckDeadline struct {
 	AckDeadline int `json:"ackDeadlineSeconds"`
 }
 
-// PushStatus utility struct
-type PushStatus struct {
-	PushStatus string `json:"push_status"`
-}
-
 type NamesList struct {
 	Subscriptions []string `json:"subscriptions"`
 }
@@ -162,12 +157,6 @@ func GetAckDeadlineFromJSON(input []byte) (AckDeadline, error) {
 	s := AckDeadline{}
 	err := json.Unmarshal([]byte(input), &s)
 	return s, err
-}
-
-func GetPushStatusFromJSON(input []byte) (PushStatus, error) {
-	p := PushStatus{}
-	err := json.Unmarshal(input, &p)
-	return p, err
 }
 
 // GetFromJSON retrieves Sub Info From Json
@@ -324,7 +313,6 @@ func Find(projectUUID, userUUID, name, pageToken string, pageSize int32, store s
 				Verified:         item.Verified,
 			}
 		}
-		curSub.PushStatus = item.PushStatus
 		curSub.LatestConsume = item.LatestConsume
 		curSub.ConsumeRate = item.ConsumeRate
 		result.Subscriptions = append(result.Subscriptions, curSub)
@@ -418,16 +406,6 @@ func ModSubPush(projectUUID string, name string, push string, retPolicy string, 
 	}
 
 	return store.ModSubPush(projectUUID, name, push, retPolicy, retPeriod, vhash, verified)
-}
-
-// ModSubPush updates the subscription push config
-func ModSubPushStatus(projectUUID string, name string, status string, store stores.Store) error {
-
-	if HasSub(projectUUID, name, store) == false {
-		return errors.New("not found")
-	}
-
-	return store.ModSubPushStatus(projectUUID, name, status)
 }
 
 // RemoveSub removes an existing subscription

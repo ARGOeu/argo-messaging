@@ -198,7 +198,6 @@ func (suite *SubTestSuite) TestGetSubsByProject() {
 	}
 	expSub4.LatestConsume = time.Date(0, 0, 0, 0, 0, 0, 0, time.Local)
 	expSub4.ConsumeRate = 0
-	expSub4.PushStatus = "push enabled"
 
 	// retrieve all subs
 	expSubs1 := []Subscription{}
@@ -292,7 +291,6 @@ func (suite *SubTestSuite) TestLoadFromCfg() {
 	}
 	expSub4.LatestConsume = time.Date(0, 0, 0, 0, 0, 0, 0, time.Local)
 	expSub4.ConsumeRate = 0
-	expSub4.PushStatus = "push enabled"
 	expSubs := []Subscription{}
 	expSubs = append(expSubs, expSub4)
 	expSubs = append(expSubs, expSub3)
@@ -517,8 +515,7 @@ func (suite *SubTestSuite) TestExportJson() {
             "verification_hash": "push-id-1",
             "verified": true
          },
-         "ackDeadlineSeconds": 10,
-         "push_status": "push enabled"
+         "ackDeadlineSeconds": 10
       },
       {
          "name": "/projects/ARGO/subscriptions/sub3",
@@ -591,15 +588,6 @@ func (suite *SubTestSuite) TestGetOffsetFromAckID() {
 		suite.Equal(expOffsets[i], off)
 	}
 
-}
-
-func (suite *SubTestSuite) TestModSubPushStatus() {
-
-	store := stores.NewMockStore("", "")
-	err := ModSubPushStatus("argo_uuid", "sub4", "new push status", store)
-	sub, _ := store.QueryOneSub("argo_uuid", "sub4")
-	suite.Nil(err)
-	suite.Equal("new push status", sub.PushStatus)
 }
 
 func TestSubTestSuite(t *testing.T) {

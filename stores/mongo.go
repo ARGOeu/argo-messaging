@@ -1374,22 +1374,6 @@ func (mong *MongoStore) ModSubPush(projectUUID string, name string, push string,
 	return err
 }
 
-// ModSubPushStatus modifies the push status
-func (mong *MongoStore) ModSubPushStatus(projectUUID string, name string, status string) error {
-	db := mong.Session.DB(mong.Database)
-	c := db.C("subscriptions")
-
-	err := c.Update(bson.M{
-		"project_uuid": projectUUID,
-		"name":         name,
-	},
-		bson.M{"$set": bson.M{
-			"push_status": status,
-		},
-		})
-	return err
-}
-
 // InsertResource inserts a new topic object to the datastore
 func (mong *MongoStore) InsertResource(col string, res interface{}) error {
 
