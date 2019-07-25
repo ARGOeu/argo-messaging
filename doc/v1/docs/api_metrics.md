@@ -93,3 +93,62 @@ Success Response
   ]
 }
 ```
+
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors
+
+## [GET] Get Daily Message Average
+
+This request returns the total amount of messages per project for the given time window.The number of messages
+is calculated using the `daily message count` for each one of the project's topics.
+
+### Request
+```
+GET "/v1/metrics/daily-message-average"
+
+```
+### URL parameters
+`start_date`: start date for querying projects topics daily message count(optional), default value is the start unix time
+`end_date`: start date for querying projects topics daily message count(optional), default is the time of the api call
+`projects`: which projects to include to the query(optional), default is all registered projects
+
+### Example request
+
+```
+curl -H "Content-Type: application/json"
+ "https://{URL}/v1/metrics/daily-message-average"
+```
+
+### Example request with URL parameters
+
+```
+curl -H "Content-Type: application/json"
+ "https://{URL}/v1/metrics/daily-message-average?start_date=2019-03-01&end_date=2019-07-24&projects=ARGO,ARGO-2"
+```
+
+### Responses
+If successful, the response returns the total amount of messages per project for the given time window
+
+Success Response
+`200 OK`
+
+```json
+{
+    "projects": [
+        {
+            "project": "ARGO-2",
+            "message_count": 8,
+            "average_daily_messages": 2
+        },
+        {
+            "project": "ARGO",
+            "message_count": 25669,
+            "average_daily_messages": 120
+        }
+    ],
+    "total_message_count": 25677,
+    "average_daily_messages": 122
+}
+```
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors

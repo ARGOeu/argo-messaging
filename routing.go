@@ -72,6 +72,7 @@ func NewRouting(cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *o
 var defaultRoutes = []APIRoute{
 	{"ams:metrics", "GET", "/metrics", OpMetrics},
 	{"ams:healthStatus", "GET", "/status", HealthCheck},
+	{"ams:dailyMessageAverage", "GET", "/metrics/daily-message-average", DailyMessageAverage},
 	{"users:byToken", "GET", "/users:byToken/{token}", UserListByToken},
 	{"users:byUUID", "GET", "/users:byUUID/{uuid}", UserListByUUID},
 	{"users:list", "GET", "/users", UserListAll},

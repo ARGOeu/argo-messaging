@@ -1483,7 +1483,7 @@ func (suite *HandlerTestSuite) TestUserListAllProjectUNKNOWN() {
 	expResp := `{
    "error": {
       "code": 404,
-      "message": "Project doesn't exist",
+      "message": "ProjectUUID doesn't exist",
       "status": "NOT_FOUND"
    }
 }`
@@ -1912,7 +1912,7 @@ func (suite *HandlerTestSuite) TestProjectListOneNotFound() {
 	expResp := `{
    "error": {
       "code": 404,
-      "message": "Project doesn't exist",
+      "message": "ProjectUUID doesn't exist",
       "status": "NOT_FOUND"
    }
 }`
@@ -3568,6 +3568,117 @@ func (suite *HandlerTestSuite) TestTopicListSubscriptionsEmpty() {
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
+}
+
+func (suite *HandlerTestSuite) TestProjectMessageCount() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/metrics/daily-message-average?start_date=2018-10-01&end_date=2018-10-04", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+ "projects": [
+  {
+   "project": "ARGO",
+   "message_count": 30,
+   "average_daily_messages": 10
+  }
+ ],
+ "total_message_count": 30,
+ "average_daily_messages": 10
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := oldPush.Manager{}
+	router.HandleFunc("/v1/metrics/daily-message-average", WrapMockAuthConfig(DailyMessageAverage, cfgKafka, &brk, str, &mgr, nil))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+}
+
+func (suite *HandlerTestSuite) TestProjectMessageCountErrors() {
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := oldPush.Manager{}
+	router.HandleFunc("/v1/projects-message-count", WrapMockAuthConfig(DailyMessageAverage, cfgKafka, &brk, str, &mgr, nil))
+
+	// wrong start date
+	expResp1 := `{
+   "error": {
+      "code": 400,
+      "message": "Start date is not in valid format",
+      "status": "INVALID_ARGUMENT"
+   }
+}`
+	req1, err := http.NewRequest("GET", "http://localhost:8080/v1/projects-message-count?start_date=ffff", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	router.ServeHTTP(w, req1)
+	suite.Equal(400, w.Code)
+	suite.Equal(expResp1, w.Body.String())
+	w.Body.Reset()
+
+	// wrong end date
+	expResp2 := `{
+   "error": {
+      "code": 400,
+      "message": "End date is not in valid format",
+      "status": "INVALID_ARGUMENT"
+   }
+}`
+	req2, err := http.NewRequest("GET", "http://localhost:8080/v1/projects-message-count?end_date=ffff", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	router.ServeHTTP(w, req2)
+	suite.Equal(400, w.Code)
+	suite.Equal(expResp2, w.Body.String())
+	w.Body.Reset()
+
+	// one of the projects doesn't exist end date
+	expResp3 := `{
+   "error": {
+      "code": 404,
+      "message": "Project ffff doesn't exist",
+      "status": "NOT_FOUND"
+   }
+}`
+	req3, err := http.NewRequest("GET", "http://localhost:8080/v1/projects-message-count?projects=ARGO,ffff", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	router.ServeHTTP(w, req3)
+	suite.Equal(400, w.Code)
+	suite.Equal(expResp3, w.Body.String())
+	w.Body.Reset()
+
+	// start date is off
+	expResp4 := `{
+   "error": {
+      "code": 400,
+      "message": "Start date cannot be after the end date",
+      "status": "INVALID_ARGUMENT"
+   }
+}`
+	req4, err := http.NewRequest("GET", "http://localhost:8080/v1/projects-message-count?start_date=2019-04-04&end_date=2018-01-01", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	router.ServeHTTP(w, req4)
+	suite.Equal(400, w.Code)
+	suite.Equal(expResp4, w.Body.String())
 }
 
 func (suite *HandlerTestSuite) TestSubMetrics() {

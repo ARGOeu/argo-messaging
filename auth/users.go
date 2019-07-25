@@ -48,19 +48,19 @@ type PaginatedUsers struct {
 	TotalSize     int32  `json:"totalSize"`
 }
 
-// ExportJSON exports Project to json format
+// ExportJSON exports User to json format
 func (u *User) ExportJSON() (string, error) {
 	output, err := json.MarshalIndent(u, "", "   ")
 	return string(output[:]), err
 }
 
-// ExportJSON exports Projects list to json format
+// ExportJSON exports Users list to json format
 func (us *Users) ExportJSON() (string, error) {
 	output, err := json.MarshalIndent(us, "", "   ")
 	return string(output[:]), err
 }
 
-// ExportJSON exports Projects list to json format
+// ExportJSON exports Paginated users list to json format
 func (pus *PaginatedUsers) ExportJSON() (string, error) {
 	output, err := json.MarshalIndent(pus, "", "   ")
 	return string(output[:]), err

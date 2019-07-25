@@ -165,7 +165,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 	}, subListByTopic)
 	suite.Nil(errSublistByTopic)
 
-	// Test Project
+	// Test ProjectUUID
 	suite.Equal(true, store.HasProject("ARGO"))
 	suite.Equal(false, store.HasProject("FOO"))
 
@@ -540,6 +540,13 @@ func (suite *StoreTestSuite) TestMockStore() {
 	spc2, _, _, _ := store2.QuerySubs("argo_uuid", "", "sub1", "", 0)
 	suite.Equal(8.44, spc2[0].ConsumeRate)
 
+	// test QueryTotalMessagesPerProject
+	expectedQpmc := []QProjectMessageCount{
+		{ProjectUUID: "argo_uuid", NumberOfMessages: 30, AverageDailyMessages: 10},
+	}
+	qpmc, qpmcerr1 := store2.QueryTotalMessagesPerProject([]string{"argo_uuid"}, time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC), time.Date(2018, 10, 4, 0, 0, 0, 0, time.UTC))
+	suite.Equal(expectedQpmc, qpmc)
+	suite.Nil(qpmcerr1)
 }
 
 func TestStoresTestSuite(t *testing.T) {

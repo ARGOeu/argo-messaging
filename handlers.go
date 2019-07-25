@@ -284,7 +284,7 @@ func ProjectDelete(w http.ResponseWriter, r *http.Request) {
 	err := projects.RemoveProject(projectUUID, refStr)
 	if err != nil {
 		if err.Error() == "not found" {
-			err := APIErrorNotFound("Project")
+			err := APIErrorNotFound("ProjectUUID")
 			respondErr(w, err)
 			return
 		}
@@ -338,7 +338,7 @@ func ProjectUpdate(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if err.Error() == "not found" {
-			err := APIErrorNotFound("Project")
+			err := APIErrorNotFound("ProjectUUID")
 			respondErr(w, err)
 			return
 		}
@@ -398,7 +398,7 @@ func ProjectCreate(w http.ResponseWriter, r *http.Request) {
 	// Parse pull options
 	postBody, err := projects.GetFromJSON(body)
 	if err != nil {
-		err := APIErrorInvalidArgument("Project")
+		err := APIErrorInvalidArgument("ProjectUUID")
 		respondErr(w, err)
 		log.Error(string(body[:]))
 		return
@@ -412,7 +412,7 @@ func ProjectCreate(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if err.Error() == "exists" {
-			err := APIErrorConflict("Project")
+			err := APIErrorConflict("ProjectUUID")
 			respondErr(w, err)
 			return
 		}
@@ -498,7 +498,7 @@ func ProjectListOne(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 
 		if err.Error() == "not found" {
-			err := APIErrorNotFound("Project")
+			err := APIErrorNotFound("ProjectUUID")
 			respondErr(w, err)
 			return
 		}
@@ -749,6 +749,75 @@ func OpMetrics(w http.ResponseWriter, r *http.Request) {
 	output = []byte(resJSON)
 	respondOK(w, output)
 
+}
+
+// DailyMessageAverage (GET) retrieves the average amount of published messages per day
+func DailyMessageAverage(w http.ResponseWriter, r *http.Request) {
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+
+	startDate := time.Time{}
+	endDate := time.Time{}
+	var err error
+
+	// if no start date was provided, set it to the start of the unix time
+	if r.URL.Query().Get("start_date") != "" {
+		startDate, err = time.Parse("2006-01-02", r.URL.Query().Get("start_date"))
+		if err != nil {
+			err := APIErrorInvalidData("Start date is not in valid format")
+			respondErr(w, err)
+			return
+		}
+	} else {
+		startDate = time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
+	}
+
+	// if no end date was provided, set it to to today
+	if r.URL.Query().Get("end_date") != "" {
+		endDate, err = time.Parse("2006-01-02", r.URL.Query().Get("end_date"))
+		if err != nil {
+			err := APIErrorInvalidData("End date is not in valid format")
+			respondErr(w, err)
+			return
+		}
+	} else {
+		endDate = time.Now().UTC()
+	}
+
+	if startDate.After(endDate) {
+		err := APIErrorInvalidData("Start date cannot be after the end date")
+		respondErr(w, err)
+		return
+	}
+
+	projectsList := make([]string, 0)
+	projectsUrlValue := r.URL.Query().Get("projects")
+	if projectsUrlValue != "" {
+		projectsList = strings.Split(projectsUrlValue, ",")
+	}
+
+	cc, err := projects.GetProjectsMessageCount(projectsList, startDate, endDate, refStr)
+	if err != nil {
+		err := APIErrorNotFound(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	output, err := json.MarshalIndent(cc, "", " ")
+	if err != nil {
+		err := APIErrExportJSON()
+		respondErr(w, err)
+		return
+	}
+
+	// Write response
+	respondOK(w, output)
 }
 
 // UserListByToken (GET) one user by his token
@@ -1041,7 +1110,7 @@ func UserListAll(w http.ResponseWriter, r *http.Request) {
 	if projectName != "" {
 		projectUUID = projects.GetUUIDByName(projectName, refStr)
 		if projectUUID == "" {
-			err := APIErrorNotFound("Project")
+			err := APIErrorNotFound("ProjectUUID")
 			respondErr(w, err)
 			return
 		}
@@ -2298,7 +2367,7 @@ func ProjectMetrics(w http.ResponseWriter, r *http.Request) {
 	res := metrics.NewMetricList(m1)
 	res.Metrics = append(res.Metrics, m2)
 
-	// Project User topics aggregation
+	// ProjectUUID User topics aggregation
 	m3, err := metrics.AggrProjectUserTopics(projectUUID, refStr)
 	if err != nil {
 		err := APIErrExportJSON()
@@ -2310,7 +2379,7 @@ func ProjectMetrics(w http.ResponseWriter, r *http.Request) {
 		res.Metrics = append(res.Metrics, item)
 	}
 
-	// Project User subscriptions aggregation
+	// ProjectUUID User subscriptions aggregation
 	m4, err := metrics.AggrProjectUserSubs(projectUUID, refStr)
 	if err != nil {
 		err := APIErrExportJSON()
