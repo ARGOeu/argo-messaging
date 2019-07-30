@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/ARGOeu/argo-messaging/config"
 	amsPb "github.com/ARGOeu/argo-messaging/push/grpc/proto"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -39,7 +39,12 @@ func (st *GrpcClientStatus) Result() string {
 	}
 
 	if grpcStatus.Code() == codes.Unavailable {
-		logrus.Infoln(grpcStatus.Message())
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "ams-push-server",
+			},
+		).Error(grpcStatus.Message())
 		return "Push server is currently unavailable"
 	}
 

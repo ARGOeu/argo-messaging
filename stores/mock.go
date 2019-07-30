@@ -426,17 +426,6 @@ func (mk *MockStore) ModSubPush(projectUUID string, name string, push string, rP
 	return errors.New("not found")
 }
 
-// ModSubPushStatus modifies the subscription push status
-func (mk *MockStore) ModSubPushStatus(projectUUID string, name string, status string) error {
-	for i, item := range mk.SubList {
-		if item.ProjectUUID == projectUUID && item.Name == name {
-			mk.SubList[i].PushStatus = status
-			return nil
-		}
-	}
-	return errors.New("not found")
-}
-
 // UpdateSubOffsetAck updates the offset of the current subscription
 func (mk *MockStore) UpdateSubOffsetAck(projectUUID string, name string, offset int64, ts string) error {
 	// find sub
@@ -648,10 +637,10 @@ func (mk *MockStore) Initialize() {
 	mk.TopicList = append(mk.TopicList, qtop4)
 
 	// populate Subscriptions
-	qsub1 := QSub{0, "argo_uuid", "sub1", "topic1", 0, 0, "", "", 10, "", 0, 0, 0, "", "", false, time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10}
-	qsub2 := QSub{1, "argo_uuid", "sub2", "topic2", 0, 0, "", "", 10, "", 0, 0, 0, "", "", false, time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local), 8.99}
-	qsub3 := QSub{2, "argo_uuid", "sub3", "topic3", 0, 0, "", "", 10, "", 0, 0, 0, "", "", false, time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local), 5.45}
-	qsub4 := QSub{3, "argo_uuid", "sub4", "topic4", 0, 0, "", "endpoint.foo", 10, "linear", 300, 0, 0, "push enabled", "push-id-1", true, time.Date(0, 0, 0, 0, 0, 0, 0, time.Local), 0}
+	qsub1 := QSub{0, "argo_uuid", "sub1", "topic1", 0, 0, "", "", 10, "", 0, 0, 0, "", false, time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10}
+	qsub2 := QSub{1, "argo_uuid", "sub2", "topic2", 0, 0, "", "", 10, "", 0, 0, 0, "", false, time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local), 8.99}
+	qsub3 := QSub{2, "argo_uuid", "sub3", "topic3", 0, 0, "", "", 10, "", 0, 0, 0, "", false, time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local), 5.45}
+	qsub4 := QSub{3, "argo_uuid", "sub4", "topic4", 0, 0, "", "endpoint.foo", 10, "linear", 300, 0, 0, "push-id-1", true, time.Date(0, 0, 0, 0, 0, 0, 0, time.Local), 0}
 	mk.SubList = append(mk.SubList, qsub1)
 	mk.SubList = append(mk.SubList, qsub2)
 	mk.SubList = append(mk.SubList, qsub3)

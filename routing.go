@@ -103,7 +103,6 @@ var defaultRoutes = []APIRoute{
 	{"subscriptions:verifyPushEndpoint", "POST", "/projects/{project}/subscriptions/{subscription}:verifyPushEndpoint", SubVerifyPushEndpoint},
 	{"subscriptions:modifyAckDeadline", "POST", "/projects/{project}/subscriptions/{subscription}:modifyAckDeadline", SubModAck},
 	{"subscriptions:modifyPushConfig", "POST", "/projects/{project}/subscriptions/{subscription}:modifyPushConfig", SubModPush},
-	{"subscriptions:modifyPushStatus", "POST", "/projects/{project}/subscriptions/{subscription}:modifyPushStatus", SubModPushStatus},
 	{"subscriptions:modifyOffset", "POST", "/projects/{project}/subscriptions/{subscription}:modifyOffset", SubSetOffset},
 	{"subscriptions:modifyAcl", "POST", "/projects/{project}/subscriptions/{subscription}:modifyAcl", SubModACL},
 	{"topics:list", "GET", "/projects/{project}/topics", TopicListAll},

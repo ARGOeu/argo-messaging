@@ -2032,7 +2032,6 @@ func (suite *HandlerTestSuite) TestSubModPushConfigToActive() {
 	suite.Equal("https://www.example.com", sub.PushEndpoint)
 	suite.Equal(3000, sub.RetPeriod)
 	suite.Equal("linear", sub.RetPolicy)
-	suite.Equal("", sub.PushStatus)
 	suite.False(sub.Verified)
 	suite.NotEqual("", sub.VerificationHash)
 }
@@ -2069,7 +2068,6 @@ func (suite *HandlerTestSuite) TestSubModPushConfigToInactive() {
 	suite.Equal("", sub.RetPolicy)
 	suite.Equal("", sub.VerificationHash)
 	suite.False(sub.Verified)
-	suite.Equal("Subscription /projects/ARGO/subscriptions/sub4 deactivated", sub.PushStatus)
 	// check to see that the push worker user has been removed from the subscription's acl
 	a1, _ := str.QueryACL("argo_uuid", "subscriptions", "sub4")
 	suite.Equal([]string{"uuid2", "uuid4"}, a1.ACL)
@@ -2107,7 +2105,6 @@ func (suite *HandlerTestSuite) TestSubModPushConfigToInactivePushDisabled() {
 	suite.Equal("", sub.PushEndpoint)
 	suite.Equal(0, sub.RetPeriod)
 	suite.Equal("", sub.RetPolicy)
-	suite.Equal("Subscription /projects/ARGO/subscriptions/sub4 deactivated", sub.PushStatus)
 }
 
 // TestSubModPushConfigToInactiveMissingPushWorker tests the use case where the user modifies the push configuration
@@ -2143,7 +2140,6 @@ func (suite *HandlerTestSuite) TestSubModPushConfigToInactiveMissingPushWorker()
 	suite.Equal("", sub.PushEndpoint)
 	suite.Equal(0, sub.RetPeriod)
 	suite.Equal("", sub.RetPolicy)
-	suite.Equal("Subscription /projects/ARGO/subscriptions/sub4 deactivated", sub.PushStatus)
 }
 
 // TestSubModPushConfigToActive tests the case where the user modifies the push configuration,
@@ -2187,7 +2183,6 @@ func (suite *HandlerTestSuite) TestSubModPushConfigUpdate() {
 	suite.False(sub.Verified)
 	suite.NotEqual("", sub.VerificationHash)
 	suite.NotEqual("push-id-1", sub.VerificationHash)
-	suite.Equal("Subscription /projects/ARGO/subscriptions/sub4 deactivated", sub.PushStatus)
 }
 
 // TestSubModPushConfigToActiveORUpdatePushDisabled tests the case where the user modifies the push configuration,
@@ -2923,99 +2918,6 @@ func (suite *HandlerTestSuite) TestSubListOne() {
 
 }
 
-func (suite *HandlerTestSuite) TestSubModPushStatus() {
-
-	body := `{
-  "push_status": "new push status"
-}`
-
-	req, err := http.NewRequest("POST", "http://localhost:8080/v1/projects/ARGO/subscriptions/sub4:modifyPushStatus", strings.NewReader(body))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	cfgKafka := config.NewAPICfg()
-	cfgKafka.LoadStrJSON(suite.cfgStr)
-
-	brk := brokers.MockBroker{}
-	str := stores.NewMockStore("whatever", "argo_mgs")
-	router := mux.NewRouter().StrictSlash(true)
-	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modifyPushStatus", WrapMockAuthConfig(SubModPushStatus, cfgKafka, &brk, str, &mgr, nil))
-	router.ServeHTTP(w, req)
-	sub4, _ := str.QueryOneSub("argo_uuid", "sub4")
-	suite.Equal(200, w.Code)
-	suite.Equal("", w.Body.String())
-	suite.Equal("new push status", sub4.PushStatus)
-}
-
-func (suite *HandlerTestSuite) TestSubModPushStatusNotFound() {
-
-	body := `{
-  "push_status": "new push status"
-}`
-
-	expResp := `{
-   "error": {
-      "code": 404,
-      "message": "Subscription doesn't exist",
-      "status": "NOT_FOUND"
-   }
-}`
-
-	req, err := http.NewRequest("POST", "http://localhost:8080/v1/projects/ARGO/subscriptions/unknown:modifyPushStatus", strings.NewReader(body))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	cfgKafka := config.NewAPICfg()
-	cfgKafka.LoadStrJSON(suite.cfgStr)
-
-	brk := brokers.MockBroker{}
-	str := stores.NewMockStore("whatever", "argo_mgs")
-	router := mux.NewRouter().StrictSlash(true)
-	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modifyPushStatus", WrapMockAuthConfig(SubModPushStatus, cfgKafka, &brk, str, &mgr, nil))
-	router.ServeHTTP(w, req)
-	suite.Equal(404, w.Code)
-	suite.Equal(expResp, w.Body.String())
-}
-
-func (suite *HandlerTestSuite) TestSubModPushStatusInvalidArgument() {
-
-	body := `{
-  "push_status": 9999
-}`
-
-	expResp := `{
-   "error": {
-      "code": 400,
-      "message": "Invalid PushStatus Arguments",
-      "status": "INVALID_ARGUMENT"
-   }
-}`
-
-	req, err := http.NewRequest("POST", "http://localhost:8080/v1/projects/ARGO/subscriptions/unknown:modifyPushStatus", strings.NewReader(body))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	cfgKafka := config.NewAPICfg()
-	cfgKafka.LoadStrJSON(suite.cfgStr)
-
-	brk := brokers.MockBroker{}
-	str := stores.NewMockStore("whatever", "argo_mgs")
-	router := mux.NewRouter().StrictSlash(true)
-	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modifyPushStatus", WrapMockAuthConfig(SubModPushStatus, cfgKafka, &brk, str, &mgr, nil))
-	router.ServeHTTP(w, req)
-	suite.Equal(400, w.Code)
-	suite.Equal(expResp, w.Body.String())
-}
-
 func (suite *HandlerTestSuite) TestSubListAll() {
 
 	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/subscriptions", nil)
@@ -3037,8 +2939,7 @@ func (suite *HandlerTestSuite) TestSubListAll() {
             "verification_hash": "push-id-1",
             "verified": true
          },
-         "ackDeadlineSeconds": 10,
-         "push_status": "push enabled"
+         "ackDeadlineSeconds": 10
       },
       {
          "name": "/projects/ARGO/subscriptions/sub3",
@@ -3113,8 +3014,7 @@ func (suite *HandlerTestSuite) TestSubListAllFirstPage() {
             "verification_hash": "push-id-1",
             "verified": true
          },
-         "ackDeadlineSeconds": 10,
-         "push_status": "push enabled"
+         "ackDeadlineSeconds": 10
       },
       {
          "name": "/projects/ARGO/subscriptions/sub3",
@@ -3246,8 +3146,7 @@ func (suite *HandlerTestSuite) TestSubListAllConsumer() {
             "verification_hash": "push-id-1",
             "verified": true
          },
-         "ackDeadlineSeconds": 10,
-         "push_status": "push enabled"
+         "ackDeadlineSeconds": 10
       },
       {
          "name": "/projects/ARGO/subscriptions/sub3",
@@ -3311,8 +3210,7 @@ func (suite *HandlerTestSuite) TestSubListAllConsumerWithPagination() {
             "verification_hash": "push-id-1",
             "verified": true
          },
-         "ackDeadlineSeconds": 10,
-         "push_status": "push enabled"
+         "ackDeadlineSeconds": 10
       },
       {
          "name": "/projects/ARGO/subscriptions/sub3",

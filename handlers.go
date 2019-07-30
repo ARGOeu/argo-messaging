@@ -1847,14 +1847,13 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 		pushWorker, _ = auth.GetPushWorker(pwToken, refStr)
 	}
 
-	pushStatus := ""
 	// if the sub, was push enabled before the update and the endpoint was verified
 	// we need to deactivate it on the push server
 	if existingSub.PushCfg != (subscriptions.PushConfig{}) {
 		if existingSub.PushCfg.Verified {
 			// deactivate the subscription on the push backend
 			apsc := gorillaContext.Get(r, "apsc").(push.Client)
-			pushStatus = apsc.DeactivateSubscription(context.TODO(), existingSub.FullName).Result()
+			apsc.DeactivateSubscription(context.TODO(), existingSub.FullName)
 
 			// remove the push worker user from the sub's acl
 			err = auth.RemoveFromACL(projectUUID, "subscriptions", existingSub.Name, []string{pushWorker.Name}, refStr)
@@ -1875,8 +1874,8 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 
 			// activate the subscription on the push backend
 			apsc := gorillaContext.Get(r, "apsc").(push.Client)
-			pushStatus = apsc.ActivateSubscription(context.TODO(), existingSub.FullName, existingSub.FullTopic,
-				pushEnd, rPolicy, uint32(rPeriod)).Result()
+			apsc.ActivateSubscription(context.TODO(), existingSub.FullName, existingSub.FullTopic,
+				pushEnd, rPolicy, uint32(rPeriod))
 
 			// modify the sub's acl with the push worker's uuid
 			err = auth.AppendToACL(projectUUID, "subscriptions", existingSub.Name, []string{pushWorker.Name}, refStr)
@@ -1894,18 +1893,6 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-	}
-	// update the subscription's status
-	err = subscriptions.ModSubPushStatus(projectUUID, subName, pushStatus, refStr)
-	if err != nil {
-		if err.Error() == "not found" {
-			err := APIErrorNotFound("Subscription")
-			respondErr(w, err)
-			return
-		}
-		err := APIErrGenericInternal(err.Error())
-		respondErr(w, err)
-		return
 	}
 
 	// Write empty response if everything's ok
@@ -1992,8 +1979,8 @@ func SubVerifyPushEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	// activate the subscription on the push backend
 	apsc := gorillaContext.Get(r, "apsc").(push.Client)
-	pushStatus := apsc.ActivateSubscription(context.TODO(), sub.FullName, sub.FullTopic, sub.PushCfg.Pend,
-		sub.PushCfg.RetPol.PolicyType, uint32(sub.PushCfg.RetPol.Period)).Result()
+	apsc.ActivateSubscription(context.TODO(), sub.FullName, sub.FullTopic, sub.PushCfg.Pend,
+		sub.PushCfg.RetPol.PolicyType, uint32(sub.PushCfg.RetPol.Period))
 
 	// modify the sub's acl with the push worker's uuid
 	err = auth.AppendToACL(projectUUID, "subscriptions", sub.Name, []string{pushW.Name}, refStr)
@@ -2011,88 +1998,7 @@ func SubVerifyPushEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// update the subscription's status
-	err = subscriptions.ModSubPushStatus(projectUUID, subName, pushStatus, refStr)
-	if err != nil {
-		if err.Error() == "not found" {
-			err := APIErrorNotFound("Subscription")
-			respondErr(w, err)
-			return
-		}
-		err := APIErrGenericInternal(err.Error())
-		respondErr(w, err)
-		return
-	}
-
 	respondOK(w, []byte{})
-}
-
-// SubModPushStatus (POST) modifies the push status of a subscription
-func SubModPushStatus(w http.ResponseWriter, r *http.Request) {
-
-	// Init output
-	output := []byte("")
-
-	// Add content type header to the response
-	contentType := "application/json"
-	charset := "utf-8"
-	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
-
-	// Grab url path variables
-	urlVars := mux.Vars(r)
-	// Get Result Object
-	urlSub := urlVars["subscription"]
-
-	// Get project UUID First to use as reference
-	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
-
-	refStr := gorillaContext.Get(r, "str").(stores.Store)
-
-	// Read POST JSON body
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		err := APIErrorInvalidRequestBody()
-		respondErr(w, err)
-		return
-	}
-
-	pushStatus, err := subscriptions.GetPushStatusFromJSON(body)
-	if err != nil {
-		err := APIErrorInvalidArgument("PushStatus")
-		respondErr(w, err)
-		return
-	}
-
-	res, err := subscriptions.Find(projectUUID, "", urlSub, "", 0, refStr)
-
-	if err != nil {
-		err := APIErrGenericBackend()
-		respondErr(w, err)
-		return
-	}
-
-	if res.Empty() {
-		err := APIErrorNotFound("Subscription")
-		respondErr(w, err)
-		return
-	}
-
-	existingSub := res.Subscriptions[0]
-
-	err = subscriptions.ModSubPushStatus(projectUUID, existingSub.Name, pushStatus.PushStatus, refStr)
-	if err != nil {
-		if err.Error() == "not found" {
-			err := APIErrorNotFound("Subscription")
-			respondErr(w, err)
-			return
-		}
-		err := APIErrGenericInternal(err.Error())
-		respondErr(w, err)
-		return
-	}
-
-	// Write empty response if everything's ok
-	respondOK(w, output)
 }
 
 // SubModAck (POST) modifies the Ack deadline of the subscription
