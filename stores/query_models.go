@@ -98,6 +98,13 @@ type QDailyProjectMsgCount struct {
 	NumberOfMessages int64     `bson:"msg_count"`
 }
 
+// QProjectMessageCount holds information about the total messages and average daily messages for a specific project
+type QProjectMessageCount struct {
+	ProjectUUID          string  `bson:"project_uuid"`
+	NumberOfMessages     int64   `bson:"msg_count"`
+	AverageDailyMessages float64 `bson:"avg_daily_msg"`
+}
+
 func (qUsr *QUser) isInProject(projectUUID string) bool {
 	for _, item := range qUsr.Projects {
 		if item.ProjectUUID == projectUUID {
@@ -111,7 +118,6 @@ func (qUsr *QUser) isInProject(projectUUID string) bool {
 func (qUsr *QUser) getProjectRoles(projectUUID string) []string {
 
 	result := []string{}
-
 	for _, item := range qUsr.Projects {
 		if item.ProjectUUID == projectUUID {
 			result = item.Roles

@@ -1197,6 +1197,88 @@ func (mong *MongoStore) RemoveProjectSubs(projectUUID string) error {
 	return mong.RemoveAll("subscriptions", subMatch)
 }
 
+// QueryTotalMessagesPerProject returns the total amount of messages per project for the given time window
+func (mong *MongoStore) QueryTotalMessagesPerProject(projectUUIDs []string, startDate time.Time, endDate time.Time) ([]QProjectMessageCount, error) {
+
+	var err error
+	var qdp []QProjectMessageCount
+
+	c := mong.Session.DB(mong.Database).C("daily_topic_msg_count")
+
+	if endDate.Before(startDate) {
+		startDate, endDate = endDate, startDate
+	}
+
+	days := 1
+	if !endDate.Equal(startDate) {
+		days = int(endDate.Sub(startDate).Hours() / 24)
+	}
+
+	condQuery := []bson.M{
+		{
+			"date": bson.M{
+				"$gte": startDate,
+			},
+		},
+		{
+			"date": bson.M{
+				"$lte": endDate,
+			},
+		},
+	}
+
+	if len(projectUUIDs) > 0 {
+		condQuery = append(condQuery, bson.M{
+			"project_uuid": bson.M{
+				"$in": projectUUIDs,
+			},
+		},
+		)
+	}
+
+	query := []bson.M{
+		{
+			"$match": bson.M{
+				"$and": condQuery,
+			},
+		},
+		{
+			"$group": bson.M{
+				"_id": bson.M{
+					"project_uuid": "$project_uuid",
+				},
+				"msg_count": bson.M{
+					"$sum": "$msg_count",
+				},
+			},
+		},
+		{
+			"$project": bson.M{
+				"_id":          0,
+				"project_uuid": "$_id.project_uuid",
+				"msg_count":    1,
+				"avg_daily_msg": bson.M{
+					"$divide": []interface{}{"$msg_count", days},
+				},
+			},
+		},
+	}
+
+	if err = c.Pipe(query).All(&qdp); err != nil {
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
+	}
+
+	fmt.Printf("%+v\n", qdp)
+
+	return qdp, err
+}
+
 // QueryDailyProjectMsgCount queries the total messages per day for a given project
 func (mong *MongoStore) QueryDailyProjectMsgCount(projectUUID string) ([]QDailyProjectMsgCount, error) {
 
@@ -1206,20 +1288,38 @@ func (mong *MongoStore) QueryDailyProjectMsgCount(projectUUID string) ([]QDailyP
 	c := mong.Session.DB(mong.Database).C("daily_topic_msg_count")
 
 	query := []bson.M{
-		{"$match": bson.M{"project_uuid": projectUUID}},
-		{"$group": bson.M{
-			"_id": bson.M{
-				"date": "$date"},
-			"msg_count": bson.M{
-				"$sum": "$msg_count"}}},
-		{"$sort": bson.M{
-			"_id": -1},
+		{
+			"$match": bson.M{
+				"project_uuid": projectUUID,
+			},
 		},
-		{"$limit": 30},
-		{"$project": bson.M{
-			"_id": 0, "date": "$_id.date", "msg_count": 1},
+		{
+			"$group": bson.M{
+				"_id": bson.M{
+					"date": "$date",
+				},
+				"msg_count": bson.M{
+					"$sum": "$msg_count",
+				},
+			},
+		},
+		{
+			"$sort": bson.M{
+				"_id": -1,
+			},
+		},
+		{
+			"$limit": 30,
+		},
+		{
+			"$project": bson.M{
+				"_id":       0,
+				"date":      "$_id.date",
+				"msg_count": 1,
+			},
 		},
 	}
+
 	if err = c.Pipe(query).All(&qdp); err != nil {
 		log.WithFields(
 			log.Fields{

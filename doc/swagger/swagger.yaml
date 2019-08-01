@@ -71,6 +71,33 @@ paths:
         500:
           $ref: "#/responses/500"
 
+
+  /metrics/daily-message-average:
+    get:
+      summary: List of projects and their message count for the given time window
+      description: |
+        list operational metrics
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - $ref: '#/parameters/StartDate'
+        - $ref: '#/parameters/EndDate'
+        - $ref: '#/parameters/Projects'
+      tags:
+        - Operational Metrics
+      responses:
+        200:
+          description: Returns the message count metrics per project
+          schema:
+            $ref: '#/definitions/TotalProjectMessageCount'
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
+
   /projects:
     get:
       summary: List subscriptions in a project
@@ -271,7 +298,7 @@ paths:
           $ref: "#/responses/404"
         500:
           $ref: "#/responses/500"
-  
+
   /projects/{PROJECT}/members:
     get:
       summary: List users that are members of the project
@@ -1613,6 +1640,29 @@ parameters:
     required: false
     type: integer
     default: 0
+  StartDate:
+    name: start_date
+    in: query
+    required: false
+    description: the start date for querying projects message counters
+    type: string
+    default: unix start date
+  EndDate:
+    name: end_date
+    in: query
+    required: false
+    description: the end date for querying projects message counters
+    type: string
+    default: the date at the time of the api call
+  Projects:
+    name: projects
+    in: query
+    required: false
+    description: the projects to include in the query
+    type: array
+    items:
+      type: string
+    default: all of the registered projects
 
 responses:
   400:
@@ -1660,6 +1710,28 @@ responses:
       $ref: '#/definitions/ErrorMsg'
 
 definitions:
+
+  TotalProjectMessageCount:
+    type: object
+    properties:
+      projects:
+        type: array
+        items:
+          $ref: '#/definitions/ProjectMessageCount'
+      total_message_count:
+        type: integer
+      average_daily_messages:
+        type: integer
+
+  ProjectMessageCount:
+    type: object
+    properties:
+      project:
+        type: string
+      message_count:
+        type: integer
+      average_daily_messages:
+        type: integer
 
   Metrics:
    type: object

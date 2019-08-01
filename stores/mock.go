@@ -2,6 +2,7 @@ package stores
 
 import (
 	"errors"
+	"fmt"
 	"sort"
 	"strconv"
 	"time"
@@ -705,6 +706,60 @@ func (mk *MockStore) Initialize() {
 	mk.SubsACL["sub3"] = qSubACL03
 	mk.SubsACL["sub4"] = qSubACL04
 
+}
+
+func (mk *MockStore) QueryTotalMessagesPerProject(projectUUIDs []string, startDate time.Time, endDate time.Time) ([]QProjectMessageCount, error) {
+
+	projectCount := make(map[string]int64)
+
+	qpc := make([]QProjectMessageCount, 0)
+
+	if endDate.Before(startDate) {
+		startDate, endDate = endDate, startDate
+	}
+
+	days := int64(1)
+	if !endDate.Equal(startDate) {
+		days = int64(endDate.Sub(startDate).Hours() / 24)
+	}
+
+	fmt.Println(days)
+
+	if len(projectUUIDs) == 0 {
+		for _, c := range mk.DailyTopicMsgCount {
+			if c.Date.After(startDate) && c.Date.Before(endDate) {
+				count, ok := projectCount[c.ProjectUUID]
+				if ok {
+					projectCount[c.ProjectUUID] = c.NumberOfMessages + count
+				} else {
+					projectCount[c.ProjectUUID] = c.NumberOfMessages
+				}
+			}
+		}
+	} else {
+		for _, pUUID := range projectUUIDs {
+			for _, c := range mk.DailyTopicMsgCount {
+				if pUUID == c.ProjectUUID && c.Date.After(startDate) && c.Date.Before(endDate) {
+					count, ok := projectCount[c.ProjectUUID]
+					if ok {
+						projectCount[c.ProjectUUID] = c.NumberOfMessages + count
+					} else {
+						projectCount[c.ProjectUUID] = c.NumberOfMessages
+					}
+				}
+			}
+		}
+	}
+
+	for k, v := range projectCount {
+		qpc = append(qpc, QProjectMessageCount{
+			ProjectUUID:          k,
+			NumberOfMessages:     v,
+			AverageDailyMessages: float64(v / days),
+		})
+	}
+
+	return qpc, nil
 }
 
 // QueryOneSub returns one sub exactly
