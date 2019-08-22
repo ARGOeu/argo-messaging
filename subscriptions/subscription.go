@@ -17,6 +17,12 @@ import (
 	"time"
 )
 
+const LinearRetryPolicyType = "linear"
+
+var SupportedRetryPolicyTypes = []string{
+	LinearRetryPolicyType,
+}
+
 // Subscription struct to hold information for a given topic
 type Subscription struct {
 	ProjectUUID   string     `json:"-"`
@@ -99,6 +105,17 @@ func NewNamesList() NamesList {
 	return NamesList{
 		Subscriptions: make([]string, 0),
 	}
+}
+
+// IsRetryPolicySupported checks if the provided retry policy is supported by the service
+func IsRetryPolicySupported(retPol string) bool {
+
+	for _, rp := range SupportedRetryPolicyTypes {
+		if rp == retPol {
+			return true
+		}
+	}
+	return false
 }
 
 // FindMetric returns the metric of a specific subscription
