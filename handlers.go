@@ -1823,6 +1823,7 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 	rPeriod := 0
 	vhash := ""
 	verified := false
+	maxMessages := int64(0)
 	pushWorker := auth.User{}
 	pwToken := gorillaContext.Get(r, "push_worker_token").(string)
 
@@ -1853,6 +1854,8 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 		}
 		rPolicy = postBody.PushCfg.RetPol.PolicyType
 		rPeriod = postBody.PushCfg.RetPol.Period
+		maxMessages = postBody.PushCfg.MaxMessages
+
 		if rPolicy == "" {
 			rPolicy = "linear"
 		}
@@ -1884,6 +1887,14 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 
 	existingSub := res.Subscriptions[0]
 
+	if maxMessages == 0 {
+		maxMessages = res.Subscriptions[0].PushCfg.MaxMessages
+	}
+
+	if maxMessages == 0 {
+		maxMessages = int64(1)
+	}
+
 	// if the request wants to transform a pull subscription to a push one
 	// we need to begin the verification process
 	if postBody.PushCfg != (subscriptions.PushConfig{}) {
@@ -1904,7 +1915,7 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	err = subscriptions.ModSubPush(projectUUID, subName, pushEnd, rPolicy, rPeriod, vhash, verified, refStr)
+	err = subscriptions.ModSubPush(projectUUID, subName, pushEnd, maxMessages, rPolicy, rPeriod, vhash, verified, refStr)
 
 	if err != nil {
 		if err.Error() == "not found" {
@@ -1950,7 +1961,7 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 			// activate the subscription on the push backend
 			apsc := gorillaContext.Get(r, "apsc").(push.Client)
 			apsc.ActivateSubscription(context.TODO(), existingSub.FullName, existingSub.FullTopic,
-				pushEnd, rPolicy, uint32(rPeriod))
+				pushEnd, rPolicy, uint32(rPeriod), existingSub.PushCfg.MaxMessages)
 
 			// modify the sub's acl with the push worker's uuid
 			err = auth.AppendToACL(projectUUID, "subscriptions", existingSub.Name, []string{pushWorker.Name}, refStr)
@@ -2055,7 +2066,7 @@ func SubVerifyPushEndpoint(w http.ResponseWriter, r *http.Request) {
 	// activate the subscription on the push backend
 	apsc := gorillaContext.Get(r, "apsc").(push.Client)
 	apsc.ActivateSubscription(context.TODO(), sub.FullName, sub.FullTopic, sub.PushCfg.Pend,
-		sub.PushCfg.RetPol.PolicyType, uint32(sub.PushCfg.RetPol.Period))
+		sub.PushCfg.RetPol.PolicyType, uint32(sub.PushCfg.RetPol.Period), sub.PushCfg.MaxMessages)
 
 	// modify the sub's acl with the push worker's uuid
 	err = auth.AppendToACL(projectUUID, "subscriptions", sub.Name, []string{pushW.Name}, refStr)
@@ -2193,6 +2204,8 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 	pushEnd := ""
 	rPolicy := ""
 	rPeriod := 0
+	maxMessages := int64(1)
+
 	//pushWorker := auth.User{}
 	verifyHash := ""
 
@@ -2224,9 +2237,16 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 		}
 		rPolicy = postBody.PushCfg.RetPol.PolicyType
 		rPeriod = postBody.PushCfg.RetPol.Period
+		maxMessages = postBody.PushCfg.MaxMessages
+
 		if rPolicy == "" {
 			rPolicy = "linear"
 		}
+
+		if maxMessages == 0 {
+			maxMessages = int64(1)
+		}
+
 		if rPeriod <= 0 {
 			rPeriod = 3000
 		}
@@ -2248,7 +2268,7 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get Result Object
-	res, err := subscriptions.CreateSub(projectUUID, urlVars["subscription"], tName, pushEnd, curOff, postBody.Ack, rPolicy, rPeriod, verifyHash, false, refStr)
+	res, err := subscriptions.CreateSub(projectUUID, urlVars["subscription"], tName, pushEnd, curOff, maxMessages, postBody.Ack, rPolicy, rPeriod, verifyHash, false, refStr)
 
 	if err != nil {
 		if err.Error() == "exists" {

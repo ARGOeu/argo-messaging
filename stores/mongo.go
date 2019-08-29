@@ -1165,7 +1165,7 @@ func (mong *MongoStore) InsertProject(uuid string, name string, createdOn time.T
 }
 
 // InsertSub inserts a subscription to the store
-func (mong *MongoStore) InsertSub(projectUUID string, name string, topic string, offset int64, ack int, push string, rPolicy string, rPeriod int, vhash string, verified bool) error {
+func (mong *MongoStore) InsertSub(projectUUID string, name string, topic string, offset int64, maxMessages int64, ack int, push string, rPolicy string, rPeriod int, vhash string, verified bool) error {
 	sub := QSub{
 		ProjectUUID:      projectUUID,
 		Name:             name,
@@ -1174,6 +1174,7 @@ func (mong *MongoStore) InsertSub(projectUUID string, name string, topic string,
 		NextOffset:       0,
 		PendingAck:       "",
 		Ack:              ack,
+		MaxMessages:      maxMessages,
 		PushEndpoint:     push,
 		RetPolicy:        rPolicy,
 		RetPeriod:        rPeriod,
@@ -1455,7 +1456,7 @@ func (mong *MongoStore) ModAck(projectUUID string, name string, ack int) error {
 }
 
 // ModSubPush modifies the push configuration
-func (mong *MongoStore) ModSubPush(projectUUID string, name string, push string, rPolicy string, rPeriod int, vhash string, verified bool) error {
+func (mong *MongoStore) ModSubPush(projectUUID string, name string, push string, maxMessages int64, rPolicy string, rPeriod int, vhash string, verified bool) error {
 	db := mong.Session.DB(mong.Database)
 	c := db.C("subscriptions")
 
@@ -1465,6 +1466,7 @@ func (mong *MongoStore) ModSubPush(projectUUID string, name string, push string,
 	},
 		bson.M{"$set": bson.M{
 			"push_endpoint":     push,
+			"max_messages":      maxMessages,
 			"retry_policy":      rPolicy,
 			"retry_period":      rPeriod,
 			"verification_hash": vhash,

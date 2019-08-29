@@ -71,6 +71,8 @@ message Subscription {
 message PushConfig {
     // Required. An https endpoint to where the messages will be pushed.
     string push_endpoint = 1;
+    // Defaults to 1. How many messages should the push server consume and sent at once.
+    int64 max_messages = 3;
     // Required. Retry policy.
     RetryPolicy retry_policy = 2;
 }

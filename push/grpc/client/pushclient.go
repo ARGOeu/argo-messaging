@@ -10,7 +10,7 @@ type Client interface {
 	Dial() error
 	// ActivateSubscription provides the push backend
 	// with all the necessary information to start the push functionality for the respective subscription
-	ActivateSubscription(ctx context.Context, fullSub, fullTopic, pushEndpoint, retryType string, retryPeriod uint32) ClientStatus
+	ActivateSubscription(ctx context.Context, fullSub, fullTopic, pushEndpoint, retryType string, retryPeriod uint32, maxMessages int64) ClientStatus
 	// DeactivateSubscription asks the push backend to stop the push functionality for the respective subscription
 	DeactivateSubscription(ctx context.Context, fullSub string) ClientStatus
 	// SubscriptionStatus returns the current push status oif the given subscription
