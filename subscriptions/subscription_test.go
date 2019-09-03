@@ -300,6 +300,11 @@ func (suite *SubTestSuite) TestLoadFromCfg() {
 
 }
 
+func (suite *SubTestSuite) TestIsRetPolSupported() {
+	suite.True(IsRetryPolicySupported("linear"))
+	suite.False(IsRetryPolicySupported("unknown"))
+}
+
 func (suite *SubTestSuite) TestRemoveSubStore() {
 
 	APIcfg := config.NewAPICfg()

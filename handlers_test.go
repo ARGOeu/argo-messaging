@@ -1999,6 +1999,45 @@ func (suite *HandlerTestSuite) TestSubModPushConfigError() {
 
 }
 
+func (suite *HandlerTestSuite) TestSubModPushInvalidRetPol() {
+
+	postJSON := `{
+	"topic":"projects/ARGO/topics/topic1",
+	"pushConfig": {
+		 "pushEndpoint": "https://www.example.com",
+		 "retryPolicy": {
+			"type": "unknown"
+		 }
+	}
+}`
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/projects/ARGO/subscriptions/sub1:modifyPushConfig", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "error": {
+      "code": 400,
+      "message": "Retry policy can only be of 'linear' type",
+      "status": "INVALID_ARGUMENT"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modifyPushConfig", WrapMockAuthConfig(SubModPush, cfgKafka, &brk, str, &mgr, nil))
+	router.ServeHTTP(w, req)
+	suite.Equal(400, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
 // TestSubModPushConfigToActive tests the case where the user modifies the push configuration,
 // in order to activate the subscription on the push server
 // the push configuration was empty before the api call
@@ -2674,6 +2713,45 @@ func (suite *HandlerTestSuite) TestSubCreatePushConfigPushDisabled() {
 	suite.Equal("empty", errSub.Error())
 }
 
+func (suite *HandlerTestSuite) TestSubCreateInvalidRetPol() {
+
+	postJSON := `{
+	"topic":"projects/ARGO/topics/topic1",
+	"pushConfig": {
+		 "pushEndpoint": "https://www.example.com",
+		 "retryPolicy": {
+			"type": "unknown"
+		}
+	}
+}`
+
+	req, err := http.NewRequest("PUT", "http://localhost:8080/v1/projects/ARGO/subscriptions/subNew", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "error": {
+      "code": 400,
+      "message": "Retry policy can only be of 'linear' type",
+      "status": "INVALID_ARGUMENT"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubCreate, cfgKafka, &brk, str, &mgr, pc))
+	router.ServeHTTP(w, req)
+	suite.Equal(400, w.Code)
+	suite.Equal(expResp, w.Body.String())
+}
+
 func (suite *HandlerTestSuite) TestSubCreatePushConfigError() {
 
 	postJSON := `{
@@ -2708,7 +2786,6 @@ func (suite *HandlerTestSuite) TestSubCreatePushConfigError() {
 	router.ServeHTTP(w, req)
 	suite.Equal(400, w.Code)
 	suite.Equal(expResp, w.Body.String())
-
 }
 
 func (suite *HandlerTestSuite) TestSubCreate() {

@@ -1859,6 +1859,12 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 		if rPeriod <= 0 {
 			rPeriod = 3000
 		}
+
+		if !subscriptions.IsRetryPolicySupported(rPolicy) {
+			err := APIErrorInvalidData(`Retry policy can only be of 'linear' type`)
+			respondErr(w, err)
+			return
+		}
 	}
 
 	// Get Result Object
@@ -2223,6 +2229,12 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 		}
 		if rPeriod <= 0 {
 			rPeriod = 3000
+		}
+
+		if !subscriptions.IsRetryPolicySupported(rPolicy) {
+			err := APIErrorInvalidData(`Retry policy can only be of 'linear' type`)
+			respondErr(w, err)
+			return
 		}
 
 		verifyHash, err = auth.GenToken()
