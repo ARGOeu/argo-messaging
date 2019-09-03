@@ -174,16 +174,19 @@ func (suite *SubTestSuite) TestGetSubsByProject() {
 	expSub1 := New("argo_uuid", "ARGO", "sub1", "topic1")
 	expSub1.PushCfg.RetPol.PolicyType = ""
 	expSub1.PushCfg.RetPol.Period = 0
+	expSub1.PushCfg.MaxMessages = 0
 	expSub1.LatestConsume = time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local)
 	expSub1.ConsumeRate = 10
 	expSub2 := New("argo_uuid", "ARGO", "sub2", "topic2")
 	expSub2.PushCfg.RetPol.PolicyType = ""
 	expSub2.PushCfg.RetPol.Period = 0
+	expSub2.PushCfg.MaxMessages = 0
 	expSub2.LatestConsume = time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local)
 	expSub2.ConsumeRate = 8.99
 	expSub3 := New("argo_uuid", "ARGO", "sub3", "topic3")
 	expSub3.PushCfg.RetPol.PolicyType = ""
 	expSub3.PushCfg.RetPol.Period = 0
+	expSub3.PushCfg.MaxMessages = 0
 	expSub3.LatestConsume = time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local)
 	expSub3.ConsumeRate = 5.45
 	expSub4 := New("argo_uuid", "ARGO", "sub4", "topic4")
@@ -195,6 +198,7 @@ func (suite *SubTestSuite) TestGetSubsByProject() {
 		RetPol:           rp,
 		VerificationHash: "push-id-1",
 		Verified:         true,
+		MaxMessages:      1,
 	}
 	expSub4.LatestConsume = time.Date(0, 0, 0, 0, 0, 0, 0, time.Local)
 	expSub4.ConsumeRate = 0
@@ -267,16 +271,19 @@ func (suite *SubTestSuite) TestLoadFromCfg() {
 	expSub1 := New("argo_uuid", "ARGO", "sub1", "topic1")
 	expSub1.PushCfg.RetPol.PolicyType = ""
 	expSub1.PushCfg.RetPol.Period = 0
+	expSub1.PushCfg.MaxMessages = 0
 	expSub1.LatestConsume = time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local)
 	expSub1.ConsumeRate = 10
 	expSub2 := New("argo_uuid", "ARGO", "sub2", "topic2")
 	expSub2.PushCfg.RetPol.PolicyType = ""
 	expSub2.PushCfg.RetPol.Period = 0
+	expSub2.PushCfg.MaxMessages = 0
 	expSub2.LatestConsume = time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local)
 	expSub2.ConsumeRate = 8.99
 	expSub3 := New("argo_uuid", "ARGO", "sub3", "topic3")
 	expSub3.PushCfg.RetPol.PolicyType = ""
 	expSub3.PushCfg.RetPol.Period = 0
+	expSub3.PushCfg.MaxMessages = 0
 	expSub3.LatestConsume = time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local)
 	expSub3.ConsumeRate = 5.45
 	expSub4 := New("argo_uuid", "ARGO", "sub4", "topic4")
@@ -288,6 +295,7 @@ func (suite *SubTestSuite) TestLoadFromCfg() {
 		RetPol:           rp,
 		VerificationHash: "push-id-1",
 		Verified:         true,
+		MaxMessages:      1,
 	}
 	expSub4.LatestConsume = time.Date(0, 0, 0, 0, 0, 0, 0, time.Local)
 	expSub4.ConsumeRate = 0
@@ -327,11 +335,11 @@ func (suite *SubTestSuite) TestCreateSubStore() {
 
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
 
-	sub, err := CreateSub("argo_uuid", "sub1", "topic1", "", 0, 0, "linear", 300, "", true, store)
+	sub, err := CreateSub("argo_uuid", "sub1", "topic1", "", 0, 0, 0, "linear", 300, "", true, store)
 	suite.Equal(Subscription{}, sub)
 	suite.Equal("exists", err.Error())
 
-	sub2, err2 := CreateSub("argo_uuid", "subNew", "topicNew", "", 0, 0, "linear", 300, "", true, store)
+	sub2, err2 := CreateSub("argo_uuid", "subNew", "topicNew", "", 0, 0, 0, "linear", 300, "", true, store)
 	expSub := New("argo_uuid", "ARGO", "subNew", "topicNew")
 	suite.Equal(expSub, sub2)
 	suite.Equal(nil, err2)
@@ -366,19 +374,20 @@ func (suite *SubTestSuite) TestModSubPush() {
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
 
 	// modify push config
-	err1 := ModSubPush("argo_uuid", "sub1", "example.com", "linear", 400, "hash-1", true, store)
+	err1 := ModSubPush("argo_uuid", "sub1", "example.com", 2, "linear", 400, "hash-1", true, store)
 
 	suite.Nil(err1)
 
 	sub1, _ := store.QueryOneSub("argo_uuid", "sub1")
 	suite.Equal("example.com", sub1.PushEndpoint)
+	suite.Equal(int64(2), sub1.MaxMessages)
 	suite.Equal("linear", sub1.RetPolicy)
 	suite.Equal(400, sub1.RetPeriod)
 	suite.Equal("hash-1", sub1.VerificationHash)
 	suite.True(sub1.Verified)
 
 	// test error case
-	err2 := ModSubPush("argo_uuid", "unknown", "", "", 0, "", false, store)
+	err2 := ModSubPush("argo_uuid", "unknown", "", 0, "", 0, "", false, store)
 	suite.Equal("not found", err2.Error())
 }
 
@@ -498,6 +507,7 @@ func (suite *SubTestSuite) TestExportJson() {
    "topic": "/projects/ARGO/topics/topic1",
    "pushConfig": {
       "pushEndpoint": "",
+      "maxMessages": 0,
       "retryPolicy": {},
       "verification_hash": "",
       "verified": false
@@ -513,6 +523,7 @@ func (suite *SubTestSuite) TestExportJson() {
          "topic": "/projects/ARGO/topics/topic4",
          "pushConfig": {
             "pushEndpoint": "endpoint.foo",
+            "maxMessages": 1,
             "retryPolicy": {
                "type": "linear",
                "period": 300
@@ -527,6 +538,7 @@ func (suite *SubTestSuite) TestExportJson() {
          "topic": "/projects/ARGO/topics/topic3",
          "pushConfig": {
             "pushEndpoint": "",
+            "maxMessages": 0,
             "retryPolicy": {},
             "verification_hash": "",
             "verified": false
@@ -538,6 +550,7 @@ func (suite *SubTestSuite) TestExportJson() {
          "topic": "/projects/ARGO/topics/topic2",
          "pushConfig": {
             "pushEndpoint": "",
+            "maxMessages": 0,
             "retryPolicy": {},
             "verification_hash": "",
             "verified": false
@@ -549,6 +562,7 @@ func (suite *SubTestSuite) TestExportJson() {
          "topic": "/projects/ARGO/topics/topic1",
          "pushConfig": {
             "pushEndpoint": "",
+            "maxMessages": 0,
             "retryPolicy": {},
             "verification_hash": "",
             "verified": false

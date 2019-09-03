@@ -1802,12 +1802,17 @@ definitions:
       returnImmediately:
         type: string
         description: Set if should return immediately and close connection (if no messages are present) or wait until new messages
+
   SubParameters:
     type: object
     properties:
       topic:
         type: string
         description: name of the topic this subscription will subscribe to
+      ackDeadlineSeconds:
+        type: integer
+        description: maximum wait time in seconds for Acknowledgement
+
   Subscription:
     type: object
     properties:
@@ -1833,6 +1838,9 @@ definitions:
       pushEndpoint:
         type: string
         description: endpoint url for endpoint to push messages
+      maxMessages:
+        type: integer
+        description: batch size of messages per push action
       retryPolicy:
         $ref: '#/definitions/RetryPolicy'
       verification_hash:

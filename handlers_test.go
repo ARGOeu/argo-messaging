@@ -2069,6 +2069,7 @@ func (suite *HandlerTestSuite) TestSubModPushConfigToActive() {
 	suite.Equal(200, w.Code)
 	suite.Equal("", w.Body.String())
 	suite.Equal("https://www.example.com", sub.PushEndpoint)
+	suite.Equal(int64(1), sub.MaxMessages)
 	suite.Equal(3000, sub.RetPeriod)
 	suite.Equal("linear", sub.RetPolicy)
 	suite.False(sub.Verified)
@@ -2191,6 +2192,7 @@ func (suite *HandlerTestSuite) TestSubModPushConfigUpdate() {
 	postJSON := `{
 	"pushConfig": {
 		 "pushEndpoint": "https://www.example2.com",
+         "maxMessages": 5,
 		 "retryPolicy": {
              "type":"linear",
              "period": 5000
@@ -2217,6 +2219,7 @@ func (suite *HandlerTestSuite) TestSubModPushConfigUpdate() {
 	suite.Equal(200, w.Code)
 	suite.Equal("", w.Body.String())
 	suite.Equal("https://www.example2.com", sub.PushEndpoint)
+	suite.Equal(int64(5), sub.MaxMessages)
 	suite.Equal(5000, sub.RetPeriod)
 	suite.Equal("linear", sub.RetPolicy)
 	suite.False(sub.Verified)
@@ -2603,6 +2606,7 @@ func (suite *HandlerTestSuite) TestSubCreatePushConfig() {
    "topic": "/projects/ARGO/topics/topic1",
    "pushConfig": {
       "pushEndpoint": "https://www.example.com",
+      "maxMessages": 1,
       "retryPolicy": {
          "type": "linear",
          "period": 3000
@@ -2804,6 +2808,7 @@ func (suite *HandlerTestSuite) TestSubCreate() {
    "topic": "/projects/ARGO/topics/topic1",
    "pushConfig": {
       "pushEndpoint": "",
+      "maxMessages": 0,
       "retryPolicy": {},
       "verification_hash": "",
       "verified": false
@@ -2973,6 +2978,7 @@ func (suite *HandlerTestSuite) TestSubListOne() {
    "topic": "/projects/ARGO/topics/topic1",
    "pushConfig": {
       "pushEndpoint": "",
+      "maxMessages": 0,
       "retryPolicy": {},
       "verification_hash": "",
       "verified": false
@@ -3009,6 +3015,7 @@ func (suite *HandlerTestSuite) TestSubListAll() {
          "topic": "/projects/ARGO/topics/topic4",
          "pushConfig": {
             "pushEndpoint": "endpoint.foo",
+            "maxMessages": 1,
             "retryPolicy": {
                "type": "linear",
                "period": 300
@@ -3023,6 +3030,7 @@ func (suite *HandlerTestSuite) TestSubListAll() {
          "topic": "/projects/ARGO/topics/topic3",
          "pushConfig": {
             "pushEndpoint": "",
+            "maxMessages": 0,
             "retryPolicy": {},
             "verification_hash": "",
             "verified": false
@@ -3034,6 +3042,7 @@ func (suite *HandlerTestSuite) TestSubListAll() {
          "topic": "/projects/ARGO/topics/topic2",
          "pushConfig": {
             "pushEndpoint": "",
+            "maxMessages": 0,
             "retryPolicy": {},
             "verification_hash": "",
             "verified": false
@@ -3045,6 +3054,7 @@ func (suite *HandlerTestSuite) TestSubListAll() {
          "topic": "/projects/ARGO/topics/topic1",
          "pushConfig": {
             "pushEndpoint": "",
+            "maxMessages": 0,
             "retryPolicy": {},
             "verification_hash": "",
             "verified": false
@@ -3084,6 +3094,7 @@ func (suite *HandlerTestSuite) TestSubListAllFirstPage() {
          "topic": "/projects/ARGO/topics/topic4",
          "pushConfig": {
             "pushEndpoint": "endpoint.foo",
+            "maxMessages": 1,
             "retryPolicy": {
                "type": "linear",
                "period": 300
@@ -3098,6 +3109,7 @@ func (suite *HandlerTestSuite) TestSubListAllFirstPage() {
          "topic": "/projects/ARGO/topics/topic3",
          "pushConfig": {
             "pushEndpoint": "",
+            "maxMessages": 0,
             "retryPolicy": {},
             "verification_hash": "",
             "verified": false
@@ -3137,6 +3149,7 @@ func (suite *HandlerTestSuite) TestSubListAllNextPage() {
          "topic": "/projects/ARGO/topics/topic2",
          "pushConfig": {
             "pushEndpoint": "",
+            "maxMessages": 0,
             "retryPolicy": {},
             "verification_hash": "",
             "verified": false
@@ -3148,6 +3161,7 @@ func (suite *HandlerTestSuite) TestSubListAllNextPage() {
          "topic": "/projects/ARGO/topics/topic1",
          "pushConfig": {
             "pushEndpoint": "",
+            "maxMessages": 0,
             "retryPolicy": {},
             "verification_hash": "",
             "verified": false
@@ -3216,6 +3230,7 @@ func (suite *HandlerTestSuite) TestSubListAllConsumer() {
          "topic": "/projects/ARGO/topics/topic4",
          "pushConfig": {
             "pushEndpoint": "endpoint.foo",
+            "maxMessages": 1,
             "retryPolicy": {
                "type": "linear",
                "period": 300
@@ -3230,6 +3245,7 @@ func (suite *HandlerTestSuite) TestSubListAllConsumer() {
          "topic": "/projects/ARGO/topics/topic3",
          "pushConfig": {
             "pushEndpoint": "",
+            "maxMessages": 0,
             "retryPolicy": {},
             "verification_hash": "",
             "verified": false
@@ -3241,6 +3257,7 @@ func (suite *HandlerTestSuite) TestSubListAllConsumer() {
          "topic": "/projects/ARGO/topics/topic2",
          "pushConfig": {
             "pushEndpoint": "",
+            "maxMessages": 0,
             "retryPolicy": {},
             "verification_hash": "",
             "verified": false
@@ -3280,6 +3297,7 @@ func (suite *HandlerTestSuite) TestSubListAllConsumerWithPagination() {
          "topic": "/projects/ARGO/topics/topic4",
          "pushConfig": {
             "pushEndpoint": "endpoint.foo",
+            "maxMessages": 1,
             "retryPolicy": {
                "type": "linear",
                "period": 300
@@ -3294,6 +3312,7 @@ func (suite *HandlerTestSuite) TestSubListAllConsumerWithPagination() {
          "topic": "/projects/ARGO/topics/topic3",
          "pushConfig": {
             "pushEndpoint": "",
+            "maxMessages": 0,
             "retryPolicy": {},
             "verification_hash": "",
             "verified": false
@@ -5498,6 +5517,7 @@ func (suite *HandlerTestSuite) TestValidationInSubs() {
    "topic": "/projects/ARGO/topics/topic1",
    "pushConfig": {
       "pushEndpoint": "",
+      "maxMessages": 0,
       "retryPolicy": {},
       "verification_hash": "",
       "verified": false

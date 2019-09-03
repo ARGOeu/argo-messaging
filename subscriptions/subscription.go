@@ -43,6 +43,7 @@ type Subscription struct {
 // PushConfig holds optional configuration for push operations
 type PushConfig struct {
 	Pend             string      `json:"pushEndpoint"`
+	MaxMessages      int64       `json:"maxMessages"`
 	RetPol           RetryPolicy `json:"retryPolicy"`
 	VerificationHash string      `json:"verification_hash"`
 	Verified         bool        `json:"verified"`
@@ -281,7 +282,7 @@ func VerifyPushEndpoint(sub Subscription, c *http.Client, store stores.Store) er
 	}
 
 	// update the push config with verified true
-	err = ModSubPush(sub.ProjectUUID, sub.Name, sub.PushCfg.Pend, sub.PushCfg.RetPol.PolicyType, sub.PushCfg.RetPol.Period, sub.PushCfg.VerificationHash, true, store)
+	err = ModSubPush(sub.ProjectUUID, sub.Name, sub.PushCfg.Pend, sub.PushCfg.MaxMessages, sub.PushCfg.RetPol.PolicyType, sub.PushCfg.RetPol.Period, sub.PushCfg.VerificationHash, true, store)
 	if err != nil {
 		return err
 	}
@@ -323,8 +324,14 @@ func Find(projectUUID, userUUID, name, pageToken string, pageSize int32, store s
 		curSub.Ack = item.Ack
 		if item.PushEndpoint != "" {
 			rp := RetryPolicy{item.RetPolicy, item.RetPeriod}
+			maxM := int64(1)
+			if item.MaxMessages != 0 {
+				maxM = item.MaxMessages
+			}
+
 			curSub.PushCfg = PushConfig{
 				Pend:             item.PushEndpoint,
+				MaxMessages:      maxM,
 				RetPol:           rp,
 				VerificationHash: item.VerificationHash,
 				Verified:         item.Verified,
@@ -379,7 +386,7 @@ func LoadPushSubs(store stores.Store) PaginatedSubscriptions {
 }
 
 // CreateSub creates a new subscription
-func CreateSub(projectUUID string, name string, topic string, push string, offset int64, ack int, retPolicy string, retPeriod int, vhash string, verified bool, store stores.Store) (Subscription, error) {
+func CreateSub(projectUUID string, name string, topic string, push string, offset int64, maxMessages int64, ack int, retPolicy string, retPeriod int, vhash string, verified bool, store stores.Store) (Subscription, error) {
 
 	if HasSub(projectUUID, name, store) {
 		return Subscription{}, errors.New("exists")
@@ -388,7 +395,8 @@ func CreateSub(projectUUID string, name string, topic string, push string, offse
 	if ack == 0 {
 		ack = 10
 	}
-	err := store.InsertSub(projectUUID, name, topic, offset, ack, push, retPolicy, retPeriod, vhash, verified)
+
+	err := store.InsertSub(projectUUID, name, topic, offset, maxMessages, ack, push, retPolicy, retPeriod, vhash, verified)
 	if err != nil {
 		return Subscription{}, errors.New("backend error")
 	}
@@ -416,13 +424,13 @@ func ModAck(projectUUID string, name string, ack int, store stores.Store) error 
 }
 
 // ModSubPush updates the subscription push config
-func ModSubPush(projectUUID string, name string, push string, retPolicy string, retPeriod int, vhash string, verified bool, store stores.Store) error {
+func ModSubPush(projectUUID string, name string, push string, maxMessages int64, retPolicy string, retPeriod int, vhash string, verified bool, store stores.Store) error {
 
 	if HasSub(projectUUID, name, store) == false {
 		return errors.New("not found")
 	}
 
-	return store.ModSubPush(projectUUID, name, push, retPolicy, retPeriod, vhash, verified)
+	return store.ModSubPush(projectUUID, name, push, maxMessages, retPolicy, retPeriod, vhash, verified)
 }
 
 // RemoveSub removes an existing subscription
