@@ -4,12 +4,21 @@ import (
 	"context"
 	"strconv"
 
+	"errors"
 	"github.com/ARGOeu/argo-messaging/messages"
+	"time"
 )
 
 // MockBroker struct
 type MockBroker struct {
-	MsgList []string
+	MsgList          []string
+	Topics           map[string]string
+	TopicTimeIndices map[string][]TimeToOffset
+}
+
+type TimeToOffset struct {
+	Timestamp time.Time
+	Offset    int64
 }
 
 // PopulateOne Adds three messages to the mock broker
@@ -103,4 +112,33 @@ func (b *MockBroker) GetMinOffset(topic string) int64 {
 // Consume function to consume a message from the broker
 func (b *MockBroker) Consume(ctx context.Context, topic string, offset int64, imm bool, max int64) ([]string, error) {
 	return b.MsgList, nil
+}
+
+// Delete topic from the broker
+func (b *MockBroker) DeleteTopic(topic string) error {
+
+	_, ok := b.Topics[topic]
+	if !ok {
+		return errors.New("topic not found on the broker")
+	}
+
+	delete(b.Topics, topic)
+	return nil
+}
+
+func (b *MockBroker) TimeToOffset(topic string, time time.Time) (int64, error) {
+
+	topicTimeIndices, ok := b.TopicTimeIndices[topic]
+
+	if !ok {
+		return -1, errors.New("topic not found on the broker")
+	}
+
+	for _, item := range topicTimeIndices {
+		if item.Timestamp.Equal(time) || item.Timestamp.After(time) {
+			return item.Offset, nil
+		}
+	}
+
+	return -1, nil
 }

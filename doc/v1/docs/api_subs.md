@@ -41,6 +41,53 @@ Whenever a subscription is created with a valid push configuration, the service 
 should be later used to validate the ownership of the registered push endpoint, and will mark the subscription as 
 unverified.
 
+The `maxMessages` field declares the number of messages that should be send per
+push action. The default value is `1`. If `maxMessages` holds a value of `1` your
+push endpoint should expect a request body with the following schema:
+
+```json
+{
+     "message": {
+       "attributes": {
+         "key": "value"
+       },
+       "data": "SGVsbG8gQ2xvdWQgUHViL1N1YiEgSGVyZSBpcyBteSBtZXNzYWdlIQ==",
+       "messageId": "136969346945"
+     },
+     "subscription": "projects/myproject/subscriptions/mysubscription"
+   }
+```
+
+If the `maxMessages` field holds a value of greater than `1` your push endpoint
+should expect a request body with the following schema:
+```json
+{  
+   "messages":[  
+      {  
+         "message":{  
+            "attributes":{  
+               "key":"value"
+            },
+            "data":"SGVsbG8gQ2xvdWQgUHViL1N1YiEgSGVyZSBpcyBteSBtZXNzYWdlIQ==",
+            "messageId":"136969346945"
+         },
+         "subscription":"projects/myproject/subscriptions/mysubscription"
+      },
+      {  
+         "message":{  
+            "attributes":{  
+               "key":"value"
+            },
+            "data":"SGVsbG8gQ2xvdWQgUHViL1N1YiEgSGVyZSBpcyBteSBtZXNzYWdlIQ==",
+            "messageId":"136969346945"
+         },
+         "subscription":"projects/myproject/subscriptions/mysubscription"
+      }
+   ]
+}
+
+```
+
 ## Request to create Push Enabled Subscription
 ```json
 {
@@ -48,6 +95,7 @@ unverified.
  "ackDeadlineSeconds":10,
   "pushConfig": {
     "pushEndpoint": "https://127.0.0.1:5000/receive_here",
+    "maxMessages": 3,
     "retryPolicy": {
       "type": "linear", 
       "period": 1000              	
@@ -63,6 +111,7 @@ unverified.
  "ackDeadlineSeconds": 10,
   "pushConfig": {
     "pushEndpoint": "https://127.0.0.1:5000/receive_here",
+    "maxMessages": 3,
     "retryPolicy": {
       "type": "linear", 
       "period": 1000              	
@@ -315,6 +364,54 @@ Success Response
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
 
+## [POST] Modify ACL of a given subscription
+The following request Modifies the authorized users list of a given subscription
+
+### Request
+```
+POST "/v1/projects/{project_name}/subscriptions/{sub_name}:modifyAcl"
+```
+
+### Where
+- project_name: Name of the project
+- sub_name: name of the subscription
+
+
+### Post data
+```
+{
+"authorized_users": [
+ "UserX","UserY"
+]
+}
+```
+
+### Example request
+
+```
+curl -X POST -H "Content-Type: application/json"  
+-d { POSTDATA } "https://{URL}/v1/projects/BRAND_NEW/subscriptions/subscription:modifyAcl?key=S3CR3T"
+```
+
+### Responses  
+
+Success Response
+`200 OK`
+
+### Errors
+If the to-be updated ACL contains users that are non-existent in the project, the API returns the following error:
+`404 NOT_FOUND`
+```
+{
+   "error": {
+      "code": 404,
+      "message": "User(s): UserFoo1,UserFoo2 do not exist",
+      "status": "NOT_FOUND"
+   }
+}
+```
+
+Please refer to section [Errors](api_errors.md) to see all possible Errors
 
 ## [DELETE] Manage Subscriptions - Delete Subscriptions
 This request deletes a subscription in a project with a DELETE request
@@ -390,10 +487,15 @@ This request modifies the push configuration of a subscription
 
 ### Post body:
 ```
-{
-  "pushConfig": {  "pushEndpoint": "",
-                   "retryPolicy": { "type": "linear", "period": 300 }
-  }
+{  
+   "pushConfig":{  
+      "pushEndpoint":"",
+      "maxMessages": 5,
+      "retryPolicy":{  
+         "type":"linear",
+         "period":300
+      }
+   }
 }
 ```
 
@@ -412,10 +514,15 @@ curl -X POST -H "Content-Type: application/json"
 
 ### post body:
 ```
-{
-  "pushConfig": {"pushEndpoint": "host:example.com:8080/path/to/hook",
-                 "retryPolicy":  { "type": "linear", "period": 300 }
-  }
+{  
+   "pushConfig":{  
+      "pushEndpoint":"host:example.com:8080/path/to/hook",
+      "maxMessages": 3,
+      "retryPolicy":{  
+         "type":"linear",
+         "period":300
+      }
+   }
 }
 ```
 
@@ -430,47 +537,6 @@ unverified.
 
 **NOTE** Changing the push endpoint of a push enabled subscription, or removing the push configuration and then re-applying
 will mark the subscription as unverified and a new verification process should take place.
-
-### Errors
-Please refer to section [Errors](api_errors.md) to see all possible Errors
-
-## [POST] Modify Push Status
-This request modifies the push status of a subscription
-
-### Request
-`POST /v1/projects/{project_name}/subscriptions/{subscription_name}:modifyPushStatus`
-
-### Post body:
-```json
-{
-  "push_status": "push enabled"
-}
-```
-
-### Where
-- Project_name: Name of the project
-- subscription_name: The subscription name to consume
-- push_status: Contains information about the state of a subscription on the push server
-
-
-### Example request
-
-```json
-curl -X POST -H "Content-Type: application/json"  
--d POSTDATA http://{URL}/v1/projects/BRAND_NEW/subscriptions/alert_engine:modifyPushStatus?key=S3CR3T
-```
-
-### Post body:
-```json
-{
-  "push_status": "push enabled"
-}
-```
-
-### Responses  
-
-Success Response
-Code: `200 OK`, Empty response if successful.
 
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
@@ -629,6 +695,39 @@ Code: `200 OK`, Empty response if successful.
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
 
+## [GET] Get Offset by Timestamp
+This request returns the offset of the first message with a timestamp equal or greater than the time given.
+
+### Request
+`GET /v1/projects/{project_name}/subscriptions/{subscription_name}:timeToOffset?time={{timestamp}}`
+
+### Where
+- Project_name: Name of the project
+- subscription_name: The subscription name to consume
+- timestamp: timestamp in Zulu format
+
+### Example request
+
+```json
+curl -X GET -H "Content-Type: application/json"  
+http://{URL}/v1/projects/BRAND_NEW/subscriptions/alert_engine:timeToOffset?key=S3CR3T"
+```
+
+### Responses  
+
+Success Response
+Code: `200 OK`
+
+### Response body:
+```
+{
+  "offset": 640,
+}
+```
+
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors
+
 ## [POST] Modify Offsets
 This request modifies the current offset of a subscription
 
@@ -724,6 +823,20 @@ Success Response
             }
          ],
          "description": "Counter that displays the total size of data (in bytes) published to the specific topic"
+      },
+      {
+         "metric": "subscription.consumption_rate",
+         "metric_type": "rate",
+         "value_type": "float64",
+         "resource_type": "subscription",
+         "resource_name": "sub1",
+         "timeseries": [
+            {
+               "timestamp": "2019-05-06T00:00:00Z",
+               "value": 10
+            }
+         ],
+         "description": "A rate that displays how many messages were consumed per second between the last two consume events"
       }
    ]
 }

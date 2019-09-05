@@ -14,14 +14,16 @@ type QSub struct {
 	NextOffset       int64       `bson:"next_offset"`
 	PendingAck       string      `bson:"pending_ack"`
 	PushEndpoint     string      `bson:"push_endpoint"`
+	MaxMessages      int64       `bson:"max_messages"`
 	Ack              int         `bson:"ack"`
 	RetPolicy        string      `bson:"retry_policy"`
 	RetPeriod        int         `bson:"retry_period"`
 	MsgNum           int64       `bson:"msg_num"`
 	TotalBytes       int64       `bson:"total_bytes"`
-	PushStatus       string      `bson:"push_status,omitempty"`
 	VerificationHash string      `bson:"verification_hash"`
 	Verified         bool        `bson:"verified"`
+	LatestConsume    time.Time   `bson:"latest_consume"`
+	ConsumeRate      float64     `bson:"consume_rate"`
 }
 
 // QAcl holds a list of authorized users queried from topic or subscription collections
@@ -74,11 +76,13 @@ type QRole struct {
 
 // QTopic are the results of the QTopic query
 type QTopic struct {
-	ID          interface{} `bson:"_id,omitempty"`
-	ProjectUUID string      `bson:"project_uuid"`
-	Name        string      `bson:"name"`
-	MsgNum      int64       `bson:"msg_num"`
-	TotalBytes  int64       `bson:"total_bytes"`
+	ID            interface{} `bson:"_id,omitempty"`
+	ProjectUUID   string      `bson:"project_uuid"`
+	Name          string      `bson:"name"`
+	MsgNum        int64       `bson:"msg_num"`
+	TotalBytes    int64       `bson:"total_bytes"`
+	LatestPublish time.Time   `bson:"latest_publish"`
+	PublishRate   float64     `bson:"publish_rate"`
 }
 
 // QDailyTopicMsgCount holds information about the daily number of messages published to a topic
@@ -95,6 +99,13 @@ type QDailyProjectMsgCount struct {
 	NumberOfMessages int64     `bson:"msg_count"`
 }
 
+// QProjectMessageCount holds information about the total messages and average daily messages for a specific project
+type QProjectMessageCount struct {
+	ProjectUUID          string  `bson:"project_uuid"`
+	NumberOfMessages     int64   `bson:"msg_count"`
+	AverageDailyMessages float64 `bson:"avg_daily_msg"`
+}
+
 func (qUsr *QUser) isInProject(projectUUID string) bool {
 	for _, item := range qUsr.Projects {
 		if item.ProjectUUID == projectUUID {
@@ -108,7 +119,6 @@ func (qUsr *QUser) isInProject(projectUUID string) bool {
 func (qUsr *QUser) getProjectRoles(projectUUID string) []string {
 
 	result := []string{}
-
 	for _, item := range qUsr.Projects {
 		if item.ProjectUUID == projectUUID {
 			result = item.Roles

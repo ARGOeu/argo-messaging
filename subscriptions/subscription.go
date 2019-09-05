@@ -14,26 +14,36 @@ import (
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"net/url"
+	"time"
 )
+
+const LinearRetryPolicyType = "linear"
+
+var SupportedRetryPolicyTypes = []string{
+	LinearRetryPolicyType,
+}
 
 // Subscription struct to hold information for a given topic
 type Subscription struct {
-	ProjectUUID string     `json:"-"`
-	Name        string     `json:"-"`
-	Topic       string     `json:"-"`
-	FullName    string     `json:"name"`
-	FullTopic   string     `json:"topic"`
-	PushCfg     PushConfig `json:"pushConfig"`
-	Ack         int        `json:"ackDeadlineSeconds"`
-	Offset      int64      `json:"-"`
-	NextOffset  int64      `json:"-"`
-	PendingAck  string     `json:"-"`
-	PushStatus  string     `json:"push_status,omitempty"`
+	ProjectUUID   string     `json:"-"`
+	Name          string     `json:"-"`
+	Topic         string     `json:"-"`
+	FullName      string     `json:"name"`
+	FullTopic     string     `json:"topic"`
+	PushCfg       PushConfig `json:"pushConfig"`
+	Ack           int        `json:"ackDeadlineSeconds"`
+	Offset        int64      `json:"-"`
+	NextOffset    int64      `json:"-"`
+	PendingAck    string     `json:"-"`
+	PushStatus    string     `json:"push_status,omitempty"`
+	LatestConsume time.Time  `json:"-"`
+	ConsumeRate   float64    `json:"-"`
 }
 
 // PushConfig holds optional configuration for push operations
 type PushConfig struct {
 	Pend             string      `json:"pushEndpoint"`
+	MaxMessages      int64       `json:"maxMessages"`
 	RetPol           RetryPolicy `json:"retryPolicy"`
 	VerificationHash string      `json:"verification_hash"`
 	Verified         bool        `json:"verified"`
@@ -41,8 +51,10 @@ type PushConfig struct {
 
 // SubMetrics holds the subscription's metric details
 type SubMetrics struct {
-	MsgNum     int64 `json:"number_of_messages"`
-	TotalBytes int64 `json:"total_bytes"`
+	MsgNum        int64     `json:"number_of_messages"`
+	TotalBytes    int64     `json:"total_bytes"`
+	LatestConsume time.Time `json:"-"`
+	ConsumeRate   float64   `json:"-"`
 }
 
 // RetryPolicy holds information on retry policies
@@ -86,11 +98,6 @@ type AckDeadline struct {
 	AckDeadline int `json:"ackDeadlineSeconds"`
 }
 
-// PushStatus utility struct
-type PushStatus struct {
-	PushStatus string `json:"push_status"`
-}
-
 type NamesList struct {
 	Subscriptions []string `json:"subscriptions"`
 }
@@ -99,6 +106,17 @@ func NewNamesList() NamesList {
 	return NamesList{
 		Subscriptions: make([]string, 0),
 	}
+}
+
+// IsRetryPolicySupported checks if the provided retry policy is supported by the service
+func IsRetryPolicySupported(retPol string) bool {
+
+	for _, rp := range SupportedRetryPolicyTypes {
+		if rp == retPol {
+			return true
+		}
+	}
+	return false
 }
 
 // FindMetric returns the metric of a specific subscription
@@ -119,6 +137,9 @@ func FindMetric(projectUUID string, name string, store stores.Store) (SubMetrics
 
 		result.MsgNum = item.MsgNum
 		result.TotalBytes = item.TotalBytes
+		result.LatestConsume = item.LatestConsume
+		result.ConsumeRate = item.ConsumeRate
+
 	}
 	return result, err
 }
@@ -154,12 +175,6 @@ func GetAckDeadlineFromJSON(input []byte) (AckDeadline, error) {
 	s := AckDeadline{}
 	err := json.Unmarshal([]byte(input), &s)
 	return s, err
-}
-
-func GetPushStatusFromJSON(input []byte) (PushStatus, error) {
-	p := PushStatus{}
-	err := json.Unmarshal(input, &p)
-	return p, err
 }
 
 // GetFromJSON retrieves Sub Info From Json
@@ -267,7 +282,7 @@ func VerifyPushEndpoint(sub Subscription, c *http.Client, store stores.Store) er
 	}
 
 	// update the push config with verified true
-	err = ModSubPush(sub.ProjectUUID, sub.Name, sub.PushCfg.Pend, sub.PushCfg.RetPol.PolicyType, sub.PushCfg.RetPol.Period, sub.PushCfg.VerificationHash, true, store)
+	err = ModSubPush(sub.ProjectUUID, sub.Name, sub.PushCfg.Pend, sub.PushCfg.MaxMessages, sub.PushCfg.RetPol.PolicyType, sub.PushCfg.RetPol.Period, sub.PushCfg.VerificationHash, true, store)
 	if err != nil {
 		return err
 	}
@@ -309,14 +324,21 @@ func Find(projectUUID, userUUID, name, pageToken string, pageSize int32, store s
 		curSub.Ack = item.Ack
 		if item.PushEndpoint != "" {
 			rp := RetryPolicy{item.RetPolicy, item.RetPeriod}
+			maxM := int64(1)
+			if item.MaxMessages != 0 {
+				maxM = item.MaxMessages
+			}
+
 			curSub.PushCfg = PushConfig{
 				Pend:             item.PushEndpoint,
+				MaxMessages:      maxM,
 				RetPol:           rp,
 				VerificationHash: item.VerificationHash,
 				Verified:         item.Verified,
 			}
 		}
-		curSub.PushStatus = item.PushStatus
+		curSub.LatestConsume = item.LatestConsume
+		curSub.ConsumeRate = item.ConsumeRate
 		result.Subscriptions = append(result.Subscriptions, curSub)
 	}
 
@@ -364,7 +386,7 @@ func LoadPushSubs(store stores.Store) PaginatedSubscriptions {
 }
 
 // CreateSub creates a new subscription
-func CreateSub(projectUUID string, name string, topic string, push string, offset int64, ack int, retPolicy string, retPeriod int, vhash string, verified bool, store stores.Store) (Subscription, error) {
+func CreateSub(projectUUID string, name string, topic string, push string, offset int64, maxMessages int64, ack int, retPolicy string, retPeriod int, vhash string, verified bool, store stores.Store) (Subscription, error) {
 
 	if HasSub(projectUUID, name, store) {
 		return Subscription{}, errors.New("exists")
@@ -373,7 +395,8 @@ func CreateSub(projectUUID string, name string, topic string, push string, offse
 	if ack == 0 {
 		ack = 10
 	}
-	err := store.InsertSub(projectUUID, name, topic, offset, ack, push, retPolicy, retPeriod, vhash, verified)
+
+	err := store.InsertSub(projectUUID, name, topic, offset, maxMessages, ack, push, retPolicy, retPeriod, vhash, verified)
 	if err != nil {
 		return Subscription{}, errors.New("backend error")
 	}
@@ -401,23 +424,13 @@ func ModAck(projectUUID string, name string, ack int, store stores.Store) error 
 }
 
 // ModSubPush updates the subscription push config
-func ModSubPush(projectUUID string, name string, push string, retPolicy string, retPeriod int, vhash string, verified bool, store stores.Store) error {
+func ModSubPush(projectUUID string, name string, push string, maxMessages int64, retPolicy string, retPeriod int, vhash string, verified bool, store stores.Store) error {
 
 	if HasSub(projectUUID, name, store) == false {
 		return errors.New("not found")
 	}
 
-	return store.ModSubPush(projectUUID, name, push, retPolicy, retPeriod, vhash, verified)
-}
-
-// ModSubPush updates the subscription push config
-func ModSubPushStatus(projectUUID string, name string, status string, store stores.Store) error {
-
-	if HasSub(projectUUID, name, store) == false {
-		return errors.New("not found")
-	}
-
-	return store.ModSubPushStatus(projectUUID, name, status)
+	return store.ModSubPush(projectUUID, name, push, maxMessages, retPolicy, retPeriod, vhash, verified)
 }
 
 // RemoveSub removes an existing subscription

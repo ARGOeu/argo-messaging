@@ -13,6 +13,8 @@
 #  $ ./receiver.py --cert /path/to/cert --key /path/to/cert/key
 #
 # You can also specify the bind port with the -port argument, default is 5000
+# Lastly, you can also specify which message format the endpoint should expect
+# --single or --multiple
 
 from flask import Flask
 from flask import request
@@ -51,6 +53,8 @@ dictConfig({
 
 VERIFICATION_HASH = ""
 
+MESSAGE_FORMAT = ""
+
 app = Flask(__name__)
 
 app.logger.removeHandler(default_handler)
@@ -59,27 +63,74 @@ app.logger.removeHandler(default_handler)
 @app.route('/receive_here', methods=['POST'])
 def receive_msg():
 
-    try:
-        data = json.loads(request.get_data())
-        msg = data["message"]
-        msg_json = json.dumps(data, indent=4)
+    if MESSAGE_FORMAT is "single":
 
-        if "subscription" not in data:
-            raise KeyError("subscription field missing from request data: {}".format(msg_json))
+        try:
+            data = json.loads(request.get_data())
 
-        if "messageId" not in msg:
-            raise KeyError("messageId field missing from request message: {}".format(msg_json))
+            data_json = json.dumps(data, indent=4)
 
-        if "data" not in msg:
-            raise KeyError("messageId field missing from request message: {}".format(msg_json))
+            if "message" not in data:
+                raise KeyError("message field missing from request data: {}".format(data_json))
 
-        app.logger.info(data)
+            if "subscription" not in data:
+                raise KeyError("subscription field missing from request data: {}".format(msg_json))
 
-        return 'Message received', 201
+            msg = data["message"]
 
-    except Exception as e:
-        app.logger.error(e.message)
-        return e.message, 400
+            msg_json = json.dumps(data, indent=4)
+
+            if "messageId" not in msg:
+                raise KeyError("messageId field missing from request message: {}".format(msg_json))
+
+            if "data" not in msg:
+                raise KeyError("data field missing from request message: {}".format(msg_json))
+
+            app.logger.info(data)
+
+            return 'Message received', 201
+
+        except Exception as e:
+            app.logger.error(e.message)
+            return e.message, 400
+
+    elif MESSAGE_FORMAT is "multi":
+
+        try:
+            data = json.loads(request.get_data())
+
+            data_json = json.dumps(data, indent=4)
+
+            if "messages" not in data:
+                raise KeyError("messages field missing from request data: {}".format(data_json))
+
+            messages = data["messages"]
+
+            for datum in messages:
+
+                msg_json = json.dumps(datum, indent=4)
+
+                if "message" not in datum:
+                    raise KeyError("message field missing from request data: {}".format(msg_json))
+
+                if "subscription" not in datum:
+                    raise KeyError("subscription field missing from request data: {}".format(msg_json))
+
+                msg = datum["message"]
+
+                if "messageId" not in msg:
+                    raise KeyError("messageId field missing from request message: {}".format(msg_json))
+
+                if "data" not in msg:
+                    raise KeyError("data field missing from request message: {}".format(msg_json))
+
+            app.logger.info(data)
+
+            return 'Messages received', 201
+
+        except Exception as e:
+            app.logger.error(e.message)
+            return e.message, 400
 
 
 @app.route('/ams_verification_hash', methods=['GET'])
@@ -107,6 +158,14 @@ if __name__ == "__main__":
         "-vh", "--verification-hash", metavar="STRING", help="Verification hash for the push endpoint",
         required=True, dest="vhash")
 
+    group = parser.add_mutually_exclusive_group(required=True)
+
+    group.add_argument("--single", action="store_true", help="The endpoint should expect single message format",
+                       dest="single_message")
+
+    group.add_argument("--multiple", action="store_true", help="The endpoint should expect multiple messages format",
+                       dest="multi_message")
+
     args = parser.parse_args()
 
     flask_cors.CORS(app=app, methods=["OPTIONS", "HEAD", "POST"], allow_headers=["X-Requested-With", "Content-Type"])
@@ -116,4 +175,11 @@ if __name__ == "__main__":
 
     VERIFICATION_HASH = args.vhash
 
+    if args.single_message:
+        MESSAGE_FORMAT = "single"
+
+    if args.multi_message:
+        MESSAGE_FORMAT = "multi"
+
     app.run(host='0.0.0.0', port=args.port, ssl_context=context, threaded=True, debug=True)
+

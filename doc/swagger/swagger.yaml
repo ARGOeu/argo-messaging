@@ -71,6 +71,33 @@ paths:
         500:
           $ref: "#/responses/500"
 
+
+  /metrics/daily-message-average:
+    get:
+      summary: List of projects and their message count for the given time window
+      description: |
+        list operational metrics
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - $ref: '#/parameters/StartDate'
+        - $ref: '#/parameters/EndDate'
+        - $ref: '#/parameters/Projects'
+      tags:
+        - Operational Metrics
+      responses:
+        200:
+          description: Returns the message count metrics per project
+          schema:
+            $ref: '#/definitions/TotalProjectMessageCount'
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
+
   /projects:
     get:
       summary: List subscriptions in a project
@@ -261,6 +288,75 @@ paths:
           description: A Metrics object
           schema:
             $ref: '#/definitions/Metrics'
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
+
+  /projects/{PROJECT}/members:
+    get:
+      summary: List users that are members of the project
+      description: |
+        List all user members of the specific project. This call is can be used only by project admins or service admins
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - $ref: '#/parameters/PageToken'
+        - $ref: '#/parameters/PageSize'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+      tags:
+        - Projects
+      responses:
+        200:
+          description: An array of Users
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Users'
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
+
+  /projects/{PROJECT}/members/{USER}:
+    get:
+      summary: Show info on a specific user member of the project
+      description: |
+        Shows information on a specific user member of the project. This call is can be used only by project admins or service admins
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: USER
+          in: path
+          description: Name of the user
+          required: true
+          type: string
+      tags:
+        - Projects
+      responses:
+        200:
+          description: A User object
+          schema:
+            $ref: '#/definitions/User'
         400:
           $ref: "#/responses/400"
         401:
@@ -946,7 +1042,47 @@ paths:
         500:
           $ref: "#/responses/500"
 
-
+  /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}:timeToOffset:
+    get:
+      summary: Get the offset of the first message with a timestamp equal or greater than the time given.
+      description: |
+        Get the offset of the first message with a timestamp equal or greater than the time given.
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: SUBSCRIPTION
+          in: path
+          description: Name of the subscription
+          required: true
+          type: string
+        - name: timestamp
+          in: query
+          description: time in Zulu format
+          required: true
+          type: string
+      tags:
+        - Subscriptions
+      responses:
+        200:
+          description: A json representation of the offset of the first message with a timestamp equal or greater than the time given.
+          schema:
+            $ref: '#/definitions/Offset'
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        409:
+          $ref: "#/responses/409_no_offset_for_time"
+        500:
+          $ref: "#/responses/500"
 
 
   /projects/{PROJECT}/subscriptions/{SUBSCRIPTION}:pull:
@@ -1504,6 +1640,29 @@ parameters:
     required: false
     type: integer
     default: 0
+  StartDate:
+    name: start_date
+    in: query
+    required: false
+    description: the start date for querying projects message counters
+    type: string
+    default: unix start date
+  EndDate:
+    name: end_date
+    in: query
+    required: false
+    description: the end date for querying projects message counters
+    type: string
+    default: the date at the time of the api call
+  Projects:
+    name: projects
+    in: query
+    required: false
+    description: the projects to include in the query
+    type: array
+    items:
+      type: string
+    default: all of the registered projects
 
 responses:
   400:
@@ -1540,12 +1699,39 @@ responses:
       schema:
         $ref: '#/definitions/ErrorMsg'
 
+  409_no_offset_for_time:
+      description: Timestamp is out of bounds for the subscription's topic/partition
+      schema:
+        $ref: '#/definitions/ErrorMsg'
+
   500:
     description: Internal Error
     schema:
       $ref: '#/definitions/ErrorMsg'
 
 definitions:
+
+  TotalProjectMessageCount:
+    type: object
+    properties:
+      projects:
+        type: array
+        items:
+          $ref: '#/definitions/ProjectMessageCount'
+      total_message_count:
+        type: integer
+      average_daily_messages:
+        type: integer
+
+  ProjectMessageCount:
+    type: object
+    properties:
+      project:
+        type: string
+      message_count:
+        type: integer
+      average_daily_messages:
+        type: integer
 
   Metrics:
    type: object
@@ -1616,12 +1802,17 @@ definitions:
       returnImmediately:
         type: string
         description: Set if should return immediately and close connection (if no messages are present) or wait until new messages
+
   SubParameters:
     type: object
     properties:
       topic:
         type: string
         description: name of the topic this subscription will subscribe to
+      ackDeadlineSeconds:
+        type: integer
+        description: maximum wait time in seconds for Acknowledgement
+
   Subscription:
     type: object
     properties:
@@ -1647,6 +1838,9 @@ definitions:
       pushEndpoint:
         type: string
         description: endpoint url for endpoint to push messages
+      maxMessages:
+        type: integer
+        description: batch size of messages per push action
       retryPolicy:
         $ref: '#/definitions/RetryPolicy'
       verification_hash:

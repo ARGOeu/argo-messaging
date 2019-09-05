@@ -17,7 +17,7 @@ The following error codes are the possinble errors of all methods
 
 Error | Code | Status | Related Requests
 ------|------|----------|------------------
-Ack Timeout | 408 | TIMEOUT | Acknowledge Message (POST) - [more info](overview.md#Message-acknowledgement-deadline)
+Ack Timeout | 408 | TIMEOUT | Acknowledge Message (POST) - [more info](overview.md#message-acknowledgement-deadline)
 Topic already exists | 409 | ALREADY_EXISTS | Create Topic (PUT)  
 Subscription already exists | 409 | ALREADY_EXISTS | Create Subscription (PUT)
 Invalid Topics Name | 400 | INVALID_ARGUMENT | Create Subscription (PUT)

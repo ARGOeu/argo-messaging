@@ -51,7 +51,7 @@ In a push subscription, the Pub/Sub server sends a request to the subscriber app
 
 
 > In the current implementation of the AMS there is support only for pull subscriptions.
-> Support for pull subscription will be available in the next versions.
+> Support for push subscriptions will be available in a later version.
 
 ## Messages
 

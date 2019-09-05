@@ -7,6 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"fmt"
+
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -44,15 +45,34 @@ func (mong *MongoStore) Initialize() {
 
 	// Iterate trying to connect
 	for {
-		log.Info("STORE", "\t", "Trying to connect to Mongo: ", mong.Server)
+
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Info("Trying to connect to Mongo")
+
 		session, err := mgo.Dial(mong.Server)
 		if err != nil {
 			// If connection to datastore failed log error and retry
-			log.Error("STORE", "\t", err.Error())
+			log.WithFields(
+				log.Fields{
+					"type":   "backend_log",
+					"server": mong.Server,
+				},
+			).Error(err.Error())
 		} else {
 			// If connection succesfull continue
 			mong.Session = session
-			log.Info("STORE", "\t", "Connected to Mongo: ", mong.Server)
+			log.WithFields(
+				log.Fields{
+					"type":            "backend_log",
+					"backend_service": "mongo",
+					"backend_hosts":   mong.Server,
+				},
+			).Info("Connection to Mongo established successfully")
 			break // connected so continue
 		}
 	}
@@ -76,7 +96,13 @@ func (mong *MongoStore) QueryProjects(uuid string, name string) ([]QProject, err
 	var results []QProject
 	err := c.Find(query).All(&results)
 	if err != nil {
-		log.Fatal("STORE", "\t", err.Error())
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
 	}
 
 	if len(results) > 0 {
@@ -156,7 +182,13 @@ func (mong *MongoStore) AppendToUserProjects(userUUID string, projectUUID string
 	)
 
 	if err != nil {
-		log.Fatal("STORE", "\t", err.Error())
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
 	}
 
 	return nil
@@ -217,7 +249,13 @@ func (mong *MongoStore) UpdateSubPull(projectUUID string, name string, nextOff i
 	change := bson.M{"$set": bson.M{"next_offset": nextOff, "pending_ack": ts}}
 	err := c.Update(doc, change)
 	if err != nil && err != mgo.ErrNotFound {
-		log.Fatal("STORE", "\t", err.Error())
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
 	}
 
 	return err
@@ -258,7 +296,13 @@ func (mong *MongoStore) UpdateSubOffsetAck(projectUUID string, name string, offs
 	change := bson.M{"$set": bson.M{"offset": offset, "next_offset": 0, "pending_ack": ""}}
 	err = c.Update(doc, change)
 	if err != nil && err != mgo.ErrNotFound {
-		log.Fatal("STORE", "\t", err.Error())
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
 	}
 
 	return nil
@@ -275,7 +319,13 @@ func (mong *MongoStore) UpdateSubOffset(projectUUID string, name string, offset 
 	change := bson.M{"$set": bson.M{"offset": offset, "next_offset": 0, "pending_ack": ""}}
 	err := c.Update(doc, change)
 	if err != nil && err != mgo.ErrNotFound {
-		log.Fatal("STORE", "\t", err.Error())
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
 	}
 
 }
@@ -289,7 +339,13 @@ func (mong *MongoStore) HasUsers(projectUUID string, users []string) (bool, []st
 
 	err := c.Find(bson.M{"projects": bson.M{"$elemMatch": bson.M{"project_uuid": projectUUID}}, "name": bson.M{"$in": users}}).All(&results)
 	if err != nil {
-		log.Fatal("STORE", "\t", err.Error())
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
 	}
 
 	// for each given username
@@ -326,7 +382,13 @@ func (mong *MongoStore) QueryACL(projectUUID string, resource string, name strin
 	err := c.Find(bson.M{"project_uuid": projectUUID, "name": name}).All(&results)
 
 	if err != nil {
-		log.Fatal("STORE", "\t", err.Error())
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
 	}
 
 	if len(results) > 0 {
@@ -365,14 +427,20 @@ func (mong *MongoStore) QueryUsers(projectUUID string, uuid string, name string)
 	err := c.Find(query).All(&results)
 
 	if err != nil {
-		log.Fatal("STORE", "\t", err.Error())
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
 	}
 
 	return results, err
 }
 
 // PaginatedQueryUsers returns a page of users
-func (mong *MongoStore) PaginatedQueryUsers(pageToken string, pageSize int32) ([]QUser, int32, string, error) {
+func (mong *MongoStore) PaginatedQueryUsers(pageToken string, pageSize int32, projectUUID string) ([]QUser, int32, string, error) {
 
 	var qUsers []QUser
 	var totalSize int32
@@ -386,43 +454,100 @@ func (mong *MongoStore) PaginatedQueryUsers(pageToken string, pageSize int32) ([
 	// if the page size is other than zero(where zero means, no limit), try to grab one more document to check if there
 	// will be a next page after the current one
 	if pageSize > 0 {
-
 		limit = pageSize + 1
-
 	}
 
-	// first check if an pageToken is provided and whether or not is a valid bson ID
-	if pageToken != "" {
-		if ok = bson.IsObjectIdHex(pageToken); !ok {
-			err = errors.New(fmt.Sprintf("Page token %v is not a valid bson ObjectId", pageToken))
-			log.Errorf("Page token %v is not a valid bson ObjectId", pageToken)
-			return qUsers, totalSize, nextPageToken, err
+	// if projectUUID is empty string return all users, if projectUUID has a non empty value
+	// query users that belong to that project
+	if projectUUID != "" {
+		query = bson.M{
+			"projects": bson.M{
+				"$elemMatch": bson.M{
+					"project_uuid": projectUUID,
+				},
+			},
 		}
-
-		bsonId := bson.ObjectIdHex(pageToken)
-
-		query = bson.M{"_id": bson.M{"$lte": bsonId}}
 	}
 
+	// select db collection
 	db := mong.Session.DB(mong.Database)
 	c := db.C("users")
 
-	if err = c.Find(query).Sort("-_id").Limit(int(limit)).All(&qUsers); err != nil {
+	// check the total of the users selected by the query not taking into acount pagination
+	if size, err = c.Find(query).Count(); err != nil {
 		log.Fatal("STORE", "\t", err.Error())
+
+	}
+	totalSize = int32(size)
+
+	// now take into account if pagination is enabled and change the query accordingly
+	// first check if an pageToken is provided and whether or not is a valid bson ID
+	if pageToken != "" {
+		if ok = bson.IsObjectIdHex(pageToken); !ok {
+			err = fmt.Errorf("Page token %v is not a valid bson ObjectId", pageToken)
+			log.WithFields(
+				log.Fields{
+					"type":            "backend_log",
+					"backend_service": "mongo",
+					"page_token":      pageToken,
+				},
+			).Error("Page token is not a valid bson ObjectId")
+			return qUsers, totalSize, nextPageToken, err
+		}
+
+		bsonID := bson.ObjectIdHex(pageToken)
+		// now that the paginated query is constructed from start take into account again
+		// if projectUUID is provided to query only the users of a given project
+		if projectUUID != "" {
+			query = bson.M{
+				"projects": bson.M{
+					"$elemMatch": bson.M{
+						"project_uuid": projectUUID,
+					},
+				},
+				"_id": bson.M{
+					"$lte": bsonID,
+				},
+			}
+
+		} else {
+
+			query = bson.M{
+				"_id": bson.M{
+					"$lte": bsonID,
+				},
+			}
+		}
+
+	}
+
+	if err = c.Find(query).Sort("-_id").Limit(int(limit)).All(&qUsers); err != nil {
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
 	}
 
 	// if the amount of users that were found was equal to the limit, its a sign that there are users to populate the next page
 	// so pick the last element's pageToken to use as the starting point for the next page
 	// and eliminate the extra element from the current response
-	if len(qUsers) > 0 && len(qUsers) == int(limit) {
+	if pageSize > 0 && len(qUsers) > 0 && len(qUsers) == int(limit) {
 
 		nextPageToken = qUsers[limit-1].ID.(bson.ObjectId).Hex()
 		qUsers = qUsers[:len(qUsers)-1]
 	}
 
 	if size, err = c.Count(); err != nil {
-		log.Fatal("STORE", "\t", err.Error())
-
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
 	}
 
 	totalSize = int32(size)
@@ -446,7 +571,13 @@ func (mong *MongoStore) QuerySubsByTopic(projectUUID, topic string) ([]QSub, err
 	err := c.Find(query).All(&results)
 
 	if err != nil {
-		log.Fatal("STORE", "\t", err.Error())
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
 	}
 
 	return results, err
@@ -467,7 +598,13 @@ func (mong *MongoStore) QuerySubsByACL(projectUUID, user string) ([]QSub, error)
 	err := c.Find(query).All(&results)
 
 	if err != nil {
-		log.Fatal("STORE", "\t", err.Error())
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
 	}
 
 	return results, err
@@ -488,7 +625,13 @@ func (mong *MongoStore) QueryTopicsByACL(projectUUID, user string) ([]QTopic, er
 	err := c.Find(query).All(&results)
 
 	if err != nil {
-		log.Fatal("STORE", "\t", err.Error())
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
 	}
 
 	return results, err
@@ -524,14 +667,20 @@ func (mong *MongoStore) QueryTopics(projectUUID, userUUID, name, pageToken strin
 	// first check if an pageToken is provided and whether or not is a valid bson ID
 	if pageToken != "" {
 		if ok = bson.IsObjectIdHex(pageToken); !ok {
-			err = errors.New(fmt.Sprintf("Page token %v is not a valid bson ObjectId", pageToken))
-			log.Errorf("Page token %v is not a valid bson ObjectId", pageToken)
+			err = fmt.Errorf("Page token %v is not a valid bson ObjectId", pageToken)
+			log.WithFields(
+				log.Fields{
+					"type":            "backend_log",
+					"backend_service": "mongo",
+					"page_token":      pageToken,
+				},
+			).Error("Page token is not a valid bson ObjectId")
 			return qTopics, totalSize, nextPageToken, err
 		}
 
-		bsonId := bson.ObjectIdHex(pageToken)
+		bsonID := bson.ObjectIdHex(pageToken)
 
-		query["_id"] = bson.M{"$lte": bsonId}
+		query["_id"] = bson.M{"$lte": bsonID}
 
 	} else if name != "" {
 
@@ -542,7 +691,13 @@ func (mong *MongoStore) QueryTopics(projectUUID, userUUID, name, pageToken strin
 	c := db.C("topics")
 
 	if err = c.Find(query).Sort("-_id").Limit(int(limit)).All(&qTopics); err != nil {
-		log.Fatal("STORE", "\t", err.Error())
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
 	}
 
 	if name == "" {
@@ -553,8 +708,13 @@ func (mong *MongoStore) QueryTopics(projectUUID, userUUID, name, pageToken strin
 		}
 
 		if size, err = c.Find(countQuery).Count(); err != nil {
-			log.Fatal("STORE", "\t", err.Error())
-
+			log.WithFields(
+				log.Fields{
+					"type":            "backend_log",
+					"backend_service": "mongo",
+					"backend_hosts":   mong.Server,
+				},
+			).Fatal(err.Error())
 		}
 
 		totalSize = int32(size)
@@ -571,6 +731,86 @@ func (mong *MongoStore) QueryTopics(projectUUID, userUUID, name, pageToken strin
 
 	return qTopics, totalSize, nextPageToken, err
 
+}
+
+// UpdateTopicLatestPublish updates the topic's latest publish time
+func (mong *MongoStore) UpdateTopicLatestPublish(projectUUID string, name string, date time.Time) error {
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C("topics")
+
+	doc := bson.M{
+		"project_uuid": projectUUID,
+		"name":         name,
+	}
+
+	change := bson.M{
+		"$set": bson.M{
+			"latest_publish": date,
+		},
+	}
+
+	return c.Update(doc, change)
+}
+
+// UpdateTopicPublishRate updates the topic's publishing rate
+func (mong *MongoStore) UpdateTopicPublishRate(projectUUID string, name string, rate float64) error {
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C("topics")
+
+	doc := bson.M{
+		"project_uuid": projectUUID,
+		"name":         name,
+	}
+
+	change := bson.M{
+		"$set": bson.M{
+			"publish_rate": rate,
+		},
+	}
+
+	return c.Update(doc, change)
+}
+
+// UpdateSubLatestConsume updates the subscription's latest consume time
+func (mong *MongoStore) UpdateSubLatestConsume(projectUUID string, name string, date time.Time) error {
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C("subscriptions")
+
+	doc := bson.M{
+		"project_uuid": projectUUID,
+		"name":         name,
+	}
+
+	change := bson.M{
+		"$set": bson.M{
+			"latest_consume": date,
+		},
+	}
+
+	return c.Update(doc, change)
+}
+
+// UpdateSubConsumeRate updates the subscription's consume rate
+func (mong *MongoStore) UpdateSubConsumeRate(projectUUID string, name string, rate float64) error {
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C("subscriptions")
+
+	doc := bson.M{
+		"project_uuid": projectUUID,
+		"name":         name,
+	}
+
+	change := bson.M{
+		"$set": bson.M{
+			"consume_rate": rate,
+		},
+	}
+
+	return c.Update(doc, change)
 }
 
 // QueryDailyTopicMsgCount returns results regarding the number of messages published to a topic
@@ -600,7 +840,13 @@ func (mong *MongoStore) QueryDailyTopicMsgCount(projectUUID string, topicName st
 	err = c.Find(query).Sort("-date").Limit(30).All(&qDailyTopicMsgCount)
 
 	if err != nil {
-		log.Fatal("STORE", "\t", err.Error())
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
 	}
 
 	return qDailyTopicMsgCount, err
@@ -649,7 +895,7 @@ func (mong *MongoStore) IncrementTopicBytes(projectUUID string, name string, tot
 	return err
 }
 
-// IncrementTopicMsgNum increments the number of messages pulled in a subscription
+// IncrementSubMsgNum increments the number of messages pulled in a subscription
 func (mong *MongoStore) IncrementSubMsgNum(projectUUID string, name string, num int64) error {
 
 	db := mong.Session.DB(mong.Database)
@@ -664,7 +910,7 @@ func (mong *MongoStore) IncrementSubMsgNum(projectUUID string, name string, num 
 
 }
 
-//IncrementSubMsgNum increases the total number of bytes consumed from a subscripion
+//IncrementSubBytes increases the total number of bytes consumed from a subscripion
 func (mong *MongoStore) IncrementSubBytes(projectUUID string, name string, totalBytes int64) error {
 	db := mong.Session.DB(mong.Database)
 	c := db.C("subscriptions")
@@ -685,7 +931,13 @@ func (mong *MongoStore) HasResourceRoles(resource string, roles []string) bool {
 	var results []QRole
 	err := c.Find(bson.M{"resource": resource, "roles": bson.M{"$in": roles}}).All(&results)
 	if err != nil {
-		log.Fatal("STORE", "\t", err.Error())
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
 	}
 
 	if len(results) > 0 {
@@ -704,7 +956,13 @@ func (mong *MongoStore) GetAllRoles() []string {
 	var results []string
 	err := c.Find(nil).Distinct("roles", &results)
 	if err != nil {
-		log.Fatal("STORE", "\t", err.Error())
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
 	}
 	return results
 }
@@ -719,7 +977,13 @@ func (mong *MongoStore) GetOpMetrics() []QopMetric {
 	err := c.Find(bson.M{}).All(&results)
 
 	if err != nil {
-		log.Fatal("STORE", "\t", err.Error())
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
 	}
 
 	return results
@@ -736,7 +1000,13 @@ func (mong *MongoStore) GetUserRoles(projectUUID string, token string) ([]string
 	err := c.Find(bson.M{"token": token}).All(&results)
 
 	if err != nil {
-		log.Fatal("STORE", "\t", err.Error())
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
 	}
 
 	if len(results) == 0 {
@@ -744,8 +1014,14 @@ func (mong *MongoStore) GetUserRoles(projectUUID string, token string) ([]string
 	}
 
 	if len(results) > 1 {
-		log.Warning("STORE", "\t", "Multiple users with the same token", token)
-
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"token":           token,
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Warning("Multiple users with the same token")
 	}
 
 	// Search the found user for project roles
@@ -763,7 +1039,13 @@ func (mong *MongoStore) GetUserFromToken(token string) (QUser, error) {
 	err := c.Find(bson.M{"token": token}).All(&results)
 
 	if err != nil {
-		log.Fatal("STORE", "\t", err.Error())
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
 	}
 
 	if len(results) == 0 {
@@ -771,8 +1053,14 @@ func (mong *MongoStore) GetUserFromToken(token string) (QUser, error) {
 	}
 
 	if len(results) > 1 {
-		log.Warning("STORE", "\t", "Multiple users with the same token", token)
-
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"token":           token,
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Warning("Multiple users with the same token")
 	}
 
 	// Search the found user for project roles
@@ -788,7 +1076,13 @@ func (mong *MongoStore) QueryOneSub(projectUUID string, name string) (QSub, erro
 	var results []QSub
 	err := c.Find(bson.M{"project_uuid": projectUUID, "name": name}).All(&results)
 	if err != nil {
-		log.Fatal("STORE", "\t", err.Error())
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
 	}
 
 	if len(results) > 0 {
@@ -806,7 +1100,13 @@ func (mong *MongoStore) HasProject(name string) bool {
 	var results []QProject
 	err := c.Find(bson.M{"name": name}).All(&results)
 	if err != nil {
-		log.Fatal("STORE", "\t", err.Error())
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
 	}
 
 	if len(results) > 0 {
@@ -817,7 +1117,16 @@ func (mong *MongoStore) HasProject(name string) bool {
 
 // InsertTopic inserts a topic to the store
 func (mong *MongoStore) InsertTopic(projectUUID string, name string) error {
-	topic := QTopic{ProjectUUID: projectUUID, Name: name, MsgNum: 0, TotalBytes: 0}
+
+	topic := QTopic{
+		ProjectUUID:   projectUUID,
+		Name:          name,
+		MsgNum:        0,
+		TotalBytes:    0,
+		LatestPublish: time.Time{},
+		PublishRate:   0,
+	}
+
 	return mong.InsertResource("topics", topic)
 }
 
@@ -831,7 +1140,13 @@ func (mong *MongoStore) InsertOpMetric(hostname string, cpu float64, mem float64
 
 	_, err := c.UpsertId(opMetric.Hostname, upsertdata)
 	if err != nil {
-		log.Error(err)
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Error(err.Error())
 	}
 
 	return err
@@ -850,7 +1165,7 @@ func (mong *MongoStore) InsertProject(uuid string, name string, createdOn time.T
 }
 
 // InsertSub inserts a subscription to the store
-func (mong *MongoStore) InsertSub(projectUUID string, name string, topic string, offset int64, ack int, push string, rPolicy string, rPeriod int, vhash string, verified bool) error {
+func (mong *MongoStore) InsertSub(projectUUID string, name string, topic string, offset int64, maxMessages int64, ack int, push string, rPolicy string, rPeriod int, vhash string, verified bool) error {
 	sub := QSub{
 		ProjectUUID:      projectUUID,
 		Name:             name,
@@ -859,6 +1174,7 @@ func (mong *MongoStore) InsertSub(projectUUID string, name string, topic string,
 		NextOffset:       0,
 		PendingAck:       "",
 		Ack:              ack,
+		MaxMessages:      maxMessages,
 		PushEndpoint:     push,
 		RetPolicy:        rPolicy,
 		RetPeriod:        rPeriod,
@@ -882,6 +1198,89 @@ func (mong *MongoStore) RemoveProjectSubs(projectUUID string) error {
 	return mong.RemoveAll("subscriptions", subMatch)
 }
 
+// QueryTotalMessagesPerProject returns the total amount of messages per project for the given time window
+func (mong *MongoStore) QueryTotalMessagesPerProject(projectUUIDs []string, startDate time.Time, endDate time.Time) ([]QProjectMessageCount, error) {
+
+	var err error
+	var qdp []QProjectMessageCount
+
+	c := mong.Session.DB(mong.Database).C("daily_topic_msg_count")
+
+	if endDate.Before(startDate) {
+		startDate, endDate = endDate, startDate
+	}
+
+	days := 1
+	if !endDate.Equal(startDate) {
+		days = int(endDate.Sub(startDate).Hours() / 24)
+	}
+
+	condQuery := []bson.M{
+		{
+			"date": bson.M{
+				"$gte": startDate,
+			},
+		},
+		{
+			"date": bson.M{
+				"$lte": endDate,
+			},
+		},
+	}
+
+	if len(projectUUIDs) > 0 {
+		condQuery = append(condQuery, bson.M{
+			"project_uuid": bson.M{
+				"$in": projectUUIDs,
+			},
+		},
+		)
+	}
+
+	query := []bson.M{
+		{
+			"$match": bson.M{
+				"$and": condQuery,
+			},
+		},
+		{
+			"$group": bson.M{
+				"_id": bson.M{
+					"project_uuid": "$project_uuid",
+				},
+				"msg_count": bson.M{
+					"$sum": "$msg_count",
+				},
+			},
+		},
+		{
+			"$project": bson.M{
+				"_id":          0,
+				"project_uuid": "$_id.project_uuid",
+				"msg_count":    1,
+				"avg_daily_msg": bson.M{
+					"$divide": []interface{}{"$msg_count", days},
+				},
+			},
+		},
+	}
+
+	if err = c.Pipe(query).All(&qdp); err != nil {
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
+	}
+
+	fmt.Printf("%+v\n", qdp)
+
+	return qdp, err
+}
+
+// QueryDailyProjectMsgCount queries the total messages per day for a given project
 func (mong *MongoStore) QueryDailyProjectMsgCount(projectUUID string) ([]QDailyProjectMsgCount, error) {
 
 	var err error
@@ -890,22 +1289,46 @@ func (mong *MongoStore) QueryDailyProjectMsgCount(projectUUID string) ([]QDailyP
 	c := mong.Session.DB(mong.Database).C("daily_topic_msg_count")
 
 	query := []bson.M{
-		{"$match": bson.M{"project_uuid": projectUUID}},
-		{"$group": bson.M{
-			"_id": bson.M{
-				"date": "$date"},
-			"msg_count": bson.M{
-				"$sum": "$msg_count"}}},
-		{"$sort": bson.M{
-			"_id": -1},
+		{
+			"$match": bson.M{
+				"project_uuid": projectUUID,
+			},
 		},
-		{"$limit": 30},
-		{"$project": bson.M{
-			"_id": 0, "date": "$_id.date", "msg_count": 1},
+		{
+			"$group": bson.M{
+				"_id": bson.M{
+					"date": "$date",
+				},
+				"msg_count": bson.M{
+					"$sum": "$msg_count",
+				},
+			},
+		},
+		{
+			"$sort": bson.M{
+				"_id": -1,
+			},
+		},
+		{
+			"$limit": 30,
+		},
+		{
+			"$project": bson.M{
+				"_id":       0,
+				"date":      "$_id.date",
+				"msg_count": 1,
+			},
 		},
 	}
+
 	if err = c.Pipe(query).All(&qdp); err != nil {
-		log.Fatal("STORE", "\t", err.Error())
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
 	}
 
 	return qdp, err
@@ -973,6 +1396,7 @@ func (mong *MongoStore) ModACL(projectUUID string, resource string, name string,
 	return err
 }
 
+// AppendToACL adds additional users to an existing ACL
 func (mong *MongoStore) AppendToACL(projectUUID string, resource string, name string, acl []string) error {
 
 	db := mong.Session.DB(mong.Database)
@@ -997,6 +1421,7 @@ func (mong *MongoStore) AppendToACL(projectUUID string, resource string, name st
 	return err
 }
 
+// RemoveFromACL remves users for a given ACL
 func (mong *MongoStore) RemoveFromACL(projectUUID string, resource string, name string, acl []string) error {
 
 	db := mong.Session.DB(mong.Database)
@@ -1031,7 +1456,7 @@ func (mong *MongoStore) ModAck(projectUUID string, name string, ack int) error {
 }
 
 // ModSubPush modifies the push configuration
-func (mong *MongoStore) ModSubPush(projectUUID string, name string, push string, rPolicy string, rPeriod int, vhash string, verified bool) error {
+func (mong *MongoStore) ModSubPush(projectUUID string, name string, push string, maxMessages int64, rPolicy string, rPeriod int, vhash string, verified bool) error {
 	db := mong.Session.DB(mong.Database)
 	c := db.C("subscriptions")
 
@@ -1041,26 +1466,11 @@ func (mong *MongoStore) ModSubPush(projectUUID string, name string, push string,
 	},
 		bson.M{"$set": bson.M{
 			"push_endpoint":     push,
+			"max_messages":      maxMessages,
 			"retry_policy":      rPolicy,
 			"retry_period":      rPeriod,
 			"verification_hash": vhash,
 			"verified":          verified,
-		},
-		})
-	return err
-}
-
-// ModSubPushStatus modifies the push status
-func (mong *MongoStore) ModSubPushStatus(projectUUID string, name string, status string) error {
-	db := mong.Session.DB(mong.Database)
-	c := db.C("subscriptions")
-
-	err := c.Update(bson.M{
-		"project_uuid": projectUUID,
-		"name":         name,
-	},
-		bson.M{"$set": bson.M{
-			"push_status": status,
 		},
 		})
 	return err
@@ -1131,14 +1541,20 @@ func (mong *MongoStore) QuerySubs(projectUUID, userUUID, name, pageToken string,
 	// first check if an pageToken is provided and whether or not is a valid bson ID
 	if pageToken != "" {
 		if ok = bson.IsObjectIdHex(pageToken); !ok {
-			err = errors.New(fmt.Sprintf("Page token %v is not a valid bson ObjectId", pageToken))
-			log.Errorf("Page token %v is not a valid bson ObjectId", pageToken)
+			err = fmt.Errorf("Page token %v is not a valid bson ObjectId", pageToken)
+			log.WithFields(
+				log.Fields{
+					"type":            "backend_log",
+					"backend_service": "mongo",
+					"page_token":      pageToken,
+				},
+			).Error("Page token is not a valid bson ObjectId")
 			return qSubs, totalSize, nextPageToken, err
 		}
 
-		bsonId := bson.ObjectIdHex(pageToken)
+		bsonID := bson.ObjectIdHex(pageToken)
 
-		query["_id"] = bson.M{"$lte": bsonId}
+		query["_id"] = bson.M{"$lte": bsonID}
 
 	} else if name != "" {
 
@@ -1149,7 +1565,13 @@ func (mong *MongoStore) QuerySubs(projectUUID, userUUID, name, pageToken string,
 	c := db.C("subscriptions")
 
 	if err = c.Find(query).Sort("-_id").Limit(int(limit)).All(&qSubs); err != nil {
-		log.Fatal("STORE", "\t", err.Error())
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
 	}
 
 	if name == "" {
@@ -1160,8 +1582,13 @@ func (mong *MongoStore) QuerySubs(projectUUID, userUUID, name, pageToken string,
 		}
 
 		if size, err = c.Find(countQuery).Count(); err != nil {
-			log.Fatal("STORE", "\t", err.Error())
-
+			log.WithFields(
+				log.Fields{
+					"type":            "backend_log",
+					"backend_service": "mongo",
+					"backend_hosts":   mong.Server,
+				},
+			).Fatal(err.Error())
 		}
 
 		totalSize = int32(size)
@@ -1188,7 +1615,13 @@ func (mong *MongoStore) QueryPushSubs() []QSub {
 	var results []QSub
 	err := c.Find(bson.M{"push_endpoint": bson.M{"$ne": ""}}).All(&results)
 	if err != nil {
-		log.Fatal("STORE", "\t", err.Error())
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
 	}
 	return results
 

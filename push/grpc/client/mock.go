@@ -7,10 +7,16 @@ import (
 
 type MockClient struct{}
 
-func (*MockClient) HealthCheck(ctx context.Context) *GrpcClientStatus {
-	return &GrpcClientStatus{
-		err:     nil,
-		message: "SERVING",
+func (*MockClient) SubscriptionStatus(ctx context.Context, fullSub string) ClientStatus {
+
+	return &MockClientStatus{
+		Status: fmt.Sprintf("Subscription %v is currently active", fullSub),
+	}
+}
+
+func (*MockClient) HealthCheck(ctx context.Context) ClientStatus {
+	return &MockClientStatus{
+		Status: "SERVING",
 	}
 }
 
@@ -20,7 +26,7 @@ func (*MockClient) Target() string {
 
 func (*MockClient) Dial() error { return nil }
 
-func (*MockClient) ActivateSubscription(ctx context.Context, fullSub, fullTopic, pushEndpoint, retryType string, retryPeriod uint32) ClientStatus {
+func (*MockClient) ActivateSubscription(ctx context.Context, fullSub, fullTopic, pushEndpoint, retryType string, retryPeriod uint32, maxMessages int64) ClientStatus {
 
 	switch fullSub {
 	case "/projects/ARGO/subscriptions/subNew":

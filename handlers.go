@@ -14,6 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"context"
+
 	"github.com/ARGOeu/argo-messaging/auth"
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
@@ -21,7 +22,7 @@ import (
 	"github.com/ARGOeu/argo-messaging/metrics"
 	"github.com/ARGOeu/argo-messaging/projects"
 	oldPush "github.com/ARGOeu/argo-messaging/push"
-	"github.com/ARGOeu/argo-messaging/push/grpc/client"
+	push "github.com/ARGOeu/argo-messaging/push/grpc/client"
 	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/ARGOeu/argo-messaging/subscriptions"
 	"github.com/ARGOeu/argo-messaging/topics"
@@ -147,13 +148,13 @@ func WrapAuthenticate(hfn http.Handler) http.HandlerFunc {
 		refStr := gorillaContext.Get(r, "str").(stores.Store)
 		serviceToken := gorillaContext.Get(r, "auth_service_token").(string)
 
-		project_name := urlVars["project"]
+		projectName := urlVars["project"]
 		projectUUID := projects.GetUUIDByName(urlVars["project"], refStr)
 
 		// In all cases instead of project create
 		if "projects:create" != mux.CurrentRoute(r).GetName() {
 			// Check if given a project name the project wasn't found
-			if project_name != "" && projectUUID == "" {
+			if projectName != "" && projectUUID == "" {
 				apiErr := APIErrorNotFound("project")
 				respondErr(w, apiErr)
 				return
@@ -162,7 +163,7 @@ func WrapAuthenticate(hfn http.Handler) http.HandlerFunc {
 
 		// Check first if service token is used
 		if serviceToken != "" && serviceToken == urlValues.Get("key") {
-			gorillaContext.Set(r, "auth_roles", []string{})
+			gorillaContext.Set(r, "auth_roles", []string{"service_admin"})
 			gorillaContext.Set(r, "auth_user", "")
 			gorillaContext.Set(r, "auth_user_uuid", "")
 			gorillaContext.Set(r, "auth_project_uuid", projectUUID)
@@ -283,7 +284,7 @@ func ProjectDelete(w http.ResponseWriter, r *http.Request) {
 	err := projects.RemoveProject(projectUUID, refStr)
 	if err != nil {
 		if err.Error() == "not found" {
-			err := APIErrorNotFound("Project")
+			err := APIErrorNotFound("ProjectUUID")
 			respondErr(w, err)
 			return
 		}
@@ -337,7 +338,7 @@ func ProjectUpdate(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if err.Error() == "not found" {
-			err := APIErrorNotFound("Project")
+			err := APIErrorNotFound("ProjectUUID")
 			respondErr(w, err)
 			return
 		}
@@ -397,7 +398,7 @@ func ProjectCreate(w http.ResponseWriter, r *http.Request) {
 	// Parse pull options
 	postBody, err := projects.GetFromJSON(body)
 	if err != nil {
-		err := APIErrorInvalidArgument("Project")
+		err := APIErrorInvalidArgument("ProjectUUID")
 		respondErr(w, err)
 		log.Error(string(body[:]))
 		return
@@ -411,7 +412,7 @@ func ProjectCreate(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if err.Error() == "exists" {
-			err := APIErrorConflict("Project")
+			err := APIErrorConflict("ProjectUUID")
 			respondErr(w, err)
 			return
 		}
@@ -497,7 +498,7 @@ func ProjectListOne(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 
 		if err.Error() == "not found" {
-			err := APIErrorNotFound("Project")
+			err := APIErrorNotFound("ProjectUUID")
 			respondErr(w, err)
 			return
 		}
@@ -750,6 +751,75 @@ func OpMetrics(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// DailyMessageAverage (GET) retrieves the average amount of published messages per day
+func DailyMessageAverage(w http.ResponseWriter, r *http.Request) {
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+
+	startDate := time.Time{}
+	endDate := time.Time{}
+	var err error
+
+	// if no start date was provided, set it to the start of the unix time
+	if r.URL.Query().Get("start_date") != "" {
+		startDate, err = time.Parse("2006-01-02", r.URL.Query().Get("start_date"))
+		if err != nil {
+			err := APIErrorInvalidData("Start date is not in valid format")
+			respondErr(w, err)
+			return
+		}
+	} else {
+		startDate = time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
+	}
+
+	// if no end date was provided, set it to to today
+	if r.URL.Query().Get("end_date") != "" {
+		endDate, err = time.Parse("2006-01-02", r.URL.Query().Get("end_date"))
+		if err != nil {
+			err := APIErrorInvalidData("End date is not in valid format")
+			respondErr(w, err)
+			return
+		}
+	} else {
+		endDate = time.Now().UTC()
+	}
+
+	if startDate.After(endDate) {
+		err := APIErrorInvalidData("Start date cannot be after the end date")
+		respondErr(w, err)
+		return
+	}
+
+	projectsList := make([]string, 0)
+	projectsUrlValue := r.URL.Query().Get("projects")
+	if projectsUrlValue != "" {
+		projectsList = strings.Split(projectsUrlValue, ",")
+	}
+
+	cc, err := projects.GetProjectsMessageCount(projectsList, startDate, endDate, refStr)
+	if err != nil {
+		err := APIErrorNotFound(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	output, err := json.MarshalIndent(cc, "", " ")
+	if err != nil {
+		err := APIErrExportJSON()
+		respondErr(w, err)
+		return
+	}
+
+	// Write response
+	respondOK(w, output)
+}
+
 // UserListByToken (GET) one user by his token
 func UserListByToken(w http.ResponseWriter, r *http.Request) {
 
@@ -797,6 +867,61 @@ func UserListByToken(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// ProjectUserListOne (GET) one user member of a specific project
+func ProjectUserListOne(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+	urlUser := urlVars["user"]
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	refRoles := gorillaContext.Get(r, "auth_roles").([]string)
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
+
+	// check that user is indeed a service admin in order to be priviledged to see full user info
+	priviledged := auth.IsServiceAdmin(refRoles)
+
+	// Get Results Object
+	results, err := auth.FindUsers(projectUUID, "", urlUser, priviledged, refStr)
+
+	if err != nil {
+		if err.Error() == "not found" {
+			err := APIErrorNotFound("User")
+			respondErr(w, err)
+			return
+		}
+
+		err := APIErrQueryDatastore()
+		respondErr(w, err)
+		return
+	}
+
+	res := results.One()
+
+	// Output result to JSON
+	resJSON, err := res.ExportJSON()
+
+	if err != nil {
+		err := APIErrExportJSON()
+		respondErr(w, err)
+		return
+	}
+
+	// Write response
+	output = []byte(resJSON)
+	respondOK(w, output)
+
+}
+
 // UserListOne (GET) one user
 func UserListOne(w http.ResponseWriter, r *http.Request) {
 
@@ -816,7 +941,7 @@ func UserListOne(w http.ResponseWriter, r *http.Request) {
 	refStr := gorillaContext.Get(r, "str").(stores.Store)
 
 	// Get Results Object
-	results, err := auth.FindUsers("", "", urlUser, refStr)
+	results, err := auth.FindUsers("", "", urlUser, true, refStr)
 
 	if err != nil {
 		if err.Error() == "not found" {
@@ -897,7 +1022,66 @@ func UserListByUUID(w http.ResponseWriter, r *http.Request) {
 	respondOK(w, output)
 }
 
-// UserListAll (GET) all users belonging to a project
+// ProjectListUsers (GET) all users belonging to a project
+func ProjectListUsers(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	var pageSize int
+	var paginatedUsers auth.PaginatedUsers
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	refRoles := gorillaContext.Get(r, "auth_roles").([]string)
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
+
+	// Grab url path variables
+	urlValues := r.URL.Query()
+	pageToken := urlValues.Get("pageToken")
+	strPageSize := urlValues.Get("pageSize")
+
+	if strPageSize != "" {
+		if pageSize, err = strconv.Atoi(strPageSize); err != nil {
+			log.Errorf("Pagesize %v produced an error  while being converted to int: %v", strPageSize, err.Error())
+			err := APIErrorInvalidData("Invalid page size")
+			respondErr(w, err)
+			return
+		}
+	}
+
+	// check that user is indeed a service admin in order to be priviledged to see full user info
+	priviledged := auth.IsServiceAdmin(refRoles)
+
+	// Get Results Object - call is always priviledged because this handler is only accessible by service admins
+	if paginatedUsers, err = auth.PaginatedFindUsers(pageToken, int32(pageSize), projectUUID, priviledged, refStr); err != nil {
+		err := APIErrorInvalidData("Invalid page token")
+		respondErr(w, err)
+		return
+	}
+
+	// Output result to JSON
+	resJSON, err := paginatedUsers.ExportJSON()
+
+	if err != nil {
+		err := APIErrExportJSON()
+		respondErr(w, err)
+		return
+	}
+
+	// Write response
+	output = []byte(resJSON)
+	respondOK(w, output)
+
+}
+
+// UserListAll (GET) all users - or users belonging to a project
 func UserListAll(w http.ResponseWriter, r *http.Request) {
 
 	var err error
@@ -914,11 +1098,23 @@ func UserListAll(w http.ResponseWriter, r *http.Request) {
 
 	// Grab context references
 	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	refRoles := gorillaContext.Get(r, "auth_roles").([]string)
 
 	// Grab url path variables
 	urlValues := r.URL.Query()
 	pageToken := urlValues.Get("pageToken")
 	strPageSize := urlValues.Get("pageSize")
+	projectName := urlValues.Get("project")
+	projectUUID := ""
+
+	if projectName != "" {
+		projectUUID = projects.GetUUIDByName(projectName, refStr)
+		if projectUUID == "" {
+			err := APIErrorNotFound("ProjectUUID")
+			respondErr(w, err)
+			return
+		}
+	}
 
 	if strPageSize != "" {
 		if pageSize, err = strconv.Atoi(strPageSize); err != nil {
@@ -929,8 +1125,11 @@ func UserListAll(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Get Results Object
-	if paginatedUsers, err = auth.PaginatedFindUsers(pageToken, int32(pageSize), refStr); err != nil {
+	// check that user is indeed a service admin in order to be priviledged to see full user info
+	priviledged := auth.IsServiceAdmin(refRoles)
+
+	// Get Results Object - call is always priviledged because this handler is only accessible by service admins
+	if paginatedUsers, err = auth.PaginatedFindUsers(pageToken, int32(pageSize), projectUUID, priviledged, refStr); err != nil {
 		err := APIErrorInvalidData("Invalid page token")
 		respondErr(w, err)
 		return
@@ -1130,6 +1329,15 @@ func SubListOne(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// if its a push enabled sub and it has a verified endpoint
+	// call the push server to find its real time push status
+	if results.Subscriptions[0].PushCfg != (subscriptions.PushConfig{}) {
+		if results.Subscriptions[0].PushCfg.Verified {
+			apsc := gorillaContext.Get(r, "apsc").(push.Client)
+			results.Subscriptions[0].PushStatus = apsc.SubscriptionStatus(context.TODO(), results.Subscriptions[0].FullName).Result()
+		}
+	}
+
 	// Output result to JSON
 	resJSON, err := results.Subscriptions[0].ExportJSON()
 
@@ -1274,6 +1482,75 @@ func SubGetOffsets(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func SubTimeToOffset(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	refBrk := gorillaContext.Get(r, "brk").(brokers.Broker)
+
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
+
+	results, err := subscriptions.Find(projectUUID, "", urlVars["subscription"], "", 0, refStr)
+
+	if err != nil {
+		err := APIErrGenericBackend()
+		respondErr(w, err)
+		return
+	}
+
+	// If not found
+	if results.Empty() {
+		err := APIErrorNotFound("Subscription")
+		respondErr(w, err)
+		return
+	}
+
+	t, err := time.Parse("2006-01-02T15:04:05.000Z", r.URL.Query().Get("time"))
+	if err != nil {
+		err := APIErrorInvalidData("Time is not in valid Zulu format.")
+		respondErr(w, err)
+		return
+	}
+
+	// Output result to JSON
+	brk_topic := projectUUID + "." + results.Subscriptions[0].Topic
+	off, err := refBrk.TimeToOffset(brk_topic, t.Local())
+
+	if err != nil {
+		log.Errorf(err.Error())
+		err := APIErrGenericBackend()
+		respondErr(w, err)
+		return
+	}
+
+	if off < 0 {
+		err := APIErrorGenericConflict("Timestamp is out of bounds for the subscription's topic/partition")
+		respondErr(w, err)
+		return
+	}
+
+	topicOffset := brokers.TopicOffset{Offset: off}
+	output, err = json.Marshal(topicOffset)
+	if err != nil {
+		err := APIErrExportJSON()
+		respondErr(w, err)
+		return
+	}
+
+	respondOK(w, output)
+}
+
 // TopicDelete (DEL) deletes an existing topic
 func TopicDelete(w http.ResponseWriter, r *http.Request) {
 
@@ -1290,6 +1567,7 @@ func TopicDelete(w http.ResponseWriter, r *http.Request) {
 
 	// Grab context references
 	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	refBrk := gorillaContext.Get(r, "brk").(brokers.Broker)
 	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 
 	// Get Result Object
@@ -1304,6 +1582,12 @@ func TopicDelete(w http.ResponseWriter, r *http.Request) {
 		err := APIErrGenericInternal(err.Error())
 		respondErr(w, err)
 		return
+	}
+
+	fullTopic := projectUUID + "." + urlVars["topic"]
+	err = refBrk.DeleteTopic(fullTopic)
+	if err != nil {
+		log.Errorf("Couldn't delete topic %v from broker, %v", fullTopic, err.Error())
 	}
 
 	// Write empty response if anything ok
@@ -1356,13 +1640,15 @@ func SubDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// if it is a push sub, deactivate it
+	// if it is a push sub and it is also has a verified push endpoint, deactivate it
 	if results.Subscriptions[0].PushCfg != (subscriptions.PushConfig{}) {
-		pr := make(map[string]string)
-		apsc := gorillaContext.Get(r, "apsc").(push.Client)
-		pr["message"] = apsc.DeactivateSubscription(context.TODO(), results.Subscriptions[0].FullName).Result()
-		b, _ := json.Marshal(pr)
-		output = b
+		if results.Subscriptions[0].PushCfg.Verified {
+			pr := make(map[string]string)
+			apsc := gorillaContext.Get(r, "apsc").(push.Client)
+			pr["message"] = apsc.DeactivateSubscription(context.TODO(), results.Subscriptions[0].FullName).Result()
+			b, _ := json.Marshal(pr)
+			output = b
+		}
 	}
 	respondOK(w, output)
 }
@@ -1537,6 +1823,7 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 	rPeriod := 0
 	vhash := ""
 	verified := false
+	maxMessages := int64(0)
 	pushWorker := auth.User{}
 	pwToken := gorillaContext.Get(r, "push_worker_token").(string)
 
@@ -1567,11 +1854,19 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 		}
 		rPolicy = postBody.PushCfg.RetPol.PolicyType
 		rPeriod = postBody.PushCfg.RetPol.Period
+		maxMessages = postBody.PushCfg.MaxMessages
+
 		if rPolicy == "" {
 			rPolicy = "linear"
 		}
 		if rPeriod <= 0 {
 			rPeriod = 3000
+		}
+
+		if !subscriptions.IsRetryPolicySupported(rPolicy) {
+			err := APIErrorInvalidData(`Retry policy can only be of 'linear' type`)
+			respondErr(w, err)
+			return
 		}
 	}
 
@@ -1591,6 +1886,14 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 	}
 
 	existingSub := res.Subscriptions[0]
+
+	if maxMessages == 0 {
+		maxMessages = res.Subscriptions[0].PushCfg.MaxMessages
+	}
+
+	if maxMessages == 0 {
+		maxMessages = int64(1)
+	}
 
 	// if the request wants to transform a pull subscription to a push one
 	// we need to begin the verification process
@@ -1612,7 +1915,7 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	err = subscriptions.ModSubPush(projectUUID, subName, pushEnd, rPolicy, rPeriod, vhash, verified, refStr)
+	err = subscriptions.ModSubPush(projectUUID, subName, pushEnd, maxMessages, rPolicy, rPeriod, vhash, verified, refStr)
 
 	if err != nil {
 		if err.Error() == "not found" {
@@ -1630,14 +1933,13 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 		pushWorker, _ = auth.GetPushWorker(pwToken, refStr)
 	}
 
-	pushStatus := ""
 	// if the sub, was push enabled before the update and the endpoint was verified
 	// we need to deactivate it on the push server
 	if existingSub.PushCfg != (subscriptions.PushConfig{}) {
 		if existingSub.PushCfg.Verified {
 			// deactivate the subscription on the push backend
 			apsc := gorillaContext.Get(r, "apsc").(push.Client)
-			pushStatus = apsc.DeactivateSubscription(context.TODO(), existingSub.FullName).Result()
+			apsc.DeactivateSubscription(context.TODO(), existingSub.FullName)
 
 			// remove the push worker user from the sub's acl
 			err = auth.RemoveFromACL(projectUUID, "subscriptions", existingSub.Name, []string{pushWorker.Name}, refStr)
@@ -1658,8 +1960,8 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 
 			// activate the subscription on the push backend
 			apsc := gorillaContext.Get(r, "apsc").(push.Client)
-			pushStatus = apsc.ActivateSubscription(context.TODO(), existingSub.FullName, existingSub.FullTopic,
-				pushEnd, rPolicy, uint32(rPeriod)).Result()
+			apsc.ActivateSubscription(context.TODO(), existingSub.FullName, existingSub.FullTopic,
+				pushEnd, rPolicy, uint32(rPeriod), existingSub.PushCfg.MaxMessages)
 
 			// modify the sub's acl with the push worker's uuid
 			err = auth.AppendToACL(projectUUID, "subscriptions", existingSub.Name, []string{pushWorker.Name}, refStr)
@@ -1677,18 +1979,6 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-	}
-	// update the subscription's status
-	err = subscriptions.ModSubPushStatus(projectUUID, subName, pushStatus, refStr)
-	if err != nil {
-		if err.Error() == "not found" {
-			err := APIErrorNotFound("Subscription")
-			respondErr(w, err)
-			return
-		}
-		err := APIErrGenericInternal(err.Error())
-		respondErr(w, err)
-		return
 	}
 
 	// Write empty response if everything's ok
@@ -1775,8 +2065,8 @@ func SubVerifyPushEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	// activate the subscription on the push backend
 	apsc := gorillaContext.Get(r, "apsc").(push.Client)
-	pushStatus := apsc.ActivateSubscription(context.TODO(), sub.FullName, sub.FullTopic, sub.PushCfg.Pend,
-		sub.PushCfg.RetPol.PolicyType, uint32(sub.PushCfg.RetPol.Period)).Result()
+	apsc.ActivateSubscription(context.TODO(), sub.FullName, sub.FullTopic, sub.PushCfg.Pend,
+		sub.PushCfg.RetPol.PolicyType, uint32(sub.PushCfg.RetPol.Period), sub.PushCfg.MaxMessages)
 
 	// modify the sub's acl with the push worker's uuid
 	err = auth.AppendToACL(projectUUID, "subscriptions", sub.Name, []string{pushW.Name}, refStr)
@@ -1794,88 +2084,7 @@ func SubVerifyPushEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// update the subscription's status
-	err = subscriptions.ModSubPushStatus(projectUUID, subName, pushStatus, refStr)
-	if err != nil {
-		if err.Error() == "not found" {
-			err := APIErrorNotFound("Subscription")
-			respondErr(w, err)
-			return
-		}
-		err := APIErrGenericInternal(err.Error())
-		respondErr(w, err)
-		return
-	}
-
 	respondOK(w, []byte{})
-}
-
-// SubModPushStatus (POST) modifies the push status of a subscription
-func SubModPushStatus(w http.ResponseWriter, r *http.Request) {
-
-	// Init output
-	output := []byte("")
-
-	// Add content type header to the response
-	contentType := "application/json"
-	charset := "utf-8"
-	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
-
-	// Grab url path variables
-	urlVars := mux.Vars(r)
-	// Get Result Object
-	urlSub := urlVars["subscription"]
-
-	// Get project UUID First to use as reference
-	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
-
-	refStr := gorillaContext.Get(r, "str").(stores.Store)
-
-	// Read POST JSON body
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		err := APIErrorInvalidRequestBody()
-		respondErr(w, err)
-		return
-	}
-
-	pushStatus, err := subscriptions.GetPushStatusFromJSON(body)
-	if err != nil {
-		err := APIErrorInvalidArgument("PushStatus")
-		respondErr(w, err)
-		return
-	}
-
-	res, err := subscriptions.Find(projectUUID, "", urlSub, "", 0, refStr)
-
-	if err != nil {
-		err := APIErrGenericBackend()
-		respondErr(w, err)
-		return
-	}
-
-	if res.Empty() {
-		err := APIErrorNotFound("Subscription")
-		respondErr(w, err)
-		return
-	}
-
-	existingSub := res.Subscriptions[0]
-
-	err = subscriptions.ModSubPushStatus(projectUUID, existingSub.Name, pushStatus.PushStatus, refStr)
-	if err != nil {
-		if err.Error() == "not found" {
-			err := APIErrorNotFound("Subscription")
-			respondErr(w, err)
-			return
-		}
-		err := APIErrGenericInternal(err.Error())
-		respondErr(w, err)
-		return
-	}
-
-	// Write empty response if everything's ok
-	respondOK(w, output)
 }
 
 // SubModAck (POST) modifies the Ack deadline of the subscription
@@ -1995,6 +2204,8 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 	pushEnd := ""
 	rPolicy := ""
 	rPeriod := 0
+	maxMessages := int64(1)
+
 	//pushWorker := auth.User{}
 	verifyHash := ""
 
@@ -2026,11 +2237,24 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 		}
 		rPolicy = postBody.PushCfg.RetPol.PolicyType
 		rPeriod = postBody.PushCfg.RetPol.Period
+		maxMessages = postBody.PushCfg.MaxMessages
+
 		if rPolicy == "" {
 			rPolicy = "linear"
 		}
+
+		if maxMessages == 0 {
+			maxMessages = int64(1)
+		}
+
 		if rPeriod <= 0 {
 			rPeriod = 3000
+		}
+
+		if !subscriptions.IsRetryPolicySupported(rPolicy) {
+			err := APIErrorInvalidData(`Retry policy can only be of 'linear' type`)
+			respondErr(w, err)
+			return
 		}
 
 		verifyHash, err = auth.GenToken()
@@ -2044,7 +2268,7 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get Result Object
-	res, err := subscriptions.CreateSub(projectUUID, urlVars["subscription"], tName, pushEnd, curOff, postBody.Ack, rPolicy, rPeriod, verifyHash, false, refStr)
+	res, err := subscriptions.CreateSub(projectUUID, urlVars["subscription"], tName, pushEnd, curOff, maxMessages, postBody.Ack, rPolicy, rPeriod, verifyHash, false, refStr)
 
 	if err != nil {
 		if err.Error() == "exists" {
@@ -2175,7 +2399,7 @@ func ProjectMetrics(w http.ResponseWriter, r *http.Request) {
 	res := metrics.NewMetricList(m1)
 	res.Metrics = append(res.Metrics, m2)
 
-	// Project User topics aggregation
+	// ProjectUUID User topics aggregation
 	m3, err := metrics.AggrProjectUserTopics(projectUUID, refStr)
 	if err != nil {
 		err := APIErrExportJSON()
@@ -2187,7 +2411,7 @@ func ProjectMetrics(w http.ResponseWriter, r *http.Request) {
 		res.Metrics = append(res.Metrics, item)
 	}
 
-	// Project User subscriptions aggregation
+	// ProjectUUID User subscriptions aggregation
 	m4, err := metrics.AggrProjectUserSubs(projectUUID, refStr)
 	if err != nil {
 		err := APIErrExportJSON()
@@ -2296,8 +2520,9 @@ func TopicMetrics(w http.ResponseWriter, r *http.Request) {
 	m2 := metrics.NewTopicMsgs(urlTopic, numMsg, metrics.GetTimeNowZulu())
 	m3 := metrics.NewTopicBytes(urlTopic, numBytes, metrics.GetTimeNowZulu())
 	m4 := metrics.NewDailyTopicMsgCount(urlTopic, timePoints)
+	m5 := metrics.NewTopicRate(urlTopic, resultsMsg.PublishRate, resultsMsg.LatestPublish.Format("2006-01-02T15:04:05Z"))
 
-	res.Metrics = append(res.Metrics, m2, m3, m4)
+	res.Metrics = append(res.Metrics, m2, m3, m4, m5)
 
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
@@ -2551,8 +2776,9 @@ func SubMetrics(w http.ResponseWriter, r *http.Request) {
 	m1 := metrics.NewSubMsgs(urlSub, numMsg, metrics.GetTimeNowZulu())
 	res := metrics.NewMetricList(m1)
 	m2 := metrics.NewSubBytes(urlSub, numBytes, metrics.GetTimeNowZulu())
+	m3 := metrics.NewSubRate(urlSub, resultMsg.ConsumeRate, resultMsg.LatestConsume.Format("2006-01-02T15:04:05Z"))
 
-	res.Metrics = append(res.Metrics, m2)
+	res.Metrics = append(res.Metrics, m2, m3)
 
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
@@ -2713,12 +2939,22 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 	// Get project UUID First to use as reference
 	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 
-	// Check if Project/Topic exist
-	if topics.HasTopic(projectUUID, urlVars["topic"], refStr) == false {
+	results, err := topics.Find(projectUUID, "", urlVars["topic"], "", 0, refStr)
+
+	if err != nil {
+		err := APIErrGenericBackend()
+		respondErr(w, err)
+		return
+	}
+
+	// If not found
+	if results.Empty() {
 		err := APIErrorNotFound("Topic")
 		respondErr(w, err)
 		return
 	}
+
+	res := results.Topics[0]
 
 	// Check Authorization per topic
 	// - if enabled in config
@@ -2767,7 +3003,6 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			log.Errorf("Couldn't publish to topic %v, %v", fullTopic, err.Error())
 			err := APIErrGenericBackend()
 			respondErr(w, err)
 			return
@@ -2785,15 +3020,33 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 		msgIDs.IDs = append(msgIDs.IDs, msg.ID)
 	}
 
+	// timestamp of the publish event
+	publishTime := time.Now().UTC()
+
+	// amount of messages published
+	msgCount := int64(len(msgList.Msgs))
+
 	// increment topic number of message metric
-	refStr.IncrementTopicMsgNum(projectUUID, urlTopic, int64(len(msgList.Msgs)))
+	refStr.IncrementTopicMsgNum(projectUUID, urlTopic, msgCount)
 
 	// increment daily count of topic messages
-	year, month, day := time.Now().UTC().Date()
-	refStr.IncrementDailyTopicMsgCount(projectUUID, urlTopic, int64(len(msgList.Msgs)), time.Date(year, month, day, 0, 0, 0, 0, time.UTC))
+	year, month, day := publishTime.Date()
+	refStr.IncrementDailyTopicMsgCount(projectUUID, urlTopic, msgCount, time.Date(year, month, day, 0, 0, 0, 0, time.UTC))
 
 	// increment topic total bytes published
 	refStr.IncrementTopicBytes(projectUUID, urlTopic, msgList.TotalSize())
+
+	// update latest publish date for the given topic
+	refStr.UpdateTopicLatestPublish(projectUUID, urlTopic, publishTime)
+
+	// count the rate of published messages per sec between the last two publish events
+	var dt float64 = 1
+	// if its the first publish to the topic
+	// skip the subtraction that computes the DT between the last two publish events
+	if !res.LatestPublish.IsZero() {
+		dt = publishTime.Sub(res.LatestPublish).Seconds()
+	}
+	refStr.UpdateTopicPublishRate(projectUUID, urlTopic, float64(msgCount)/dt)
 
 	// Export the msgIDs
 	resJSON, err := msgIDs.ExportJSON()
@@ -2965,9 +3218,30 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 		recList.RecMsgs = append(recList.RecMsgs, curRec)
 	}
 
-	// increment subscrption number of message metric
-	refStr.IncrementSubMsgNum(projectUUID, urlSub, int64(len(msgs)))
+	// amount of messages consumed
+	msgCount := int64(len(msgs))
+
+	log.Debug(msgCount)
+
+	// consumption time
+	consumeTime := time.Now().UTC()
+
+	// increment subscription number of message metric
+	refStr.IncrementSubMsgNum(projectUUID, urlSub, msgCount)
 	refStr.IncrementSubBytes(projectUUID, urlSub, recList.TotalSize())
+	refStr.UpdateSubLatestConsume(projectUUID, targetSub.Name, consumeTime)
+
+	// count the rate of consumed messages per sec between the last two consume events
+	var dt float64 = 1
+	// if its the first consume to the subscription
+	// skip the subtraction that computes the DT between the last two consume events
+	if !targetSub.LatestConsume.IsZero() {
+		dt = consumeTime.Sub(targetSub.LatestConsume).Seconds()
+	}
+
+	log.Debug(dt)
+	log.Debugf("%+v\n", targetSub)
+	refStr.UpdateSubConsumeRate(projectUUID, targetSub.Name, float64(msgCount)/dt)
 
 	resJSON, err := recList.ExportJSON()
 
@@ -3007,7 +3281,6 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 		_, err := auth.GetPushWorker(pwToken, refStr)
 		if err != nil {
 			healthMsg.Status = "warning"
-			log.Error("push worker could not be retrieved")
 		}
 
 		healthMsg.PushServers = []PushServerInfo{

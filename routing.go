@@ -8,7 +8,7 @@ import (
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
 	oldPush "github.com/ARGOeu/argo-messaging/push"
-	"github.com/ARGOeu/argo-messaging/push/grpc/client"
+	push "github.com/ARGOeu/argo-messaging/push/grpc/client"
 	"github.com/ARGOeu/argo-messaging/stores"
 	gorillaContext "github.com/gorilla/context"
 	"github.com/gorilla/mux"
@@ -72,6 +72,7 @@ func NewRouting(cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *o
 var defaultRoutes = []APIRoute{
 	{"ams:metrics", "GET", "/metrics", OpMetrics},
 	{"ams:healthStatus", "GET", "/status", HealthCheck},
+	{"ams:dailyMessageAverage", "GET", "/metrics/daily-message-average", DailyMessageAverage},
 	{"users:byToken", "GET", "/users:byToken/{token}", UserListByToken},
 	{"users:byUUID", "GET", "/users:byUUID/{uuid}", UserListByUUID},
 	{"users:list", "GET", "/users", UserListAll},
@@ -83,6 +84,8 @@ var defaultRoutes = []APIRoute{
 	{"users:delete", "DELETE", "/users/{user}", UserDelete},
 	{"projects:list", "GET", "/projects", ProjectListAll},
 	{"projects:metrics", "GET", "/projects/{project}:metrics", ProjectMetrics},
+	{"projects:showUser", "GET", "/projects/{project}/members/{user}", ProjectUserListOne},
+	{"projects:listUsers", "GET", "/projects/{project}/members", ProjectListUsers},
 	{"projects:show", "GET", "/projects/{project}", ProjectListOne},
 	{"projects:create", "POST", "/projects/{project}", ProjectCreate},
 	{"projects:update", "PUT", "/projects/{project}", ProjectUpdate},
@@ -90,6 +93,7 @@ var defaultRoutes = []APIRoute{
 	{"subscriptions:list", "GET", "/projects/{project}/subscriptions", SubListAll},
 	{"subscriptions:listByTopic", "GET", "/projects/{project}/topics/{topic}/subscriptions", ListSubsByTopic},
 	{"subscriptions:offsets", "GET", "/projects/{project}/subscriptions/{subscription}:offsets", SubGetOffsets},
+	{"subscriptions:timeToOffset", "GET", "/projects/{project}/subscriptions/{subscription}:timeToOffset", SubTimeToOffset},
 	{"subscriptions:acl", "GET", "/projects/{project}/subscriptions/{subscription}:acl", SubACL},
 	{"subscriptions:metrics", "GET", "/projects/{project}/subscriptions/{subscription}:metrics", SubMetrics},
 	{"subscriptions:show", "GET", "/projects/{project}/subscriptions/{subscription}", SubListOne},
@@ -100,7 +104,6 @@ var defaultRoutes = []APIRoute{
 	{"subscriptions:verifyPushEndpoint", "POST", "/projects/{project}/subscriptions/{subscription}:verifyPushEndpoint", SubVerifyPushEndpoint},
 	{"subscriptions:modifyAckDeadline", "POST", "/projects/{project}/subscriptions/{subscription}:modifyAckDeadline", SubModAck},
 	{"subscriptions:modifyPushConfig", "POST", "/projects/{project}/subscriptions/{subscription}:modifyPushConfig", SubModPush},
-	{"subscriptions:modifyPushStatus", "POST", "/projects/{project}/subscriptions/{subscription}:modifyPushStatus", SubModPushStatus},
 	{"subscriptions:modifyOffset", "POST", "/projects/{project}/subscriptions/{subscription}:modifyOffset", SubSetOffset},
 	{"subscriptions:modifyAcl", "POST", "/projects/{project}/subscriptions/{subscription}:modifyAcl", SubModACL},
 	{"topics:list", "GET", "/projects/{project}/topics", TopicListAll},

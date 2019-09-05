@@ -41,7 +41,13 @@ func main() {
 	pushClient := push.NewGrpcClient(cfg)
 	err := pushClient.Dial()
 	if err != nil {
-		log.Errorf("Could not connect to ams push server, %v", err.Error())
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "ams-push-server",
+				"backend_hosts":   pushClient.Target(),
+			},
+		).Error(err.Error())
 	}
 
 	defer pushClient.Close()
