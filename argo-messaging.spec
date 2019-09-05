@@ -3,7 +3,7 @@
 
 Name: argo-messaging
 Summary: ARGO Messaging API for broker network
-Version: 1.0.4
+Version: 1.0.5
 Release: 1%{?dist}
 License: ASL 2.0
 Buildroot: %{_tmppath}/%{name}-buildroot
@@ -61,7 +61,21 @@ go clean
 %attr(0644,root,root) /usr/lib/systemd/system/argo-messaging.service
 
 %changelog
-* Tue Jul 02 2019 Agelos Tsalapatis  <agelos.tsal@gmail.com> 1.0.4-1%{?dist}
+* Thu Sep 05 2019 Agelos Tsalapatis  <agelos.tsal@gmail.com> 1.0.5-1%{?dist}
+- ARGO-492 Add configuration parameter in the push configuration for max_messages per push action
+- ARGO-1925 API support predefined policies in push mode subscription
+- ARGO-1921 New API Call - Average daily messages
+- ARGO-1892 Remove update subscription status functionality from the ams push server
+- ARGO-1827 Update connectivity logging format
+- ARGO-1880 List user members of a project
+- ARGO-1670 Perform the RPC Subscription Status on api call Get subscription
+- ARGO-1870 Add AMS metric: consumption rate on subscription
+- ARGO-1834 Add AMS metric: publishing rate on topic
+- ARGO-1854 Change the way we utilise the sarama.ClusterAdmin in order to avoid EOF/broken tcp pipe errors
+- ARGO-1828 API Call - Get offset from timestamp
+- ARGO-629 When a topic is deleted in the api, ensure topic is also deleted in broker
+- ARGO-1820 Update the messaging service to use the latest sarama version compatible with kafka 2
+* Tue Jul 02 2019 Agelos Tsalapatis  <agelos.tsal@gmail.com> 1.0.5-1%{?dist}
 - ARGO-1840 Update the error response for topic:publish and subscription:pull whenever a kafka error is encountered
 - Consumer script
 - ARGO-1825 Update the request logging format
