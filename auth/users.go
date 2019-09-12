@@ -446,8 +446,20 @@ func UpdateUser(uuid string, name string, projectList []ProjectRoles, email stri
 
 	validRoles := store.GetAllRoles()
 
+	var duplicates []string
+	// Prep project roles for datastore insert
 	if projectList != nil {
 		for _, item := range projectList {
+
+			// check if project is encountered before by consulting duplicate list
+			for _, dItem := range duplicates {
+				if dItem == item.Project {
+					return User{}, errors.New("duplicate reference of project " + dItem)
+				}
+			}
+
+			duplicates = append(duplicates, item.Project)
+
 			prUUID := projects.GetUUIDByName(item.Project, store)
 			// If project name doesn't reflect a uuid, then is non existent
 			if prUUID == "" {
@@ -492,9 +504,21 @@ func CreateUser(uuid string, name string, projectList []ProjectRoles, token stri
 		return User{}, errors.New("exists")
 	}
 
+	var duplicates []string
 	// Prep project roles for datastore insert
 	prList := []stores.QProjectRoles{}
 	for _, item := range projectList {
+
+		// check if project is encountered before by consulting duplicate list
+		for _, dItem := range duplicates {
+			if dItem == item.Project {
+				return User{}, errors.New("duplicate reference of project " + dItem)
+			}
+		}
+
+		// add project name to duplicate check list
+		duplicates = append(duplicates, item.Project)
+
 		prUUID := projects.GetUUIDByName(item.Project, store)
 		// If project name doesn't reflect a uuid, then is non existent
 		if prUUID == "" {

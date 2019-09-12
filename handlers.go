@@ -627,6 +627,13 @@ func UserUpdate(w http.ResponseWriter, r *http.Request) {
 			respondErr(w, err)
 			return
 		}
+
+		if strings.HasPrefix(err.Error(), "duplicate") {
+			err := APIErrorInvalidData(err.Error())
+			respondErr(w, err)
+			return
+		}
+
 		err := APIErrGenericInternal(err.Error())
 		respondErr(w, err)
 		return
@@ -694,6 +701,13 @@ func UserCreate(w http.ResponseWriter, r *http.Request) {
 			respondErr(w, err)
 			return
 		}
+
+		if strings.HasPrefix(err.Error(), "duplicate") {
+			err := APIErrorInvalidData(err.Error())
+			respondErr(w, err)
+			return
+		}
+
 		err := APIErrGenericInternal(err.Error())
 		respondErr(w, err)
 		return
