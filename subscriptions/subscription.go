@@ -17,10 +17,15 @@ import (
 	"time"
 )
 
-const LinearRetryPolicyType = "linear"
+const (
+	LinearRetryPolicyType     = "linear"
+	SlowStartRetryPolicyType  = "slowstart"
+	SupportedRetryPolicyError = `Retry policy can only be of 'linear' or 'slowstart' type`
+)
 
 var SupportedRetryPolicyTypes = []string{
 	LinearRetryPolicyType,
+	SlowStartRetryPolicyType,
 }
 
 // Subscription struct to hold information for a given topic
@@ -323,7 +328,14 @@ func Find(projectUUID, userUUID, name, pageToken string, pageSize int32, store s
 		curSub.NextOffset = item.NextOffset
 		curSub.Ack = item.Ack
 		if item.PushEndpoint != "" {
-			rp := RetryPolicy{item.RetPolicy, item.RetPeriod}
+			rp := RetryPolicy{
+				PolicyType: item.RetPolicy,
+			}
+
+			if item.RetPolicy != SlowStartRetryPolicyType {
+				rp.Period = item.RetPeriod
+			}
+
 			maxM := int64(1)
 			if item.MaxMessages != 0 {
 				maxM = item.MaxMessages
@@ -396,6 +408,10 @@ func CreateSub(projectUUID string, name string, topic string, push string, offse
 		ack = 10
 	}
 
+	if retPolicy == SlowStartRetryPolicyType {
+		retPeriod = 0
+	}
+
 	err := store.InsertSub(projectUUID, name, topic, offset, maxMessages, ack, push, retPolicy, retPeriod, vhash, verified)
 	if err != nil {
 		return Subscription{}, errors.New("backend error")
@@ -428,6 +444,10 @@ func ModSubPush(projectUUID string, name string, push string, maxMessages int64,
 
 	if HasSub(projectUUID, name, store) == false {
 		return errors.New("not found")
+	}
+
+	if retPolicy == SlowStartRetryPolicyType {
+		retPeriod = 0
 	}
 
 	return store.ModSubPush(projectUUID, name, push, maxMessages, retPolicy, retPeriod, vhash, verified)

@@ -1857,14 +1857,14 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 		maxMessages = postBody.PushCfg.MaxMessages
 
 		if rPolicy == "" {
-			rPolicy = "linear"
+			rPolicy = subscriptions.LinearRetryPolicyType
 		}
 		if rPeriod <= 0 {
 			rPeriod = 3000
 		}
 
 		if !subscriptions.IsRetryPolicySupported(rPolicy) {
-			err := APIErrorInvalidData(`Retry policy can only be of 'linear' type`)
+			err := APIErrorInvalidData(subscriptions.SupportedRetryPolicyError)
 			respondErr(w, err)
 			return
 		}
@@ -1888,11 +1888,11 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 	existingSub := res.Subscriptions[0]
 
 	if maxMessages == 0 {
-		maxMessages = res.Subscriptions[0].PushCfg.MaxMessages
-	}
-
-	if maxMessages == 0 {
-		maxMessages = int64(1)
+		if existingSub.PushCfg.MaxMessages == 0 {
+			maxMessages = int64(1)
+		} else {
+			maxMessages = existingSub.PushCfg.MaxMessages
+		}
 	}
 
 	// if the request wants to transform a pull subscription to a push one
@@ -1961,7 +1961,7 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 			// activate the subscription on the push backend
 			apsc := gorillaContext.Get(r, "apsc").(push.Client)
 			apsc.ActivateSubscription(context.TODO(), existingSub.FullName, existingSub.FullTopic,
-				pushEnd, rPolicy, uint32(rPeriod), existingSub.PushCfg.MaxMessages)
+				pushEnd, rPolicy, uint32(rPeriod), maxMessages)
 
 			// modify the sub's acl with the push worker's uuid
 			err = auth.AppendToACL(projectUUID, "subscriptions", existingSub.Name, []string{pushWorker.Name}, refStr)
@@ -2240,7 +2240,7 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 		maxMessages = postBody.PushCfg.MaxMessages
 
 		if rPolicy == "" {
-			rPolicy = "linear"
+			rPolicy = subscriptions.LinearRetryPolicyType
 		}
 
 		if maxMessages == 0 {
@@ -2252,7 +2252,7 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if !subscriptions.IsRetryPolicySupported(rPolicy) {
-			err := APIErrorInvalidData(`Retry policy can only be of 'linear' type`)
+			err := APIErrorInvalidData(subscriptions.SupportedRetryPolicyError)
 			respondErr(w, err)
 			return
 		}

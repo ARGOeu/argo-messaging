@@ -85,7 +85,6 @@ should expect a request body with the following schema:
       }
    ]
 }
-
 ```
 
 ## Request to create Push Enabled Subscription
@@ -121,6 +120,22 @@ should expect a request body with the following schema:
     }    
 }
 ```
+
+### Different Retry Policies
+Creating a push enabled subscription with a `linear` retry policy and a `period` of 3000 means that you will be receiving
+message(s) every `3000ms`.
+
+If you decide to choose a retry policy of `slowstart`, you will be receiving messages with dynamic internals.
+The `slowstart` retry policy starts by pushing the first message(s) and then deciding the time that should elapse 
+before the next push action.
+- `IF` the message(s) are delivered successfully the elapsed time until the next push request will be halved, until it reaches
+the lower limit of `300ms`.
+
+- `IF` the message(s) are not delivered successfully the elapsed time until the next push request will be doubled, until 
+it reached the upper limit of `1day`.
+
+So for example, the first push action will have by default a `1 second` interval. If it successful the next push re request will
+happen in `0.5 seconds`. If it is unsuccessful the next push request will happen in `2 seconds`.
 
 
 ### Errors
@@ -704,13 +719,13 @@ This request returns the offset of the first message with a timestamp equal or g
 ### Where
 - Project_name: Name of the project
 - subscription_name: The subscription name to consume
-- timestamp: timestamp in Zulu format
+- timestamp: timestamp in `Zulu` format - `(2006-11-02T13:39:11.000Z)`
 
 ### Example request
 
 ```json
 curl -X GET -H "Content-Type: application/json"  
-http://{URL}/v1/projects/BRAND_NEW/subscriptions/alert_engine:timeToOffset?key=S3CR3T"
+http://{URL}/v1/projects/BRAND_NEW/subscriptions/alert_engine:timeToOffset?key=S3CR3T&time=2019-09-02T13:39:11.100Z"
 ```
 
 ### Responses  
@@ -721,7 +736,7 @@ Code: `200 OK`
 ### Response body:
 ```
 {
-  "offset": 640,
+  "offset": 640
 }
 ```
 

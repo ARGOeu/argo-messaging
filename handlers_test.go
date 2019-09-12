@@ -2019,7 +2019,7 @@ func (suite *HandlerTestSuite) TestSubModPushInvalidRetPol() {
 	expResp := `{
    "error": {
       "code": 400,
-      "message": "Retry policy can only be of 'linear' type",
+      "message": "Retry policy can only be of 'linear' or 'slowstart' type",
       "status": "INVALID_ARGUMENT"
    }
 }`
@@ -2633,6 +2633,55 @@ func (suite *HandlerTestSuite) TestSubCreatePushConfig() {
 	suite.Equal(expResp, w.Body.String())
 }
 
+func (suite *HandlerTestSuite) TestSubCreatePushConfigSlowStart() {
+
+	postJSON := `{
+	"topic":"projects/ARGO/topics/topic1",
+	"pushConfig": {
+		 "pushEndpoint": "https://www.example.com",
+		 "retryPolicy": {
+			"type": "slowstart"
+		 }
+	}
+}`
+
+	req, err := http.NewRequest("PUT", "http://localhost:8080/v1/projects/ARGO/subscriptions/subNew", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "name": "/projects/ARGO/subscriptions/subNew",
+   "topic": "/projects/ARGO/topics/topic1",
+   "pushConfig": {
+      "pushEndpoint": "https://www.example.com",
+      "maxMessages": 1,
+      "retryPolicy": {
+         "type": "slowstart"
+      },
+      "verification_hash": "{{VHASH}}",
+      "verified": false
+   },
+   "ackDeadlineSeconds": 10
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubCreate, cfgKafka, &brk, str, &mgr, pc))
+	router.ServeHTTP(w, req)
+	sub, _ := str.QueryOneSub("argo_uuid", "subNew")
+	expResp = strings.Replace(expResp, "{{VHASH}}", sub.VerificationHash, 1)
+	suite.Equal(0, sub.RetPeriod)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+}
+
 func (suite *HandlerTestSuite) TestSubCreatePushConfigMissingPushWorker() {
 
 	postJSON := `{
@@ -2737,7 +2786,7 @@ func (suite *HandlerTestSuite) TestSubCreateInvalidRetPol() {
 	expResp := `{
    "error": {
       "code": 400,
-      "message": "Retry policy can only be of 'linear' type",
+      "message": "Retry policy can only be of 'linear' or 'slowstart' type",
       "status": "INVALID_ARGUMENT"
    }
 }`
