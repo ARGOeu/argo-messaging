@@ -115,4 +115,5 @@ var defaultRoutes = []APIRoute{
 	{"topics:publish", "POST", "/projects/{project}/topics/{topic}:publish", TopicPublish},
 	{"topics:modifyAcl", "POST", "/projects/{project}/topics/{topic}:modifyAcl", TopicModACL},
 	{"schemas:create", "POST", "/projects/{project}/schemas/{schema}", SchemaCreate},
+	{"schemas:show", "GET", "/projects/{project}/schemas/{schema}", SchemaListOne},
 }

@@ -3361,6 +3361,40 @@ func SchemaCreate(w http.ResponseWriter, r *http.Request) {
 	respondOK(w, output)
 }
 
+// SchemaListOne(GET) retrieves information about the requested schema
+func SchemaListOne(w http.ResponseWriter, r *http.Request) {
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Get url path variables
+	urlVars := mux.Vars(r)
+	schemaName := urlVars["schema"]
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+
+	// Get project UUID First to use as reference
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
+	schemasList, err := schemas.Find(projectUUID, "", schemaName, refStr)
+	if err != nil {
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	if schemasList.Empty() {
+		err := APIErrorNotFound("Schema")
+		respondErr(w, err)
+		return
+	}
+
+	output, _ := json.MarshalIndent(schemasList.Schemas[0], "", " ")
+	respondOK(w, output)
+}
+
 // Respond utility functions
 ///////////////////////////////
 

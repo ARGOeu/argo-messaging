@@ -11,6 +11,93 @@ type SchemasTestSuite struct {
 	suite.Suite
 }
 
+func (suite *SchemasTestSuite) TestFind() {
+
+	store := stores.NewMockStore("", "")
+
+	type td struct {
+		projectUUID string
+		schemaUUID  string
+		schemaName  string
+		schemaList  SchemaList
+		err         error
+		msg         string
+	}
+
+	testData := []td{
+		{
+			projectUUID: "argo_uuid",
+			schemaUUID:  "",
+			schemaName:  "schema-1",
+			schemaList: SchemaList{
+				Schemas: []Schema{
+					{UUID: "schema_uuid_1",
+						Name: "schema-1",
+						Type: JSON,
+						RawSchema: map[string]interface{}{
+							"properties": map[string]interface{}{
+								"address":   map[string]interface{}{"type": "string"},
+								"email":     map[string]interface{}{"type": "string"},
+								"name":      map[string]interface{}{"type": "string"},
+								"telephone": map[string]interface{}{"type": "string"},
+							},
+							"required": []interface{}{"name", "email"},
+							"type":     "object",
+						},
+					},
+				},
+			},
+			err: nil,
+			msg: "Case where we request for a single schema under a project and it is successfully retrieved",
+		},
+		{
+			projectUUID: "argo_uuid",
+			schemaUUID:  "",
+			schemaName:  "",
+			schemaList: SchemaList{
+				Schemas: []Schema{
+					{UUID: "schema_uuid_1",
+						Name: "schema-1",
+						Type: JSON,
+						RawSchema: map[string]interface{}{
+							"properties": map[string]interface{}{
+								"address":   map[string]interface{}{"type": "string"},
+								"email":     map[string]interface{}{"type": "string"},
+								"name":      map[string]interface{}{"type": "string"},
+								"telephone": map[string]interface{}{"type": "string"},
+							},
+							"required": []interface{}{"name", "email"},
+							"type":     "object",
+						},
+					},
+					{UUID: "schema_uuid_2",
+						Name: "schema-2",
+						Type: JSON,
+						RawSchema: map[string]interface{}{
+							"properties": map[string]interface{}{
+								"address":   map[string]interface{}{"type": "string"},
+								"email":     map[string]interface{}{"type": "string"},
+								"name":      map[string]interface{}{"type": "string"},
+								"telephone": map[string]interface{}{"type": "string"},
+							},
+							"required": []interface{}{"name", "email"},
+							"type":     "object",
+						},
+					},
+				},
+			},
+			err: nil,
+			msg: "Case where we request for all schemas under a project and they are successfully retrieved",
+		},
+	}
+
+	for _, t := range testData {
+		s, e := Find(t.projectUUID, t.schemaUUID, t.schemaName, store)
+		suite.Equal(t.err, e)
+		suite.Equal(t.schemaList, s)
+	}
+}
+
 func (suite *SchemasTestSuite) TestCreate() {
 
 	store := stores.NewMockStore("", "")

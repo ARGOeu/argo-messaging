@@ -2,6 +2,62 @@
 
 Schemas is a resource that works with topics by validating the published messages.
 
+## [GET] Manage Schemas - Retrieve a Schema
+This request retrieves a specific schema under the given project
+
+### Request
+```json
+GET "/v1/projects/{project_name}/schemas/{schema_name}"
+```
+
+### Where
+- project_name: Name of the project in which the schema will belong
+- schema_name: Name of the schema to be created
+
+### Example request
+```json
+curl -X GET -H "Content-Type: application/json"
+ " https://{URL}/v1/projects/project-1/schemas/schema-1?key=S3CR3T"
+```
+
+### Responses  
+
+If successful, the response contains the requested schema.
+
+Success Response
+`200 OK`
+```json
+{
+    "uuid": "50811bd1-c94c-4ad7-8f55-a561c6270b50",
+    "name": "schema-1",
+    "type": "json",
+    "schema": {
+        "properties": {
+            "address": {
+                "type": "string"
+            },
+            "email": {
+                "type": "string"
+            },
+            "name": {
+                "type": "string"
+            },
+            "telephone": {
+                "type": "string"
+            }
+        },
+        "required": [
+            "name",
+            "email"
+        ],
+        "type": "object"
+    }
+}
+```
+
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors
+
 ## [POST] Manage Schemas - Create new Schema
 This request creates a new schema
 
