@@ -1626,3 +1626,45 @@ func (mong *MongoStore) QueryPushSubs() []QSub {
 	return results
 
 }
+
+func (mong *MongoStore) InsertSchema(projectUUID, schemaUUID, name, schemaType, rawSchemaString string) error {
+	sub := QSchema{
+		ProjectUUID: projectUUID,
+		UUID:        schemaUUID,
+		Name:        name,
+		Type:        schemaType,
+		RawSchema:   rawSchemaString,
+	}
+	return mong.InsertResource("schemas", sub)
+}
+
+func (mong *MongoStore) QuerySchemas(projectUUID, schemaUUID, name string) ([]QSchema, error) {
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C("schemas")
+
+	var results []QSchema
+
+	query := bson.M{"project_uuid": projectUUID}
+
+	if name != "" {
+		query["name"] = name
+	}
+
+	if schemaUUID != "" {
+		query["schema_uuid"] = schemaUUID
+	}
+
+	err := c.Find(query).All(&results)
+	if err != nil {
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
+	}
+
+	return results, nil
+}

@@ -18,6 +18,7 @@ type MockStore struct {
 	ProjectList        []QProject
 	UserList           []QUser
 	RoleList           []QRole
+	SchemaList         []QSchema
 	Session            bool
 	TopicsACL          map[string]QAcl
 	SubsACL            map[string]QAcl
@@ -655,6 +656,23 @@ func (mk *MockStore) Initialize() {
 	qPr2 := QProject{UUID: "argo_uuid2", Name: "ARGO2", CreatedOn: created, ModifiedOn: modified, CreatedBy: "uuid1", Description: "simple project"}
 	mk.ProjectList = append(mk.ProjectList, qPr)
 	mk.ProjectList = append(mk.ProjectList, qPr2)
+
+	// populate schemas
+	//{
+	// 			"type": "object",
+	//			 "properties": {
+	// 			  "name":        { "type": "string" },
+	//  			  "email":        { "type": "string" },
+	// 			  "address":    { "type": "string" },
+	//  			  "telephone": { "type": "string" }
+	//	 },
+	// 	"required": ["name", "email"]
+	//}
+	//}
+	// the above schema base64 encoded
+	s := "eyJwcm9wZXJ0aWVzIjp7ImFkZHJlc3MiOnsidHlwZSI6InN0cmluZyJ9LCJlbWFpbCI6eyJ0eXBlIjoic3RyaW5nIn0sIm5hbWUiOnsidHlwZSI6InN0cmluZyJ9LCJ0ZWxlcGhvbmUiOnsidHlwZSI6InN0cmluZyJ9fSwicmVxdWlyZWQiOlsibmFtZSIsImVtYWlsIl0sInR5cGUiOiJvYmplY3QifQ=="
+	qSchema1 := QSchema{UUID: "schema_uuid_1", ProjectUUID: "argo_uuid", Type: "json", Name: "schema-1", RawSchema: s}
+	mk.SchemaList = append(mk.SchemaList, qSchema1)
 
 	// populate daily msg count for topics
 	dc1 := QDailyTopicMsgCount{time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC), "argo_uuid", "topic1", 40}
@@ -1359,4 +1377,55 @@ func (mk *MockStore) QueryDailyTopicMsgCount(projectUUID string, topicName strin
 	sort.Slice(qds, func(i, j int) bool { return qds[i].Date.After(qds[j].Date) })
 
 	return qds, nil
+}
+
+func (mk *MockStore) InsertSchema(projectUUID, schemaUUID, name, schemaType, rawSchemaString string) error {
+	mk.SchemaList = append(mk.SchemaList, QSchema{
+		ProjectUUID: projectUUID,
+		UUID:        schemaUUID,
+		Name:        name,
+		Type:        schemaType,
+		RawSchema:   rawSchemaString,
+	})
+
+	return nil
+}
+
+func (mk *MockStore) QuerySchemas(projectUUID, schemaUUID, name string) ([]QSchema, error) {
+
+	qSchemas := []QSchema{}
+
+	if schemaUUID == "" && name == "" {
+		for _, qs := range mk.SchemaList {
+			if qs.ProjectUUID == projectUUID {
+				qSchemas = append(qSchemas, qs)
+			}
+		}
+	}
+
+	if schemaUUID != "" && name != "" {
+		for _, qs := range mk.SchemaList {
+			if qs.ProjectUUID == projectUUID && qs.UUID == schemaUUID && qs.Name == name {
+				qSchemas = append(qSchemas, qs)
+			}
+		}
+	}
+
+	if schemaUUID != "" && name == "" {
+		for _, qs := range mk.SchemaList {
+			if qs.ProjectUUID == projectUUID && qs.UUID == schemaUUID {
+				qSchemas = append(qSchemas, qs)
+			}
+		}
+	}
+
+	if schemaUUID == "" && name != "" {
+		for _, qs := range mk.SchemaList {
+			if qs.ProjectUUID == projectUUID && qs.Name == name {
+				qSchemas = append(qSchemas, qs)
+			}
+		}
+	}
+
+	return qSchemas, nil
 }

@@ -18,12 +18,12 @@ import (
 )
 
 const (
-	LinearRetryPolicyType     = "linear"
-	SlowStartRetryPolicyType  = "slowstart"
-	SupportedRetryPolicyError = `Retry policy can only be of 'linear' or 'slowstart' type`
+	LinearRetryPolicyType       = "linear"
+	SlowStartRetryPolicyType    = "slowstart"
+	UnSupportedRetryPolicyError = `Retry policy can only be of 'linear' or 'slowstart' type`
 )
 
-var SupportedRetryPolicyTypes = []string{
+var supportedRetryPolicyTypes = []string{
 	LinearRetryPolicyType,
 	SlowStartRetryPolicyType,
 }
@@ -116,7 +116,7 @@ func NewNamesList() NamesList {
 // IsRetryPolicySupported checks if the provided retry policy is supported by the service
 func IsRetryPolicySupported(retPol string) bool {
 
-	for _, rp := range SupportedRetryPolicyTypes {
+	for _, rp := range supportedRetryPolicyTypes {
 		if rp == retPol {
 			return true
 		}

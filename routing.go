@@ -114,4 +114,5 @@ var defaultRoutes = []APIRoute{
 	{"topics:delete", "DELETE", "/projects/{project}/topics/{topic}", TopicDelete},
 	{"topics:publish", "POST", "/projects/{project}/topics/{topic}:publish", TopicPublish},
 	{"topics:modifyAcl", "POST", "/projects/{project}/topics/{topic}:modifyAcl", TopicModACL},
+	{"schemas:create", "POST", "/projects/{project}/schemas/{schema}", SchemaCreate},
 }

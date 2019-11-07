@@ -59,6 +59,8 @@ type Store interface {
 	RemoveFromACL(projectUUID string, resource string, name string, acl []string) error
 	ModAck(projectUUID string, name string, ack int) error
 	GetAllRoles() []string
+	InsertSchema(projectUUID, schemaUUID, name, schemaType, rawSchemaString string) error
+	QuerySchemas(projectUUID, schemaUUID, name string) ([]QSchema, error)
 	Clone() Store
 	Close()
 }

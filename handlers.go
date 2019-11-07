@@ -22,7 +22,8 @@ import (
 	"github.com/ARGOeu/argo-messaging/metrics"
 	"github.com/ARGOeu/argo-messaging/projects"
 	oldPush "github.com/ARGOeu/argo-messaging/push"
-	push "github.com/ARGOeu/argo-messaging/push/grpc/client"
+	"github.com/ARGOeu/argo-messaging/push/grpc/client"
+	"github.com/ARGOeu/argo-messaging/schemas"
 	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/ARGOeu/argo-messaging/subscriptions"
 	"github.com/ARGOeu/argo-messaging/topics"
@@ -398,7 +399,7 @@ func ProjectCreate(w http.ResponseWriter, r *http.Request) {
 	// Parse pull options
 	postBody, err := projects.GetFromJSON(body)
 	if err != nil {
-		err := APIErrorInvalidArgument("ProjectUUID")
+		err := APIErrorInvalidArgument("Project")
 		respondErr(w, err)
 		log.Error(string(body[:]))
 		return
@@ -412,7 +413,7 @@ func ProjectCreate(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if err.Error() == "exists" {
-			err := APIErrorConflict("ProjectUUID")
+			err := APIErrorConflict("Project")
 			respondErr(w, err)
 			return
 		}
@@ -1864,7 +1865,7 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if !subscriptions.IsRetryPolicySupported(rPolicy) {
-			err := APIErrorInvalidData(subscriptions.SupportedRetryPolicyError)
+			err := APIErrorInvalidData(subscriptions.UnSupportedRetryPolicyError)
 			respondErr(w, err)
 			return
 		}
@@ -2252,7 +2253,7 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if !subscriptions.IsRetryPolicySupported(rPolicy) {
-			err := APIErrorInvalidData(subscriptions.SupportedRetryPolicyError)
+			err := APIErrorInvalidData(subscriptions.UnSupportedRetryPolicyError)
 			respondErr(w, err)
 			return
 		}
@@ -3239,8 +3240,6 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 		dt = consumeTime.Sub(targetSub.LatestConsume).Seconds()
 	}
 
-	log.Debug(dt)
-	log.Debugf("%+v\n", targetSub)
 	refStr.UpdateSubConsumeRate(projectUUID, targetSub.Name, float64(msgCount)/dt)
 
 	resJSON, err := recList.ExportJSON()
@@ -3268,6 +3267,11 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 	var bytes []byte
 
 	apsc := gorillaContext.Get(r, "apsc").(push.Client)
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
 
 	healthMsg := HealthStatus{
 		Status: "ok",
@@ -3301,6 +3305,60 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondOK(w, bytes)
+}
+
+// SchemaCreate(POST) handles the creation of a new schema
+func SchemaCreate(w http.ResponseWriter, r *http.Request) {
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Get url path variables
+	urlVars := mux.Vars(r)
+	schemaName := urlVars["schema"]
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+
+	// Get project UUID First to use as reference
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
+
+	schemaUUID := uuid.NewV4().String()
+
+	schema := schemas.Schema{}
+
+	err := json.NewDecoder(r.Body).Decode(&schema)
+	if err != nil {
+		err := APIErrorInvalidArgument("Schema")
+		respondErr(w, err)
+		return
+	}
+
+	schema, err = schemas.Create(projectUUID, schemaUUID, schemaName, schema.Type, schema.RawSchema, refStr)
+	if err != nil {
+		if err.Error() == "exists" {
+			err := APIErrorConflict("Schema")
+			respondErr(w, err)
+			return
+
+		}
+
+		if err.Error() == "unsupported" {
+			err := APIErrorInvalidData(schemas.UnsupportedSchemaError)
+			respondErr(w, err)
+			return
+
+		}
+
+		err := APIErrorInvalidData(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	output, _ := json.MarshalIndent(schema, "", " ")
+	respondOK(w, output)
 }
 
 // Respond utility functions

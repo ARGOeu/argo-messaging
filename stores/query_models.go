@@ -106,6 +106,15 @@ type QProjectMessageCount struct {
 	AverageDailyMessages float64 `bson:"avg_daily_msg"`
 }
 
+// QSchema is the query model representing a schema
+type QSchema struct {
+	ProjectUUID string `bson:"project_uuid"`
+	UUID        string `bson:"uuid"`
+	Name        string `bson:"name"`
+	Type        string `bson:"type"`
+	RawSchema   string `bson:"raw_schema"`
+}
+
 func (qUsr *QUser) isInProject(projectUUID string) bool {
 	for _, item := range qUsr.Projects {
 		if item.ProjectUUID == projectUUID {
