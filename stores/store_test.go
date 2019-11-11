@@ -573,6 +573,12 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal(expectedSchemas, qqs1)
 	suite.Equal(expectedSchemas[0], qqs2[0])
 	suite.Equal(expectedSchemas[0], qqs3[0])
+
+	// test update schema
+	store2.UpdateSchema("schema_uuid_1", "new-name", "new-type", "new-raw-schema")
+	eus := QSchema{UUID: "schema_uuid_1", ProjectUUID: "argo_uuid", Type: "new-type", Name: "new-name", RawSchema: "new-raw-schema"}
+	qus, _ := store2.QuerySchemas("argo_uuid", "schema_uuid_1", "")
+	suite.Equal(eus, qus[0])
 }
 
 func TestStoresTestSuite(t *testing.T) {

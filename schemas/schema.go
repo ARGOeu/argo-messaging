@@ -49,6 +49,7 @@ func Find(projectUUID, schemaUUID, schemaName string, str stores.Store) (SchemaL
 		_schema.UUID = s.UUID
 		_schema.Name = s.Name
 		_schema.Type = s.Type
+		_schema.ProjectUUID = s.ProjectUUID
 
 		decodedSchemaBytes, err := base64.StdEncoding.DecodeString(s.RawSchema)
 		if err != nil {
@@ -82,6 +83,75 @@ func Find(projectUUID, schemaUUID, schemaName string, str stores.Store) (SchemaL
 	return schemaList, nil
 }
 
+func Update(existingSchema Schema, newSchemaName, newSchemaType string, newRawSchema map[string]interface{}, str stores.Store) (Schema, error) {
+
+	newSchema := Schema{}
+
+	if newSchemaName != "" {
+		// if the name has changed check that is not already taken by another schema under the given project
+		if existingSchema.Name != newSchemaName {
+			exists, err := ExistsWithName(existingSchema.ProjectUUID, newSchemaName, str)
+			if err != nil {
+				return Schema{}, err
+			}
+
+			if exists {
+				return Schema{}, errors.New("exists")
+			}
+
+			existingSchema.Name = newSchemaName
+		}
+	}
+
+	newSchema.Name = newSchemaName
+
+	if newSchemaType != "" {
+		newSchemaType = strings.ToLower(newSchemaType)
+		newSchema.Type = newSchemaType
+		existingSchema.Type = newSchemaType
+	} else {
+		newSchema.Type = existingSchema.Type
+	}
+
+	rawSchemaString := ""
+
+	// if there is a new schema check the validity
+	if len(newRawSchema) > 0 {
+		err := checkSchema(newSchema.Type, newRawSchema)
+		if err != nil {
+			return Schema{}, err
+		}
+
+		schemaBytes, err := json.Marshal(newRawSchema)
+		if err != nil {
+			return Schema{}, err
+		}
+
+		rawSchemaString = base64.StdEncoding.EncodeToString(schemaBytes)
+
+		newSchema.RawSchema = newRawSchema
+
+		existingSchema.RawSchema = newRawSchema
+
+	}
+
+	// if there is a new type for the already existing schema
+	if len(newRawSchema) == 0 && newSchemaType != "" {
+		err := checkSchema(newSchema.Type, existingSchema.RawSchema)
+		if err != nil {
+			return Schema{}, err
+		}
+
+	}
+
+	err := str.UpdateSchema(existingSchema.UUID, newSchema.Name, newSchema.Type, rawSchemaString)
+	if err != nil {
+		return Schema{}, err
+	}
+
+	return existingSchema, nil
+}
+
 // Create checks the validity of the schema to be created and then saves it to the store
 func Create(projectUUID, schemaUUID, name, schemaType string, rawSchema map[string]interface{}, str stores.Store) (Schema, error) {
 
@@ -99,9 +169,9 @@ func Create(projectUUID, schemaUUID, name, schemaType string, rawSchema map[stri
 		return Schema{}, err
 	}
 
-	schemaType = strings.ToLower(schemaType)
-
 	b64SchemaString := base64.StdEncoding.EncodeToString(schemaBytes)
+
+	schemaType = strings.ToLower(schemaType)
 
 	err = checkSchema(schemaType, rawSchema)
 	if err != nil {

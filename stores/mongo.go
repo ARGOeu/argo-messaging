@@ -1668,3 +1668,30 @@ func (mong *MongoStore) QuerySchemas(projectUUID, schemaUUID, name string) ([]QS
 
 	return results, nil
 }
+
+// UpdateSchema updates the fields of a schema
+func (mong *MongoStore) UpdateSchema(schemaUUID, name, schemaType, rawSchemaString string) error {
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C("schemas")
+
+	selector := bson.M{"uuid": schemaUUID}
+
+	updates := bson.M{}
+
+	if name != "" {
+		updates["name"] = name
+	}
+
+	if schemaType != "" {
+		updates["type"] = schemaType
+	}
+
+	if rawSchemaString != "" {
+		updates["raw_schema"] = rawSchemaString
+	}
+
+	change := bson.M{"$set": updates}
+
+	return c.Update(selector, change)
+}

@@ -6006,6 +6006,156 @@ func (suite *HandlerTestSuite) TestSchemaListOne() {
 	}
 }
 
+func (suite *HandlerTestSuite) TestSchemaUpdate() {
+
+	type td struct {
+		postBody           string
+		expectedResponse   string
+		schemaName         string
+		expectedStatusCode int
+		msg                string
+	}
+
+	testData := []td{
+		{
+			schemaName:         "schema-2",
+			postBody:           `{"name": "schema-1"}`,
+			expectedStatusCode: 409,
+			expectedResponse: `{
+   "error": {
+      "code": 409,
+      "message": "Schema already exists",
+      "status": "ALREADY_EXISTS"
+   }
+}`,
+			msg: "Case where the requested schema wants to update the name field to an already existing one",
+		},
+		{
+			schemaName:         "schema-1",
+			postBody:           `{"type":"unsupported"}`,
+			expectedStatusCode: 400,
+			expectedResponse: `{
+   "error": {
+      "code": 400,
+      "message": "Schema type can only be 'json'",
+      "status": "INVALID_ARGUMENT"
+   }
+}`,
+			msg: "Case where the requested schema wants to update its type field to an unsupported option",
+		},
+		{
+			schemaName:         "schema-1",
+			postBody:           `{"schema":{"type":"unknown"}}`,
+			expectedStatusCode: 400,
+			expectedResponse: `{
+   "error": {
+      "code": 400,
+      "message": "has a primitive type that is NOT VALID -- given: /unknown/ Expected valid values are:[array boolean integer number null object string]",
+      "status": "INVALID_ARGUMENT"
+   }
+}`,
+			msg: "Case where the requested schema wants to update its schema with invalid contents",
+		},
+		{
+			schemaName:         "schema-1",
+			expectedStatusCode: 200,
+			expectedResponse: `{
+ "uuid": "schema_uuid_1",
+ "name": "new-name",
+ "type": "json",
+ "schema": {
+  "properties": {
+   "address": {
+    "type": "string"
+   },
+   "email": {
+    "type": "string"
+   },
+   "name": {
+    "type": "string"
+   },
+   "telephone": {
+    "type": "string"
+   }
+  },
+  "required": [
+   "name",
+   "email",
+   "address"
+  ],
+  "type": "object"
+ }
+}`,
+			postBody: `{
+ "name": "new-name",
+ "type": "json",
+ "schema": {
+  "properties": {
+   "address": {
+    "type": "string"
+   },
+   "email": {
+    "type": "string"
+   },
+   "name": {
+    "type": "string"
+   },
+   "telephone": {
+    "type": "string"
+   }
+  },
+  "required": [
+   "name",
+   "email",
+   "address"
+  ],
+  "type": "object"
+ }
+}`,
+
+			msg: "Case where a specific schema has all its fields updated successfully",
+		},
+		{
+			schemaName:         "unknown",
+			postBody:           "",
+			expectedStatusCode: 404,
+			expectedResponse: `{
+   "error": {
+      "code": 404,
+      "message": "Schema doesn't exist",
+      "status": "NOT_FOUND"
+   }
+}`,
+			msg: "Case where the requested schema doesn't exist",
+		},
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	cfgKafka.PushEnabled = true
+	cfgKafka.PushWorkerToken = "push_token"
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+
+	for _, t := range testData {
+
+		w := httptest.NewRecorder()
+		url := fmt.Sprintf("http://localhost:8080/v1/projects/ARGO/schemas/%v", t.schemaName)
+		req, err := http.NewRequest("PUT", url, strings.NewReader(t.postBody))
+		if err != nil {
+			log.Fatal(err)
+		}
+		router.HandleFunc("/v1/projects/{project}/schemas/{schema}", WrapMockAuthConfig(SchemaUpdate, cfgKafka, &brk, str, &mgr, pc))
+		router.ServeHTTP(w, req)
+
+		suite.Equal(t.expectedStatusCode, w.Code, t.msg)
+		suite.Equal(t.expectedResponse, w.Body.String(), t.msg)
+	}
+}
+
 func TestHandlersTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }

@@ -25,15 +25,15 @@ func (suite *SchemasTestSuite) TestFind() {
 	}
 
 	testData := []td{
-		{
-			projectUUID: "argo_uuid",
-			schemaUUID:  "",
-			schemaName:  "schema-1",
+		{projectUUID: "argo_uuid",
+			schemaUUID: "",
+			schemaName: "schema-1",
 			schemaList: SchemaList{
 				Schemas: []Schema{
 					{UUID: "schema_uuid_1",
-						Name: "schema-1",
-						Type: JSON,
+						ProjectUUID: "argo_uuid",
+						Name:        "schema-1",
+						Type:        JSON,
 						RawSchema: map[string]interface{}{
 							"properties": map[string]interface{}{
 								"address":   map[string]interface{}{"type": "string"},
@@ -56,9 +56,11 @@ func (suite *SchemasTestSuite) TestFind() {
 			schemaName:  "",
 			schemaList: SchemaList{
 				Schemas: []Schema{
-					{UUID: "schema_uuid_1",
-						Name: "schema-1",
-						Type: JSON,
+					{
+						ProjectUUID: "argo_uuid",
+						UUID:        "schema_uuid_1",
+						Name:        "schema-1",
+						Type:        JSON,
 						RawSchema: map[string]interface{}{
 							"properties": map[string]interface{}{
 								"address":   map[string]interface{}{"type": "string"},
@@ -71,8 +73,9 @@ func (suite *SchemasTestSuite) TestFind() {
 						},
 					},
 					{UUID: "schema_uuid_2",
-						Name: "schema-2",
-						Type: JSON,
+						ProjectUUID: "argo_uuid",
+						Name:        "schema-2",
+						Type:        JSON,
 						RawSchema: map[string]interface{}{
 							"properties": map[string]interface{}{
 								"address":   map[string]interface{}{"type": "string"},
@@ -93,8 +96,160 @@ func (suite *SchemasTestSuite) TestFind() {
 
 	for _, t := range testData {
 		s, e := Find(t.projectUUID, t.schemaUUID, t.schemaName, store)
-		suite.Equal(t.err, e)
-		suite.Equal(t.schemaList, s)
+		suite.Equal(t.err, e, t.msg)
+		suite.Equal(t.schemaList, s, t.msg)
+	}
+}
+
+func (suite *SchemasTestSuite) TestUpdate() {
+
+	store := stores.NewMockStore("", "")
+
+	type td struct {
+		existingSchema Schema
+		newName        string
+		newType        string
+		newSchema      map[string]interface{}
+		expectedSchema Schema
+		err            error
+		queryFunc      func() interface{}
+		returnQuery    interface{}
+		msg            string
+	}
+
+	testData := []td{
+		{
+			existingSchema: Schema{
+				ProjectUUID: "argo_uuid",
+				UUID:        "schema_uuid_1",
+				Name:        "schema-1",
+				Type:        JSON,
+				RawSchema: map[string]interface{}{
+					"properties": map[string]interface{}{
+						"address":   map[string]interface{}{"type": "string"},
+						"email":     map[string]interface{}{"type": "string"},
+						"name":      map[string]interface{}{"type": "string"},
+						"telephone": map[string]interface{}{"type": "string"},
+					},
+					"required": []interface{}{"name", "email"},
+					"type":     "object",
+				},
+			},
+			newName:   "new-schema-name",
+			newType:   JSON,
+			newSchema: map[string]interface{}{"type": "string"},
+			expectedSchema: Schema{
+				ProjectUUID: "argo_uuid",
+				UUID:        "schema_uuid_1",
+				Name:        "new-schema-name",
+				Type:        JSON,
+				RawSchema:   map[string]interface{}{"type": "string"},
+			},
+			err: nil,
+			queryFunc: func() interface{} {
+				qs, _ := store.QuerySchemas("argo_uuid", "schema_uuid_1", "new-schema-name")
+				return qs[0]
+			},
+			returnQuery: stores.QSchema{
+				ProjectUUID: "argo_uuid",
+				UUID:        "schema_uuid_1",
+				Name:        "new-schema-name",
+				Type:        JSON,
+				RawSchema:   "eyJ0eXBlIjoic3RyaW5nIn0=",
+			},
+			msg: "Case where a schema has all its fields successfully updated",
+		},
+		{
+			existingSchema: Schema{
+				ProjectUUID: "argo_uuid",
+				UUID:        "schema_uuid_1",
+				Name:        "schema-1",
+				Type:        JSON,
+				RawSchema: map[string]interface{}{
+					"properties": map[string]interface{}{
+						"address":   map[string]interface{}{"type": "string"},
+						"email":     map[string]interface{}{"type": "string"},
+						"name":      map[string]interface{}{"type": "string"},
+						"telephone": map[string]interface{}{"type": "string"},
+					},
+					"required": []interface{}{"name", "email"},
+					"type":     "object",
+				},
+			},
+			newName:        "schema-2",
+			newType:        JSON,
+			newSchema:      map[string]interface{}{"type": "string"},
+			expectedSchema: Schema{},
+			err:            errors.New("exists"),
+			queryFunc: func() interface{} {
+				return nil
+			},
+			returnQuery: nil,
+			msg:         "Case where a schema has been updated with a name that already exists",
+		},
+		{
+			existingSchema: Schema{
+				ProjectUUID: "argo_uuid",
+				UUID:        "schema_uuid_1",
+				Name:        "schema-1",
+				Type:        JSON,
+				RawSchema: map[string]interface{}{
+					"properties": map[string]interface{}{
+						"address":   map[string]interface{}{"type": "string"},
+						"email":     map[string]interface{}{"type": "string"},
+						"name":      map[string]interface{}{"type": "string"},
+						"telephone": map[string]interface{}{"type": "string"},
+					},
+					"required": []interface{}{"name", "email"},
+					"type":     "object",
+				},
+			},
+			newName:        "schema-3",
+			newType:        "new-type",
+			newSchema:      map[string]interface{}{"type": "string"},
+			expectedSchema: Schema{},
+			err:            errors.New("unsupported"),
+			queryFunc: func() interface{} {
+				return nil
+			},
+			returnQuery: nil,
+			msg:         "Case where a schema has been updated with an unsupported type",
+		},
+		{
+			existingSchema: Schema{
+				ProjectUUID: "argo_uuid",
+				UUID:        "schema_uuid_1",
+				Name:        "schema-1",
+				Type:        JSON,
+				RawSchema: map[string]interface{}{
+					"properties": map[string]interface{}{
+						"address":   map[string]interface{}{"type": "string"},
+						"email":     map[string]interface{}{"type": "string"},
+						"name":      map[string]interface{}{"type": "string"},
+						"telephone": map[string]interface{}{"type": "string"},
+					},
+					"required": []interface{}{"name", "email"},
+					"type":     "object",
+				},
+			},
+			newName:        "schema-3",
+			newType:        JSON,
+			newSchema:      map[string]interface{}{"type": "unknown"},
+			expectedSchema: Schema{},
+			err:            errors.New("has a primitive type that is NOT VALID -- given: /unknown/ Expected valid values are:[array boolean integer number null object string]"),
+			queryFunc: func() interface{} {
+				return nil
+			},
+			returnQuery: nil,
+			msg:         "Case where a schema has been updated with a erroneous schema",
+		},
+	}
+
+	for _, t := range testData {
+		s, e := Update(t.existingSchema, t.newName, t.newType, t.newSchema, store)
+		suite.Equal(t.expectedSchema, s, t.msg)
+		suite.Equal(t.err, e, t.msg)
+		suite.Equal(t.returnQuery, t.queryFunc(), t.msg)
 	}
 }
 
