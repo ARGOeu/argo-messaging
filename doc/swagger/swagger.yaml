@@ -1536,6 +1536,15 @@ paths:
           description: Name of the topic
           required: true
           type: string
+        - name: Schema
+          in: body
+          description: The name of the schema to be linked with the topic.All published messages will be validated against the linked schema.
+          required: false
+          schema:
+           type: object
+           properties:
+             schema:
+               type: string
       tags:
         - Topics
       responses:

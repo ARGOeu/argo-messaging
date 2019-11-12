@@ -83,6 +83,7 @@ type QTopic struct {
 	TotalBytes    int64       `bson:"total_bytes"`
 	LatestPublish time.Time   `bson:"latest_publish"`
 	PublishRate   float64     `bson:"publish_rate"`
+	SchemaUUID    string      `bson:"schema_uuid"`
 }
 
 // QDailyTopicMsgCount holds information about the daily number of messages published to a topic

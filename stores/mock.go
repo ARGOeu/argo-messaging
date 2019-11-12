@@ -630,10 +630,10 @@ func (mk *MockStore) Initialize() {
 	mk.OpMetrics = make(map[string]QopMetric)
 
 	// populate topics
-	qtop4 := QTopic{3, "argo_uuid", "topic4", 0, 0, time.Date(0, 0, 0, 0, 0, 0, 0, time.Local), 0}
-	qtop3 := QTopic{2, "argo_uuid", "topic3", 0, 0, time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local), 8.99}
-	qtop2 := QTopic{1, "argo_uuid", "topic2", 0, 0, time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local), 5.45}
-	qtop1 := QTopic{0, "argo_uuid", "topic1", 0, 0, time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10}
+	qtop4 := QTopic{3, "argo_uuid", "topic4", 0, 0, time.Date(0, 0, 0, 0, 0, 0, 0, time.Local), 0, ""}
+	qtop3 := QTopic{2, "argo_uuid", "topic3", 0, 0, time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local), 8.99, ""}
+	qtop2 := QTopic{1, "argo_uuid", "topic2", 0, 0, time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local), 5.45, "schema_uuid_1"}
+	qtop1 := QTopic{0, "argo_uuid", "topic1", 0, 0, time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10, ""}
 	mk.TopicList = append(mk.TopicList, qtop1)
 	mk.TopicList = append(mk.TopicList, qtop2)
 	mk.TopicList = append(mk.TopicList, qtop3)
@@ -857,7 +857,7 @@ func (mk *MockStore) HasProject(name string) bool {
 }
 
 // InsertTopic inserts a new topic object to the store
-func (mk *MockStore) InsertTopic(projectUUID string, name string) error {
+func (mk *MockStore) InsertTopic(projectUUID string, name string, schemaUUID string) error {
 	topic := QTopic{
 		ID:            len(mk.TopicList),
 		ProjectUUID:   projectUUID,
@@ -866,6 +866,7 @@ func (mk *MockStore) InsertTopic(projectUUID string, name string) error {
 		TotalBytes:    0,
 		LatestPublish: time.Time{},
 		PublishRate:   0,
+		SchemaUUID:    schemaUUID,
 	}
 	mk.TopicList = append(mk.TopicList, topic)
 	return nil

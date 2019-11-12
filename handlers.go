@@ -2314,8 +2314,52 @@ func TopicCreate(w http.ResponseWriter, r *http.Request) {
 	refStr := gorillaContext.Get(r, "str").(stores.Store)
 	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 
+	postBody := map[string]string{}
+	schemaUUID := ""
+
+	// check if there's a request body provided before trying to decode
+	if r.Body != nil {
+
+		b, err := ioutil.ReadAll(r.Body)
+
+		if err != nil {
+			err := APIErrorInvalidRequestBody()
+			respondErr(w, err)
+			return
+		}
+		defer r.Body.Close()
+
+		if len(b) > 0 {
+			err = json.Unmarshal(b, &postBody)
+			if err != nil {
+				err := APIErrorInvalidRequestBody()
+				respondErr(w, err)
+				return
+			}
+
+			schemaName := postBody["schema"]
+
+			// if there was a schema name provided, check its existence
+			if schemaName != "" {
+				sl, err := schemas.Find(projectUUID, "", schemaName, refStr)
+				if err != nil {
+					err := APIErrGenericInternal(err.Error())
+					respondErr(w, err)
+					return
+				}
+
+				if sl.Empty() {
+					err := APIErrorNotFound("Schema")
+					respondErr(w, err)
+					return
+				}
+
+				schemaUUID = sl.Schemas[0].UUID
+			}
+		}
+	}
 	// Get Result Object
-	res, err := topics.CreateTopic(projectUUID, urlVars["topic"], refStr)
+	res, err := topics.CreateTopic(projectUUID, urlVars["topic"], schemaUUID, refStr)
 	if err != nil {
 		if err.Error() == "exists" {
 			err := APIErrorConflict("Topic")

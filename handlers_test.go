@@ -4621,7 +4621,8 @@ func (suite *HandlerTestSuite) TestTopicListAll() {
          "name": "/projects/ARGO/topics/topic3"
       },
       {
-         "name": "/projects/ARGO/topics/topic2"
+         "name": "/projects/ARGO/topics/topic2",
+         "schema": "schema-1"
       },
       {
          "name": "/projects/ARGO/topics/topic1"
@@ -4655,7 +4656,8 @@ func (suite *HandlerTestSuite) TestTopicListAllPublisher() {
 	expResp := `{
    "topics": [
       {
-         "name": "/projects/ARGO/topics/topic2"
+         "name": "/projects/ARGO/topics/topic2",
+         "schema": "schema-1"
       },
       {
          "name": "/projects/ARGO/topics/topic1"
@@ -4688,7 +4690,8 @@ func (suite *HandlerTestSuite) TestTopicListAllPublisherWithPagination() {
 	expResp := `{
    "topics": [
       {
-         "name": "/projects/ARGO/topics/topic2"
+         "name": "/projects/ARGO/topics/topic2",
+         "schema": "schema-1"
       }
    ],
    "nextPageToken": "MA==",
