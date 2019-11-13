@@ -29,7 +29,7 @@ Success Response
 ```json
 {
     "uuid": "50811bd1-c94c-4ad7-8f55-a561c6270b50",
-    "name": "schema-1",
+    "name": "projects/project-1/schemas/schema-1",
     "type": "json",
     "schema": {
         "properties": {
@@ -103,7 +103,7 @@ Success Response
 ```json
 {
     "uuid": "50811bd1-c94c-4ad7-8f55-a561c6270b50",
-    "name": "schema-1",
+    "name": "projects/project-1/schemas/schema-1",
     "type": "json",
     "schema": {
         "properties": {
@@ -155,7 +155,7 @@ curl -X PUT -H "Content-Type: application/json -d POSTDATA"
 ```json
 {
   "type": "json",
-  "name": "new-name",
+  "name": "projects/project-1/schemas/new-name",
   "schema":{
   		"type": "object",
          "properties": {
@@ -178,7 +178,7 @@ Success Response
 ```json
 {
     "uuid": "50811bd1-c94c-4ad7-8f55-a561c6270b50",
-    "name": "new-name",
+    "name": "projects/project-1/schemas/new-name",
     "type": "json",
     "schema": {
         "properties": {

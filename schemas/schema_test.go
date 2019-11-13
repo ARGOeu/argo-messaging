@@ -11,6 +11,66 @@ type SchemasTestSuite struct {
 	suite.Suite
 }
 
+func (suite *SchemasTestSuite) TestExtractSchema() {
+
+	type td struct {
+		schemaRef           string
+		expectedProjectName string
+		expectedSchemaName  string
+		expectedErr         error
+		msg                 string
+	}
+
+	testdata := []td{
+		{
+			schemaRef:           "projects/ARGO/schemas/s1",
+			expectedProjectName: "ARGO",
+			expectedSchemaName:  "s1",
+			expectedErr:         nil,
+			msg:                 "Case where both the Project and Schema names were extracted successfully",
+		},
+		{
+			schemaRef:           "projectsARGO/schemas/s1",
+			expectedProjectName: "",
+			expectedSchemaName:  "",
+			expectedErr:         errors.New("wrong schema name declaration"),
+			msg:                 "Case where the schema ref doesn't contain the 4 needed \\/",
+		},
+		{
+			schemaRef:           "proj/ARGO/schemas/s1",
+			expectedProjectName: "",
+			expectedSchemaName:  "",
+			expectedErr:         errors.New("wrong schema name declaration"),
+			msg:                 "Case where the schema ref doesn't contain the keyword projects",
+		},
+		{
+			schemaRef:           "projects/ARGO/sch/s1",
+			expectedProjectName: "",
+			expectedSchemaName:  "",
+			expectedErr:         errors.New("wrong schema name declaration"),
+			msg:                 "Case where the schema ref doesn't contain the keyword schemas",
+		},
+		{
+			schemaRef:           "projects/ARGO/schemas/s1/s2",
+			expectedProjectName: "",
+			expectedSchemaName:  "",
+			expectedErr:         errors.New("wrong schema name declaration"),
+			msg:                 "Case where the schema ref contains more than 4 \\/",
+		},
+	}
+	for _, t := range testdata {
+		p, s, e := ExtractSchema(t.schemaRef)
+		suite.Equal(t.expectedProjectName, p, t.msg)
+		suite.Equal(t.expectedSchemaName, s, t.msg)
+		suite.Equal(t.expectedErr, e, t.msg)
+	}
+}
+
+func (suite *SchemasTestSuite) TestFormatSchemaRef() {
+
+	suite.Equal("projects/ARGO/schemas/s1", FormatSchemaRef("ARGO", "s1"))
+}
+
 func (suite *SchemasTestSuite) TestFind() {
 
 	store := stores.NewMockStore("", "")
@@ -33,6 +93,7 @@ func (suite *SchemasTestSuite) TestFind() {
 					{UUID: "schema_uuid_1",
 						ProjectUUID: "argo_uuid",
 						Name:        "schema-1",
+						FullName:    "projects/ARGO/schemas/schema-1",
 						Type:        JSON,
 						RawSchema: map[string]interface{}{
 							"properties": map[string]interface{}{
@@ -60,6 +121,7 @@ func (suite *SchemasTestSuite) TestFind() {
 						ProjectUUID: "argo_uuid",
 						UUID:        "schema_uuid_1",
 						Name:        "schema-1",
+						FullName:    "projects/ARGO/schemas/schema-1",
 						Type:        JSON,
 						RawSchema: map[string]interface{}{
 							"properties": map[string]interface{}{
@@ -75,6 +137,7 @@ func (suite *SchemasTestSuite) TestFind() {
 					{UUID: "schema_uuid_2",
 						ProjectUUID: "argo_uuid",
 						Name:        "schema-2",
+						FullName:    "projects/ARGO/schemas/schema-2",
 						Type:        JSON,
 						RawSchema: map[string]interface{}{
 							"properties": map[string]interface{}{
@@ -142,6 +205,7 @@ func (suite *SchemasTestSuite) TestUpdate() {
 				ProjectUUID: "argo_uuid",
 				UUID:        "schema_uuid_1",
 				Name:        "new-schema-name",
+				FullName:    "projects/ARGO/schemas/new-schema-name",
 				Type:        JSON,
 				RawSchema:   map[string]interface{}{"type": "string"},
 			},
@@ -281,6 +345,7 @@ func (suite *SchemasTestSuite) TestCreate() {
 			returnedSchema: Schema{
 				UUID:      "suuid",
 				Name:      "s1",
+				FullName:  "projects/ARGO/schemas/s1",
 				Type:      JSON,
 				RawSchema: map[string]interface{}{"type": "string"},
 			},

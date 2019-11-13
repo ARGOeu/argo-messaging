@@ -4,6 +4,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"github.com/ARGOeu/argo-messaging/projects"
 	"github.com/ARGOeu/argo-messaging/stores"
 	log "github.com/sirupsen/logrus"
 	"github.com/xeipuuv/gojsonschema"
@@ -19,7 +21,8 @@ const (
 type Schema struct {
 	ProjectUUID string                 `json:"-"`
 	UUID        string                 `json:"uuid"`
-	Name        string                 `json:"name"`
+	Name        string                 `json:"-"`
+	FullName    string                 `json:"name"`
 	Type        string                 `json:"type"`
 	RawSchema   map[string]interface{} `json:"schema"`
 }
@@ -32,6 +35,28 @@ type SchemaList struct {
 // Empty returns weather or not there are any schemas inside the schema list
 func (sl *SchemaList) Empty() bool {
 	return len(sl.Schemas) <= 0
+}
+
+// ExtractSchema gets a full schema ref and extracts project and schema
+// the format of the schema ref should follow the pattern projects/{project}/schemas/schema
+func ExtractSchema(schemaRef string) (string, string, error) {
+	items := strings.Split(schemaRef, "/")
+
+	if len(items) != 4 {
+		return "", "", errors.New("wrong schema name declaration")
+	}
+
+	if items[0] != "projects" || items[2] != "schemas" {
+		return "", "", errors.New("wrong schema name declaration")
+	}
+
+	return items[1], items[3], nil
+}
+
+// FormatSchemaRef formats the full resource reference for a schema
+// format is projects/{project}/schemas/{schema}
+func FormatSchemaRef(projectName, schemaName string) string {
+	return fmt.Sprintf("projects/%s/schemas/%s", projectName, schemaName)
 }
 
 // Find retrieves a specific schema or all the schemas under a project
@@ -77,12 +102,17 @@ func Find(projectUUID, schemaUUID, schemaName string, str stores.Store) (SchemaL
 			return SchemaList{}, errors.New("Could not load the schema")
 		}
 
+		projectName := projects.GetNameByUUID(projectUUID, str)
+
+		_schema.FullName = FormatSchemaRef(projectName, s.Name)
+
 		schemaList.Schemas = append(schemaList.Schemas, _schema)
 	}
 
 	return schemaList, nil
 }
 
+// Update updates the provided schema , validates its content and saves it to the store
 func Update(existingSchema Schema, newSchemaName, newSchemaType string, newRawSchema map[string]interface{}, str stores.Store) (Schema, error) {
 
 	newSchema := Schema{}
@@ -149,6 +179,10 @@ func Update(existingSchema Schema, newSchemaName, newSchemaType string, newRawSc
 		return Schema{}, err
 	}
 
+	projectName := projects.GetNameByUUID(existingSchema.ProjectUUID, str)
+
+	existingSchema.FullName = FormatSchemaRef(projectName, existingSchema.Name)
+
 	return existingSchema, nil
 }
 
@@ -183,11 +217,14 @@ func Create(projectUUID, schemaUUID, name, schemaType string, rawSchema map[stri
 		return Schema{}, err
 	}
 
+	projectName := projects.GetNameByUUID(projectUUID, str)
+
 	schema := Schema{
 		UUID:      schemaUUID,
 		Name:      name,
 		Type:      schemaType,
 		RawSchema: rawSchema,
+		FullName:  FormatSchemaRef(projectName, name),
 	}
 
 	return schema, nil
