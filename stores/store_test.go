@@ -579,6 +579,17 @@ func (suite *StoreTestSuite) TestMockStore() {
 	eus := QSchema{UUID: "schema_uuid_1", ProjectUUID: "argo_uuid", Type: "new-type", Name: "new-name", RawSchema: "new-raw-schema"}
 	qus, _ := store2.QuerySchemas("argo_uuid", "schema_uuid_1", "")
 	suite.Equal(eus, qus[0])
+
+	//test delete schema
+	store4 := NewMockStore("", "")
+
+	ed := store4.DeleteSchema("schema_uuid_1")
+	expd, _ := store4.QuerySchemas("argo_uuid", "schema_uuid_1", "")
+	// check that topic-1 no longer has any schema_uuid associated with it
+	qtd, _, _, _ := store4.QueryTopics("argo_uuid", "", "topic2", "", 1)
+	suite.Equal("", qtd[0].SchemaUUID)
+	suite.Equal([]QSchema{}, expd)
+	suite.Nil(ed)
 }
 
 func TestStoresTestSuite(t *testing.T) {

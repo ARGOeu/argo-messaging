@@ -62,6 +62,7 @@ type Store interface {
 	InsertSchema(projectUUID, schemaUUID, name, schemaType, rawSchemaString string) error
 	QuerySchemas(projectUUID, schemaUUID, name string) ([]QSchema, error)
 	UpdateSchema(schemaUUID, name, schemaType, rawSchemaString string) error
+	DeleteSchema(schemaUUID string) error
 	Clone() Store
 	Close()
 }
