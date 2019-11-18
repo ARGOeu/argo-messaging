@@ -3395,6 +3395,70 @@ func SchemaListOne(w http.ResponseWriter, r *http.Request) {
 	respondOK(w, output)
 }
 
+// SchemaUpdate(PUT) updates the given schema
+func SchemaUpdate(w http.ResponseWriter, r *http.Request) {
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Get url path variables
+	urlVars := mux.Vars(r)
+	schemaName := urlVars["schema"]
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+
+	// Get project UUID First to use as reference
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
+	schemasList, err := schemas.Find(projectUUID, "", schemaName, refStr)
+	if err != nil {
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	if schemasList.Empty() {
+		err := APIErrorNotFound("Schema")
+		respondErr(w, err)
+		return
+	}
+
+	updatedSchema := schemas.Schema{}
+
+	err = json.NewDecoder(r.Body).Decode(&updatedSchema)
+	if err != nil {
+		err := APIErrorInvalidArgument("Schema")
+		respondErr(w, err)
+		return
+	}
+
+	schema, err := schemas.Update(schemasList.Schemas[0], updatedSchema.Name, updatedSchema.Type, updatedSchema.RawSchema, refStr)
+	if err != nil {
+		if err.Error() == "exists" {
+			err := APIErrorConflict("Schema")
+			respondErr(w, err)
+			return
+
+		}
+
+		if err.Error() == "unsupported" {
+			err := APIErrorInvalidData(schemas.UnsupportedSchemaError)
+			respondErr(w, err)
+			return
+
+		}
+
+		err := APIErrorInvalidData(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	output, _ := json.MarshalIndent(schema, "", " ")
+	respondOK(w, output)
+}
+
 // Respond utility functions
 ///////////////////////////////
 

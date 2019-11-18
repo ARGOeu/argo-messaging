@@ -1430,3 +1430,27 @@ func (mk *MockStore) QuerySchemas(projectUUID, schemaUUID, name string) ([]QSche
 
 	return qSchemas, nil
 }
+
+func (mk *MockStore) UpdateSchema(schemaUUID, name, schemaType, rawSchemaString string) error {
+
+	for idx, s := range mk.SchemaList {
+		if s.UUID == schemaUUID {
+
+			if name != "" {
+				mk.SchemaList[idx].Name = name
+			}
+
+			if schemaType != "" {
+				mk.SchemaList[idx].Type = schemaType
+			}
+
+			if rawSchemaString != "" {
+				mk.SchemaList[idx].RawSchema = rawSchemaString
+			}
+
+			return nil
+		}
+	}
+
+	return errors.New("not found")
+}

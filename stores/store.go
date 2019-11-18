@@ -61,6 +61,7 @@ type Store interface {
 	GetAllRoles() []string
 	InsertSchema(projectUUID, schemaUUID, name, schemaType, rawSchemaString string) error
 	QuerySchemas(projectUUID, schemaUUID, name string) ([]QSchema, error)
+	UpdateSchema(schemaUUID, name, schemaType, rawSchemaString string) error
 	Clone() Store
 	Close()
 }
