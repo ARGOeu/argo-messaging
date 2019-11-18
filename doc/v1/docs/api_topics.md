@@ -11,6 +11,14 @@ This request creates a new topic with the given topic_name in a project with a P
 PUT "/v1/projects/{project_name}/topics/{topic_name}"
 ```
 
+### RequestBody
+If you need to link a schema with the topic you need to provide its name. 
+```json
+{
+  "schema": "schema-1"
+}
+```
+
 ### Where
 - Project_name: Name of the project to create
 - Topic_name: The topic name to create

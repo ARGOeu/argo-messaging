@@ -50,23 +50,23 @@ func (suite *TopicTestSuite) TestGetPaginatedTopics() {
 
 	// retrieve all topics
 	expPt1 := PaginatedTopics{Topics: []Topic{
-		{"argo_uuid", "topic4", "/projects/ARGO/topics/topic4", time.Date(0, 0, 0, 0, 0, 0, 0, time.Local), 0},
-		{"argo_uuid", "topic3", "/projects/ARGO/topics/topic3", time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local), 8.99},
-		{"argo_uuid", "topic2", "/projects/ARGO/topics/topic2", time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local), 5.45},
-		{"argo_uuid", "topic1", "/projects/ARGO/topics/topic1", time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10}},
+		{"argo_uuid", "topic4", "/projects/ARGO/topics/topic4", time.Date(0, 0, 0, 0, 0, 0, 0, time.Local), 0, ""},
+		{"argo_uuid", "topic3", "/projects/ARGO/topics/topic3", time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local), 8.99, ""},
+		{"argo_uuid", "topic2", "/projects/ARGO/topics/topic2", time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local), 5.45, "schema-1"},
+		{"argo_uuid", "topic1", "/projects/ARGO/topics/topic1", time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10, ""}},
 		NextPageToken: "", TotalSize: 4}
 	pgTopics1, err1 := Find("argo_uuid", "", "", "", 0, store)
 
 	// retrieve first 2 topics
 	expPt2 := PaginatedTopics{Topics: []Topic{
-		{"argo_uuid", "topic4", "/projects/ARGO/topics/topic4", time.Date(0, 0, 0, 0, 0, 0, 0, time.Local), 0},
-		{"argo_uuid", "topic3", "/projects/ARGO/topics/topic3", time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local), 8.99}},
+		{"argo_uuid", "topic4", "/projects/ARGO/topics/topic4", time.Date(0, 0, 0, 0, 0, 0, 0, time.Local), 0, ""},
+		{"argo_uuid", "topic3", "/projects/ARGO/topics/topic3", time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local), 8.99, ""}},
 		NextPageToken: "MQ==", TotalSize: 4}
 	pgTopics2, err2 := Find("argo_uuid", "", "", "", 2, store)
 
 	// retrieve the next topic
 	expPt3 := PaginatedTopics{Topics: []Topic{
-		{"argo_uuid", "topic1", "/projects/ARGO/topics/topic1", time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10}},
+		{"argo_uuid", "topic1", "/projects/ARGO/topics/topic1", time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10, ""}},
 		NextPageToken: "", TotalSize: 4}
 	pgTopics3, err3 := Find("argo_uuid", "", "", "MA==", 1, store)
 
@@ -75,14 +75,14 @@ func (suite *TopicTestSuite) TestGetPaginatedTopics() {
 
 	// retrieve topics for a specific user
 	expPt5 := PaginatedTopics{Topics: []Topic{
-		{"argo_uuid", "topic2", "/projects/ARGO/topics/topic2", time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local), 5.45},
-		{"argo_uuid", "topic1", "/projects/ARGO/topics/topic1", time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10}},
+		{"argo_uuid", "topic2", "/projects/ARGO/topics/topic2", time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local), 5.45, "schema-1"},
+		{"argo_uuid", "topic1", "/projects/ARGO/topics/topic1", time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10, ""}},
 		NextPageToken: "", TotalSize: 2}
 	pgTopics5, err5 := Find("argo_uuid", "uuid1", "", "", 2, store)
 
 	// retrieve topics for a specific user with pagination
 	expPt6 := PaginatedTopics{Topics: []Topic{
-		{"argo_uuid", "topic2", "/projects/ARGO/topics/topic2", time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local), 5.45}},
+		{"argo_uuid", "topic2", "/projects/ARGO/topics/topic2", time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local), 5.45, "schema-1"}},
 		NextPageToken: "MA==", TotalSize: 2}
 	pgTopics6, err6 := Find("argo_uuid", "uuid1", "", "", 1, store)
 
@@ -129,12 +129,13 @@ func (suite *TopicTestSuite) TestCreateTopicStore() {
 
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
 
-	tp, err := CreateTopic("argo_uuid", "topic1", store)
+	tp, err := CreateTopic("argo_uuid", "topic1", "", store)
 	suite.Equal(Topic{}, tp)
 	suite.Equal("exists", err.Error())
 
-	tp2, err2 := CreateTopic("argo_uuid", "topicNew", store)
+	tp2, err2 := CreateTopic("argo_uuid", "topicNew", "schema_uuid_1", store)
 	expTopic := New("argo_uuid", "ARGO", "topicNew")
+	expTopic.Schema = "schema-1"
 	suite.Equal(expTopic, tp2)
 	suite.Equal(nil, err2)
 }
@@ -184,7 +185,8 @@ func (suite *TopicTestSuite) TestExportJson() {
          "name": "/projects/ARGO/topics/topic3"
       },
       {
-         "name": "/projects/ARGO/topics/topic2"
+         "name": "/projects/ARGO/topics/topic2",
+         "schema": "schema-1"
       },
       {
          "name": "/projects/ARGO/topics/topic1"

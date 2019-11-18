@@ -1116,7 +1116,7 @@ func (mong *MongoStore) HasProject(name string) bool {
 }
 
 // InsertTopic inserts a topic to the store
-func (mong *MongoStore) InsertTopic(projectUUID string, name string) error {
+func (mong *MongoStore) InsertTopic(projectUUID string, name string, schemaUUID string) error {
 
 	topic := QTopic{
 		ProjectUUID:   projectUUID,
@@ -1125,6 +1125,7 @@ func (mong *MongoStore) InsertTopic(projectUUID string, name string) error {
 		TotalBytes:    0,
 		LatestPublish: time.Time{},
 		PublishRate:   0,
+		SchemaUUID:    schemaUUID,
 	}
 
 	return mong.InsertResource("topics", topic)
@@ -1652,7 +1653,7 @@ func (mong *MongoStore) QuerySchemas(projectUUID, schemaUUID, name string) ([]QS
 	}
 
 	if schemaUUID != "" {
-		query["schema_uuid"] = schemaUUID
+		query["uuid"] = schemaUUID
 	}
 
 	err := c.Find(query).All(&results)
