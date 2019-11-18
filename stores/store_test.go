@@ -548,6 +548,28 @@ func (suite *StoreTestSuite) TestMockStore() {
 	qpmc, qpmcerr1 := store2.QueryTotalMessagesPerProject([]string{"argo_uuid"}, time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC), time.Date(2018, 10, 4, 0, 0, 0, 0, time.UTC))
 	suite.Equal(expectedQpmc, qpmc)
 	suite.Nil(qpmcerr1)
+
+	// test InsertSchema
+	eis := store2.InsertSchema("argo_uuid", "uuid1", "s1-insert", "json", "raw")
+	qs1, _ := store2.QuerySchemas("argo_uuid", "uuid1", "s1-insert")
+	suite.Equal(QSchema{
+		ProjectUUID: "argo_uuid",
+		UUID:        "uuid1",
+		Name:        "s1-insert",
+		Type:        "json",
+		RawSchema:   "raw",
+	}, qs1[0])
+	suite.Nil(eis)
+
+	// test QuerySchemas
+	s := "eyJwcm9wZXJ0aWVzIjp7ImFkZHJlc3MiOnsidHlwZSI6InN0cmluZyJ9LCJlbWFpbCI6eyJ0eXBlIjoic3RyaW5nIn0sIm5hbWUiOnsidHlwZSI6InN0cmluZyJ9LCJ0ZWxlcGhvbmUiOnsidHlwZSI6InN0cmluZyJ9fSwicmVxdWlyZWQiOlsibmFtZSIsImVtYWlsIl0sInR5cGUiOiJvYmplY3QifQ=="
+	expectedSchema := QSchema{UUID: "schema_uuid_1", ProjectUUID: "argo_uuid", Type: "json", Name: "schema-1", RawSchema: s}
+	qqs1, _ := store2.QuerySchemas("argo_uuid", "", "")
+	qqs2, _ := store2.QuerySchemas("argo_uuid", "schema_uuid_1", "")
+	qqs3, _ := store2.QuerySchemas("argo_uuid", "schema_uuid_1", "schema-1")
+	suite.Equal(expectedSchema, qqs1[0])
+	suite.Equal(expectedSchema, qqs2[0])
+	suite.Equal(expectedSchema, qqs3[0])
 }
 
 func TestStoresTestSuite(t *testing.T) {

@@ -12,6 +12,8 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"encoding/json"
+	"fmt"
 	"github.com/ARGOeu/argo-messaging/auth"
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
@@ -19,6 +21,7 @@ import (
 	"github.com/ARGOeu/argo-messaging/projects"
 	oldPush "github.com/ARGOeu/argo-messaging/push"
 	push "github.com/ARGOeu/argo-messaging/push/grpc/client"
+	"github.com/ARGOeu/argo-messaging/schemas"
 	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/suite"
@@ -5801,6 +5804,125 @@ func (suite *HandlerTestSuite) TestHealthCheckPushWorkerMissing() {
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
+}
+
+func (suite *HandlerTestSuite) TestSchemaCreate() {
+
+	type td struct {
+		postBody           string
+		expectedResponse   string
+		schemaName         string
+		expectedStatusCode int
+		msg                string
+	}
+
+	testData := []td{
+		{
+			postBody: `{
+	"type": "json",
+	"schema":{
+  			"type": "string"
+	}
+}`,
+			schemaName:         "new-schema",
+			expectedStatusCode: 200,
+			expectedResponse: `{
+ "uuid": "{{UUID}}",
+ "name": "new-schema",
+ "type": "json",
+ "schema": {
+  "type": "string"
+ }
+}`,
+			msg: "Case where the schema is valid and successfully created",
+		},
+		{
+			postBody: `{
+	"type": "unknown",
+	"schema":{
+  			"type": "string"
+	}
+}`,
+			schemaName:         "new-schema-2",
+			expectedStatusCode: 400,
+			expectedResponse: `{
+   "error": {
+      "code": 400,
+      "message": "Schema type can only be 'json'",
+      "status": "INVALID_ARGUMENT"
+   }
+}`,
+			msg: "Case where the schema type is unsupported",
+		},
+		{
+			postBody: `{
+	"type": "json",
+	"schema":{
+  			"type": "unknown"
+	}
+}`,
+			schemaName:         "new-schema-2",
+			expectedStatusCode: 400,
+			expectedResponse: `{
+   "error": {
+      "code": 400,
+      "message": "has a primitive type that is NOT VALID -- given: /unknown/ Expected valid values are:[array boolean integer number null object string]",
+      "status": "INVALID_ARGUMENT"
+   }
+}`,
+			msg: "Case where the json schema is not valid",
+		},
+		{
+			postBody: `{
+	"type": "json",
+	"schema":{
+  			"type": "string"
+	}
+}`,
+			schemaName:         "schema-1",
+			expectedStatusCode: 409,
+			expectedResponse: `{
+   "error": {
+      "code": 409,
+      "message": "Schema already exists",
+      "status": "ALREADY_EXISTS"
+   }
+}`,
+			msg: "Case where the json schema name already exists",
+		},
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	cfgKafka.PushEnabled = true
+	cfgKafka.PushWorkerToken = "push_token"
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+
+	for _, t := range testData {
+
+		w := httptest.NewRecorder()
+		url := fmt.Sprintf("http://localhost:8080/v1/projects/ARGO/schemas/%v", t.schemaName)
+		req, err := http.NewRequest("POST", url, strings.NewReader(t.postBody))
+		if err != nil {
+			log.Fatal(err)
+		}
+		router.HandleFunc("/v1/projects/{project}/schemas/{schema}", WrapMockAuthConfig(SchemaCreate, cfgKafka, &brk, str, &mgr, pc))
+		router.ServeHTTP(w, req)
+
+		if t.expectedStatusCode == 200 {
+			s := schemas.Schema{}
+			json.Unmarshal(w.Body.Bytes(), &s)
+			t.expectedResponse = strings.Replace(t.expectedResponse, "{{UUID}}", s.UUID, 1)
+		}
+
+		suite.Equal(t.expectedStatusCode, w.Code, t.msg)
+		suite.Equal(t.expectedResponse, w.Body.String(), t.msg)
+	}
+
 }
 
 func TestHandlersTestSuite(t *testing.T) {
