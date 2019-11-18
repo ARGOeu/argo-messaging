@@ -5925,6 +5925,87 @@ func (suite *HandlerTestSuite) TestSchemaCreate() {
 
 }
 
+func (suite *HandlerTestSuite) TestSchemaListOne() {
+
+	type td struct {
+		expectedResponse   string
+		schemaName         string
+		expectedStatusCode int
+		msg                string
+	}
+
+	testData := []td{
+		{
+			schemaName:         "schema-1",
+			expectedStatusCode: 200,
+			expectedResponse: `{
+ "uuid": "schema_uuid_1",
+ "name": "schema-1",
+ "type": "json",
+ "schema": {
+  "properties": {
+   "address": {
+    "type": "string"
+   },
+   "email": {
+    "type": "string"
+   },
+   "name": {
+    "type": "string"
+   },
+   "telephone": {
+    "type": "string"
+   }
+  },
+  "required": [
+   "name",
+   "email"
+  ],
+  "type": "object"
+ }
+}`,
+			msg: "Case where a specific schema is retrieved successfully",
+		},
+		{
+			schemaName:         "unknown",
+			expectedStatusCode: 404,
+			expectedResponse: `{
+   "error": {
+      "code": 404,
+      "message": "Schema doesn't exist",
+      "status": "NOT_FOUND"
+   }
+}`,
+			msg: "Case where the requested schema doesn't exist",
+		},
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	cfgKafka.PushEnabled = true
+	cfgKafka.PushWorkerToken = "push_token"
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+
+	for _, t := range testData {
+
+		w := httptest.NewRecorder()
+		url := fmt.Sprintf("http://localhost:8080/v1/projects/ARGO/schemas/%v", t.schemaName)
+		req, err := http.NewRequest("GET", url, nil)
+		if err != nil {
+			log.Fatal(err)
+		}
+		router.HandleFunc("/v1/projects/{project}/schemas/{schema}", WrapMockAuthConfig(SchemaListOne, cfgKafka, &brk, str, &mgr, pc))
+		router.ServeHTTP(w, req)
+
+		suite.Equal(t.expectedStatusCode, w.Code, t.msg)
+		suite.Equal(t.expectedResponse, w.Body.String(), t.msg)
+	}
+}
+
 func TestHandlersTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }
