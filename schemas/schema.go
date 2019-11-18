@@ -62,7 +62,9 @@ func FormatSchemaRef(projectName, schemaName string) string {
 // Find retrieves a specific schema or all the schemas under a project
 func Find(projectUUID, schemaUUID, schemaName string, str stores.Store) (SchemaList, error) {
 
-	schemaList := SchemaList{}
+	schemaList := SchemaList{
+		Schemas: []Schema{},
+	}
 
 	qSchemas, err := str.QuerySchemas(projectUUID, schemaUUID, schemaName)
 	if err != nil {
@@ -110,6 +112,11 @@ func Find(projectUUID, schemaUUID, schemaName string, str stores.Store) (SchemaL
 	}
 
 	return schemaList, nil
+}
+
+// Delete wraps the store's method for removing a schema
+func Delete(schemaUUID string, str stores.Store) error {
+	return str.DeleteSchema(schemaUUID)
 }
 
 // Update updates the provided schema , validates its content and saves it to the store

@@ -2,7 +2,6 @@ package stores
 
 import (
 	"errors"
-	"fmt"
 	"sort"
 	"strconv"
 	"time"
@@ -743,8 +742,6 @@ func (mk *MockStore) QueryTotalMessagesPerProject(projectUUIDs []string, startDa
 		days = int64(endDate.Sub(startDate).Hours() / 24)
 	}
 
-	fmt.Println(days)
-
 	if len(projectUUIDs) == 0 {
 		for _, c := range mk.DailyTopicMsgCount {
 			if c.Date.After(startDate) && c.Date.Before(endDate) {
@@ -1447,6 +1444,24 @@ func (mk *MockStore) UpdateSchema(schemaUUID, name, schemaType, rawSchemaString 
 
 			if rawSchemaString != "" {
 				mk.SchemaList[idx].RawSchema = rawSchemaString
+			}
+
+			return nil
+		}
+	}
+
+	return errors.New("not found")
+}
+func (mk *MockStore) DeleteSchema(schemaUUID string) error {
+
+	for idx, s := range mk.SchemaList {
+		if s.UUID == schemaUUID {
+			mk.SchemaList = append(mk.SchemaList[:idx], mk.SchemaList[idx+1:]...)
+
+			for idx, t := range mk.TopicList {
+				if t.SchemaUUID == schemaUUID {
+					mk.TopicList[idx].SchemaUUID = ""
+				}
 			}
 
 			return nil

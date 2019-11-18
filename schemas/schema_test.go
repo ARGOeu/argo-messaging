@@ -317,6 +317,18 @@ func (suite *SchemasTestSuite) TestUpdate() {
 	}
 }
 
+func (suite *SchemasTestSuite) TestDelete() {
+
+	store := stores.NewMockStore("", "")
+
+	e1 := Delete("schema_uuid_1", store)
+	sl, _ := Find("argo_uuid", "schema_uuid_1", "", store)
+	qtd, _, _, _ := store.QueryTopics("argo_uuid", "", "topic2", "", 1)
+	suite.Equal([]Schema{}, sl.Schemas)
+	suite.Equal("", qtd[0].SchemaUUID)
+	suite.Nil(e1)
+}
+
 func (suite *SchemasTestSuite) TestCreate() {
 
 	store := stores.NewMockStore("", "")

@@ -1696,3 +1696,48 @@ func (mong *MongoStore) UpdateSchema(schemaUUID, name, schemaType, rawSchemaStri
 
 	return c.Update(selector, change)
 }
+
+// DeleteSchema removes the schema from the store
+// It also clears all the respective topics from the schema_uuid of the deleted schema
+func (mong *MongoStore) DeleteSchema(schemaUUID string) error {
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C("schemas")
+
+	selector := bson.M{"uuid": schemaUUID}
+
+	err := c.Remove(selector)
+
+	if err != nil {
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
+	}
+
+	topics := db.C("topics")
+
+	topicSelector := bson.M{"schema_uuid": schemaUUID}
+	change := bson.M{
+		"$set": bson.M{
+			"schema_uuid": "",
+		},
+	}
+	topics.UpdateAll(topicSelector, change)
+
+	if err != nil {
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
+	}
+
+	return nil
+
+}

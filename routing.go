@@ -117,4 +117,5 @@ var defaultRoutes = []APIRoute{
 	{"schemas:create", "POST", "/projects/{project}/schemas/{schema}", SchemaCreate},
 	{"schemas:show", "GET", "/projects/{project}/schemas/{schema}", SchemaListOne},
 	{"schemas:update", "PUT", "/projects/{project}/schemas/{schema}", SchemaUpdate},
+	{"schemas:delete", "DELETE", "/projects/{project}/schemas/{schema}", SchemaDelete},
 }
