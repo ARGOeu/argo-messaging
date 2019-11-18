@@ -115,7 +115,7 @@ func Find(projectUUID, userUUID, name, pageToken string, pageSize int32, store s
 			sl, err := schemas.Find(projectUUID, item.SchemaUUID, "", store)
 			if err == nil {
 				if !sl.Empty() {
-					curTop.Schema = sl.Schemas[0].Name
+					curTop.Schema = schemas.FormatSchemaRef(projectName, sl.Schemas[0].Name)
 				}
 			} else {
 				log.WithFields(

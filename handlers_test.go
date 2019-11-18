@@ -4622,7 +4622,7 @@ func (suite *HandlerTestSuite) TestTopicListAll() {
       },
       {
          "name": "/projects/ARGO/topics/topic2",
-         "schema": "schema-1"
+         "schema": "projects/ARGO/schemas/schema-1"
       },
       {
          "name": "/projects/ARGO/topics/topic1"
@@ -4657,7 +4657,7 @@ func (suite *HandlerTestSuite) TestTopicListAllPublisher() {
    "topics": [
       {
          "name": "/projects/ARGO/topics/topic2",
-         "schema": "schema-1"
+         "schema": "projects/ARGO/schemas/schema-1"
       },
       {
          "name": "/projects/ARGO/topics/topic1"
@@ -4691,7 +4691,7 @@ func (suite *HandlerTestSuite) TestTopicListAllPublisherWithPagination() {
    "topics": [
       {
          "name": "/projects/ARGO/topics/topic2",
-         "schema": "schema-1"
+         "schema": "projects/ARGO/schemas/schema-1"
       }
    ],
    "nextPageToken": "MA==",
@@ -5831,7 +5831,7 @@ func (suite *HandlerTestSuite) TestSchemaCreate() {
 			expectedStatusCode: 200,
 			expectedResponse: `{
  "uuid": "{{UUID}}",
- "name": "new-schema",
+ "name": "projects/ARGO/schemas/new-schema",
  "type": "json",
  "schema": {
   "type": "string"
@@ -5943,7 +5943,7 @@ func (suite *HandlerTestSuite) TestSchemaListOne() {
 			expectedStatusCode: 200,
 			expectedResponse: `{
  "uuid": "schema_uuid_1",
- "name": "schema-1",
+ "name": "projects/ARGO/schemas/schema-1",
  "type": "json",
  "schema": {
   "properties": {
@@ -6022,7 +6022,7 @@ func (suite *HandlerTestSuite) TestSchemaUpdate() {
 	testData := []td{
 		{
 			schemaName:         "schema-2",
-			postBody:           `{"name": "schema-1"}`,
+			postBody:           `{"name": "projects/ARGO/schemas/schema-1"}`,
 			expectedStatusCode: 409,
 			expectedResponse: `{
    "error": {
@@ -6064,7 +6064,7 @@ func (suite *HandlerTestSuite) TestSchemaUpdate() {
 			expectedStatusCode: 200,
 			expectedResponse: `{
  "uuid": "schema_uuid_1",
- "name": "new-name",
+ "name": "projects/ARGO/schemas/new-name",
  "type": "json",
  "schema": {
   "properties": {
@@ -6090,7 +6090,7 @@ func (suite *HandlerTestSuite) TestSchemaUpdate() {
  }
 }`,
 			postBody: `{
- "name": "new-name",
+ "name": "projects/ARGO/schemas/new-name",
  "type": "json",
  "schema": {
   "properties": {

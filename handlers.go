@@ -2337,10 +2337,16 @@ func TopicCreate(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			schemaName := postBody["schema"]
+			schemaRef := postBody["schema"]
 
 			// if there was a schema name provided, check its existence
-			if schemaName != "" {
+			if schemaRef != "" {
+				_, schemaName, err := schemas.ExtractSchema(schemaRef)
+				if err != nil {
+					err := APIErrorInvalidData(err.Error())
+					respondErr(w, err)
+					return
+				}
 				sl, err := schemas.Find(projectUUID, "", schemaName, refStr)
 				if err != nil {
 					err := APIErrGenericInternal(err.Error())
@@ -3476,6 +3482,16 @@ func SchemaUpdate(w http.ResponseWriter, r *http.Request) {
 		err := APIErrorInvalidArgument("Schema")
 		respondErr(w, err)
 		return
+	}
+
+	if updatedSchema.FullName != "" {
+		_, schemaName, err := schemas.ExtractSchema(updatedSchema.FullName)
+		if err != nil {
+			err := APIErrorInvalidData(err.Error())
+			respondErr(w, err)
+			return
+		}
+		updatedSchema.Name = schemaName
 	}
 
 	schema, err := schemas.Update(schemasList.Schemas[0], updatedSchema.Name, updatedSchema.Type, updatedSchema.RawSchema, refStr)
