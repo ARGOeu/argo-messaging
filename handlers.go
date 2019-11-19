@@ -3507,6 +3507,30 @@ func SchemaListOne(w http.ResponseWriter, r *http.Request) {
 	respondOK(w, output)
 }
 
+// SchemaLisAll(GET) retrieves all the schemas under the given project
+func SchemaListAll(w http.ResponseWriter, r *http.Request) {
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+
+	// Get project UUID First to use as reference
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
+	schemasList, err := schemas.Find(projectUUID, "", "", refStr)
+	if err != nil {
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	output, _ := json.MarshalIndent(schemasList, "", " ")
+	respondOK(w, output)
+}
+
 // SchemaUpdate(PUT) updates the given schema
 func SchemaUpdate(w http.ResponseWriter, r *http.Request) {
 
