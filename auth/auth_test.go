@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/ARGOeu/argo-messaging/config"
 	"github.com/ARGOeu/argo-messaging/stores"
@@ -34,7 +34,7 @@ func (suite *AuthTestSuite) TestAuth() {
 	authen02, user02 := Authenticate("argo_uuid", "falseSECRET", store)
 	suite.Equal("UserA", user01)
 	suite.Equal("", user02)
-	suite.Equal([]string{"admin", "member"}, authen01)
+	suite.Equal([]string{"consumer", "publisher"}, authen01)
 	suite.Equal([]string{}, authen02)
 
 	suite.Equal(true, Authorize("topics:list_all", []string{"admin"}, store))
@@ -53,24 +53,24 @@ func (suite *AuthTestSuite) TestAuth() {
 	// topic3: userC
 
 	// Check authorization per topic for userA
-	suite.Equal(true, PerResource("argo_uuid", "topics", "topic1", "UserA", store))
-	suite.Equal(true, PerResource("argo_uuid", "topics", "topic2", "UserA", store))
-	suite.Equal(false, PerResource("argo_uuid", "topics", "topic3", "UserA", store))
+	suite.Equal(true, PerResource("argo_uuid", "topics", "topic1", "uuid1", store))
+	suite.Equal(true, PerResource("argo_uuid", "topics", "topic2", "uuid1", store))
+	suite.Equal(false, PerResource("argo_uuid", "topics", "topic3", "uuid1", store))
 
 	// Check authorization per topic for userB
-	suite.Equal(true, PerResource("argo_uuid", "topics", "topic1", "UserB", store))
-	suite.Equal(true, PerResource("argo_uuid", "topics", "topic2", "UserB", store))
-	suite.Equal(false, PerResource("argo_uuid", "topics", "topic3", "UserB", store))
+	suite.Equal(true, PerResource("argo_uuid", "topics", "topic1", "uuid2", store))
+	suite.Equal(true, PerResource("argo_uuid", "topics", "topic2", "uuid2", store))
+	suite.Equal(false, PerResource("argo_uuid", "topics", "topic3", "uuid2", store))
 
 	// Check authorization per topic for userC
-	suite.Equal(false, PerResource("argo_uuid", "topics", "topic1", "UserX", store))
-	suite.Equal(false, PerResource("argo_uuid", "topics", "topic2", "UserX", store))
-	suite.Equal(true, PerResource("argo_uuid", "topics", "topic3", "UserX", store))
+	suite.Equal(false, PerResource("argo_uuid", "topics", "topic1", "uuid3", store))
+	suite.Equal(false, PerResource("argo_uuid", "topics", "topic2", "uuid3", store))
+	suite.Equal(true, PerResource("argo_uuid", "topics", "topic3", "uuid3", store))
 
 	// Check authorization per topic for userD
-	suite.Equal(false, PerResource("argo_uuid", "topics", "topic1", "UserZ", store))
-	suite.Equal(true, PerResource("argo_uuid", "topics", "topic2", "UserZ", store))
-	suite.Equal(false, PerResource("argo_uuid", "topics", "topic3", "UserZ", store))
+	suite.Equal(false, PerResource("argo_uuid", "topics", "topic1", "uuid4", store))
+	suite.Equal(true, PerResource("argo_uuid", "topics", "topic2", "uuid4", store))
+	suite.Equal(false, PerResource("argo_uuid", "topics", "topic3", "uuid4", store))
 
 	// Check user authorization per subscription
 	//
@@ -80,26 +80,26 @@ func (suite *AuthTestSuite) TestAuth() {
 	// sub4: userB, userD
 
 	// Check authorization per subscription for userA
-	suite.Equal(true, PerResource("argo_uuid", "subscriptions", "sub1", "UserA", store))
-	suite.Equal(true, PerResource("argo_uuid", "subscriptions", "sub2", "UserA", store))
-	suite.Equal(true, PerResource("argo_uuid", "subscriptions", "sub3", "UserA", store))
-	suite.Equal(false, PerResource("argo_uuid", "subscriptions", "sub4", "UserA", store))
+	suite.Equal(true, PerResource("argo_uuid", "subscriptions", "sub1", "uuid1", store))
+	suite.Equal(true, PerResource("argo_uuid", "subscriptions", "sub2", "uuid1", store))
+	suite.Equal(true, PerResource("argo_uuid", "subscriptions", "sub3", "uuid1", store))
+	suite.Equal(false, PerResource("argo_uuid", "subscriptions", "sub4", "uuid1", store))
 
 	// Check authorization per subscription for userB
-	suite.Equal(true, PerResource("argo_uuid", "subscriptions", "sub1", "UserB", store))
-	suite.Equal(false, PerResource("argo_uuid", "subscriptions", "sub2", "UserB", store))
-	suite.Equal(true, PerResource("argo_uuid", "subscriptions", "sub3", "UserB", store))
-	suite.Equal(true, PerResource("argo_uuid", "subscriptions", "sub4", "UserB", store))
+	suite.Equal(true, PerResource("argo_uuid", "subscriptions", "sub1", "uuid2", store))
+	suite.Equal(false, PerResource("argo_uuid", "subscriptions", "sub2", "uuid2", store))
+	suite.Equal(true, PerResource("argo_uuid", "subscriptions", "sub3", "uuid2", store))
+	suite.Equal(true, PerResource("argo_uuid", "subscriptions", "sub4", "uuid2", store))
 	// Check authorization per subscription for userC
-	suite.Equal(false, PerResource("argo_uuid", "subscriptions", "sub1", "UserX", store))
-	suite.Equal(true, PerResource("argo_uuid", "subscriptions", "sub2", "UserX", store))
-	suite.Equal(false, PerResource("argo_uuid", "subscriptions", "sub3", "UserX", store))
-	suite.Equal(false, PerResource("argo_uuid", "subscriptions", "sub4", "UserX", store))
+	suite.Equal(false, PerResource("argo_uuid", "subscriptions", "sub1", "uuid3", store))
+	suite.Equal(true, PerResource("argo_uuid", "subscriptions", "sub2", "uuid3", store))
+	suite.Equal(false, PerResource("argo_uuid", "subscriptions", "sub3", "uuid3", store))
+	suite.Equal(false, PerResource("argo_uuid", "subscriptions", "sub4", "uuid3", store))
 	// Check authorization per subscription for userD
-	suite.Equal(false, PerResource("argo_uuid", "subscriptions", "sub1", "UserZ", store))
-	suite.Equal(false, PerResource("argo_uuid", "subscriptions", "sub2", "UserZ", store))
-	suite.Equal(true, PerResource("argo_uuid", "subscriptions", "sub3", "UserZ", store))
-	suite.Equal(true, PerResource("argo_uuid", "subscriptions", "sub4", "UserZ", store))
+	suite.Equal(false, PerResource("argo_uuid", "subscriptions", "sub1", "uuid4", store))
+	suite.Equal(false, PerResource("argo_uuid", "subscriptions", "sub2", "uuid4", store))
+	suite.Equal(true, PerResource("argo_uuid", "subscriptions", "sub3", "uuid4", store))
+	suite.Equal(true, PerResource("argo_uuid", "subscriptions", "sub4", "uuid4", store))
 
 	suite.Equal(true, IsConsumer([]string{"consumer"}))
 	suite.Equal(true, IsConsumer([]string{"consumer", "publisher"}))
@@ -108,6 +108,18 @@ func (suite *AuthTestSuite) TestAuth() {
 	suite.Equal(false, IsPublisher([]string{"consumer"}))
 	suite.Equal(true, IsPublisher([]string{"consumer", "publisher"}))
 	suite.Equal(true, IsPublisher([]string{"publisher"}))
+
+	suite.Equal(true, IsProjectAdmin([]string{"project_admin"}))
+	suite.Equal(true, IsProjectAdmin([]string{"project_admin", "publisher"}))
+	suite.Equal(false, IsProjectAdmin([]string{"publisher"}))
+
+	suite.Equal(true, IsServiceAdmin([]string{"service_admin"}))
+	suite.Equal(true, IsServiceAdmin([]string{"service_admin", "publisher"}))
+	suite.Equal(false, IsServiceAdmin([]string{"publisher"}))
+
+	suite.Equal(true, IsPushWorker([]string{"push_worker"}))
+	suite.Equal(true, IsPushWorker([]string{"push_worker", "publisher"}))
+	suite.Equal(false, IsPushWorker([]string{"publisher"}))
 
 	// Check ValidUsers mechanism
 	v, err := AreValidUsers("ARGO", []string{"UserA", "foo", "bar"}, store)
@@ -123,13 +135,16 @@ func (suite *AuthTestSuite) TestAuth() {
 	expUserList := `{
    "users": [
       {
+         "uuid": "uuid0",
          "projects": [
             {
                "project": "ARGO",
                "roles": [
-                  "admin",
-                  "member"
-               ]
+                  "consumer",
+                  "publisher"
+               ],
+               "topics": [],
+               "subscriptions": []
             }
          ],
          "name": "Test",
@@ -140,12 +155,22 @@ func (suite *AuthTestSuite) TestAuth() {
          "modified_on": "2009-11-10T23:00:00Z"
       },
       {
+         "uuid": "uuid1",
          "projects": [
             {
                "project": "ARGO",
                "roles": [
-                  "admin",
-                  "member"
+                  "consumer",
+                  "publisher"
+               ],
+               "topics": [
+                  "topic1",
+                  "topic2"
+               ],
+               "subscriptions": [
+                  "sub1",
+                  "sub2",
+                  "sub3"
                ]
             }
          ],
@@ -157,12 +182,22 @@ func (suite *AuthTestSuite) TestAuth() {
          "modified_on": "2009-11-10T23:00:00Z"
       },
       {
+         "uuid": "uuid2",
          "projects": [
             {
                "project": "ARGO",
                "roles": [
-                  "admin",
-                  "member"
+                  "consumer",
+                  "publisher"
+               ],
+               "topics": [
+                  "topic1",
+                  "topic2"
+               ],
+               "subscriptions": [
+                  "sub1",
+                  "sub3",
+                  "sub4"
                ]
             }
          ],
@@ -175,11 +210,19 @@ func (suite *AuthTestSuite) TestAuth() {
          "created_by": "UserA"
       },
       {
+         "uuid": "uuid3",
          "projects": [
             {
                "project": "ARGO",
                "roles": [
+                  "publisher",
                   "consumer"
+               ],
+               "topics": [
+                  "topic3"
+               ],
+               "subscriptions": [
+                  "sub2"
                ]
             }
          ],
@@ -192,11 +235,20 @@ func (suite *AuthTestSuite) TestAuth() {
          "created_by": "UserA"
       },
       {
+         "uuid": "uuid4",
          "projects": [
             {
                "project": "ARGO",
                "roles": [
-                  "producer"
+                  "publisher",
+                  "consumer"
+               ],
+               "topics": [
+                  "topic2"
+               ],
+               "subscriptions": [
+                  "sub3",
+                  "sub4"
                ]
             }
          ],
@@ -207,13 +259,87 @@ func (suite *AuthTestSuite) TestAuth() {
          "created_on": "2009-11-10T23:00:00Z",
          "modified_on": "2009-11-10T23:00:00Z",
          "created_by": "UserA"
+      },
+      {
+         "uuid": "same_uuid",
+         "projects": [
+            {
+               "project": "ARGO",
+               "roles": [
+                  "publisher",
+                  "consumer"
+               ],
+               "topics": [],
+               "subscriptions": []
+            }
+         ],
+         "name": "UserSame1",
+         "token": "S3CR3T41",
+         "email": "foo-email",
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "UserA"
+      },
+      {
+         "uuid": "same_uuid",
+         "projects": [
+            {
+               "project": "ARGO",
+               "roles": [
+                  "publisher",
+                  "consumer"
+               ],
+               "topics": [],
+               "subscriptions": []
+            }
+         ],
+         "name": "UserSame2",
+         "token": "S3CR3T42",
+         "email": "foo-email",
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "UserA"
       }
    ]
 }`
 
-	users, _ := FindUsers("argo_uuid", "", "", store)
+	users, _ := FindUsers("argo_uuid", "", "", true, store)
 	outUserList, _ := users.ExportJSON()
 	suite.Equal(expUserList, outUserList)
+
+	expUsrTkJSON := `{
+   "uuid": "uuid4",
+   "projects": [
+      {
+         "project": "ARGO",
+         "roles": [
+            "publisher",
+            "consumer"
+         ],
+         "topics": [
+            "topic2"
+         ],
+         "subscriptions": [
+            "sub3",
+            "sub4"
+         ]
+      }
+   ],
+   "name": "UserZ",
+   "token": "S3CR3T4",
+   "email": "foo-email",
+   "service_roles": [],
+   "created_on": "2009-11-10T23:00:00Z",
+   "modified_on": "2009-11-10T23:00:00Z",
+   "created_by": "UserA"
+}`
+
+	// Test GetUserByToken
+	userTk, _ := GetUserByToken("S3CR3T4", store)
+	usrTkJSON, _ := userTk.ExportJSON()
+	suite.Equal(expUsrTkJSON, usrTkJSON)
 
 	suite.Equal(true, ExistsWithName("UserA", store))
 	suite.Equal(false, ExistsWithName("userA", store))
@@ -232,6 +358,52 @@ func (suite *AuthTestSuite) TestAuth() {
 	suite.Equal("uuid3", GetUUIDByName("UserX", store))
 	suite.Equal("uuid4", GetUUIDByName("UserZ", store))
 
+	// Test GetUserByUUID
+	expUsrUUIDJSON := `{
+   "uuid": "uuid4",
+   "projects": [
+      {
+         "project": "ARGO",
+         "roles": [
+            "publisher",
+            "consumer"
+         ],
+         "topics": [
+            "topic2"
+         ],
+         "subscriptions": [
+            "sub3",
+            "sub4"
+         ]
+      }
+   ],
+   "name": "UserZ",
+   "token": "S3CR3T4",
+   "email": "foo-email",
+   "service_roles": [],
+   "created_on": "2009-11-10T23:00:00Z",
+   "modified_on": "2009-11-10T23:00:00Z",
+   "created_by": "UserA"
+}`
+	// normal use case
+	expUsrUUID, expNilErr := GetUserByUUID("uuid4", store)
+	usrUUIDJson, _ := expUsrUUID.ExportJSON()
+
+	suite.Equal(usrUUIDJson, expUsrUUIDJSON)
+	suite.Nil(expNilErr)
+
+	// different users have the same uuid
+	expUsrMultipleUUID, expErrMultipleUUIDS := GetUserByUUID("same_uuid", store)
+
+	suite.Equal("multiple uuids", expErrMultipleUUIDS.Error())
+	suite.Equal(User{}, expUsrMultipleUUID)
+
+	// user with given uuid doesn't exist
+	expUsrNotFoundUUID, expErrNotFoundUUID := GetUserByUUID("uuid10", store)
+
+	suite.Equal("not found", expErrNotFoundUUID.Error())
+	suite.Equal(User{}, expUsrNotFoundUUID)
+
 	// Test TokenGeneration
 	tk1, _ := GenToken()
 	tk2, _ := GenToken()
@@ -242,12 +414,15 @@ func (suite *AuthTestSuite) TestAuth() {
 	suite.Equal(false, tk2 == tk3)
 
 	expUsrJSON := `{
+   "uuid": "uuid12",
    "projects": [
       {
          "project": "ARGO",
          "roles": [
             "consumer"
-         ]
+         ],
+         "topics": [],
+         "subscriptions": []
       }
    ],
    "name": "johndoe",
@@ -264,18 +439,21 @@ func (suite *AuthTestSuite) TestAuth() {
 
 	// Test Create
 	CreateUser("uuid12", "johndoe", []ProjectRoles{ProjectRoles{Project: "ARGO", Roles: []string{"consumer"}}}, "johndoe@fake.email.foo", "TOK3N", []string{"service_admin"}, tm, "", store)
-	usrs, _ := FindUsers("", "uuid12", "", store)
+	usrs, _ := FindUsers("", "uuid12", "", true, store)
 	usrJSON, _ := usrs.List[0].ExportJSON()
 	suite.Equal(expUsrJSON, usrJSON)
 
 	// Test Update
 	expUpdate := `{
+   "uuid": "uuid12",
    "projects": [
       {
          "project": "ARGO",
          "roles": [
             "consumer"
-         ]
+         ],
+         "topics": [],
+         "subscriptions": []
       }
    ],
    "name": "johnny_doe",
@@ -289,13 +467,113 @@ func (suite *AuthTestSuite) TestAuth() {
    "modified_on": "2009-11-10T23:00:00Z"
 }`
 	UpdateUser("uuid12", "johnny_doe", nil, "", []string{"consumer", "producer"}, tm, store)
-	usrUpd, _ := FindUsers("", "uuid12", "", store)
+	usrUpd, _ := FindUsers("", "uuid12", "", true, store)
 	usrUpdJSON, _ := usrUpd.List[0].ExportJSON()
 	suite.Equal(expUpdate, usrUpdJSON)
 
 	RemoveUser("uuid12", store)
-	_, err = FindUsers("", "uuid12", "", store)
+	_, err = FindUsers("", "uuid12", "", true, store)
 	suite.Equal(errors.New("not found"), err)
+
+	store2 := stores.NewMockStore("", "")
+
+	created := "2009-11-10T23:00:00Z"
+	modified := "2009-11-10T23:00:00Z"
+
+	var qUsers1 []User
+	qUsers1 = append(qUsers1, User{"uuid8", []ProjectRoles{{"ARGO2", []string{"consumer", "publisher"}, []string{}, []string{}}}, "UserZ", "S3CR3T1", "foo-email", []string{}, created, modified, ""})
+	qUsers1 = append(qUsers1, User{"uuid7", []ProjectRoles{}, "push_worker_0", "push_token", "foo-email", []string{"push_worker"}, created, modified, ""})
+	qUsers1 = append(qUsers1, User{"same_uuid", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{}, []string{}}}, "UserSame2", "S3CR3T42", "foo-email", []string{}, created, modified, "UserA"})
+	qUsers1 = append(qUsers1, User{"same_uuid", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{}, []string{}}}, "UserSame1", "S3CR3T41", "foo-email", []string{}, created, modified, "UserA"})
+	qUsers1 = append(qUsers1, User{"uuid4", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{"topic2"}, []string{"sub3", "sub4"}}}, "UserZ", "S3CR3T4", "foo-email", []string{}, created, modified, "UserA"})
+	qUsers1 = append(qUsers1, User{"uuid3", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{"topic3"}, []string{"sub2"}}}, "UserX", "S3CR3T3", "foo-email", []string{}, created, modified, "UserA"})
+	qUsers1 = append(qUsers1, User{"uuid2", []ProjectRoles{{"ARGO", []string{"consumer", "publisher"}, []string{"topic1", "topic2"}, []string{"sub1", "sub3", "sub4"}}}, "UserB", "S3CR3T2", "foo-email", []string{}, created, modified, "UserA"})
+	qUsers1 = append(qUsers1, User{"uuid1", []ProjectRoles{{"ARGO", []string{"consumer", "publisher"}, []string{"topic1", "topic2"}, []string{"sub1", "sub2", "sub3"}}}, "UserA", "S3CR3T1", "foo-email", []string{}, created, modified, ""})
+	qUsers1 = append(qUsers1, User{"uuid0", []ProjectRoles{{"ARGO", []string{"consumer", "publisher"}, []string{}, []string{}}}, "Test", "S3CR3T", "Test@test.com", []string{}, created, modified, ""})
+	// return all users
+	pu1, e1 := PaginatedFindUsers("", 0, "", true, store2)
+
+	var qUsers2 []User
+	qUsers2 = append(qUsers2, User{"uuid8", []ProjectRoles{{"ARGO2", []string{"consumer", "publisher"}, []string{}, []string{}}}, "UserZ", "S3CR3T1", "foo-email", []string{}, created, modified, ""})
+	qUsers2 = append(qUsers2, User{"uuid7", []ProjectRoles{}, "push_worker_0", "push_token", "foo-email", []string{"push_worker"}, created, modified, ""})
+	qUsers2 = append(qUsers2, User{"same_uuid", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{}, []string{}}}, "UserSame2", "S3CR3T42", "foo-email", []string{}, created, modified, "UserA"})
+
+	// return the first page with 2 users
+	pu2, e2 := PaginatedFindUsers("", 3, "", true, store2)
+
+	var qUsers3 []User
+	qUsers3 = append(qUsers3, User{"uuid4", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{"topic2"}, []string{"sub3", "sub4"}}}, "UserZ", "S3CR3T4", "foo-email", []string{}, created, modified, "UserA"})
+	qUsers3 = append(qUsers3, User{"uuid3", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{"topic3"}, []string{"sub2"}}}, "UserX", "S3CR3T3", "foo-email", []string{}, created, modified, "UserA"})
+	// return the next 2 users
+	pu3, e3 := PaginatedFindUsers("NA==", 2, "", true, store2)
+
+	// empty collection
+	store3 := stores.NewMockStore("", "")
+	store3.UserList = []stores.QUser{}
+	pu4, e4 := PaginatedFindUsers("", 0, "", true, store3)
+
+	// invalid id
+	_, e5 := PaginatedFindUsers("invalid", 0, "", true, store2)
+
+	// check user list by project
+	var qUsersB []User
+	qUsersB = append(qUsersB, User{"uuid8", []ProjectRoles{{"ARGO2", []string{"consumer", "publisher"}, []string{}, []string{}}}, "UserZ", "S3CR3T1", "foo-email", []string{}, created, modified, ""})
+
+	// check user list by project and with unprivileged mode (token redacted)
+	var qUsersC []User
+	qUsersC = append(qUsersC, User{"uuid8", []ProjectRoles{{"ARGO2", []string{"consumer", "publisher"}, []string{}, []string{}}}, "UserZ", "", "foo-email", []string{}, created, modified, ""})
+
+	puC, e1 := PaginatedFindUsers("", 1, "argo_uuid2", false, store2)
+	suite.Equal(qUsersC, puC.Users)
+	suite.Equal(int32(1), puC.TotalSize)
+	suite.Equal("", puC.NextPageToken)
+
+	suite.Equal(qUsers1, pu1.Users)
+	suite.Equal(int32(9), pu1.TotalSize)
+	suite.Equal("", pu1.NextPageToken)
+	suite.Nil(e1)
+
+	suite.Equal(qUsers2, pu2.Users)
+	suite.Equal(int32(9), pu2.TotalSize)
+	suite.Equal("NQ==", pu2.NextPageToken)
+	suite.Nil(e2)
+
+	suite.Equal(qUsers3, pu3.Users)
+	suite.Equal(int32(9), pu3.TotalSize)
+	suite.Equal("Mg==", pu3.NextPageToken)
+	suite.Nil(e3)
+
+	suite.Equal(0, len(pu4.Users))
+	suite.Equal(int32(0), pu4.TotalSize)
+	suite.Equal("", pu4.NextPageToken)
+	suite.Nil(e4)
+
+	suite.Equal("illegal base64 data at input byte 4", e5.Error())
+}
+
+func (suite *AuthTestSuite) TestAppendToUserProjects() {
+
+	store := stores.NewMockStore("", "")
+	store.ProjectList = append(store.ProjectList, stores.QProject{UUID: "append_uuid", Name: "append_project"})
+	store.UserList = append(store.UserList, stores.QUser{UUID: "append_uuid"})
+
+	err1 := AppendToUserProjects("append_uuid", "append_uuid", store, "publisher")
+	u, _ := store.QueryUsers("append_uuid", "append_uuid", "")
+	suite.Equal([]stores.QProjectRoles{
+		{
+			ProjectUUID: "append_uuid",
+			Roles:       []string{"publisher"},
+		},
+	}, u[0].Projects)
+	suite.Nil(err1)
+
+	// invalid project
+	err2 := AppendToUserProjects("", "unknown", store)
+	suite.Equal("invalid project unknown", err2.Error())
+
+	// invalid role
+	err3 := AppendToUserProjects("append_uuid", "append_uuid", store, "r1")
+	suite.Equal("invalid role r1", err3.Error())
 
 }
 
@@ -325,12 +603,19 @@ func (suite *AuthTestSuite) TestSubACL() {
 	expJSON04 := `{
    "authorized_users": [
       "UserB",
-      "UserZ"
+      "UserZ",
+      "push_worker_0"
    ]
 }`
 
 	expJSON05 := `{
    "authorized_users": []
+}`
+
+	expJSON01deleted := `{
+   "authorized_users": [
+      "UserB"
+   ]
 }`
 
 	APIcfg := config.NewAPICfg()
@@ -357,6 +642,12 @@ func (suite *AuthTestSuite) TestSubACL() {
 	sACL5 := ACL{}
 	outJSON5, _ := sACL5.ExportJSON()
 	suite.Equal(expJSON05, outJSON5)
+
+	// make sure that the acl doesn't contain empty "" in the spot of the deleted user
+	store.RemoveUser("uuid1")
+	dACL, _ := GetACL("argo_uuid", "subscriptions", "sub1", store)
+	outJSONd, _ := dACL.ExportJSON()
+	suite.Equal(expJSON01deleted, outJSONd)
 
 }
 
@@ -386,6 +677,12 @@ func (suite *AuthTestSuite) TestTopicACL() {
    "authorized_users": []
 }`
 
+	expJSON01deleted := `{
+   "authorized_users": [
+      "UserB"
+   ]
+}`
+
 	APIcfg := config.NewAPICfg()
 	APIcfg.LoadStrJSON(suite.cfgStr)
 
@@ -407,6 +704,86 @@ func (suite *AuthTestSuite) TestTopicACL() {
 	outJSON4, _ := tACL4.ExportJSON()
 	suite.Equal(expJSON04, outJSON4)
 
+	// make sure that the acl doesn't contain empty "" in the spot of the deleted user
+	store.RemoveUser("uuid1")
+	dACL, _ := GetACL("argo_uuid", "topics", "topic1", store)
+	outJSONd, _ := dACL.ExportJSON()
+	suite.Equal(expJSON01deleted, outJSONd)
+}
+
+func (suite *AuthTestSuite) TestModACL() {
+
+	store := stores.NewMockStore("", "")
+
+	e1 := ModACL("argo_uuid", "topics", "topic1", []string{"UserX", "UserZ"}, store)
+	suite.Nil(e1)
+
+	tACL1, _ := store.TopicsACL["topic1"]
+	suite.Equal([]string{"uuid3", "uuid4"}, tACL1.ACL)
+
+	e2 := ModACL("argo_uuid", "subscriptions", "sub1", []string{"UserX", "UserZ"}, store)
+	suite.Nil(e2)
+
+	sACL1, _ := store.SubsACL["sub1"]
+	suite.Equal([]string{"uuid3", "uuid4"}, sACL1.ACL)
+
+	e3 := ModACL("argo_uuid", "mistype", "sub1", []string{"UserX", "UserZ"}, store)
+	suite.Equal("wrong resource type", e3.Error())
+}
+
+func (suite *AuthTestSuite) TestAppendToACL() {
+
+	store := stores.NewMockStore("", "")
+
+	e1 := AppendToACL("argo_uuid", "topics", "topic1", []string{"UserX", "UserZ", "UserZ"}, store)
+	suite.Nil(e1)
+
+	tACL1, _ := store.TopicsACL["topic1"]
+	suite.Equal([]string{"uuid1", "uuid2", "uuid3", "uuid4"}, tACL1.ACL)
+
+	e2 := AppendToACL("argo_uuid", "subscriptions", "sub1", []string{"UserX", "UserZ", "UserZ"}, store)
+	suite.Nil(e2)
+
+	sACL1, _ := store.SubsACL["sub1"]
+	suite.Equal([]string{"uuid1", "uuid2", "uuid3", "uuid4"}, sACL1.ACL)
+
+	e3 := AppendToACL("argo_uuid", "mistype", "sub1", []string{"UserX", "UserZ"}, store)
+	suite.Equal("wrong resource type", e3.Error())
+}
+
+func (suite *AuthTestSuite) TestRemoveFromACL() {
+
+	store := stores.NewMockStore("", "")
+
+	e1 := RemoveFromACL("argo_uuid", "topics", "topic1", []string{"UserA", "UserK"}, store)
+	suite.Nil(e1)
+
+	tACL1, _ := store.TopicsACL["topic1"]
+	suite.Equal([]string{"uuid2"}, tACL1.ACL)
+
+	e2 := RemoveFromACL("argo_uuid", "subscriptions", "sub1", []string{"UserA", "UserK"}, store)
+	suite.Nil(e2)
+
+	sACL1, _ := store.SubsACL["sub1"]
+	suite.Equal([]string{"uuid2"}, sACL1.ACL)
+
+	e3 := RemoveFromACL("argo_uuid", "mistype", "sub1", []string{"UserX", "UserZ"}, store)
+	suite.Equal("wrong resource type", e3.Error())
+}
+
+func (suite *AuthTestSuite) TestGetPushWorkerToken() {
+
+	store := stores.NewMockStore("", "")
+
+	// normal case of push enabled true and correct push worker token
+	u1, err1 := GetPushWorker("push_token", store)
+	suite.Equal(User{"uuid7", []ProjectRoles{}, "push_worker_0", "push_token", "foo-email", []string{"push_worker"}, "2009-11-10T23:00:00Z", "2009-11-10T23:00:00Z", ""}, u1)
+	suite.Nil(err1)
+
+	//  incorrect push worker token
+	u4, err4 := GetPushWorker("missing", store)
+	suite.Equal(User{}, u4)
+	suite.Equal("push_500", err4.Error())
 }
 
 func TestAuthTestSuite(t *testing.T) {

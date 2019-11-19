@@ -6,7 +6,9 @@ User=argo-messaging
 Group=argo-messaging
 WorkingDirectory=/var/www/argo-messaging
 ExecStart=/bin/bash -c '/var/www/argo-messaging/argo-messaging'
+SyslogIdentifier=argo_messaging
+Restart=on-failure
+RestartSec=5s
 
 [Install]
 WantedBy=multi-user.target
-

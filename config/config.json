@@ -6,7 +6,15 @@
   "store_db":"argo_msg",
   "certificate":"/etc/pki/tls/certs/localhost.crt",
   "certificate_key":"/etc/pki/tls/private/localhost.key",
+  "certificate_authorities_dir": "/etc/grid-security/certificates",
   "per_resource_auth":"true",
   "service_token":"S3CR3T",
-  "log_level":"INFO"
+  "log_level":"INFO",
+  "push_enabled": false,
+  "push_tls_enabled": true,
+  "push_server_host": "localhost",
+  "push_server_port": 5555,
+  "verify_push_server": true,
+  "push_worker_token": "lol",
+  "log_facilities": []
 }

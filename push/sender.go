@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // Sender is inteface for sending messages to remote endpoints
@@ -45,10 +45,13 @@ func (hs *HTTPSender) Send(msg string, endpoint string) error {
 	resp, err := hs.Client.Do(req)
 
 	if err == nil {
+
 		if resp.StatusCode != 200 && resp.StatusCode != 201 && resp.StatusCode != 204 && resp.StatusCode != 102 {
 			err = errors.New("Endpoint Responded: not delivered")
 		}
 		log.Debug("message Delivered")
+	} else {
+		log.Debug(err.Error())
 	}
 
 	return err

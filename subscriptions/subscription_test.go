@@ -1,19 +1,69 @@
 package subscriptions
 
 import (
+	"errors"
 	"io/ioutil"
 	"testing"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/ARGOeu/argo-messaging/config"
 	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/stretchr/testify/suite"
+	"net/http"
+	"strings"
+	"time"
 )
 
 type SubTestSuite struct {
 	suite.Suite
 	cfgStr string
+}
+
+type MockPushRoundTripper struct{}
+
+func (m *MockPushRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
+
+	var resp *http.Response
+
+	header := make(http.Header)
+	header.Set("Content-type", "text/plain")
+
+	switch r.URL.Host {
+
+	case "example.com":
+
+		resp = &http.Response{
+			StatusCode: 200,
+			// Send response to be tested
+			Body: ioutil.NopCloser(strings.NewReader("vhash-1")),
+			// Must be set to non-nil value or it panics
+			Header: header,
+		}
+
+	case "example_error.com":
+
+		resp = &http.Response{
+			StatusCode: 500,
+			// Send response to be tested
+			Body: ioutil.NopCloser(strings.NewReader("Internal error")),
+			// Must be set to non-nil value or it panics
+			Header: header,
+		}
+
+	case "example_mismatch.com":
+
+		resp = &http.Response{
+			StatusCode: 200,
+			// Send response to be tested
+			Body: ioutil.NopCloser(strings.NewReader("wrong_vhash")),
+			// Must be set to non-nil value or it panics
+			Header: header,
+		}
+
+	}
+
+	return resp, nil
 }
 
 func (suite *SubTestSuite) SetupTest() {
@@ -28,6 +78,27 @@ func (suite *SubTestSuite) SetupTest() {
 	}`
 
 	log.SetOutput(ioutil.Discard)
+}
+
+func (suite *SubTestSuite) TestNewNamesLIst() {
+	nl := NewNamesList()
+	// make sure that the subscriptions slice has been initialised
+	suite.NotNil(nl.Subscriptions)
+}
+
+func (suite *SubTestSuite) TestFindByTopic() {
+
+	store := stores.NewMockStore("", "")
+
+	nl1, err1 := FindByTopic("argo_uuid", "topic1", store)
+	suite.Equal([]string{"/projects/ARGO/subscriptions/sub1"}, nl1.Subscriptions)
+	suite.Nil(err1)
+
+	// check empty case
+	store.SubList = nil
+	nl2, err2 := FindByTopic("argo_uuid", "topic1", store)
+	suite.Equal([]string{}, nl2.Subscriptions)
+	suite.Nil(err2)
 }
 
 func (suite *SubTestSuite) TestCreate() {
@@ -62,12 +133,27 @@ func (suite *SubTestSuite) TestGetSubByName() {
 	cfgAPI.LoadStrJSON(suite.cfgStr)
 	store := stores.NewMockStore(cfgAPI.StoreHost, cfgAPI.StoreDB)
 
-	result, _ := Find("argo_uuid", "sub1", store)
+	result, _ := Find("argo_uuid", "", "sub1", "", 0, store)
 	expSub := New("argo_uuid", "ARGO", "sub1", "topic1")
 	expSub.PushCfg.RetPol.PolicyType = ""
 	expSub.PushCfg.RetPol.Period = 0
-	suite.Equal(expSub, result.List[0])
+	expSub.LatestConsume = time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local)
+	expSub.ConsumeRate = 10
+	suite.Equal(expSub, result.Subscriptions[0])
 
+}
+
+func (suite *SubTestSuite) TestGetSubMetric() {
+	APIcfg := config.NewAPICfg()
+	APIcfg.LoadStrJSON(suite.cfgStr)
+	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
+	mySubM, _ := FindMetric("argo_uuid", "sub1", store)
+	expTopic := SubMetrics{
+		MsgNum:        0,
+		LatestConsume: time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local),
+		ConsumeRate:   10,
+	}
+	suite.Equal(expTopic, mySubM)
 }
 
 func (suite *SubTestSuite) TestHasProjectTopic() {
@@ -85,27 +171,95 @@ func (suite *SubTestSuite) TestGetSubsByProject() {
 
 	store := stores.NewMockStore(cfgAPI.StoreHost, cfgAPI.StoreDB)
 
-	result, _ := Find("argo_uuid", "", store)
 	expSub1 := New("argo_uuid", "ARGO", "sub1", "topic1")
 	expSub1.PushCfg.RetPol.PolicyType = ""
 	expSub1.PushCfg.RetPol.Period = 0
+	expSub1.PushCfg.MaxMessages = 0
+	expSub1.LatestConsume = time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local)
+	expSub1.ConsumeRate = 10
 	expSub2 := New("argo_uuid", "ARGO", "sub2", "topic2")
 	expSub2.PushCfg.RetPol.PolicyType = ""
 	expSub2.PushCfg.RetPol.Period = 0
+	expSub2.PushCfg.MaxMessages = 0
+	expSub2.LatestConsume = time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local)
+	expSub2.ConsumeRate = 8.99
 	expSub3 := New("argo_uuid", "ARGO", "sub3", "topic3")
 	expSub3.PushCfg.RetPol.PolicyType = ""
 	expSub3.PushCfg.RetPol.Period = 0
+	expSub3.PushCfg.MaxMessages = 0
+	expSub3.LatestConsume = time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local)
+	expSub3.ConsumeRate = 5.45
 	expSub4 := New("argo_uuid", "ARGO", "sub4", "topic4")
 	expSub4.PushCfg.RetPol.PolicyType = "linear"
 	expSub4.PushCfg.RetPol.Period = 300
 	rp := RetryPolicy{"linear", 300}
-	expSub4.PushCfg = PushConfig{"endpoint.foo", rp}
-	expSubs := Subscriptions{}
-	expSubs.List = append(expSubs.List, expSub1)
-	expSubs.List = append(expSubs.List, expSub2)
-	expSubs.List = append(expSubs.List, expSub3)
-	expSubs.List = append(expSubs.List, expSub4)
-	suite.Equal(expSubs, result)
+	expSub4.PushCfg = PushConfig{
+		Pend:             "endpoint.foo",
+		RetPol:           rp,
+		VerificationHash: "push-id-1",
+		Verified:         true,
+		MaxMessages:      1,
+	}
+	expSub4.LatestConsume = time.Date(0, 0, 0, 0, 0, 0, 0, time.Local)
+	expSub4.ConsumeRate = 0
+
+	// retrieve all subs
+	expSubs1 := []Subscription{}
+	expSubs1 = append(expSubs1, expSub4)
+	expSubs1 = append(expSubs1, expSub3)
+	expSubs1 = append(expSubs1, expSub2)
+	expSubs1 = append(expSubs1, expSub1)
+	result1, _ := Find("argo_uuid", "", "", "", 0, store)
+
+	// retrieve first two subs
+	expSubs2 := []Subscription{}
+	expSubs2 = append(expSubs2, expSub4)
+	expSubs2 = append(expSubs2, expSub3)
+	result2, _ := Find("argo_uuid", "", "", "", 2, store)
+
+	//retrieve the next two subs
+	expSubs3 := []Subscription{}
+	expSubs3 = append(expSubs3, expSub2)
+	expSubs3 = append(expSubs3, expSub1)
+	result3, _ := Find("argo_uuid", "", "", "MQ==", 2, store)
+
+	// provide an invalid page token
+	_, err := Find("", "", "", "invalid", 0, store)
+
+	// retrieve user's subs
+	expSubs4 := []Subscription{}
+	expSubs4 = append(expSubs4, expSub4)
+	expSubs4 = append(expSubs4, expSub3)
+	expSubs4 = append(expSubs4, expSub2)
+	result4, _ := Find("argo_uuid", "uuid1", "", "", 0, store)
+
+	// retrieve user's subs with pagination
+	expSubs5 := []Subscription{}
+	expSubs5 = append(expSubs5, expSub4)
+	expSubs5 = append(expSubs5, expSub3)
+	result5, _ := Find("argo_uuid", "uuid1", "", "", 2, store)
+
+	suite.Equal(expSubs1, result1.Subscriptions)
+	suite.Equal("", result1.NextPageToken)
+	suite.Equal(int32(4), result1.TotalSize)
+
+	suite.Equal(expSubs2, result2.Subscriptions)
+	suite.Equal("MQ==", result2.NextPageToken)
+	suite.Equal(int32(4), result2.TotalSize)
+
+	suite.Equal(expSubs3, result3.Subscriptions)
+	suite.Equal("", result3.NextPageToken)
+	suite.Equal(int32(4), result3.TotalSize)
+
+	suite.Equal("illegal base64 data at input byte 4", err.Error())
+
+	suite.Equal(expSubs4, result4.Subscriptions)
+	suite.Equal("", result4.NextPageToken)
+	suite.Equal(int32(3), result4.TotalSize)
+
+	suite.Equal(expSubs5, result5.Subscriptions)
+	suite.Equal("MQ==", result5.NextPageToken)
+	suite.Equal(int32(3), result5.TotalSize)
 }
 
 func (suite *SubTestSuite) TestLoadFromCfg() {
@@ -113,28 +267,50 @@ func (suite *SubTestSuite) TestLoadFromCfg() {
 	cfgAPI.LoadStrJSON(suite.cfgStr)
 
 	store := stores.NewMockStore(cfgAPI.StoreHost, cfgAPI.StoreDB)
-	results, _ := Find("argo_uuid", "", store)
+	results, _ := Find("argo_uuid", "", "", "", 0, store)
 	expSub1 := New("argo_uuid", "ARGO", "sub1", "topic1")
 	expSub1.PushCfg.RetPol.PolicyType = ""
 	expSub1.PushCfg.RetPol.Period = 0
+	expSub1.PushCfg.MaxMessages = 0
+	expSub1.LatestConsume = time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local)
+	expSub1.ConsumeRate = 10
 	expSub2 := New("argo_uuid", "ARGO", "sub2", "topic2")
 	expSub2.PushCfg.RetPol.PolicyType = ""
 	expSub2.PushCfg.RetPol.Period = 0
+	expSub2.PushCfg.MaxMessages = 0
+	expSub2.LatestConsume = time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local)
+	expSub2.ConsumeRate = 8.99
 	expSub3 := New("argo_uuid", "ARGO", "sub3", "topic3")
 	expSub3.PushCfg.RetPol.PolicyType = ""
 	expSub3.PushCfg.RetPol.Period = 0
+	expSub3.PushCfg.MaxMessages = 0
+	expSub3.LatestConsume = time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local)
+	expSub3.ConsumeRate = 5.45
 	expSub4 := New("argo_uuid", "ARGO", "sub4", "topic4")
 	expSub4.PushCfg.RetPol.PolicyType = "linear"
 	expSub4.PushCfg.RetPol.Period = 300
 	rp := RetryPolicy{"linear", 300}
-	expSub4.PushCfg = PushConfig{"endpoint.foo", rp}
-	expSubs := Subscriptions{}
-	expSubs.List = append(expSubs.List, expSub1)
-	expSubs.List = append(expSubs.List, expSub2)
-	expSubs.List = append(expSubs.List, expSub3)
-	expSubs.List = append(expSubs.List, expSub4)
-	suite.Equal(expSubs, results)
+	expSub4.PushCfg = PushConfig{
+		Pend:             "endpoint.foo",
+		RetPol:           rp,
+		VerificationHash: "push-id-1",
+		Verified:         true,
+		MaxMessages:      1,
+	}
+	expSub4.LatestConsume = time.Date(0, 0, 0, 0, 0, 0, 0, time.Local)
+	expSub4.ConsumeRate = 0
+	expSubs := []Subscription{}
+	expSubs = append(expSubs, expSub4)
+	expSubs = append(expSubs, expSub3)
+	expSubs = append(expSubs, expSub2)
+	expSubs = append(expSubs, expSub1)
+	suite.Equal(expSubs, results.Subscriptions)
 
+}
+
+func (suite *SubTestSuite) TestIsRetPolSupported() {
+	suite.True(IsRetryPolicySupported("linear"))
+	suite.False(IsRetryPolicySupported("unknown"))
 }
 
 func (suite *SubTestSuite) TestRemoveSubStore() {
@@ -159,15 +335,60 @@ func (suite *SubTestSuite) TestCreateSubStore() {
 
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
 
-	sub, err := CreateSub("argo_uuid", "sub1", "topic1", "", 0, 0, "linear", 300, store)
+	sub, err := CreateSub("argo_uuid", "sub1", "topic1", "", 0, 0, 0, "linear", 300, "", true, store)
 	suite.Equal(Subscription{}, sub)
 	suite.Equal("exists", err.Error())
 
-	sub2, err2 := CreateSub("argo_uuid", "subNew", "topicNew", "", 0, 0, "linear", 300, store)
+	sub2, err2 := CreateSub("argo_uuid", "subNew", "topicNew", "", 0, 0, 0, "linear", 300, "", true, store)
 	expSub := New("argo_uuid", "ARGO", "subNew", "topicNew")
 	suite.Equal(expSub, sub2)
 	suite.Equal(nil, err2)
 
+}
+
+func (suite *SubTestSuite) TestModAck() {
+
+	APIcfg := config.NewAPICfg()
+	APIcfg.LoadStrJSON(suite.cfgStr)
+
+	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
+
+	err := ModAck("argo_uuid", "sub1", 300, store)
+	suite.Equal(nil, err)
+
+	err = ModAck("argo_uuid", "sub1", 0, store)
+	suite.Equal(nil, err)
+
+	err = ModAck("argo_uuid", "sub1", -300, store)
+	suite.Equal(errors.New("wrong value"), err)
+
+	err = ModAck("argo_uuid", "sub1", 601, store)
+	suite.Equal(errors.New("wrong value"), err)
+}
+
+func (suite *SubTestSuite) TestModSubPush() {
+
+	APIcfg := config.NewAPICfg()
+	APIcfg.LoadStrJSON(suite.cfgStr)
+
+	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
+
+	// modify push config
+	err1 := ModSubPush("argo_uuid", "sub1", "example.com", 2, "linear", 400, "hash-1", true, store)
+
+	suite.Nil(err1)
+
+	sub1, _ := store.QueryOneSub("argo_uuid", "sub1")
+	suite.Equal("example.com", sub1.PushEndpoint)
+	suite.Equal(int64(2), sub1.MaxMessages)
+	suite.Equal("linear", sub1.RetPolicy)
+	suite.Equal(400, sub1.RetPeriod)
+	suite.Equal("hash-1", sub1.VerificationHash)
+	suite.True(sub1.Verified)
+
+	// test error case
+	err2 := ModSubPush("argo_uuid", "unknown", "", 0, "", 0, "", false, store)
+	suite.Equal("not found", err2.Error())
 }
 
 func (suite *SubTestSuite) TestExtractFullTopic() {
@@ -191,21 +412,105 @@ func (suite *SubTestSuite) TestExtractFullTopic() {
 
 }
 
+func (suite *SubTestSuite) TestPushEndpointHost() {
+
+	sub := Subscription{
+		PushCfg: PushConfig{
+			Pend: "https://example.com:8084/receive_here",
+		},
+	}
+
+	u1 := sub.PushEndpointHost()
+	suite.Equal("example.com:8084", u1)
+}
+
+func (suite *SubTestSuite) TestVerifyPushEndpoint() {
+
+	str := stores.NewMockStore("", "")
+
+	// normal case
+	s1 := Subscription{
+		Name:        "push-sub-v1",
+		ProjectUUID: "argo_uuid",
+		PushCfg: PushConfig{
+			Pend:             "https://example.com/receive_here",
+			VerificationHash: "vhash-1",
+		},
+	}
+
+	// add a temporary subscription
+	q1 := stores.QSub{
+		Name:             "push-sub-v1",
+		ProjectUUID:      "argo_uuid",
+		PushEndpoint:     "https://example.com/receive_here",
+		VerificationHash: "vhash-1",
+		Verified:         false,
+	}
+
+	str.SubList = append(str.SubList, q1)
+
+	c1 := &http.Client{
+		Transport: new(MockPushRoundTripper),
+	}
+
+	e1 := VerifyPushEndpoint(s1, c1, str)
+
+	qs1, _ := str.QueryOneSub("argo_uuid", "push-sub-v1")
+
+	suite.Nil(e1)
+	suite.True(qs1.Verified)
+
+	// wrong response from remote endpoint
+	s2 := Subscription{
+		PushCfg: PushConfig{
+			Pend:             "https://example_error.com/receive_here",
+			VerificationHash: "vhash-1",
+		},
+	}
+
+	c2 := &http.Client{
+		Transport: new(MockPushRoundTripper),
+	}
+
+	e2 := VerifyPushEndpoint(s2, c2, nil)
+
+	suite.Equal("Wrong response status code", e2.Error())
+
+	// mismatch
+	s3 := Subscription{
+		PushCfg: PushConfig{
+			Pend:             "https://example_mismatch.com/receive_here",
+			VerificationHash: "vhash-1",
+		},
+	}
+
+	c3 := &http.Client{
+		Transport: new(MockPushRoundTripper),
+	}
+
+	e3 := VerifyPushEndpoint(s3, c3, nil)
+
+	suite.Equal("Wrong verification hash", e3.Error())
+}
+
 func (suite *SubTestSuite) TestExportJson() {
 	cfgAPI := config.NewAPICfg()
 	cfgAPI.LoadStrJSON(suite.cfgStr)
 
 	store := stores.NewMockStore(cfgAPI.StoreHost, cfgAPI.StoreDB)
 
-	res, _ := Find("argo_uuid", "sub1", store)
+	res, _ := Find("argo_uuid", "", "sub1", "", 0, store)
 
-	outJSON, _ := res.List[0].ExportJSON()
+	outJSON, _ := res.Subscriptions[0].ExportJSON()
 	expJSON := `{
    "name": "/projects/ARGO/subscriptions/sub1",
    "topic": "/projects/ARGO/topics/topic1",
    "pushConfig": {
       "pushEndpoint": "",
-      "retryPolicy": {}
+      "maxMessages": 0,
+      "retryPolicy": {},
+      "verification_hash": "",
+      "verified": false
    },
    "ackDeadlineSeconds": 10
 }`
@@ -214,20 +519,17 @@ func (suite *SubTestSuite) TestExportJson() {
 	expJSON2 := `{
    "subscriptions": [
       {
-         "name": "/projects/ARGO/subscriptions/sub1",
-         "topic": "/projects/ARGO/topics/topic1",
+         "name": "/projects/ARGO/subscriptions/sub4",
+         "topic": "/projects/ARGO/topics/topic4",
          "pushConfig": {
-            "pushEndpoint": "",
-            "retryPolicy": {}
-         },
-         "ackDeadlineSeconds": 10
-      },
-      {
-         "name": "/projects/ARGO/subscriptions/sub2",
-         "topic": "/projects/ARGO/topics/topic2",
-         "pushConfig": {
-            "pushEndpoint": "",
-            "retryPolicy": {}
+            "pushEndpoint": "endpoint.foo",
+            "maxMessages": 1,
+            "retryPolicy": {
+               "type": "linear",
+               "period": 300
+            },
+            "verification_hash": "push-id-1",
+            "verified": true
          },
          "ackDeadlineSeconds": 10
       },
@@ -236,25 +538,42 @@ func (suite *SubTestSuite) TestExportJson() {
          "topic": "/projects/ARGO/topics/topic3",
          "pushConfig": {
             "pushEndpoint": "",
-            "retryPolicy": {}
+            "maxMessages": 0,
+            "retryPolicy": {},
+            "verification_hash": "",
+            "verified": false
          },
          "ackDeadlineSeconds": 10
       },
       {
-         "name": "/projects/ARGO/subscriptions/sub4",
-         "topic": "/projects/ARGO/topics/topic4",
+         "name": "/projects/ARGO/subscriptions/sub2",
+         "topic": "/projects/ARGO/topics/topic2",
          "pushConfig": {
-            "pushEndpoint": "endpoint.foo",
-            "retryPolicy": {
-               "type": "linear",
-               "period": 300
-            }
+            "pushEndpoint": "",
+            "maxMessages": 0,
+            "retryPolicy": {},
+            "verification_hash": "",
+            "verified": false
+         },
+         "ackDeadlineSeconds": 10
+      },
+      {
+         "name": "/projects/ARGO/subscriptions/sub1",
+         "topic": "/projects/ARGO/topics/topic1",
+         "pushConfig": {
+            "pushEndpoint": "",
+            "maxMessages": 0,
+            "retryPolicy": {},
+            "verification_hash": "",
+            "verified": false
          },
          "ackDeadlineSeconds": 10
       }
-   ]
+   ],
+   "nextPageToken": "",
+   "totalSize": 4
 }`
-	results, _ := Find("argo_uuid", "", store)
+	results, _ := Find("argo_uuid", "", "", "", 0, store)
 	outJSON2, _ := results.ExportJSON()
 	suite.Equal(expJSON2, outJSON2)
 

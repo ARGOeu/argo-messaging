@@ -170,11 +170,35 @@ func (suite *ProjectsTestSuite) TestProjects() {
 	suite.Equal(errors.New("not found"), err)
 	// Check to see that also projects topics and subscriptions have been removed from the store
 
-	resTop, _ := store.QueryTopics("argo_uuid", "")
-	suite.Equal([]stores.QTopic{}, resTop)
-	resSub, _ := store.QuerySubs("argo_uuid", "")
-	suite.Equal([]stores.QSub{}, resSub)
+	resTop, _, _, _ := store.QueryTopics("argo_uuid", "", "", "", 0)
+	suite.Equal(0, len(resTop))
+	resSub, _, _, _ := store.QuerySubs("argo_uuid", "", "", "", 0)
+	suite.Equal(0, len(resSub))
+}
 
+func (suite *ProjectsTestSuite) TestGetProjectsMessageCount() {
+
+	store := stores.NewMockStore("", "")
+	store.Initialize()
+
+	// test total message count per project
+	expectedTmpc := TotalProjectsMessageCount{
+		Projects: []ProjectMessageCount{
+			{Project: "ARGO", MessageCount: 60, AverageDailyMessages: 20},
+		},
+		TotalCount:           60,
+		AverageDailyMessages: 20,
+	}
+
+	tmpc, tmpcerr := GetProjectsMessageCount(
+		[]string{"ARGO"},
+		time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2018, 10, 4, 0, 0, 0, 0, time.UTC),
+		store,
+	)
+
+	suite.Equal(expectedTmpc, tmpc)
+	suite.Nil(tmpcerr)
 }
 
 func TestProjectsTestSuite(t *testing.T) {

@@ -1,7 +1,9 @@
 package sarama
 
 type OffsetCommitResponse struct {
-	Errors map[string]map[int32]KError
+	Version        int16
+	ThrottleTimeMs int32
+	Errors         map[string]map[int32]KError
 }
 
 func (r *OffsetCommitResponse) AddError(topic string, partition int32, kerror KError) {
@@ -17,6 +19,9 @@ func (r *OffsetCommitResponse) AddError(topic string, partition int32, kerror KE
 }
 
 func (r *OffsetCommitResponse) encode(pe packetEncoder) error {
+	if r.Version >= 3 {
+		pe.putInt32(r.ThrottleTimeMs)
+	}
 	if err := pe.putArrayLength(len(r.Errors)); err != nil {
 		return err
 	}
@@ -35,7 +40,16 @@ func (r *OffsetCommitResponse) encode(pe packetEncoder) error {
 	return nil
 }
 
-func (r *OffsetCommitResponse) decode(pd packetDecoder) (err error) {
+func (r *OffsetCommitResponse) decode(pd packetDecoder, version int16) (err error) {
+	r.Version = version
+
+	if version >= 3 {
+		r.ThrottleTimeMs, err = pd.getInt32()
+		if err != nil {
+			return err
+		}
+	}
+
 	numTopics, err := pd.getArrayLength()
 	if err != nil || numTopics == 0 {
 		return err
@@ -70,4 +84,27 @@ func (r *OffsetCommitResponse) decode(pd packetDecoder) (err error) {
 	}
 
 	return nil
+}
+
+func (r *OffsetCommitResponse) key() int16 {
+	return 8
+}
+
+func (r *OffsetCommitResponse) version() int16 {
+	return r.Version
+}
+
+func (r *OffsetCommitResponse) requiredVersion() KafkaVersion {
+	switch r.Version {
+	case 1:
+		return V0_8_2_0
+	case 2:
+		return V0_9_0_0
+	case 3:
+		return V0_11_0_0
+	case 4:
+		return V2_0_0_0
+	default:
+		return MinVersion
+	}
 }

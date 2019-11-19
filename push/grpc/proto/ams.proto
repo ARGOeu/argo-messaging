@@ -1,0 +1,87 @@
+syntax = "proto3";
+
+// Manages subscriptions.
+service PushService {
+    // Activates a subscription in order for the service to start handling the push functionality
+    rpc ActivateSubscription(ActivateSubscriptionRequest) returns (ActivateSubscriptionResponse) {}
+
+    //  Deactivates a subscription in order for the service to stop handling the push functionality
+    rpc DeactivateSubscription(DeactivateSubscriptionRequest) returns (DeactivateSubscriptionResponse) {}
+
+    //  Status returns the current state of the service
+    rpc Status(StatusRequest) returns (StatusResponse) {}
+
+    // SubscriptionStatus returns the status of the worker that handles the respective subscription
+    rpc SubscriptionStatus(SubscriptionStatusRequest) returns (SubscriptionStatusResponse) {}
+}
+
+// Empty wrapper for status request call
+message SubscriptionStatusRequest {
+    // Required. The full resource name of the subscrption.
+    string full_name = 1;
+}
+
+// Empty wrapper for status response call
+message SubscriptionStatusResponse {
+    // Required. The full resource name of the subscrption.
+    string status = 1;
+}
+
+// Empty wrapper for status request call
+message StatusRequest {}
+
+// Empty wrapper for status response call
+message StatusResponse {}
+
+// Wrapper for subscription
+message DeactivateSubscriptionResponse {
+    // Message response
+    string message = 1;
+}
+
+// Contains which subscription to deactivate
+message DeactivateSubscriptionRequest {
+    // Required. The full resource name of the subscrption.
+    string full_name = 1;
+}
+
+// Wrapper for subscription
+message ActivateSubscriptionResponse {
+    // Message response
+    string message = 1;
+}
+
+// Wrapper for subscription.
+message ActivateSubscriptionRequest {
+    // Required. A subscription.
+    Subscription subscription = 1;
+}
+
+// Subscription holds informaton related to how the push functionality should operate.
+message Subscription {
+    // Required. The full resource name of the subscription.
+    string full_name = 1;
+    // The full topic name of the topic that the subscription is associated.
+    string full_topic = 2;
+    // Required. Information regarding the push functionality.
+    PushConfig push_config = 4;
+}
+
+// PushConfig holds information on how a push subscription functions.
+message PushConfig {
+    // Required. An https endpoint to where the messages will be pushed.
+    string push_endpoint = 1;
+    // Defaults to 1. How many messages should the push server consume and sent at once.
+    int64 max_messages = 3;
+    // Required. Retry policy.
+    RetryPolicy retry_policy = 2;
+}
+
+// RetryPolicy holds information regarding the retry policy.
+message RetryPolicy {
+    // Required. Type of the retry policy used (Only linear policy supported).
+    string type = 1;
+    // Required. Retry period in milliseconds.
+    uint32 period = 2;
+}
+

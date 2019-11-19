@@ -4,7 +4,7 @@ import (
 	"io/ioutil"
 	"testing"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/stretchr/testify/suite"
 )
@@ -24,8 +24,14 @@ func (suite *ConfigTestSuite) SetupTest() {
 		"store_db":"argo_msg",
 		"certificate":"/etc/pki/tls/certs/localhost.crt",
 		"certificate_key":"/etc/pki/tls/private/localhost.key",
+		"certificate_authorities_dir": "/etc/grid-security/certificates",
 		"per_resource_auth":"true",
-		"service_token":"S3CR3T"
+		"service_token":"S3CR3T",
+		"push_tls_enabled": "true",
+		"push_server_host": "localhost",
+		"push_server_port": 5555,
+		"verify_push_server": "true",
+		"log_facilities": ["SYSLOG", "CONSOLE"]
 	}`
 
 	log.SetOutput(ioutil.Discard)
@@ -43,6 +49,7 @@ func (suite *ConfigTestSuite) TestLoadConfiguration() {
 
 	// test "LOADTEST" param
 	APIcfg2 := NewAPICfg("LOADTEST")
+	log.Infof("\n\n %+v \n\n", APIcfg2)
 	suite.Equal([]string{"localhost"}, APIcfg2.ZooHosts)
 	suite.Equal("", APIcfg2.KafkaZnode)
 	suite.Equal("localhost", APIcfg2.StoreHost)
@@ -51,8 +58,14 @@ func (suite *ConfigTestSuite) TestLoadConfiguration() {
 	suite.Equal("", APIcfg.BindIP)
 	suite.Equal("/etc/pki/tls/certs/localhost.crt", APIcfg.Cert)
 	suite.Equal("/etc/pki/tls/private/localhost.key", APIcfg.CertKey)
+	suite.Equal("/etc/grid-security/certificates", APIcfg2.CertificateAuthoritiesDir)
 	suite.Equal(true, APIcfg.ResAuth)
 	suite.Equal("S3CR3T", APIcfg.ServiceToken)
+	suite.True(APIcfg2.PushTlsEnabled)
+	suite.Equal("localhost", APIcfg2.PushServerHost)
+	suite.Equal(5555, APIcfg2.PushServerPort)
+	suite.True(APIcfg2.VerifyPushServer)
+	suite.Equal(0, len(APIcfg2.LogFacilities))
 }
 
 func (suite *ConfigTestSuite) TestLoadStringJSON() {
@@ -66,7 +79,13 @@ func (suite *ConfigTestSuite) TestLoadStringJSON() {
 	suite.Equal("", APIcfg.BindIP)
 	suite.Equal("/etc/pki/tls/certs/localhost.crt", APIcfg.Cert)
 	suite.Equal("/etc/pki/tls/private/localhost.key", APIcfg.CertKey)
+	suite.Equal("/etc/grid-security/certificates", APIcfg.CertificateAuthoritiesDir)
 	suite.Equal(true, APIcfg.ResAuth)
+	suite.True(APIcfg.PushTlsEnabled)
+	suite.Equal("localhost", APIcfg.PushServerHost)
+	suite.Equal(5555, APIcfg.PushServerPort)
+	suite.True(APIcfg.VerifyPushServer)
+	suite.Equal([]string{"SYSLOG", "CONSOLE"}, APIcfg.LogFacilities)
 }
 
 func TestConfigTestSuite(t *testing.T) {

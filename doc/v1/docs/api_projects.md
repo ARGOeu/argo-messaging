@@ -209,3 +209,264 @@ Code: `200 OK`, Empty response if successful.
 
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
+
+### [GET] List all users that are members of a specific project
+
+### Example request
+```
+curl -X GET -H "Content-Type: application/json"
+  "https://{URL}/v1/projects/ARGO2/members?key=S3CR3T"
+```
+
+### Responses  
+If successful, the response contains a list of all available users in the specific project
+
+Success Response
+`200 OK`
+
+```json
+{
+ "users": [
+    {
+       "uuid": "99bfd746-4ebe-11e8-9c2d-fa7ae01bbebw",
+       "projects": [
+          {
+             "project": "ARGO2",
+             "roles": [
+                "consumer",
+                "publisher"
+             ],
+             "topics": [],
+             "subscriptions": []
+          }
+       ],
+       "name": "Test",
+       "token": "S3CR3T",
+       "email": "Test@test.com",
+       "service_roles": [],
+       "created_on": "2009-11-10T23:00:00Z",
+       "modified_on": "2009-11-10T23:00:00Z"
+    }
+ ],
+ "nextPageToken": "",
+ "totalSize": 1
+}
+```
+
+### Unpriviledge mode (non service_admin user)
+When a user is project_admin instead of service_admin and lists a project's users the results
+returned remove user information such as `token`, `service_roles` and `created_by` For example:
+
+```json
+{
+ "users": [
+    {
+       "uuid": "99bfd746-4ebe-11e8-9c2d-fa7ae01bbebw",
+       "projects": [
+          {
+             "project": "ARGO2",
+             "roles": [
+                "consumer",
+                "publisher"
+             ],
+             "topics": [],
+             "subscriptions": []
+          }
+       ],
+       "name": "Test",
+       "token": "",
+       "email": "Test@test.com",
+       "service_roles": [],
+       "created_on": "2009-11-10T23:00:00Z",
+       "modified_on": "2009-11-10T23:00:00Z"
+    }
+ ],
+ "nextPageToken": "",
+ "totalSize": 1
+}
+```
+
+### [GET] Show a specific member user of the specific project
+
+### Example request
+```
+curl -X GET -H "Content-Type: application/json"
+  "https://{URL}/v1/projects/ARGO2/members/Test?key=S3CR3T"
+```
+
+### Responses  
+If successful, the response contains information of the specific user Test
+
+Success Response
+`200 OK`
+
+```json
+{
+ "users": [
+    {
+       "uuid": "99bfd746-4ebe-11e8-9c2d-fa7ae01bbebw",
+       "projects": [
+          {
+             "project": "ARGO2",
+             "roles": [
+                "consumer",
+                "publisher"
+             ],
+             "topics": [],
+             "subscriptions": []
+          }
+       ],
+       "name": "Test",
+       "token": "S3CR3T",
+       "email": "Test@test.com",
+       "service_roles": [],
+       "created_on": "2009-11-10T23:00:00Z",
+       "modified_on": "2009-11-10T23:00:00Z"
+    }
+ ],
+ "nextPageToken": "",
+ "totalSize": 1
+}
+```
+
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors
+
+## [GET] Project Metrics
+The following request returns related metrics for the specific project: eg. the number of topics
+
+### Request
+```
+GET "/v1/projects/{project_name}:metrics"
+```
+
+### Where
+- Project_name: name of the project
+- topic_name: name of the topic
+
+### Example request
+
+```json
+curl  -H "Content-Type: application/json"
+"https://{URL}/v1/projects/BRAND_NEW:metrics?key=S3CR3T"
+```
+
+
+
+### Responses  
+If successful it returns projects related metrics (number of topics, number of subscriptions).
+
+Success Response
+`200 OK`
+```
+{
+   "metrics": [
+      {
+         "metric": "project.number_of_topics",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "project",
+         "resource_name": "ARGO",
+         "timeseries": [
+            {
+               "timestamp": "2017-06-30T13:53:13Z",
+               "value": 3
+            }
+         ],
+         "description": "Counter that displays the number of topics belonging to the specific project"
+      },
+      {
+         "metric": "project.number_of_subscriptions",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "project",
+         "resource_name": "ARGO",
+         "timeseries": [
+            {
+               "timestamp": "2017-06-30T13:53:13Z",
+               "value": 4
+            }
+         ],
+         "description": "Counter that displays the number of subscriptions belonging to the specific project"
+      },
+      {
+         "metric": "project.user.number_of_subscriptions",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "project.user",
+         "resource_name": "ARGO.UserA",
+         "timeseries": [
+            {
+               "timestamp": "2017-06-30T13:53:13Z",
+               "value": 3
+            }
+         ],
+         "description": "Counter that displays the number of subscriptions that a user has access to the specific project"
+      },
+      {
+         "metric": "project.user.number_of_subscriptions",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "project.user",
+         "resource_name": "ARGO.UserB",
+         "timeseries": [
+            {
+               "timestamp": "2017-06-30T13:53:13Z",
+               "value": 3
+            }
+         ],
+         "description": "Counter that displays the number of subscriptions that a user has access to the specific project"
+      },
+      {
+         "metric": "project.user.number_of_subscriptions",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "project.user",
+         "resource_name": "ARGO.UserX",
+         "timeseries": [
+            {
+               "timestamp": "2017-06-30T13:53:13Z",
+               "value": 1
+            }
+         ],
+         "description": "Counter that displays the number of subscriptions that a user has access to the specific project"
+      },
+      {
+         "metric": "project.user.number_of_subscriptions",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "project.user",
+         "resource_name": "ARGO.UserZ",
+         "timeseries": [
+            {
+               "timestamp": "2017-06-30T13:53:13Z",
+               "value": 2
+            }
+         ],
+         "description": "Counter that displays the number of subscriptions that a user has access to the specific project"
+      },
+      {
+         "metric": "project.number_of_daily_messages",
+         "metric_type": "counter",
+         "value_type": "int64",
+         "resource_type": "project",
+         "resource_name": "ARGO",
+         "timeseries": [
+            {
+               "timestamp": "2018-10-02",
+               "value": 30
+            },
+            {
+               "timestamp": "2018-10-01",
+               "value": 110
+            }
+         ],
+         "description": "A collection of counters that represents the total number of messages published each day to all of the project's topics"
+      }
+   ]
+}
+
+```
+
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors

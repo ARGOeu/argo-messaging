@@ -1,20 +1,21 @@
 package brokers
 
 import (
+	"context"
+	"github.com/ARGOeu/argo-messaging/messages"
+	"github.com/Shopify/sarama"
+	log "github.com/sirupsen/logrus"
 	"strconv"
 	"sync"
 	"time"
-
-	log "github.com/Sirupsen/logrus"
-)
-
-import (
-	"github.com/ARGOeu/argo-messaging/messages"
-	"github.com/Shopify/sarama"
 )
 
 type topicLock struct {
 	sync.Mutex
+}
+
+type TopicOffset struct {
+	Offset int64 `json:"offset"`
 }
 
 // KafkaBroker struct
@@ -61,17 +62,36 @@ func (b *KafkaBroker) unlockForTopic(topic string) {
 func (b *KafkaBroker) CloseConnections() {
 	// Close Producer
 	if err := b.Producer.Close(); err != nil {
-		log.Fatalln(err)
-	}
-	// Close Consumer
-	if err := b.Consumer.Close(); err != nil {
-		log.Fatalln(err)
-	}
-	// Close Client
-	if err := b.Client.Close(); err != nil {
-		log.Fatalln(err)
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "kafka",
+				"backend_hosts":   b.Servers,
+			},
+		).Fatal(err.Error())
 	}
 
+	// Close Consumer
+	if err := b.Consumer.Close(); err != nil {
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "kafka",
+				"backend_hosts":   b.Servers,
+			},
+		).Fatal(err.Error())
+	}
+
+	// Close Client
+	if err := b.Client.Close(); err != nil {
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "kafka",
+				"backend_hosts":   b.Servers,
+			},
+		).Fatal(err.Error())
+	}
 }
 
 // NewKafkaBroker creates a new kafka broker object
@@ -86,37 +106,73 @@ func (b *KafkaBroker) InitConfig() {
 	b.Config = sarama.NewConfig()
 }
 
-// Initialize the broker struct
+// Initialize method is a retry wrapper for init (which attempts to connect to broker backend)
 func (b *KafkaBroker) Initialize(peers []string) {
+	for {
+		// Try to initialize broker backend
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "kafka",
+				"backend_hosts":   peers,
+			},
+		).Info("Trying to connect to Kafka")
+		err := b.init(peers)
+		// if err happened log it and retry in 3sec - else all is ok so return
+		if err != nil {
+			log.WithFields(
+				log.Fields{
+					"type":            "backend_log",
+					"backend_service": "kafka",
+					"backend_hosts":   peers,
+				},
+			).Error(err.Error())
+			time.Sleep(3 * time.Second)
+		} else {
+			log.WithFields(
+				log.Fields{
+					"type":            "backend_log",
+					"backend_service": "kafka",
+					"backend_hosts":   peers,
+				},
+			).Info("Connection to Kafka established successfully")
+			return
+		}
+	}
+}
+
+// init attempts to connect to broker backend and initialize local broker-related structures
+func (b *KafkaBroker) init(peers []string) error {
+
 	b.createTopicLock = topicLock{}
 	b.consumeLock = make(map[string]*topicLock)
 	b.Config = sarama.NewConfig()
+	b.Config.Admin.Timeout = 30 * time.Second
+	b.Config.Consumer.Fetch.Default = 1000000
 	b.Config.Producer.RequiredAcks = sarama.WaitForAll
 	b.Config.Producer.Retry.Max = 5
+	b.Config.Producer.Return.Successes = true
+	b.Config.Version = sarama.V2_1_0_0
 	b.Servers = peers
 
 	var err error
 
-	b.Client, err = sarama.NewClient(b.Servers, nil)
+	b.Client, err = sarama.NewClient(b.Servers, b.Config)
 	if err != nil {
-		// Should not reach here
-		log.Fatal("BROKER", "\t", err.Error())
+		return err
 	}
 
 	b.Producer, err = sarama.NewSyncProducer(b.Servers, b.Config)
 	if err != nil {
-		// Should not reach here
-		log.Fatal("BROKER", "\t", err.Error())
-
+		return err
 	}
 
-	b.Consumer, err = sarama.NewConsumer(b.Servers, nil)
+	b.Consumer, err = sarama.NewConsumer(b.Servers, b.Config)
 	if err != nil {
-		log.Fatal("BROKER", "\t", err.Error())
+		return err
 	}
 
-	log.Info("BROKER", "\t", "Kafka Backend Initialized! Kafka node list", peers)
-
+	return nil
 }
 
 // Publish function publish a message to the broker
@@ -126,7 +182,8 @@ func (b *KafkaBroker) Publish(topic string, msg messages.Message) (string, strin
 	msg.ID = strconv.FormatInt(off, 10)
 	// Stamp time to UTC Z to nanoseconds
 	zNano := "2006-01-02T15:04:05.999999999Z"
-	t := time.Now()
+	// Timestamp on publish time -- should be in UTC
+	t := time.Now().UTC()
 	msg.PubTime = t.Format(zNano)
 
 	// Publish the message
@@ -139,6 +196,15 @@ func (b *KafkaBroker) Publish(topic string, msg messages.Message) (string, strin
 
 	partition, offset, err := b.Producer.SendMessage(msgFinal)
 	if err != nil {
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "kafka",
+				"topic":           topic,
+				"error":           err.Error(),
+			},
+		).Errorf("Could not publish message to topic")
+
 		return msg.ID, topic, int(partition), offset, err
 	}
 
@@ -151,7 +217,14 @@ func (b *KafkaBroker) GetMaxOffset(topic string) int64 {
 	// Fetch offset
 	loff, err := b.Client.GetOffset(topic, 0, sarama.OffsetNewest)
 	if err != nil {
-		log.Error(err.Error())
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "kafka",
+				"backend_hosts":   b.Servers,
+				"error":           err.Error(),
+			},
+		).Errorf("Could not retrieve max offset")
 	}
 	return loff
 }
@@ -161,29 +234,72 @@ func (b *KafkaBroker) GetMinOffset(topic string) int64 {
 	// Fetch offset
 	loff, err := b.Client.GetOffset(topic, 0, sarama.OffsetOldest)
 	if err != nil {
-		log.Error(err.Error())
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "kafka",
+				"backend_hosts":   b.Servers,
+				"error":           err.Error(),
+			},
+		).Errorf("Could not retrieve min offset")
 	}
 	return loff
 }
 
+// TimeToOffset returns the offset of the first message with a timestamp equal or
+// greater than the time given.
+func (b *KafkaBroker) TimeToOffset(topic string, t time.Time) (int64, error) {
+	return b.Client.GetOffset(topic, 0, t.UnixNano()/int64(time.Millisecond))
+}
+
+// DeleteTopic deletes the topic from the Kafka cluster
+func (b *KafkaBroker) DeleteTopic(topic string) error {
+
+	var err error
+
+	clusterAdmin, err := sarama.NewClusterAdmin(b.Servers, b.Config)
+	if err != nil {
+		return err
+	}
+
+	b.lockForTopic(topic)
+
+	defer func() {
+		b.unlockForTopic(topic)
+		clusterAdmin.Close()
+	}()
+
+	return clusterAdmin.DeleteTopic(topic)
+}
+
 // Consume function to consume a message from the broker
-func (b *KafkaBroker) Consume(topic string, offset int64, imm bool, max int64) ([]string, error) {
+func (b *KafkaBroker) Consume(ctx context.Context, topic string, offset int64, imm bool, max int64) ([]string, error) {
 
 	b.lockForTopic(topic)
 
 	defer b.unlockForTopic(topic)
 	// Fetch offsets
 	loff, err := b.Client.GetOffset(topic, 0, sarama.OffsetNewest)
+
 	if err != nil {
-		log.Error(err.Error())
+		return []string{}, err
 	}
 
 	oldOff, err := b.Client.GetOffset(topic, 0, sarama.OffsetOldest)
 	if err != nil {
-		log.Error(err.Error())
+		return []string{}, err
 	}
 
-	log.Debug("consuming topic:", topic, " min_offset:", oldOff, " max_offset:", loff)
+	log.WithFields(
+		log.Fields{
+			"type":            "backend_log",
+			"backend_service": "kafka",
+			"topic":           topic,
+			"min_offset":      oldOff,
+			"max_offset":      loff,
+			"current_offset":  offset,
+		},
+	).Debug("Trying to consume")
 
 	// If tracked offset is equal or bigger than topic offset means no new messages
 	if offset >= loff {
@@ -192,22 +308,41 @@ func (b *KafkaBroker) Consume(topic string, offset int64, imm bool, max int64) (
 
 	// If tracked offset is left behind increment it to topic's min. offset
 	if offset < oldOff {
-		log.Debug("Tracked offset is off for topic:", topic, " broker offset:", offset, " tracked offset:", oldOff)
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "kafka",
+				"topic":           topic,
+				"tracked_offset":  oldOff,
+				"broker_offset":   offset,
+			},
+		).Debug("Tracked offset is off for topic")
 		return []string{}, ErrOffsetOff
 	}
 
 	partitionConsumer, err := b.Consumer.ConsumePartition(topic, 0, offset)
 
 	if err != nil {
-		log.Debug("Unable to consume")
-		log.Debug(err.Error())
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "kafka",
+				"topic":           topic,
+				"error":           err.Error(),
+			},
+		).Debug("Unable to consume")
 		return []string{}, err
-
 	}
 
 	defer func() {
 		if err := partitionConsumer.Close(); err != nil {
-			log.Fatalln(err)
+			log.WithFields(
+				log.Fields{
+					"type":            "backend_log",
+					"backend_service": "kafka",
+					"topic":           topic,
+				},
+			).Fatal(err.Error())
 		}
 	}()
 
@@ -222,6 +357,11 @@ func (b *KafkaBroker) Consume(topic string, offset int64, imm bool, max int64) (
 ConsumerLoop:
 	for {
 		select {
+		// If the http client cancels the http request break consume loop
+		case <-ctx.Done():
+			{
+				break ConsumerLoop
+			}
 		case <-timeout:
 			{
 				break ConsumerLoop
@@ -232,17 +372,24 @@ ConsumerLoop:
 
 			consumed++
 
-			log.Debug("consumed:" + string(consumed))
-			log.Debug("max:" + string(max))
-			log.Debug(msg)
-			// if we pass over the available messages and still want more
+			log.WithFields(
+				log.Fields{
+					"type":            "backend_log",
+					"backend_service": "kafka",
+					"topic":           topic,
+					"message":         msg,
+					"consumed":        string(consumed),
+					"max":             string(max),
+				},
+			).Debug("Consumed message")
 
+			// if we pass over the available messages and still want more
 			if consumed >= max {
 				break ConsumerLoop
 			}
 
 			if offset+consumed > loff-1 {
-				// if returnImmediately is set dont wait for more
+				// if returnImmediately is set don't wait for more
 				if imm {
 					break ConsumerLoop
 				}

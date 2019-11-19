@@ -7,10 +7,21 @@ import (
 
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
-	"github.com/ARGOeu/argo-messaging/push"
+	oldPush "github.com/ARGOeu/argo-messaging/push"
+	"github.com/ARGOeu/argo-messaging/push/grpc/client"
 	"github.com/ARGOeu/argo-messaging/stores"
-	log "github.com/Sirupsen/logrus"
+	"github.com/gorilla/handlers"
+	log "github.com/sirupsen/logrus"
 )
+
+func init() {
+	// don't use colors in output
+	log.SetFormatter(
+		&log.TextFormatter{
+			FullTimestamp: true,
+			DisableColors: true},
+	)
+}
 
 func main() {
 	// create and load configuration object
@@ -21,16 +32,28 @@ func main() {
 	store.Initialize()
 
 	// create and initialize broker based on configuration
-	broker := brokers.NewKafkaBroker(cfg.GetZooList())
+	broker := brokers.NewKafkaBroker(cfg.GetBrokerInfo())
 	defer broker.CloseConnections()
 
-	sndr := push.NewHTTPSender(1)
+	mgr := &oldPush.Manager{}
 
-	mgr := push.NewManager(broker, store, sndr)
-	mgr.LoadPushSubs()
-	mgr.StartAll()
+	// ams push server pushClient
+	pushClient := push.NewGrpcClient(cfg)
+	err := pushClient.Dial()
+	if err != nil {
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "ams-push-server",
+				"backend_hosts":   pushClient.Target(),
+			},
+		).Error(err.Error())
+	}
+
+	defer pushClient.Close()
+
 	// create and initialize API routing object
-	API := NewRouting(cfg, broker, store, mgr, defaultRoutes)
+	API := NewRouting(cfg, broker, store, mgr, pushClient, defaultRoutes)
 
 	//Configure TLS support only
 	config := &tls.Config{
@@ -38,11 +61,14 @@ func main() {
 		PreferServerCipherSuites: true,
 	}
 
+	// Initialize CORS specifics
+	xReqWithConType := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type"})
+	allowVerbs := handlers.AllowedMethods([]string{"OPTIONS", "POST", "GET", "PUT", "DELETE", "HEAD"})
 	// Initialize server wth proper parameters
-	server := &http.Server{Addr: ":" + strconv.Itoa(cfg.Port), Handler: API.Router, TLSConfig: config}
+	server := &http.Server{Addr: ":" + strconv.Itoa(cfg.Port), Handler: handlers.CORS(xReqWithConType, allowVerbs)(API.Router), TLSConfig: config}
 
 	// Web service binds to server. Requests served over HTTPS.
-	err := server.ListenAndServeTLS(cfg.Cert, cfg.CertKey)
+	err = server.ListenAndServeTLS(cfg.Cert, cfg.CertKey)
 	if err != nil {
 		log.Fatal("API", "\t", "ListenAndServe:", err)
 	}

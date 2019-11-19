@@ -5,8 +5,16 @@
   "kafka_znode":"",
   "store_host":"localhost",
   "store_db":"argo_msg",
-  "certificate":"/etc/pki/tls/certs/localhost.crt",
-  "certificate_key":"/etc/pki/tls/private/localhost.key",
+  "certificate":"/etc/grid-security/client/hostcert.pem",
+  "certificate_key":"/etc/grid-security/client/hostkey.pem",
+  "certificate_authorities_dir": "/etc/grid-security/myca",
   "service_token":"b328c3861f061f87cbd34cf34f36ba2ae20883a5",
-  "log_level":"INFO"
+  "log_level":"INFO",
+  "push_enabled":true,
+  "push_tls_enabled": true,
+  "push_server_host": "localhost",
+  "push_server_port": 5555,
+  "verify_push_server": true,
+  "push_worker_token": "18492e78a1e95be564c00ba4537c4171ec628f98",
+  "log_facilities": ["console"]
 }

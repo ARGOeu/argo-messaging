@@ -18,9 +18,6 @@ go-build-linux-static:
 	mkdir -p ${GOPATH}/src/github.com/ARGOeu/argo-messaging
 	cp -R . ${GOPATH}/src/github.com/ARGOeu/argo-messaging
 	cd ${GOPATH}/src/github.com/ARGOeu/argo-messaging && \
-	go get github.com/tools/godep && \
-	${GOPATH}/bin/godep restore && \
-	${GOPATH}/bin/godep update ... && \
 	CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o ${APPDIR}/argo-messaging-linux-static . &&\
 	chown ${hostUID} ${APPDIR}/argo-messaging-linux-static
 
@@ -28,10 +25,7 @@ go-test:
 	mkdir -p ${GOPATH}/src/github.com/ARGOeu/argo-messaging
 	cp -R . ${GOPATH}/src/github.com/ARGOeu/argo-messaging
 	cd ${GOPATH}/src/github.com/ARGOeu/argo-messaging && \
-	go get github.com/tools/godep && \
 	go get github.com/axw/gocov/... && \
 	go get github.com/AlekSi/gocov-xml && \
-	${GOPATH}/bin/godep restore && \
-	${GOPATH}/bin/godep update ... && \
 	${GOPATH}/bin/gocov test ${GOFILES_NOVENDOR} | ${GOPATH}/bin/gocov-xml > ${APPDIR}/coverage.xml &&\
 	chown ${hostUID} ${APPDIR}/coverage.xml
