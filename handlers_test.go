@@ -4711,6 +4711,143 @@ func (suite *HandlerTestSuite) TestTopicListAllPublisherWithPagination() {
 	suite.Equal(expResp, w.Body.String())
 }
 
+func (suite *HandlerTestSuite) TestPublishWithSchema() {
+
+	type td struct {
+		postBody           string
+		expectedResponse   string
+		expectedStatusCode int
+		msg                string
+	}
+
+	testData := []td{
+		{
+			postBody: `{
+	"messages" : [
+		
+		{
+			"attributes": {},
+			"data": "eyJuYW1lIjoibmFtZS0xIiwgImVtYWlsIjogInRlc3RAZXhhbXBsZS5jb20ifQ=="
+		},
+		
+		{
+			"attributes": {},
+			"data": "eyJuYW1lIjoibmFtZS0xIiwgImVtYWlsIjogInRlc3RAZXhhbXBsZS5jb20iLCAiYWRkcmVzcyI6IlN0cmVldCAxMyIsInRlbGVwaG9uZSI6IjY5NDg1Njc4ODkifQ=="
+		}
+	]
+}`,
+			expectedStatusCode: 200,
+			expectedResponse: `{
+   "messageIds": [
+      "1",
+      "2"
+   ]
+}`,
+			msg: "Case where the messages are validated successfully",
+		},
+		{
+			postBody: `{
+	"messages" : [
+		
+		{
+			"attributes": {},
+			"data": "eyJuYW1lIjoibmFtZS0xIiwiYWRkcmVzcyI6IlN0cmVldCAxMyIsInRlbGVwaG9uZSI6Njk0ODU2Nzg4OX0="
+		},
+		
+		{
+			"attributes": {},
+			"data": "eyJuYW1lIjoibmFtZS0xIiwgImVtYWlsIjogInRlc3RAZXhhbXBsZS5jb20iLCAiYWRkcmVzcyI6IlN0cmVldCAxMyIsInRlbGVwaG9uZSI6IjY5NDg1Njc4ODkifQ=="
+		}
+	]
+}`,
+			expectedStatusCode: 400,
+			expectedResponse: `{
+   "error": {
+      "code": 400,
+      "message": "Message 0 data is not valid.1)(root): email is required.2)telephone: Invalid type. Expected: string, given: integer.",
+      "status": "INVALID_ARGUMENT"
+   }
+}`,
+			msg: "Case where one of the messages is not successfully validated(2 errors)",
+		},
+		{
+			postBody: `{
+	"messages" : [
+		
+		{
+			"attributes": {},
+			"data": "eyJuYW1lIjoibmFtZS0xIiwiYWRkcmVzcyI6IlN0cmVldCAxMyIsInRlbGVwaG9uZSI6IjY5NDg1Njc4ODkifQo="
+		},
+		
+		{
+			"attributes": {},
+			"data": "eyJuYW1lIjoibmFtZS0xIiwgImVtYWlsIjogInRlc3RAZXhhbXBsZS5jb20iLCAiYWRkcmVzcyI6IlN0cmVldCAxMyIsInRlbGVwaG9uZSI6IjY5NDg1Njc4ODkifQ=="
+		}
+	]
+}`,
+			expectedStatusCode: 400,
+			expectedResponse: `{
+   "error": {
+      "code": 400,
+      "message": "Message 0 data is not valid,(root): email is required",
+      "status": "INVALID_ARGUMENT"
+   }
+}`,
+			msg: "Case where the one of the messages is not successfully validated(1 error)",
+		},
+		{
+			postBody: `{
+	"messages" : [
+		
+		{
+			"attributes": {},
+			"data": "eyJuYW1lIjoibmFtZS0xIiwgImVtYWlsIjogInRlc3RAZXhhbXBsZS5jb20iLCAiYWRkcmVzcyI6IlN0cmVldCAxMyIsInRlbGVwaG9uZSI6IjY5NDg1Njc4ODkifQ=="
+		},
+		
+		{
+			"attributes": {},
+			"data": "eyJuYW1lIjoibmFtZS0xIiwiYWRkcmVzcyI6IlN0cmVldCAxMyIsInRlbGVwaG9uZSI6IjY5NDg1Njc4ODkiCg=="
+		}
+	]
+}`,
+			expectedStatusCode: 400,
+			expectedResponse: `{
+   "error": {
+      "code": 400,
+      "message": "Message 1 data is not valid JSON format,unexpected EOF",
+      "status": "INVALID_ARGUMENT"
+   }
+}`,
+			msg: "Case where the one of the messages is not in valid json format",
+		},
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	cfgKafka.PushEnabled = true
+	cfgKafka.PushWorkerToken = "push_token"
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+
+	for _, t := range testData {
+
+		w := httptest.NewRecorder()
+		url := fmt.Sprintf("http://localhost:8080/v1/projects/ARGO/topics/%v", "topic2")
+		req, err := http.NewRequest("POST", url, strings.NewReader(t.postBody))
+		if err != nil {
+			log.Fatal(err)
+		}
+		router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapMockAuthConfig(TopicPublish, cfgKafka, &brk, str, &mgr, pc))
+		router.ServeHTTP(w, req)
+
+		suite.Equal(t.expectedStatusCode, w.Code, t.msg)
+		suite.Equal(t.expectedResponse, w.Body.String(), t.msg)
+	}
+}
+
 func (suite *HandlerTestSuite) TestTopicListAllFirstPage() {
 
 	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/topics?pageSize=2", nil)
