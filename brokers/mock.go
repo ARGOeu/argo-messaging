@@ -5,7 +5,9 @@ import (
 	"strconv"
 
 	"errors"
+	"fmt"
 	"github.com/ARGOeu/argo-messaging/messages"
+	"strings"
 	"time"
 )
 
@@ -96,7 +98,9 @@ func (b *MockBroker) Publish(topic string, msg messages.Message) (string, string
 	b.MsgList = append(b.MsgList, payload)
 	off := b.GetMaxOffset(topic) - 1
 	msgID := strconv.FormatInt(off, 10)
-	return msgID, "argo_uuid.topic1", 0, int64(len(b.MsgList)), nil
+	// split the name that SHOULD come in the form of project_uuid.topic_name
+	s := strings.Split(topic, ".")
+	return msgID, fmt.Sprintf("%s.%s", s[0], s[1]), 0, int64(len(b.MsgList)), nil
 }
 
 // GetOffset returns a current topic's offset
