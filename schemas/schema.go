@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ARGOeu/argo-messaging/messages"
 	"github.com/ARGOeu/argo-messaging/projects"
 	"github.com/ARGOeu/argo-messaging/stores"
 	log "github.com/sirupsen/logrus"
@@ -15,6 +16,7 @@ import (
 const (
 	JSON                   = "json"
 	UnsupportedSchemaError = `Schema type can only be 'json'`
+	GenericError           = "Could not load schema for topic"
 )
 
 // schema holds information regarding a schema that will be used to validate a topic's published messages
@@ -35,6 +37,69 @@ type SchemaList struct {
 // Empty returns weather or not there are any schemas inside the schema list
 func (sl *SchemaList) Empty() bool {
 	return len(sl.Schemas) <= 0
+}
+
+// ValidateMessages validates a list of messages against the provided schema
+func ValidateMessages(schema Schema, msgList messages.MsgList) error {
+
+	switch schema.Type {
+	case JSON:
+		// load the schema
+		s, err := gojsonschema.NewSchema(gojsonschema.NewGoLoader(schema.RawSchema))
+
+		if err != nil {
+			log.WithFields(
+				log.Fields{
+					"type":        "service_log",
+					"schema_name": schema.FullName,
+					"error":       err.Error(),
+				},
+			).Error("Could not load json schema")
+			return errors.New("500")
+		}
+
+		for idx, msg := range msgList.Msgs {
+
+			// decode the message payload from base64
+			messageBytes, err := base64.StdEncoding.DecodeString(msg.Data)
+
+			if err != nil {
+				return fmt.Errorf("Message %v is not in valid base64 enocding,%s", idx, err.Error())
+			}
+
+			documentLoader := gojsonschema.NewBytesLoader(messageBytes)
+
+			result, err := s.Validate(documentLoader)
+			if err != nil {
+				return fmt.Errorf("Message %v data is not valid JSON format,%s", idx, err.Error())
+			}
+
+			if !result.Valid() {
+				if len(result.Errors()) > 1 {
+					sb := strings.Builder{}
+
+					for idx, e := range result.Errors() {
+						sb.WriteString(fmt.Sprintf("%v)%s.", idx+1, e.String()))
+					}
+
+					return fmt.Errorf("Message %v data is not valid.%s", idx, sb.String())
+				} else {
+					return fmt.Errorf("Message %v data is not valid,%v", idx, result.Errors()[0].String())
+				}
+			}
+		}
+	default:
+		log.WithFields(
+			log.Fields{
+				"type":        "service_log",
+				"schema_name": schema.FullName,
+				"schema_type": schema.Type,
+			},
+		).Error("Schema with unsupported type")
+		return errors.New("500")
+	}
+
+	return nil
 }
 
 // ExtractSchema gets a full schema ref and extracts project and schema

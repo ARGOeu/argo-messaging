@@ -2,6 +2,7 @@ package schemas
 
 import (
 	"errors"
+	"github.com/ARGOeu/argo-messaging/messages"
 	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/stretchr/testify/suite"
 	"testing"
@@ -314,6 +315,108 @@ func (suite *SchemasTestSuite) TestUpdate() {
 		suite.Equal(t.expectedSchema, s, t.msg)
 		suite.Equal(t.err, e, t.msg)
 		suite.Equal(t.returnQuery, t.queryFunc(), t.msg)
+	}
+}
+
+func (suite *SchemasTestSuite) TestValidateMessages() {
+
+	type td struct {
+		schema      Schema
+		messageList messages.MsgList
+		err         error
+		msg         string
+	}
+
+	schema := Schema{
+		ProjectUUID: "argo_uuid",
+		UUID:        "schema_uuid_1",
+		Name:        "schema-1",
+		Type:        JSON,
+		RawSchema: map[string]interface{}{
+			"properties": map[string]interface{}{
+				"address":   map[string]interface{}{"type": "string"},
+				"email":     map[string]interface{}{"type": "string"},
+				"name":      map[string]interface{}{"type": "string"},
+				"telephone": map[string]interface{}{"type": "string"},
+			},
+			"required": []interface{}{"name", "email"},
+			"type":     "object",
+		},
+	}
+
+	testdata := []td{
+		{
+			schema: schema,
+			messageList: messages.MsgList{
+				Msgs: []messages.Message{
+					{
+						// {"name":"name-1", "email": "test@example.com"}
+						Data: "eyJuYW1lIjoibmFtZS0xIiwgImVtYWlsIjogInRlc3RAZXhhbXBsZS5jb20ifQ==",
+					},
+					{
+						//{"name":"name-1", "email": "test@example.com", "address":"Street 13","telephone":"6948567889"}
+						Data: "eyJuYW1lIjoibmFtZS0xIiwgImVtYWlsIjogInRlc3RAZXhhbXBsZS5jb20iLCAiYWRkcmVzcyI6IlN0cmVldCAxMyIsInRlbGVwaG9uZSI6IjY5NDg1Njc4ODkifQ==",
+					},
+				},
+			},
+			err: nil,
+			msg: "Case where the provided messages are successfully validated",
+		},
+		{
+			schema: schema,
+			messageList: messages.MsgList{
+				Msgs: []messages.Message{
+					{
+						// {"name":"name-1","address":"Street 13","telephone":6948567889}
+						Data: "eyJuYW1lIjoibmFtZS0xIiwiYWRkcmVzcyI6IlN0cmVldCAxMyIsInRlbGVwaG9uZSI6Njk0ODU2Nzg4OX0=",
+					},
+					{
+						//{"name":"name-1", "email": "test@example.com", "address":"Street 13","telephone":"6948567889"}
+						Data: "eyJuYW1lIjoibmFtZS0xIiwgImVtYWlsIjogInRlc3RAZXhhbXBsZS5jb20iLCAiYWRkcmVzcyI6IlN0cmVldCAxMyIsInRlbGVwaG9uZSI6IjY5NDg1Njc4ODkifQ==",
+					},
+				},
+			},
+			err: errors.New("Message 0 data is not valid.1)(root): email is required.2)telephone: Invalid type. Expected: string, given: integer."),
+			msg: "Case where one of the messages is not successfully validated(2 errors)",
+		},
+		{
+			schema: schema,
+			messageList: messages.MsgList{
+				Msgs: []messages.Message{
+					{
+						// {"name":"name-1","address":"Street 13","telephone":"6948567889"}
+						Data: "eyJuYW1lIjoibmFtZS0xIiwiYWRkcmVzcyI6IlN0cmVldCAxMyIsInRlbGVwaG9uZSI6IjY5NDg1Njc4ODkifQo=",
+					},
+					{
+						//{"name":"name-1", "email": "test@example.com", "address":"Street 13","telephone":"6948567889"}
+						Data: "eyJuYW1lIjoibmFtZS0xIiwgImVtYWlsIjogInRlc3RAZXhhbXBsZS5jb20iLCAiYWRkcmVzcyI6IlN0cmVldCAxMyIsInRlbGVwaG9uZSI6IjY5NDg1Njc4ODkifQ==",
+					},
+				},
+			},
+			err: errors.New("Message 0 data is not valid,(root): email is required"),
+			msg: "Case where the one of the messages is not successfully validated(1 error)",
+		},
+		{
+			schema: schema,
+			messageList: messages.MsgList{
+				Msgs: []messages.Message{
+					{
+						//{"name":"name-1", "email": "test@example.com", "address":"Street 13","telephone":"6948567889"}
+						Data: "eyJuYW1lIjoibmFtZS0xIiwgImVtYWlsIjogInRlc3RAZXhhbXBsZS5jb20iLCAiYWRkcmVzcyI6IlN0cmVldCAxMyIsInRlbGVwaG9uZSI6IjY5NDg1Njc4ODkifQ==",
+					},
+					{
+						//{"name":"name-1","address":"Street 13","telephone":"6948567889"
+						Data: "eyJuYW1lIjoibmFtZS0xIiwiYWRkcmVzcyI6IlN0cmVldCAxMyIsInRlbGVwaG9uZSI6IjY5NDg1Njc4ODkiCg==",
+					},
+				},
+			},
+			err: errors.New("Message 1 data is not valid JSON format,unexpected EOF"),
+			msg: "Case where the one of the messages is not in valid json format",
+		},
+	}
+
+	for _, t := range testdata {
+		suite.Equal(t.err, ValidateMessages(t.schema, t.messageList), t.msg)
 	}
 }
 

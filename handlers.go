@@ -3037,8 +3037,70 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// check if the topic has a schema associated with it
+	if res.Schema != "" {
+
+		// retrieve the schema
+		_, schemaName, err := schemas.ExtractSchema(res.Schema)
+		if err != nil {
+			log.WithFields(
+				log.Fields{
+					"type":        "service_log",
+					"schema_name": res.Schema,
+					"topic_name":  res.Name,
+					"error":       err.Error(),
+				},
+			).Error("Could not extract schema name")
+			err := APIErrGenericInternal(schemas.GenericError)
+			respondErr(w, err)
+			return
+		}
+
+		sl, err := schemas.Find(projectUUID, "", schemaName, refStr)
+
+		if err != nil {
+			log.WithFields(
+				log.Fields{
+					"type":        "service_log",
+					"schema_name": schemaName,
+					"topic_name":  res.Name,
+					"error":       err.Error(),
+				},
+			).Error("Could not retrieve schema from the store")
+			err := APIErrGenericInternal(schemas.GenericError)
+			respondErr(w, err)
+			return
+		}
+
+		if !sl.Empty() {
+			err := schemas.ValidateMessages(sl.Schemas[0], msgList)
+			if err != nil {
+				if err.Error() == "500" {
+					err := APIErrGenericInternal(schemas.GenericError)
+					respondErr(w, err)
+					return
+				} else {
+					err := APIErrorInvalidData(err.Error())
+					respondErr(w, err)
+					return
+				}
+			}
+		} else {
+			log.WithFields(
+				log.Fields{
+					"type":        "service_log",
+					"schema_name": res.Schema,
+					"topic_name":  res.Name,
+				},
+			).Error("List of schemas was empty")
+			err := APIErrGenericInternal(schemas.GenericError)
+			respondErr(w, err)
+			return
+		}
+	}
+
 	// Init message ids list
-	msgIDs := messages.MsgIDs{}
+	msgIDs := messages.MsgIDs{IDs: []string{}}
 
 	// For each message in message list
 	for _, msg := range msgList.Msgs {
