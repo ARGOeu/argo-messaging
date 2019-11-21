@@ -58,6 +58,91 @@ Success Response
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
 
+## [GET] Manage Schemas - Retrieve All Schemas
+This request retrieves all schemas under the given project.
+
+### Request
+```json
+GET "/v1/projects/{project_name}/schemas"
+```
+
+### Where
+- project_name: Name of the project in which the schema will belong
+
+### Example request
+```json
+curl -X GET -H "Content-Type: application/json"
+ " https://{URL}/v1/projects/project-1/schemas?key=S3CR3T"
+```
+
+### Responses  
+
+If successful, the response contains all the schemas of the given project.
+
+Success Response
+`200 OK`
+```json
+{
+  "schemas": [
+  {
+    "uuid": "50811bd1-c94c-4ad7-8f55-a561c6270b50",
+    "name": "projects/project-1/schemas/schema-1",
+    "type": "json",
+    "schema": {
+        "properties": {
+            "address": {
+                "type": "string"
+            },
+            "email": {
+                "type": "string"
+            },
+            "name": {
+                "type": "string"
+            },
+            "telephone": {
+                "type": "string"
+            }
+        },
+        "required": [
+            "name",
+            "email"
+        ],
+        "type": "object"
+    }
+  },
+  {
+    "uuid": "50811bd1-c94c-4ad7-8f55-a561c6270b55",
+    "name": "projects/project-1/schemas/schema-2",
+    "type": "json",
+    "schema": {
+        "properties": {
+            "address": {
+                "type": "string"
+            },
+            "email": {
+                "type": "string"
+            },
+            "name": {
+                "type": "string"
+            },
+            "telephone": {
+                "type": "string"
+            }
+        },
+        "required": [
+            "name",
+            "email"
+        ],
+        "type": "object"
+    }
+  }
+ ]
+}
+```
+
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors
+
 ## [POST] Manage Schemas - Create new Schema
 This request creates a new schema
 

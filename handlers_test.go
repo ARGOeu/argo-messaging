@@ -6146,6 +6146,113 @@ func (suite *HandlerTestSuite) TestSchemaListOne() {
 	}
 }
 
+func (suite *HandlerTestSuite) TestSchemaListAll() {
+
+	type td struct {
+		expectedResponse   string
+		projectName        string
+		expectedStatusCode int
+		msg                string
+	}
+
+	testData := []td{
+		{
+			projectName:        "ARGO",
+			expectedStatusCode: 200,
+			expectedResponse: `{
+ "schemas": [
+  {
+   "uuid": "schema_uuid_1",
+   "name": "projects/ARGO/schemas/schema-1",
+   "type": "json",
+   "schema": {
+    "properties": {
+     "address": {
+      "type": "string"
+     },
+     "email": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     },
+     "telephone": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "name",
+     "email"
+    ],
+    "type": "object"
+   }
+  },
+  {
+   "uuid": "schema_uuid_2",
+   "name": "projects/ARGO/schemas/schema-2",
+   "type": "json",
+   "schema": {
+    "properties": {
+     "address": {
+      "type": "string"
+     },
+     "email": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     },
+     "telephone": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "name",
+     "email"
+    ],
+    "type": "object"
+   }
+  }
+ ]
+}`,
+			msg: "Case where the schemas under a project are successfully retrieved",
+		},
+		{
+			projectName:        "ARGO2",
+			expectedStatusCode: 200,
+			expectedResponse: `{
+ "schemas": []
+}`,
+			msg: "Case where the given project has no schemas",
+		},
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	cfgKafka.PushEnabled = true
+	cfgKafka.PushWorkerToken = "push_token"
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+
+	for _, t := range testData {
+
+		w := httptest.NewRecorder()
+		url := fmt.Sprintf("http://localhost:8080/v1/projects/%s/schemas", t.projectName)
+		req, err := http.NewRequest("GET", url, nil)
+		if err != nil {
+			log.Fatal(err)
+		}
+		router.HandleFunc("/v1/projects/{project}/schemas", WrapMockAuthConfig(SchemaListAll, cfgKafka, &brk, str, &mgr, pc))
+		router.ServeHTTP(w, req)
+
+		suite.Equal(t.expectedStatusCode, w.Code, t.msg)
+		suite.Equal(t.expectedResponse, w.Body.String(), t.msg)
+	}
+}
+
 func (suite *HandlerTestSuite) TestSchemaUpdate() {
 
 	type td struct {
