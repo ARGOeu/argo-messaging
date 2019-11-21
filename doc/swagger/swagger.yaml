@@ -1823,6 +1823,21 @@ paths:
           $ref: "#/responses/404"
         500:
           $ref: "#/responses/500"
+  
+  /version:
+    get:
+      summary: "List API Version information"
+      description: "List api version information such as release version, commit hash etc"
+      tags:
+        - Version
+      produces:
+        - "application/json"
+        - "application/xml"
+      responses:
+        200:
+          description: "Successful retrieval of version info"
+          schema:
+            $ref: "#/definitions/Version"
 
 parameters:
   ApiKey:
@@ -1994,22 +2009,9 @@ definitions:
         type: string
       value:
         type: string
+        
+  
 
-  SubMetrics:
-    type: object
-    properties:
-      mumber_of_messages:
-        type: integer
-      total_bytes:
-        type: integer
-
-  TopicMetrics:
-    type: object
-    properties:
-      mumber_of_messages:
-        type: integer
-      total_bytes:
-        type: integer
 
   AuthUsers:
     type: object
@@ -2107,8 +2109,6 @@ definitions:
       current:
        type: integer
        description: current offset
-
-
 
   RetryPolicy:
     type: object
@@ -2321,3 +2321,21 @@ definitions:
           status:
             type: string
             description: status of the error
+            
+  Version:
+    type: object
+    properties:
+      release:
+        type: string
+      commit: 
+        type: string        
+      build_time: 
+        type: string
+      golang:
+        type: string
+      compiler: 
+        type: string
+      os: 
+        type: string
+      architecture:
+          type: string

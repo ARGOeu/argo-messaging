@@ -20,6 +20,7 @@ API Calls
 -   [Subscriptions](api_subs.md)
 -   [Metrics](api_metrics.md)
 -   [Schemas](api_schemas.md)
+-   [Version Information](api_version.md)
 
 Frequent Questions
 
