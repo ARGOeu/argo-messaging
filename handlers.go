@@ -22,11 +22,13 @@ import (
 	"github.com/ARGOeu/argo-messaging/metrics"
 	"github.com/ARGOeu/argo-messaging/projects"
 	oldPush "github.com/ARGOeu/argo-messaging/push"
-	"github.com/ARGOeu/argo-messaging/push/grpc/client"
+	push "github.com/ARGOeu/argo-messaging/push/grpc/client"
 	"github.com/ARGOeu/argo-messaging/schemas"
 	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/ARGOeu/argo-messaging/subscriptions"
 	"github.com/ARGOeu/argo-messaging/topics"
+	"github.com/ARGOeu/argo-messaging/version"
+
 	gorillaContext "github.com/gorilla/context"
 	"github.com/gorilla/mux"
 	"github.com/twinj/uuid"
@@ -3643,6 +3645,34 @@ func SchemaDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondOK(w, nil)
+}
+
+// ListVersion displays version information about the service
+func ListVersion(w http.ResponseWriter, r *http.Request) {
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	v := version.Model{
+		Release:   version.Release,
+		Commit:    version.Commit,
+		BuildTime: version.BuildTime,
+		GO:        version.GO,
+		Compiler:  version.Compiler,
+		OS:        version.OS,
+		Arch:      version.Arch,
+	}
+
+	output, err := json.MarshalIndent(v, "", " ")
+	if err != nil {
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+	respondOK(w, output)
+
 }
 
 // Respond utility functions
