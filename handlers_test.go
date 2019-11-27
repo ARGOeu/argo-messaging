@@ -6525,6 +6525,88 @@ func (suite *HandlerTestSuite) TestSchemaDelete() {
 	}
 }
 
+func (suite *HandlerTestSuite) TestSchemaValidateMessage() {
+
+	type td struct {
+		expectedResponse   string
+		postBody           map[string]interface{}
+		schemaName         string
+		expectedStatusCode int
+		msg                string
+	}
+
+	testData := []td{
+		{
+			expectedResponse: `{
+ "message": "Message validated successfully"
+}`,
+			postBody: map[string]interface{}{
+				"name":  "name1",
+				"email": "email1",
+			},
+			schemaName:         "schema-1",
+			expectedStatusCode: 200,
+			msg:                "Case where the message is successfully validated",
+		},
+		{
+			postBody: map[string]interface{}{
+				"name": "name1",
+			},
+			schemaName:         "schema-1",
+			expectedStatusCode: 400,
+			msg:                "Case where the message is not valid(omit required email field)",
+			expectedResponse: `{
+   "error": {
+      "code": 400,
+      "message": "Message 0 data is not valid,(root): email is required",
+      "status": "INVALID_ARGUMENT"
+   }
+}`,
+		},
+		{
+			schemaName:         "unknown",
+			expectedStatusCode: 404,
+			expectedResponse: `{
+   "error": {
+      "code": 404,
+      "message": "Schema doesn't exist",
+      "status": "NOT_FOUND"
+   }
+}`,
+			msg: "Case where the schema doesn't exist",
+		},
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	cfgKafka.PushEnabled = true
+	cfgKafka.PushWorkerToken = "push_token"
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+
+	for _, t := range testData {
+
+		w := httptest.NewRecorder()
+
+		url := fmt.Sprintf("http://localhost:8080/v1/projects/ARGO/schemas/%v:validate", t.schemaName)
+
+		body, _ := json.MarshalIndent(t.postBody, "", "")
+
+		req, err := http.NewRequest("POST", url, bytes.NewReader(body))
+		if err != nil {
+			log.Fatal(err)
+		}
+		router.HandleFunc("/v1/projects/{project}/schemas/{schema}:validate", WrapMockAuthConfig(SchemaValidateMessage, cfgKafka, &brk, str, &mgr, pc))
+		router.ServeHTTP(w, req)
+
+		suite.Equal(t.expectedStatusCode, w.Code, t.msg)
+		suite.Equal(t.expectedResponse, w.Body.String(), t.msg)
+	}
+}
+
 func TestHandlersTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }
