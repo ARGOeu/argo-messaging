@@ -19,7 +19,7 @@ const (
 	GenericError           = "Could not load schema for topic"
 )
 
-// schema holds information regarding a schema that will be used to validate a topic's published messages
+// Schema holds information regarding a schema that will be used to validate a topic's published messages
 type Schema struct {
 	ProjectUUID string                 `json:"-"`
 	UUID        string                 `json:"uuid"`

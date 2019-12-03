@@ -323,3 +323,50 @@ Success Response
 
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
+
+## [POST] Manage Schemas - Validate Message 
+This request is used whenever we want to test a message against a schema.
+The process to check that your schema and messages are working as expected is to create
+a new topic that needs to be associated with the schema, then create the message in bas64 encoding and
+publish it to the topic.Instead of creating all this pipeline in order to check your schema and messages
+we can explicitly do it on this API call.
+
+### Request
+```json
+POST "/v1/projects/{project_name}/schemas/{schema_name}:validate"
+```
+
+### Where
+- project_name: Name of the project under which the schema belongs
+- schema_name: Name of the schema to be updated
+
+### Example request
+```json
+curl -X POST -H "Content-Type: application/json -d POSTDATA"
+ " https://{URL}/v1/projects/project-1/schemas/schema-1:validate?key=S3CR3T"
+```
+
+### Post body:
+
+```json
+{
+  "name": "name1",
+  "email": "e1@example.com",
+  "address": "address1",
+  "telephone": "6980574421"
+}
+```
+
+### Responses  
+
+
+Success Response
+`200 OK`
+```json
+{
+    "message": "Message validated successfully"
+}
+```
+
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors

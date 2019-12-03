@@ -22,13 +22,15 @@ import (
 	"github.com/ARGOeu/argo-messaging/metrics"
 	"github.com/ARGOeu/argo-messaging/projects"
 	oldPush "github.com/ARGOeu/argo-messaging/push"
-	push "github.com/ARGOeu/argo-messaging/push/grpc/client"
+	"github.com/ARGOeu/argo-messaging/push/grpc/client"
 	"github.com/ARGOeu/argo-messaging/schemas"
 	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/ARGOeu/argo-messaging/subscriptions"
 	"github.com/ARGOeu/argo-messaging/topics"
 	"github.com/ARGOeu/argo-messaging/version"
 
+	"bytes"
+	"encoding/base64"
 	gorillaContext "github.com/gorilla/context"
 	"github.com/gorilla/mux"
 	"github.com/twinj/uuid"
@@ -3659,6 +3661,70 @@ func SchemaDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondOK(w, nil)
+}
+
+// SchemaValidateMessage(POST) validates the given message against the schema
+func SchemaValidateMessage(w http.ResponseWriter, r *http.Request) {
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Get url path variables
+	urlVars := mux.Vars(r)
+	schemaName := urlVars["schema"]
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+
+	// Get project UUID First to use as reference
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
+	schemasList, err := schemas.Find(projectUUID, "", schemaName, refStr)
+	if err != nil {
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	if schemasList.Empty() {
+		err := APIErrorNotFound("Schema")
+		respondErr(w, err)
+		return
+	}
+
+	buf := bytes.Buffer{}
+	_, err = buf.ReadFrom(r.Body)
+	if err != nil {
+		err := APIErrorInvalidData(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	msgList := messages.MsgList{
+		Msgs: []messages.Message{
+			{
+				Data: base64.StdEncoding.EncodeToString(buf.Bytes()),
+			},
+		},
+	}
+
+	err = schemas.ValidateMessages(schemasList.Schemas[0], msgList)
+	if err != nil {
+		if err.Error() == "500" {
+			err := APIErrGenericInternal(schemas.GenericError)
+			respondErr(w, err)
+			return
+		} else {
+			err := APIErrorInvalidData(err.Error())
+			respondErr(w, err)
+			return
+		}
+	}
+
+	res, _ := json.MarshalIndent(map[string]string{"message": "Message validated successfully"}, "", " ")
+
+	respondOK(w, res)
 }
 
 // ListVersion displays version information about the service
