@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 from kafka import SimpleClient
-from kafka.protocol.offset import OffsetRequest, OffsetResetStrategy
 from kafka.common import OffsetRequestPayload
-from kafka import KafkaClient
 from kafka import KafkaConsumer
 from kafka import TopicPartition
 from kafka import KafkaProducer
@@ -17,6 +15,7 @@ import logging
 logging.basicConfig(level=logging.INFO, format=logging.BASIC_FORMAT)
 log = logging.getLogger('ams-migrate')
 
+
 def get_mongo_db(mongo_host, mongo_port):
     """Get MongoDB database connection object
     
@@ -29,6 +28,7 @@ def get_mongo_db(mongo_host, mongo_port):
     """
 
     return MongoClient(mongo_host, mongo_port)["argo_msg"]
+
 
 def get_kafka_client(broker_list):
     """Return a kafka client
@@ -98,6 +98,7 @@ def get_mongo_topics(mongo_db):
     log.info("Found %s topics in mongodb", len(result))
     return result
 
+
 def get_kafka_topics(consumer):
     """Return a set with the name of topics found in kafka backend
     
@@ -126,6 +127,7 @@ def get_actual_topics(mongo_db, k_consumer):
     k_topics = get_kafka_topics(k_consumer)
     return m_topics.intersection(k_topics)
 
+
 def get_topic_max(topic, k_client):
     """Return the max offset of a kafka topic
     
@@ -144,6 +146,7 @@ def get_topic_max(topic, k_client):
     for r in offsets_responses:
         if r.partition == 0:
             return r.offsets[0]
+
 
 def export_topic(output, topic, k_consumer, max_off):
     """Fetch all available messages from a topic and 
@@ -169,8 +172,8 @@ def export_topic(output, topic, k_consumer, max_off):
                 min_off=message.offset 
                 topic_file.write(topic+","+str(min_off)+","+str(max_off))
                 topic_file.write("\n")
-                first_msg = False 
-            topic_file.write(json.dumps(message.value))
+                first_msg = False
+            topic_file.write(json.dumps(str(message.value)))
             topic_file.write("\n")
 
 
@@ -210,6 +213,7 @@ def import_data(args):
         import_topic(file_name, producer, args.advance)
     producer.flush()
 
+
 def import_topic(import_filename, producer, advance=False):
     """Imports data from a filename to a specific topic
     
@@ -241,10 +245,8 @@ def import_topic(import_filename, producer, advance=False):
                 first_line = False
                 continue
             # Then send real messages
-            json_data = json.loads(line)
-            producer.send(topic, line)
+            producer.send(topic, bytearray(line, "utf-8"))
     log.info("import completed")
-
 
 
 def main(args):
@@ -254,14 +256,11 @@ def main(args):
     Args:
         args (obj): Command line arguments
     """
-    log.info("hello")
     if args.cmd == 'export':
         export_data(args)
     elif args.cmd == 'import':
         import_data(args)
 
-
-    
 
 if __name__ == "__main__":
     arg_parser = ArgumentParser(description="import/export ams data")

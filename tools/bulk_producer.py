@@ -37,7 +37,7 @@ def create_projects():
 
         res = requests.post(url=url, data=json.dumps(req_daa), verify=ARGS.verify)
 
-        print res.text
+        print(res.text)
 
         projects.append(project_name)
 
@@ -61,15 +61,9 @@ def create_topics(ams):
 
         topic_name = TOPIC_NAME_FORMAT.format(i)
 
-        try:
+        r = ams.create_topic(topic_name, verify=ARGS.verify)
 
-            r = ams.create_topic(topic_name, verify=ARGS.verify)
-
-            print r
-
-        except Exception as e:
-
-            print e.message
+        print(r)
 
         topics.append(topic_name)
 
@@ -89,16 +83,9 @@ def create_subs(topic, ams):
 
         sub_name = SUBSCRIPTION_NAME_FORMAT.format(topic, i)
 
-        try:
+        r = ams.create_sub(sub_name, topic, push_endpoint=ARGS.push_endpoint, verify=False)
 
-            r = ams.create_sub(sub_name, topic, push_endpoint=ARGS.push_endpoint, verify=False)
-
-            print r
-
-        except Exception as e:
-
-            print e.message
-
+        print(r)
 
 def publish(topic, ams):
     """Publish publishes a number of messages to an ams topic. The number of messages is determined by the arguments
@@ -115,11 +102,11 @@ def publish(topic, ams):
 
         data = base64.b64encode(os.urandom(ARGS.message_size))
 
-        msgs.append(argo_ams_library.AmsMessage(data=data))
+        msgs.append(argo_ams_library.AmsMessage(data=str(data)))
 
     r = ams.publish(topic=topic, msg=msgs, verify=ARGS.verify)
 
-    print r
+    print(r)
 
 
 def _publish(a_b):
@@ -135,18 +122,23 @@ def main():
 
     ams_endpoint = "{}:{}".format(ARGS.host, ARGS.port)
 
-    for project in projects:
+    try:
 
-        ams = argo_ams_library.ArgoMessagingService(endpoint=ams_endpoint, token=ARGS.token, project=project)
+        for project in projects:
 
-        topics = create_topics(ams)
+            ams = argo_ams_library.ArgoMessagingService(endpoint=ams_endpoint, token=ARGS.token, project=project)
 
-        for topic in topics:
+            topics = create_topics(ams)
 
-            create_subs(topic, ams)
+            for topic in topics:
 
-        pool = multiprocessing.Pool()
-        pool.map(_publish, itertools.izip(topics, itertools.repeat(ams)))
+                create_subs(topic, ams)
+
+            pool = multiprocessing.Pool()
+            pool.map(_publish, zip(topics, itertools.repeat(ams)))
+
+    except Exception as e:
+        print(str(e))
 
 
 if __name__ == "__main__":
