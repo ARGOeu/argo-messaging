@@ -24,16 +24,16 @@ def main(args):
 
                 data = base64.b64encode(os.urandom(args.message_size))
 
-                msgs.append(argo_ams_library.AmsMessage(data=data))
+                msgs.append(argo_ams_library.AmsMessage(data=str(data)))
 
             r = ams.publish(topic=args.topic, msg=msgs, verify=args.verify)
 
-            print r
+            print(r)
 
             time.sleep(args.fire_rate)
 
         except Exception as e:
-            print "Couldn't publish to topic {}, {}".format(args.topic, e.message)
+            print("Couldn't publish to topic {}, {}".format(args.topic, str(e)))
             continue
 
 

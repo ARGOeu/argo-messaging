@@ -1,18 +1,19 @@
 #!/usr/bin/env python
 
-from avro.io import BinaryEncoder, BinaryDecoder
-from avro.io import DatumWriter, DatumReader
+from avro.io import BinaryDecoder
+from avro.io import DatumReader
 import avro.schema
 from io import BytesIO
 import argo_ams_library
 from argo_ams_library import ArgoMessagingService
 import argparse
-import base64
 import logging
 import logging.handlers
 import sys
 import json
 import time
+from base64 import b64encode, b64decode
+
 
 # set up logging
 LOGGER = logging.getLogger("AMS republish script")
@@ -24,7 +25,7 @@ def extract_messages(ams, ingest_sub, bulk_size, schema, verify):
     consumed_msgs = ams.pull_sub(ingest_sub, num=bulk_size, return_immediately=True, verify=verify)
 
     # initialise the avro reader
-    avro_reader = DatumReader(writers_schema=schema)
+    avro_reader = DatumReader(writer_schema=schema)
 
     # all the decoded messages that will be returned
     decoded_msgs = []
@@ -35,7 +36,7 @@ def extract_messages(ams, ingest_sub, bulk_size, schema, verify):
         try:
 
             # decode the data field again using the provided avro schema
-            msg_bytes = BytesIO(msg[1].get_data())
+            msg_bytes = BytesIO(b64decode(msg[1]._data))
             msg_decoder = BinaryDecoder(msg_bytes)
             avro_msg = avro_reader.read(msg_decoder)
 
@@ -47,7 +48,9 @@ def extract_messages(ams, ingest_sub, bulk_size, schema, verify):
             decoded_msgs.append((msg[0], avro_msg))
 
         except Exception as e:
-            LOGGER.warning("Could not extract data from ams message {}, {}".format(msg[0], e.message))
+            LOGGER.warning("Could not extract data from ams message {}, {}".format(msg[0], str(e)))
+            import traceback
+            traceback.print_exc()
 
     last_msg_id = "-1"
     if len(consumed_msgs) > 0:
@@ -141,7 +144,8 @@ def main(args):
 
     ams = ArgoMessagingService(endpoint=ams_endpoint, token=config["ams_token"], project=config["ams_project"])
 
-    schema = avro.schema.parse(open(config["avro_schema"], "rb").read())
+    schema = avro.schema.Parse(open(config["avro_schema"], "rb").read())
+
 
     while True:
 
@@ -168,7 +172,7 @@ def main(args):
                 ams.ack_sub(config["ingest_subscription"], [last_msg_id], verify=args.verify)
             except Exception as e:
                 # if the acknowledgment fails
-                LOGGER.critical("Retrying to acknowledge message {} after error {}".format(last_msg_id, e.message))
+                LOGGER.critical("Retrying to acknowledge message {} after error {}".format(last_msg_id, str(e)))
                 while True:
                     try:
                         # consume again in order to refresh the TTL
@@ -178,7 +182,7 @@ def main(args):
                         break
                     except Exception as e:
                         LOGGER.critical(
-                            "Retrying to acknowledge message {} after error {}".format(last_msg_id, e.message))
+                            "Retrying to acknowledge message {} after error {}".format(last_msg_id, str(e)))
 
                     time.sleep(config["interval"])
 
@@ -190,7 +194,7 @@ def main(args):
                 end_time - start_time))
 
         except Exception as e:
-            LOGGER.critical("Could not republish, {}".format(e.message))
+            LOGGER.critical("Could not republish, {}".format(str(e)))
 
         time.sleep(config["interval"])
 
