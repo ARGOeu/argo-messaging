@@ -3,7 +3,7 @@
 
 Name: argo-messaging
 Summary: ARGO Messaging API for broker network
-Version: 1.0.5
+Version: 1.0.6
 Release: 1%{?dist}
 License: ASL 2.0
 Buildroot: %{_tmppath}/%{name}-buildroot
@@ -63,6 +63,21 @@ go clean
 %attr(0644,root,root) /usr/lib/systemd/system/argo-messaging.service
 
 %changelog
+* Wed Jan 08 2020 Agelos Tsalapatis  <agelos.tsal@gmail.com> 1.0.6-1%{?dist}
+- ARGO-1984 Prohibit duplicate project references in user profiles
+- ARGO-1947 AMS subscriptions should be allowed to have slow start as their retry policy
+- ARGO-2045 New API Call - Create schema
+- ARGO-2046 New API Call - Retrieve schema
+- ARGO-2047 New API Call - Update schema
+- ARGO-2050 Topic:create should allow to link schema
+- ARGO-2060 Schema should follow the topic/subscription reference/name
+- ARGO-2048 New API Call - Delete schema
+- Update doc index
+- MKdocs page initialization
+- ARGO-2068 New API Call - Retrieve all schemas under a project
+- ARGO-2090 Add version info in argo-messaging binary
+- ARGO-2086 Idea for argo-messaging: add validate action to schema resource
+- ARGO-2146 Migrate AMS scripts to python3
 * Thu Sep 05 2019 Agelos Tsalapatis  <agelos.tsal@gmail.com> 1.0.5-1%{?dist}
 - ARGO-492 Add configuration parameter in the push configuration for max_messages per push action
 - ARGO-1925 API support predefined policies in push mode subscription
