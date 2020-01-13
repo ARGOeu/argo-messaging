@@ -23,8 +23,250 @@ tags:
     description: Topics under a given project
   - name: Projects
     description: Projects available in the service
+  - name: Schemas
+    description: Available schemas under a project for validating published messages payload
 paths:
 
+  /projects/{PROJECT}/schemas:
+    get:
+      summary: Retrieve all schemas under a project
+      description: |
+        Retrieve all schemas under a project
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+      tags:
+        - Schemas
+      responses:
+        200:
+          description: A List of schemas
+          schema:
+            $ref: '#/definitions/SchemaList'
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
+
+  /projects/{PROJECT}/schemas/{SCHEMA}:validate:
+    post:
+      summary: Validate a specific message against the provided schema
+      description: |
+        Validate explicitily a message against the provided schema.This API call is to be used to test
+        that the registered schema and the messages that are expected to be published to the resepctive topic later on,
+        work as expected.
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: SCHEMA
+          in: path
+          description: Name of the schema
+          required: true
+          type: string
+        - name: Message
+          in: body
+          description: Schema information
+          required: true
+          schema:
+           type: object
+      tags:
+        - Schemas
+      responses:
+        200:
+          description: Message is succesfully validated
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                default: "Message validated successfully"
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
+
+  /projects/{PROJECT}/schemas/{SCHEMA}:
+    post:
+      summary: Create a new schema
+      description: |
+        Create a new schema
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: SCHEMA
+          in: path
+          description: Name of the schema
+          required: true
+          type: string
+        - name: Schema information
+          in: body
+          description: Schema information
+          required: true
+          schema:
+           type: object
+           properties:
+             schema:
+               type: object
+             type:
+               type: string
+      tags:
+        - Schemas
+      responses:
+        200:
+          description: A Schema object
+          schema:
+            $ref: '#/definitions/Schema'
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        409:
+          $ref: "#/responses/409"
+        500:
+          $ref: "#/responses/500"
+    get:
+      summary: Retrieve a schema
+      description: |
+        Retrieve schema
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: SCHEMA
+          in: path
+          description: Name of the schema
+          required: true
+          type: string
+      tags:
+        - Schemas
+      responses:
+        200:
+          description: A Schema object
+          schema:
+            $ref: '#/definitions/Schema'
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
+    put:
+      summary: Update a schema
+      description: |
+        Update schema
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: SCHEMA
+          in: path
+          description: Name of the schema
+          required: true
+          type: string
+        - name: Schema information
+          in: body
+          description: Update one or all of the fields of a schema
+          required: true
+          schema:
+           type: object
+           properties:
+             schema:
+               type: object
+             name:
+              type: string
+             type:
+               type: string
+      tags:
+        - Schemas
+      responses:
+        200:
+          description: A Schema object
+          schema:
+            $ref: '#/definitions/Schema'
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        409:
+          $ref: "#/responses/409"
+        500:
+          $ref: "#/responses/500"
+    delete:
+      summary: Delete a schema
+      description: |
+        Delete schema
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: SCHEMA
+          in: path
+          description: Name of the schema
+          required: true
+          type: string
+      tags:
+        - Schemas
+      responses:
+        200:
+          description: Empty response if the schema is succesfully deleted
+          schema:
+            type: string
+            default: ""
+            description: empty string
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
   /metrics:
     get:
       summary: List operational metrics of the ams service
@@ -49,6 +291,8 @@ paths:
           $ref: "#/responses/403"
         404:
           $ref: "#/responses/404"
+        409:
+          $ref: "#/responses/409"
         500:
           $ref: "#/responses/500"
 
@@ -1406,6 +1650,15 @@ paths:
           description: Name of the topic
           required: true
           type: string
+        - name: Schema
+          in: body
+          description: The name of the schema to be linked with the topic.All published messages will be validated against the linked schema.
+          required: false
+          schema:
+           type: object
+           properties:
+             schema:
+               type: string
       tags:
         - Topics
       responses:
@@ -1617,6 +1870,21 @@ paths:
           $ref: "#/responses/404"
         500:
           $ref: "#/responses/500"
+  
+  /version:
+    get:
+      summary: "List API Version information"
+      description: "List api version information such as release version, commit hash etc"
+      tags:
+        - Version
+      produces:
+        - "application/json"
+        - "application/xml"
+      responses:
+        200:
+          description: "Successful retrieval of version info"
+          schema:
+            $ref: "#/definitions/Version"
 
 parameters:
   ApiKey:
@@ -1711,6 +1979,26 @@ responses:
 
 definitions:
 
+  SchemaList:
+    type: object
+    properties:
+      schemas:
+        type: array
+        items:
+          $ref: '#/definitions/Schema'
+
+  Schema:
+    type: object
+    properties:
+      name:
+        type: string
+      type:
+        type: string
+      uuid:
+        type: string
+      schema:
+        type: object
+
   TotalProjectMessageCount:
     type: object
     properties:
@@ -1768,22 +2056,9 @@ definitions:
         type: string
       value:
         type: string
+        
+  
 
-  SubMetrics:
-    type: object
-    properties:
-      mumber_of_messages:
-        type: integer
-      total_bytes:
-        type: integer
-
-  TopicMetrics:
-    type: object
-    properties:
-      mumber_of_messages:
-        type: integer
-      total_bytes:
-        type: integer
 
   AuthUsers:
     type: object
@@ -1881,8 +2156,6 @@ definitions:
       current:
        type: integer
        description: current offset
-
-
 
   RetryPolicy:
     type: object
@@ -2095,3 +2368,21 @@ definitions:
           status:
             type: string
             description: status of the error
+            
+  Version:
+    type: object
+    properties:
+      release:
+        type: string
+      commit: 
+        type: string        
+      build_time: 
+        type: string
+      golang:
+        type: string
+      compiler: 
+        type: string
+      os: 
+        type: string
+      architecture:
+          type: string

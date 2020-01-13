@@ -19,10 +19,10 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal("mockbase", store.Database)
 
 	eTopList := []QTopic{
-		{3, "argo_uuid", "topic4", 0, 0, time.Date(0, 0, 0, 0, 0, 0, 0, time.Local), 0},
-		{2, "argo_uuid", "topic3", 0, 0, time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local), 8.99},
-		{1, "argo_uuid", "topic2", 0, 0, time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local), 5.45},
-		{0, "argo_uuid", "topic1", 0, 0, time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10},
+		{3, "argo_uuid", "topic4", 0, 0, time.Date(0, 0, 0, 0, 0, 0, 0, time.Local), 0, ""},
+		{2, "argo_uuid", "topic3", 0, 0, time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local), 8.99, ""},
+		{1, "argo_uuid", "topic2", 0, 0, time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local), 5.45, "schema_uuid_1"},
+		{0, "argo_uuid", "topic1", 0, 0, time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10, ""},
 	}
 
 	eSubList := []QSub{
@@ -39,8 +39,8 @@ func (suite *StoreTestSuite) TestMockStore() {
 
 	// retrieve first 2
 	eTopList1st2 := []QTopic{
-		{3, "argo_uuid", "topic4", 0, 0, time.Date(0, 0, 0, 0, 0, 0, 0, time.Local), 0},
-		{2, "argo_uuid", "topic3", 0, 0, time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local), 8.99},
+		{3, "argo_uuid", "topic4", 0, 0, time.Date(0, 0, 0, 0, 0, 0, 0, time.Local), 0, ""},
+		{2, "argo_uuid", "topic3", 0, 0, time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local), 8.99, ""},
 	}
 	tpList2, ts2, pg2, _ := store.QueryTopics("argo_uuid", "", "", "", 2)
 	suite.Equal(eTopList1st2, tpList2)
@@ -49,7 +49,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 
 	// retrieve the last one
 	eTopList3 := []QTopic{
-		{0, "argo_uuid", "topic1", 0, 0, time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10},
+		{0, "argo_uuid", "topic1", 0, 0, time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10, ""},
 	}
 	tpList3, ts3, pg3, _ := store.QueryTopics("argo_uuid", "", "", "0", 1)
 	suite.Equal(eTopList3, tpList3)
@@ -58,7 +58,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 
 	// retrieve a single topic
 	eTopList4 := []QTopic{
-		{0, "argo_uuid", "topic1", 0, 0, time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10},
+		{0, "argo_uuid", "topic1", 0, 0, time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10, ""},
 	}
 	tpList4, ts4, pg4, _ := store.QueryTopics("argo_uuid", "", "topic1", "", 0)
 	suite.Equal(eTopList4, tpList4)
@@ -67,8 +67,8 @@ func (suite *StoreTestSuite) TestMockStore() {
 
 	// retrieve user's topics
 	eTopList5 := []QTopic{
-		{1, "argo_uuid", "topic2", 0, 0, time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local), 5.45},
-		{0, "argo_uuid", "topic1", 0, 0, time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10},
+		{1, "argo_uuid", "topic2", 0, 0, time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local), 5.45, "schema_uuid_1"},
+		{0, "argo_uuid", "topic1", 0, 0, time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10, ""},
 	}
 	tpList5, ts5, pg5, _ := store.QueryTopics("argo_uuid", "uuid1", "", "", 0)
 	suite.Equal(eTopList5, tpList5)
@@ -77,7 +77,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 
 	// retrieve use's topic with pagination
 	eTopList6 := []QTopic{
-		{1, "argo_uuid", "topic2", 0, 0, time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local), 5.45},
+		{1, "argo_uuid", "topic2", 0, 0, time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local), 5.45, "schema_uuid_1"},
 	}
 
 	tpList6, ts6, pg6, _ := store.QueryTopics("argo_uuid", "uuid1", "", "", 1)
@@ -199,15 +199,15 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal(true, store.HasResourceRoles("topics:list_all", []string{"publisher"}))
 	suite.Equal(true, store.HasResourceRoles("topics:publish", []string{"publisher"}))
 
-	store.InsertTopic("argo_uuid", "topicFresh")
+	store.InsertTopic("argo_uuid", "topicFresh", "")
 	store.InsertSub("argo_uuid", "subFresh", "topicFresh", 0, 0, 10, "", "", 0, "", false)
 
 	eTopList2 := []QTopic{
-		{4, "argo_uuid", "topicFresh", 0, 0, time.Time{}, 0},
-		{3, "argo_uuid", "topic4", 0, 0, time.Date(0, 0, 0, 0, 0, 0, 0, time.Local), 0},
-		{2, "argo_uuid", "topic3", 0, 0, time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local), 8.99},
-		{1, "argo_uuid", "topic2", 0, 0, time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local), 5.45},
-		{0, "argo_uuid", "topic1", 0, 0, time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10},
+		{4, "argo_uuid", "topicFresh", 0, 0, time.Time{}, 0, ""},
+		{3, "argo_uuid", "topic4", 0, 0, time.Date(0, 0, 0, 0, 0, 0, 0, time.Local), 0, ""},
+		{2, "argo_uuid", "topic3", 0, 0, time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local), 8.99, ""},
+		{1, "argo_uuid", "topic2", 0, 0, time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local), 5.45, "schema_uuid_1"},
+		{0, "argo_uuid", "topic1", 0, 0, time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10, ""},
 	}
 
 	eSubList2 := []QSub{
@@ -548,6 +548,48 @@ func (suite *StoreTestSuite) TestMockStore() {
 	qpmc, qpmcerr1 := store2.QueryTotalMessagesPerProject([]string{"argo_uuid"}, time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC), time.Date(2018, 10, 4, 0, 0, 0, 0, time.UTC))
 	suite.Equal(expectedQpmc, qpmc)
 	suite.Nil(qpmcerr1)
+
+	// test InsertSchema
+	eis := store.InsertSchema("argo_uuid", "uuid1", "s1-insert", "json", "raw")
+	qs1, _ := store.QuerySchemas("argo_uuid", "uuid1", "s1-insert")
+	suite.Equal(QSchema{
+		ProjectUUID: "argo_uuid",
+		UUID:        "uuid1",
+		Name:        "s1-insert",
+		Type:        "json",
+		RawSchema:   "raw",
+	}, qs1[0])
+	suite.Nil(eis)
+
+	// test QuerySchemas
+	s := "eyJwcm9wZXJ0aWVzIjp7ImFkZHJlc3MiOnsidHlwZSI6InN0cmluZyJ9LCJlbWFpbCI6eyJ0eXBlIjoic3RyaW5nIn0sIm5hbWUiOnsidHlwZSI6InN0cmluZyJ9LCJ0ZWxlcGhvbmUiOnsidHlwZSI6InN0cmluZyJ9fSwicmVxdWlyZWQiOlsibmFtZSIsImVtYWlsIl0sInR5cGUiOiJvYmplY3QifQ=="
+	expectedSchemas := []QSchema{
+		{UUID: "schema_uuid_1", ProjectUUID: "argo_uuid", Type: "json", Name: "schema-1", RawSchema: s},
+		{UUID: "schema_uuid_2", ProjectUUID: "argo_uuid", Type: "json", Name: "schema-2", RawSchema: s},
+	}
+	qqs1, _ := store2.QuerySchemas("argo_uuid", "", "")
+	qqs2, _ := store2.QuerySchemas("argo_uuid", "schema_uuid_1", "")
+	qqs3, _ := store2.QuerySchemas("argo_uuid", "schema_uuid_1", "schema-1")
+	suite.Equal(expectedSchemas, qqs1)
+	suite.Equal(expectedSchemas[0], qqs2[0])
+	suite.Equal(expectedSchemas[0], qqs3[0])
+
+	// test update schema
+	store2.UpdateSchema("schema_uuid_1", "new-name", "new-type", "new-raw-schema")
+	eus := QSchema{UUID: "schema_uuid_1", ProjectUUID: "argo_uuid", Type: "new-type", Name: "new-name", RawSchema: "new-raw-schema"}
+	qus, _ := store2.QuerySchemas("argo_uuid", "schema_uuid_1", "")
+	suite.Equal(eus, qus[0])
+
+	//test delete schema
+	store4 := NewMockStore("", "")
+
+	ed := store4.DeleteSchema("schema_uuid_1")
+	expd, _ := store4.QuerySchemas("argo_uuid", "schema_uuid_1", "")
+	// check that topic-1 no longer has any schema_uuid associated with it
+	qtd, _, _, _ := store4.QueryTopics("argo_uuid", "", "topic2", "", 1)
+	suite.Equal("", qtd[0].SchemaUUID)
+	suite.Equal([]QSchema{}, expd)
+	suite.Nil(ed)
 }
 
 func TestStoresTestSuite(t *testing.T) {

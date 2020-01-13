@@ -83,6 +83,7 @@ type QTopic struct {
 	TotalBytes    int64       `bson:"total_bytes"`
 	LatestPublish time.Time   `bson:"latest_publish"`
 	PublishRate   float64     `bson:"publish_rate"`
+	SchemaUUID    string      `bson:"schema_uuid"`
 }
 
 // QDailyTopicMsgCount holds information about the daily number of messages published to a topic
@@ -104,6 +105,15 @@ type QProjectMessageCount struct {
 	ProjectUUID          string  `bson:"project_uuid"`
 	NumberOfMessages     int64   `bson:"msg_count"`
 	AverageDailyMessages float64 `bson:"avg_daily_msg"`
+}
+
+// QSchema is the query model representing a schema
+type QSchema struct {
+	ProjectUUID string `bson:"project_uuid"`
+	UUID        string `bson:"uuid"`
+	Name        string `bson:"name"`
+	Type        string `bson:"type"`
+	RawSchema   string `bson:"raw_schema"`
 }
 
 func (qUsr *QUser) isInProject(projectUUID string) bool {

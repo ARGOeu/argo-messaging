@@ -22,10 +22,15 @@ import (
 	"github.com/ARGOeu/argo-messaging/metrics"
 	"github.com/ARGOeu/argo-messaging/projects"
 	oldPush "github.com/ARGOeu/argo-messaging/push"
-	push "github.com/ARGOeu/argo-messaging/push/grpc/client"
+	"github.com/ARGOeu/argo-messaging/push/grpc/client"
+	"github.com/ARGOeu/argo-messaging/schemas"
 	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/ARGOeu/argo-messaging/subscriptions"
 	"github.com/ARGOeu/argo-messaging/topics"
+	"github.com/ARGOeu/argo-messaging/version"
+
+	"bytes"
+	"encoding/base64"
 	gorillaContext "github.com/gorilla/context"
 	"github.com/gorilla/mux"
 	"github.com/twinj/uuid"
@@ -398,7 +403,7 @@ func ProjectCreate(w http.ResponseWriter, r *http.Request) {
 	// Parse pull options
 	postBody, err := projects.GetFromJSON(body)
 	if err != nil {
-		err := APIErrorInvalidArgument("ProjectUUID")
+		err := APIErrorInvalidArgument("Project")
 		respondErr(w, err)
 		log.Error(string(body[:]))
 		return
@@ -412,7 +417,7 @@ func ProjectCreate(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if err.Error() == "exists" {
-			err := APIErrorConflict("ProjectUUID")
+			err := APIErrorConflict("Project")
 			respondErr(w, err)
 			return
 		}
@@ -627,6 +632,13 @@ func UserUpdate(w http.ResponseWriter, r *http.Request) {
 			respondErr(w, err)
 			return
 		}
+
+		if strings.HasPrefix(err.Error(), "duplicate") {
+			err := APIErrorInvalidData(err.Error())
+			respondErr(w, err)
+			return
+		}
+
 		err := APIErrGenericInternal(err.Error())
 		respondErr(w, err)
 		return
@@ -694,6 +706,13 @@ func UserCreate(w http.ResponseWriter, r *http.Request) {
 			respondErr(w, err)
 			return
 		}
+
+		if strings.HasPrefix(err.Error(), "duplicate") {
+			err := APIErrorInvalidData(err.Error())
+			respondErr(w, err)
+			return
+		}
+
 		err := APIErrGenericInternal(err.Error())
 		respondErr(w, err)
 		return
@@ -1857,14 +1876,14 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 		maxMessages = postBody.PushCfg.MaxMessages
 
 		if rPolicy == "" {
-			rPolicy = "linear"
+			rPolicy = subscriptions.LinearRetryPolicyType
 		}
 		if rPeriod <= 0 {
 			rPeriod = 3000
 		}
 
 		if !subscriptions.IsRetryPolicySupported(rPolicy) {
-			err := APIErrorInvalidData(`Retry policy can only be of 'linear' type`)
+			err := APIErrorInvalidData(subscriptions.UnSupportedRetryPolicyError)
 			respondErr(w, err)
 			return
 		}
@@ -1888,11 +1907,11 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 	existingSub := res.Subscriptions[0]
 
 	if maxMessages == 0 {
-		maxMessages = res.Subscriptions[0].PushCfg.MaxMessages
-	}
-
-	if maxMessages == 0 {
-		maxMessages = int64(1)
+		if existingSub.PushCfg.MaxMessages == 0 {
+			maxMessages = int64(1)
+		} else {
+			maxMessages = existingSub.PushCfg.MaxMessages
+		}
 	}
 
 	// if the request wants to transform a pull subscription to a push one
@@ -1961,7 +1980,7 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 			// activate the subscription on the push backend
 			apsc := gorillaContext.Get(r, "apsc").(push.Client)
 			apsc.ActivateSubscription(context.TODO(), existingSub.FullName, existingSub.FullTopic,
-				pushEnd, rPolicy, uint32(rPeriod), existingSub.PushCfg.MaxMessages)
+				pushEnd, rPolicy, uint32(rPeriod), maxMessages)
 
 			// modify the sub's acl with the push worker's uuid
 			err = auth.AppendToACL(projectUUID, "subscriptions", existingSub.Name, []string{pushWorker.Name}, refStr)
@@ -2240,7 +2259,7 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 		maxMessages = postBody.PushCfg.MaxMessages
 
 		if rPolicy == "" {
-			rPolicy = "linear"
+			rPolicy = subscriptions.LinearRetryPolicyType
 		}
 
 		if maxMessages == 0 {
@@ -2252,7 +2271,7 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if !subscriptions.IsRetryPolicySupported(rPolicy) {
-			err := APIErrorInvalidData(`Retry policy can only be of 'linear' type`)
+			err := APIErrorInvalidData(subscriptions.UnSupportedRetryPolicyError)
 			respondErr(w, err)
 			return
 		}
@@ -2313,8 +2332,58 @@ func TopicCreate(w http.ResponseWriter, r *http.Request) {
 	refStr := gorillaContext.Get(r, "str").(stores.Store)
 	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 
+	postBody := map[string]string{}
+	schemaUUID := ""
+
+	// check if there's a request body provided before trying to decode
+	if r.Body != nil {
+
+		b, err := ioutil.ReadAll(r.Body)
+
+		if err != nil {
+			err := APIErrorInvalidRequestBody()
+			respondErr(w, err)
+			return
+		}
+		defer r.Body.Close()
+
+		if len(b) > 0 {
+			err = json.Unmarshal(b, &postBody)
+			if err != nil {
+				err := APIErrorInvalidRequestBody()
+				respondErr(w, err)
+				return
+			}
+
+			schemaRef := postBody["schema"]
+
+			// if there was a schema name provided, check its existence
+			if schemaRef != "" {
+				_, schemaName, err := schemas.ExtractSchema(schemaRef)
+				if err != nil {
+					err := APIErrorInvalidData(err.Error())
+					respondErr(w, err)
+					return
+				}
+				sl, err := schemas.Find(projectUUID, "", schemaName, refStr)
+				if err != nil {
+					err := APIErrGenericInternal(err.Error())
+					respondErr(w, err)
+					return
+				}
+
+				if sl.Empty() {
+					err := APIErrorNotFound("Schema")
+					respondErr(w, err)
+					return
+				}
+
+				schemaUUID = sl.Schemas[0].UUID
+			}
+		}
+	}
 	// Get Result Object
-	res, err := topics.CreateTopic(projectUUID, urlVars["topic"], refStr)
+	res, err := topics.CreateTopic(projectUUID, urlVars["topic"], schemaUUID, refStr)
 	if err != nil {
 		if err.Error() == "exists" {
 			err := APIErrorConflict("Topic")
@@ -2986,8 +3055,70 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// check if the topic has a schema associated with it
+	if res.Schema != "" {
+
+		// retrieve the schema
+		_, schemaName, err := schemas.ExtractSchema(res.Schema)
+		if err != nil {
+			log.WithFields(
+				log.Fields{
+					"type":        "service_log",
+					"schema_name": res.Schema,
+					"topic_name":  res.Name,
+					"error":       err.Error(),
+				},
+			).Error("Could not extract schema name")
+			err := APIErrGenericInternal(schemas.GenericError)
+			respondErr(w, err)
+			return
+		}
+
+		sl, err := schemas.Find(projectUUID, "", schemaName, refStr)
+
+		if err != nil {
+			log.WithFields(
+				log.Fields{
+					"type":        "service_log",
+					"schema_name": schemaName,
+					"topic_name":  res.Name,
+					"error":       err.Error(),
+				},
+			).Error("Could not retrieve schema from the store")
+			err := APIErrGenericInternal(schemas.GenericError)
+			respondErr(w, err)
+			return
+		}
+
+		if !sl.Empty() {
+			err := schemas.ValidateMessages(sl.Schemas[0], msgList)
+			if err != nil {
+				if err.Error() == "500" {
+					err := APIErrGenericInternal(schemas.GenericError)
+					respondErr(w, err)
+					return
+				} else {
+					err := APIErrorInvalidData(err.Error())
+					respondErr(w, err)
+					return
+				}
+			}
+		} else {
+			log.WithFields(
+				log.Fields{
+					"type":        "service_log",
+					"schema_name": res.Schema,
+					"topic_name":  res.Name,
+				},
+			).Error("List of schemas was empty")
+			err := APIErrGenericInternal(schemas.GenericError)
+			respondErr(w, err)
+			return
+		}
+	}
+
 	// Init message ids list
-	msgIDs := messages.MsgIDs{}
+	msgIDs := messages.MsgIDs{IDs: []string{}}
 
 	// For each message in message list
 	for _, msg := range msgList.Msgs {
@@ -3239,8 +3370,6 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 		dt = consumeTime.Sub(targetSub.LatestConsume).Seconds()
 	}
 
-	log.Debug(dt)
-	log.Debugf("%+v\n", targetSub)
 	refStr.UpdateSubConsumeRate(projectUUID, targetSub.Name, float64(msgCount)/dt)
 
 	resJSON, err := recList.ExportJSON()
@@ -3268,6 +3397,11 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 	var bytes []byte
 
 	apsc := gorillaContext.Get(r, "apsc").(push.Client)
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
 
 	healthMsg := HealthStatus{
 		Status: "ok",
@@ -3301,6 +3435,324 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondOK(w, bytes)
+}
+
+// SchemaCreate(POST) handles the creation of a new schema
+func SchemaCreate(w http.ResponseWriter, r *http.Request) {
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Get url path variables
+	urlVars := mux.Vars(r)
+	schemaName := urlVars["schema"]
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+
+	// Get project UUID First to use as reference
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
+
+	schemaUUID := uuid.NewV4().String()
+
+	schema := schemas.Schema{}
+
+	err := json.NewDecoder(r.Body).Decode(&schema)
+	if err != nil {
+		err := APIErrorInvalidArgument("Schema")
+		respondErr(w, err)
+		return
+	}
+
+	schema, err = schemas.Create(projectUUID, schemaUUID, schemaName, schema.Type, schema.RawSchema, refStr)
+	if err != nil {
+		if err.Error() == "exists" {
+			err := APIErrorConflict("Schema")
+			respondErr(w, err)
+			return
+
+		}
+
+		if err.Error() == "unsupported" {
+			err := APIErrorInvalidData(schemas.UnsupportedSchemaError)
+			respondErr(w, err)
+			return
+
+		}
+
+		err := APIErrorInvalidData(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	output, _ := json.MarshalIndent(schema, "", " ")
+	respondOK(w, output)
+}
+
+// SchemaListOne(GET) retrieves information about the requested schema
+func SchemaListOne(w http.ResponseWriter, r *http.Request) {
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Get url path variables
+	urlVars := mux.Vars(r)
+	schemaName := urlVars["schema"]
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+
+	// Get project UUID First to use as reference
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
+	schemasList, err := schemas.Find(projectUUID, "", schemaName, refStr)
+	if err != nil {
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	if schemasList.Empty() {
+		err := APIErrorNotFound("Schema")
+		respondErr(w, err)
+		return
+	}
+
+	output, _ := json.MarshalIndent(schemasList.Schemas[0], "", " ")
+	respondOK(w, output)
+}
+
+// SchemaLisAll(GET) retrieves all the schemas under the given project
+func SchemaListAll(w http.ResponseWriter, r *http.Request) {
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+
+	// Get project UUID First to use as reference
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
+	schemasList, err := schemas.Find(projectUUID, "", "", refStr)
+	if err != nil {
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	output, _ := json.MarshalIndent(schemasList, "", " ")
+	respondOK(w, output)
+}
+
+// SchemaUpdate(PUT) updates the given schema
+func SchemaUpdate(w http.ResponseWriter, r *http.Request) {
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Get url path variables
+	urlVars := mux.Vars(r)
+	schemaName := urlVars["schema"]
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+
+	// Get project UUID First to use as reference
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
+	schemasList, err := schemas.Find(projectUUID, "", schemaName, refStr)
+	if err != nil {
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	if schemasList.Empty() {
+		err := APIErrorNotFound("Schema")
+		respondErr(w, err)
+		return
+	}
+
+	updatedSchema := schemas.Schema{}
+
+	err = json.NewDecoder(r.Body).Decode(&updatedSchema)
+	if err != nil {
+		err := APIErrorInvalidArgument("Schema")
+		respondErr(w, err)
+		return
+	}
+
+	if updatedSchema.FullName != "" {
+		_, schemaName, err := schemas.ExtractSchema(updatedSchema.FullName)
+		if err != nil {
+			err := APIErrorInvalidData(err.Error())
+			respondErr(w, err)
+			return
+		}
+		updatedSchema.Name = schemaName
+	}
+
+	schema, err := schemas.Update(schemasList.Schemas[0], updatedSchema.Name, updatedSchema.Type, updatedSchema.RawSchema, refStr)
+	if err != nil {
+		if err.Error() == "exists" {
+			err := APIErrorConflict("Schema")
+			respondErr(w, err)
+			return
+
+		}
+
+		if err.Error() == "unsupported" {
+			err := APIErrorInvalidData(schemas.UnsupportedSchemaError)
+			respondErr(w, err)
+			return
+
+		}
+
+		err := APIErrorInvalidData(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	output, _ := json.MarshalIndent(schema, "", " ")
+	respondOK(w, output)
+}
+
+func SchemaDelete(w http.ResponseWriter, r *http.Request) {
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Get url path variables
+	urlVars := mux.Vars(r)
+	schemaName := urlVars["schema"]
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+
+	// Get project UUID First to use as reference
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
+
+	schemasList, err := schemas.Find(projectUUID, "", schemaName, refStr)
+	if err != nil {
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	if schemasList.Empty() {
+		err := APIErrorNotFound("Schema")
+		respondErr(w, err)
+		return
+	}
+
+	err = schemas.Delete(schemasList.Schemas[0].UUID, refStr)
+	if err != nil {
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	respondOK(w, nil)
+}
+
+// SchemaValidateMessage(POST) validates the given message against the schema
+func SchemaValidateMessage(w http.ResponseWriter, r *http.Request) {
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Get url path variables
+	urlVars := mux.Vars(r)
+	schemaName := urlVars["schema"]
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+
+	// Get project UUID First to use as reference
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
+	schemasList, err := schemas.Find(projectUUID, "", schemaName, refStr)
+	if err != nil {
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	if schemasList.Empty() {
+		err := APIErrorNotFound("Schema")
+		respondErr(w, err)
+		return
+	}
+
+	buf := bytes.Buffer{}
+	_, err = buf.ReadFrom(r.Body)
+	if err != nil {
+		err := APIErrorInvalidData(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	msgList := messages.MsgList{
+		Msgs: []messages.Message{
+			{
+				Data: base64.StdEncoding.EncodeToString(buf.Bytes()),
+			},
+		},
+	}
+
+	err = schemas.ValidateMessages(schemasList.Schemas[0], msgList)
+	if err != nil {
+		if err.Error() == "500" {
+			err := APIErrGenericInternal(schemas.GenericError)
+			respondErr(w, err)
+			return
+		} else {
+			err := APIErrorInvalidData(err.Error())
+			respondErr(w, err)
+			return
+		}
+	}
+
+	res, _ := json.MarshalIndent(map[string]string{"message": "Message validated successfully"}, "", " ")
+
+	respondOK(w, res)
+}
+
+// ListVersion displays version information about the service
+func ListVersion(w http.ResponseWriter, r *http.Request) {
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	v := version.Model{
+		Release:   version.Release,
+		Commit:    version.Commit,
+		BuildTime: version.BuildTime,
+		GO:        version.GO,
+		Compiler:  version.Compiler,
+		OS:        version.OS,
+		Arch:      version.Arch,
+	}
+
+	output, err := json.MarshalIndent(v, "", " ")
+	if err != nil {
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+	respondOK(w, output)
+
 }
 
 // Respond utility functions

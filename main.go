@@ -8,8 +8,9 @@ import (
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
 	oldPush "github.com/ARGOeu/argo-messaging/push"
-	"github.com/ARGOeu/argo-messaging/push/grpc/client"
+	push "github.com/ARGOeu/argo-messaging/push/grpc/client"
 	"github.com/ARGOeu/argo-messaging/stores"
+	"github.com/ARGOeu/argo-messaging/version"
 	"github.com/gorilla/handlers"
 	log "github.com/sirupsen/logrus"
 )
@@ -21,9 +22,14 @@ func init() {
 			FullTimestamp: true,
 			DisableColors: true},
 	)
+
+	// display binary version information during start up
+	version.LogInfo()
+
 }
 
 func main() {
+
 	// create and load configuration object
 	cfg := config.NewAPICfg("LOAD")
 

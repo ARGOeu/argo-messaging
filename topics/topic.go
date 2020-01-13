@@ -6,6 +6,7 @@ import (
 
 	"encoding/base64"
 	"github.com/ARGOeu/argo-messaging/projects"
+	"github.com/ARGOeu/argo-messaging/schemas"
 	"github.com/ARGOeu/argo-messaging/stores"
 	log "github.com/sirupsen/logrus"
 	"time"
@@ -18,6 +19,7 @@ type Topic struct {
 	FullName      string    `json:"name"`
 	LatestPublish time.Time `json:"-"`
 	PublishRate   float64   `json:"-"`
+	Schema        string    `json:"schema,omitempty"`
 }
 
 type TopicMetrics struct {
@@ -108,6 +110,25 @@ func Find(projectUUID, userUUID, name, pageToken string, pageSize int32, store s
 		curTop := New(item.ProjectUUID, projectName, item.Name)
 		curTop.LatestPublish = item.LatestPublish
 		curTop.PublishRate = item.PublishRate
+
+		if item.SchemaUUID != "" {
+			sl, err := schemas.Find(projectUUID, item.SchemaUUID, "", store)
+			if err == nil {
+				if !sl.Empty() {
+					curTop.Schema = schemas.FormatSchemaRef(projectName, sl.Schemas[0].Name)
+				}
+			} else {
+				log.WithFields(
+					log.Fields{
+						"type":         "service_log",
+						"topic_name":   item.Name,
+						"project_uuid": projectUUID,
+						"error":        err.Error(),
+					},
+				).Error("Could not retrieve schema")
+			}
+		}
+
 		result.Topics = append(result.Topics, curTop)
 	}
 
@@ -138,13 +159,13 @@ func (tl *PaginatedTopics) ExportJSON() (string, error) {
 }
 
 // CreateTopic creates a new topic
-func CreateTopic(projectUUID string, name string, store stores.Store) (Topic, error) {
+func CreateTopic(projectUUID string, name string, schemaUUID string, store stores.Store) (Topic, error) {
 
 	if HasTopic(projectUUID, name, store) {
 		return Topic{}, errors.New("exists")
 	}
 
-	err := store.InsertTopic(projectUUID, name)
+	err := store.InsertTopic(projectUUID, name, schemaUUID)
 	if err != nil {
 		return Topic{}, errors.New("backend error")
 	}

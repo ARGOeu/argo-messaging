@@ -33,7 +33,7 @@ type Store interface {
 	InsertUser(uuid string, projects []QProjectRoles, name string, token string, email string, serviceRoles []string, createdOn time.Time, modifiedOn time.Time, createdBy string) error
 	InsertProject(uuid string, name string, createdOn time.Time, modifiedOn time.Time, createdBy string, description string) error
 	InsertOpMetric(hostname string, cpu float64, mem float64) error
-	InsertTopic(projectUUID string, name string) error
+	InsertTopic(projectUUID string, name string, schemaUUID string) error
 	IncrementTopicMsgNum(projectUUID string, name string, num int64) error
 	IncrementDailyTopicMsgCount(projectUUID string, topicName string, num int64, date time.Time) error
 	IncrementTopicBytes(projectUUID string, name string, totalBytes int64) error
@@ -59,6 +59,10 @@ type Store interface {
 	RemoveFromACL(projectUUID string, resource string, name string, acl []string) error
 	ModAck(projectUUID string, name string, ack int) error
 	GetAllRoles() []string
+	InsertSchema(projectUUID, schemaUUID, name, schemaType, rawSchemaString string) error
+	QuerySchemas(projectUUID, schemaUUID, name string) ([]QSchema, error)
+	UpdateSchema(schemaUUID, name, schemaType, rawSchemaString string) error
+	DeleteSchema(schemaUUID string) error
 	Clone() Store
 	Close()
 }

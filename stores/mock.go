@@ -2,7 +2,6 @@ package stores
 
 import (
 	"errors"
-	"fmt"
 	"sort"
 	"strconv"
 	"time"
@@ -18,6 +17,7 @@ type MockStore struct {
 	ProjectList        []QProject
 	UserList           []QUser
 	RoleList           []QRole
+	SchemaList         []QSchema
 	Session            bool
 	TopicsACL          map[string]QAcl
 	SubsACL            map[string]QAcl
@@ -629,10 +629,10 @@ func (mk *MockStore) Initialize() {
 	mk.OpMetrics = make(map[string]QopMetric)
 
 	// populate topics
-	qtop4 := QTopic{3, "argo_uuid", "topic4", 0, 0, time.Date(0, 0, 0, 0, 0, 0, 0, time.Local), 0}
-	qtop3 := QTopic{2, "argo_uuid", "topic3", 0, 0, time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local), 8.99}
-	qtop2 := QTopic{1, "argo_uuid", "topic2", 0, 0, time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local), 5.45}
-	qtop1 := QTopic{0, "argo_uuid", "topic1", 0, 0, time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10}
+	qtop4 := QTopic{3, "argo_uuid", "topic4", 0, 0, time.Date(0, 0, 0, 0, 0, 0, 0, time.Local), 0, ""}
+	qtop3 := QTopic{2, "argo_uuid", "topic3", 0, 0, time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local), 8.99, ""}
+	qtop2 := QTopic{1, "argo_uuid", "topic2", 0, 0, time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local), 5.45, "schema_uuid_1"}
+	qtop1 := QTopic{0, "argo_uuid", "topic1", 0, 0, time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10, ""}
 	mk.TopicList = append(mk.TopicList, qtop1)
 	mk.TopicList = append(mk.TopicList, qtop2)
 	mk.TopicList = append(mk.TopicList, qtop3)
@@ -655,6 +655,24 @@ func (mk *MockStore) Initialize() {
 	qPr2 := QProject{UUID: "argo_uuid2", Name: "ARGO2", CreatedOn: created, ModifiedOn: modified, CreatedBy: "uuid1", Description: "simple project"}
 	mk.ProjectList = append(mk.ProjectList, qPr)
 	mk.ProjectList = append(mk.ProjectList, qPr2)
+
+	// populate schemas
+	//{
+	// 			"type": "object",
+	//			 "properties": {
+	// 			  "name":        { "type": "string" },
+	//  			  "email":        { "type": "string" },
+	// 			  "address":    { "type": "string" },
+	//  			  "telephone": { "type": "string" }
+	//	 },
+	// 	"required": ["name", "email"]
+	//}
+	//}
+	// the above schema base64 encoded
+	s := "eyJwcm9wZXJ0aWVzIjp7ImFkZHJlc3MiOnsidHlwZSI6InN0cmluZyJ9LCJlbWFpbCI6eyJ0eXBlIjoic3RyaW5nIn0sIm5hbWUiOnsidHlwZSI6InN0cmluZyJ9LCJ0ZWxlcGhvbmUiOnsidHlwZSI6InN0cmluZyJ9fSwicmVxdWlyZWQiOlsibmFtZSIsImVtYWlsIl0sInR5cGUiOiJvYmplY3QifQ=="
+	qSchema1 := QSchema{UUID: "schema_uuid_1", ProjectUUID: "argo_uuid", Type: "json", Name: "schema-1", RawSchema: s}
+	qSchema2 := QSchema{UUID: "schema_uuid_2", ProjectUUID: "argo_uuid", Type: "json", Name: "schema-2", RawSchema: s}
+	mk.SchemaList = append(mk.SchemaList, qSchema1, qSchema2)
 
 	// populate daily msg count for topics
 	dc1 := QDailyTopicMsgCount{time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC), "argo_uuid", "topic1", 40}
@@ -723,8 +741,6 @@ func (mk *MockStore) QueryTotalMessagesPerProject(projectUUIDs []string, startDa
 	if !endDate.Equal(startDate) {
 		days = int64(endDate.Sub(startDate).Hours() / 24)
 	}
-
-	fmt.Println(days)
 
 	if len(projectUUIDs) == 0 {
 		for _, c := range mk.DailyTopicMsgCount {
@@ -838,7 +854,7 @@ func (mk *MockStore) HasProject(name string) bool {
 }
 
 // InsertTopic inserts a new topic object to the store
-func (mk *MockStore) InsertTopic(projectUUID string, name string) error {
+func (mk *MockStore) InsertTopic(projectUUID string, name string, schemaUUID string) error {
 	topic := QTopic{
 		ID:            len(mk.TopicList),
 		ProjectUUID:   projectUUID,
@@ -847,6 +863,7 @@ func (mk *MockStore) InsertTopic(projectUUID string, name string) error {
 		TotalBytes:    0,
 		LatestPublish: time.Time{},
 		PublishRate:   0,
+		SchemaUUID:    schemaUUID,
 	}
 	mk.TopicList = append(mk.TopicList, topic)
 	return nil
@@ -1359,4 +1376,97 @@ func (mk *MockStore) QueryDailyTopicMsgCount(projectUUID string, topicName strin
 	sort.Slice(qds, func(i, j int) bool { return qds[i].Date.After(qds[j].Date) })
 
 	return qds, nil
+}
+
+func (mk *MockStore) InsertSchema(projectUUID, schemaUUID, name, schemaType, rawSchemaString string) error {
+	mk.SchemaList = append(mk.SchemaList, QSchema{
+		ProjectUUID: projectUUID,
+		UUID:        schemaUUID,
+		Name:        name,
+		Type:        schemaType,
+		RawSchema:   rawSchemaString,
+	})
+
+	return nil
+}
+
+func (mk *MockStore) QuerySchemas(projectUUID, schemaUUID, name string) ([]QSchema, error) {
+
+	qSchemas := []QSchema{}
+
+	if schemaUUID == "" && name == "" {
+		for _, qs := range mk.SchemaList {
+			if qs.ProjectUUID == projectUUID {
+				qSchemas = append(qSchemas, qs)
+			}
+		}
+	}
+
+	if schemaUUID != "" && name != "" {
+		for _, qs := range mk.SchemaList {
+			if qs.ProjectUUID == projectUUID && qs.UUID == schemaUUID && qs.Name == name {
+				qSchemas = append(qSchemas, qs)
+			}
+		}
+	}
+
+	if schemaUUID != "" && name == "" {
+		for _, qs := range mk.SchemaList {
+			if qs.ProjectUUID == projectUUID && qs.UUID == schemaUUID {
+				qSchemas = append(qSchemas, qs)
+			}
+		}
+	}
+
+	if schemaUUID == "" && name != "" {
+		for _, qs := range mk.SchemaList {
+			if qs.ProjectUUID == projectUUID && qs.Name == name {
+				qSchemas = append(qSchemas, qs)
+			}
+		}
+	}
+
+	return qSchemas, nil
+}
+
+func (mk *MockStore) UpdateSchema(schemaUUID, name, schemaType, rawSchemaString string) error {
+
+	for idx, s := range mk.SchemaList {
+		if s.UUID == schemaUUID {
+
+			if name != "" {
+				mk.SchemaList[idx].Name = name
+			}
+
+			if schemaType != "" {
+				mk.SchemaList[idx].Type = schemaType
+			}
+
+			if rawSchemaString != "" {
+				mk.SchemaList[idx].RawSchema = rawSchemaString
+			}
+
+			return nil
+		}
+	}
+
+	return errors.New("not found")
+}
+func (mk *MockStore) DeleteSchema(schemaUUID string) error {
+
+	for idx, s := range mk.SchemaList {
+		if s.UUID == schemaUUID {
+			mk.SchemaList = append(mk.SchemaList[:idx], mk.SchemaList[idx+1:]...)
+
+			for idx, t := range mk.TopicList {
+				if t.SchemaUUID == schemaUUID {
+					mk.TopicList[idx].SchemaUUID = ""
+				}
+			}
+
+			return nil
+		}
+	}
+
+	return errors.New("not found")
 }

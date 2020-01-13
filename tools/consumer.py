@@ -8,33 +8,35 @@ import time
 
 def main(args):
 
-    ams = ArgoMessagingService(endpoint=args.host, token=args.token, project=args.project)
+    ams_endpoint = "{}:{}".format(args.host, args.port)
+
+    ams = ArgoMessagingService(endpoint=ams_endpoint, token=args.token, project=args.project)
 
     while True:
         try:
 
             consumed_msgs = ams.pull_sub(sub=args.sub, num=args.bulk_size, return_immediately=True, verify=args.verify)
-
+            print(consumed_msgs)
             last_msg_id = "-1"
             if len(consumed_msgs) > 0:
                 last_msg_id = consumed_msgs.pop()[0]
 
-            print last_msg_id
-            print "\n"
+            print(last_msg_id)
+            print ("\n")
 
             if last_msg_id != "-1":
-                print ams.ack_sub(args.sub, [last_msg_id], verify=args.verify)
+                print (ams.ack_sub(args.sub, [last_msg_id], verify=args.verify))
 
             time.sleep(args.fire_rate)
 
         except Exception as e:
-            print "Couldn't consume from sub {}, {}".format(args.sub, e.message)
+            print ("Couldn't consume from sub {}, {}".format(args.sub, str(e)))
             continue
 
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description="Publish messages to an ams topic indefinitely")
+    parser = argparse.ArgumentParser(description="Consume messages from an ams subscription indefinitely")
 
     parser.add_argument(
         "-host", "--host", metavar="STRING", help="Ams endpoint", type=str, dest="host", required=True)

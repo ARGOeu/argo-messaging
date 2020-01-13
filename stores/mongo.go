@@ -1116,7 +1116,7 @@ func (mong *MongoStore) HasProject(name string) bool {
 }
 
 // InsertTopic inserts a topic to the store
-func (mong *MongoStore) InsertTopic(projectUUID string, name string) error {
+func (mong *MongoStore) InsertTopic(projectUUID string, name string, schemaUUID string) error {
 
 	topic := QTopic{
 		ProjectUUID:   projectUUID,
@@ -1125,6 +1125,7 @@ func (mong *MongoStore) InsertTopic(projectUUID string, name string) error {
 		TotalBytes:    0,
 		LatestPublish: time.Time{},
 		PublishRate:   0,
+		SchemaUUID:    schemaUUID,
 	}
 
 	return mong.InsertResource("topics", topic)
@@ -1624,5 +1625,119 @@ func (mong *MongoStore) QueryPushSubs() []QSub {
 		).Fatal(err.Error())
 	}
 	return results
+
+}
+
+func (mong *MongoStore) InsertSchema(projectUUID, schemaUUID, name, schemaType, rawSchemaString string) error {
+	sub := QSchema{
+		ProjectUUID: projectUUID,
+		UUID:        schemaUUID,
+		Name:        name,
+		Type:        schemaType,
+		RawSchema:   rawSchemaString,
+	}
+	return mong.InsertResource("schemas", sub)
+}
+
+func (mong *MongoStore) QuerySchemas(projectUUID, schemaUUID, name string) ([]QSchema, error) {
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C("schemas")
+
+	var results []QSchema
+
+	query := bson.M{"project_uuid": projectUUID}
+
+	if name != "" {
+		query["name"] = name
+	}
+
+	if schemaUUID != "" {
+		query["uuid"] = schemaUUID
+	}
+
+	err := c.Find(query).All(&results)
+	if err != nil {
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
+	}
+
+	return results, nil
+}
+
+// UpdateSchema updates the fields of a schema
+func (mong *MongoStore) UpdateSchema(schemaUUID, name, schemaType, rawSchemaString string) error {
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C("schemas")
+
+	selector := bson.M{"uuid": schemaUUID}
+
+	updates := bson.M{}
+
+	if name != "" {
+		updates["name"] = name
+	}
+
+	if schemaType != "" {
+		updates["type"] = schemaType
+	}
+
+	if rawSchemaString != "" {
+		updates["raw_schema"] = rawSchemaString
+	}
+
+	change := bson.M{"$set": updates}
+
+	return c.Update(selector, change)
+}
+
+// DeleteSchema removes the schema from the store
+// It also clears all the respective topics from the schema_uuid of the deleted schema
+func (mong *MongoStore) DeleteSchema(schemaUUID string) error {
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C("schemas")
+
+	selector := bson.M{"uuid": schemaUUID}
+
+	err := c.Remove(selector)
+
+	if err != nil {
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
+	}
+
+	topics := db.C("topics")
+
+	topicSelector := bson.M{"schema_uuid": schemaUUID}
+	change := bson.M{
+		"$set": bson.M{
+			"schema_uuid": "",
+		},
+	}
+	topics.UpdateAll(topicSelector, change)
+
+	if err != nil {
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
+	}
+
+	return nil
 
 }
