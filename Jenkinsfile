@@ -9,7 +9,7 @@ pipeline {
     environment {
         def PROJECT_DIR='argo-messaging'
         GOPATH="${WORKSPACE}/go"
-        GIT_COMMIT2=sh(script: 'pwd ${WORKSPACE}/${PROJECT_DIR}',returnStdout: true).trim()
+        GIT_COMMIT2=sh(script: "pwd ${WORKSPACE}/$PROJECT_DIR",returnStdout: true).trim()
         //GIT_COMMIT3=sh(script: "export TESTX=\$(echo ${PROJECT_DIR})) | pwd ${WORKSPACE}/$TESTX",returnStdout: true).trim()
         //GIT_COMMIT4=sh(script: 'printenv | grep "PROJECT_DIR"',returnStdout: false).trim()
         GIT_COMMIT=sh(script: 'cd ${WORKSPACE}/argo-messaging && git log -1 --format="%H"',returnStdout: true).trim()
@@ -21,7 +21,6 @@ pipeline {
             steps {
                 echo 'Build...'
                 sh """
-                printenv | grep "TEST"
                 printenv | grep "GIT_COMMIT"
                 printenv | grep "PROJECT"
                 exit 1
