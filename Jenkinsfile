@@ -28,7 +28,7 @@ pipeline {
             steps {
                 echo 'Build...'
                 sh """
-                printenv | grep "GIT_COMMIT"
+                printenv | grep GIT_COMMIT
                 printenv | grep "PROJECT"
                 exit 1
                 mkdir -p ${WORKSPACE}/go/src/github.com/ARGOeu
