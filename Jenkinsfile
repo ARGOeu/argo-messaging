@@ -7,7 +7,7 @@ pipeline {
     }
     options { checkoutToSubdirectory('argo-messaging') }
     environment {
-        PROJECT_DIR="argo-messaging"
+        def PROJECT_DIR="argo-messaging"
         GOPATH="${WORKSPACE}/go"
         GIT_COMMIT2=sh(script: "pwd ${WORKSPACE}/\$(${PROJECT_DIR})",returnStdout: true).trim()
         //GIT_COMMIT3=sh(script: "export TESTX=\$(echo ${PROJECT_DIR})) | pwd ${WORKSPACE}/$TESTX",returnStdout: true).trim()
