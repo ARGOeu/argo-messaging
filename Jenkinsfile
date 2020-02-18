@@ -11,7 +11,7 @@ pipeline {
         TEST2="${env.PROJECT_DIR}"
         TEST3="${PROJECT_DIR}"
         TEST4=sh(script: 'echo ${PROJECT_DIR}',returnStdout: true).trim()
-        TEST5=sh(script: 'echo $PROJECT_DIR',returnStdout: true).trim()
+        TEST5=sh(script: "echo $PROJECT_DIR",returnStdout: true).trim()
         GOPATH="${WORKSPACE}/go"
         GIT_COMMIT2=sh(script: 'pwd ${WORKSPACE}/${PROJECT_DIR}',returnStdout: true).trim()
         GIT_COMMIT3=sh(script: 'export TESTX=$(bash -c "$(echo ${TEST3})") | pwd ${WORKSPACE}/$TESTX',returnStdout: true).trim()
