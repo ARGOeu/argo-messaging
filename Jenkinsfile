@@ -15,7 +15,7 @@ pipeline {
         GOPATH="${WORKSPACE}/go"
         GIT_COMMIT2=sh(script: 'pwd ${WORKSPACE}/${PROJECT_DIR}',returnStdout: true).trim()
         GIT_COMMIT3=sh(script: 'export TESTX=$(bash -c "$(echo ${PROJECT_DIR})") | pwd ${WORKSPACE}/$TESTX',returnStdout: true).trim()
-        //GIT_COMMIT4=sh(script: 'printenv | grep "PROJECT_DIR"',returnStdout: true).trim()
+        GIT_COMMIT4=sh(script: 'printenv | grep "PROJECT_DIR"',returnStdout: false).trim()
         GIT_COMMIT=sh(script: 'cd ${WORKSPACE}/argo-messaging && git log -1 --format="%H"',returnStdout: true).trim()
         GIT_COMMIT_HASH=sh(script: 'cd ${WORKSPACE}/argo-messaging && git log -1 --format="%H" | cut -c1-7',returnStdout: true).trim()
         GIT_COMMIT_DATE=sh(script: 'date -d "$(cd ${WORKSPACE}/argo-messaging && git show -s --format=%ci ${GIT_COMMIT_HASH})" "+%Y%m%d%H%M%S"',returnStdout: true).trim()
@@ -27,6 +27,7 @@ pipeline {
                 sh """
                 printenv | grep "TEST"
                 printenv | grep "GIT_COMMIT"
+                printenv | grep "PROJECT"
                 exit 1
                 mkdir -p ${WORKSPACE}/go/src/github.com/ARGOeu
                 ln -sf ${WORKSPACE}/${PROJECT_DIR} ${WORKSPACE}/go/src/github.com/ARGOeu/${PROJECT_DIR}
