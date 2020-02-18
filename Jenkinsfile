@@ -30,7 +30,6 @@ pipeline {
             steps {
                 echo 'Test & Coverage...'
                 sh """
-                sudo /etc/init.d/mongod restart
                 cd ${WORKSPACE}/go/src/github.com/ARGOeu/${PROJECT_DIR}
                 gocov test -p 1 \$(go list ./... | grep -v /vendor/) | gocov-xml > ${WORKSPACE}/coverage.xml
                 go test -p 1 \$(go list ./... | grep -v /vendor/) -v=1 | go-junit-report > ${WORKSPACE}/junit.xml
