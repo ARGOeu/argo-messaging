@@ -11,8 +11,8 @@ pipeline {
         GOPATH="${WORKSPACE}/go"
         GIT_COMMIT2=sh(script: 'bash -c "$(echo ${PROJECT_DIR})"',returnStdout: true).trim()
         GIT_COMMIT3=sh(script: 'bash -c "$(echo $PROJECT_DIR)"',returnStdout: true).trim()
-        //GIT_COMMIT4=sh(script: "\$(echo ${PROJECT_DIR})",returnStdout: true).trim()
-        //GIT_COMMIT5=sh(script: "\$(echo $PROJECT_DIR)",returnStdout: true).trim()
+        GIT_COMMIT4=sh(script: "\$(echo ${PROJECT_DIR})",returnStdout: true).trim()
+        GIT_COMMIT5=sh(script: "\$(echo $PROJECT_DIR)",returnStdout: true).trim()
         //GIT_COMMIT6="""${sh(
         //        returnStatus: true,
         //        script: 'echo $PROJECT_DIR'
