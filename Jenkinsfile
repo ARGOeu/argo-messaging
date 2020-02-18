@@ -7,7 +7,7 @@ pipeline {
     }
     options { checkoutToSubdirectory('argo-messaging') }
     environment {
-        PROJECT_DIR=h(script: 'export PROJECT_DIR=argo-messaging | echo argo-messaging',returnStdout: true).trim()
+        PROJECT_DIR=sh(script: 'export PROJECT_DIR=argo-messaging | echo argo-messaging',returnStdout: true).trim()
         TEST2="${env.PROJECT_DIR}"
         TEST3="${PROJECT_DIR}"
         TEST4=sh(script: 'echo ${PROJECT_DIR}',returnStdout: true).trim()
