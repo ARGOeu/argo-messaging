@@ -14,7 +14,7 @@ pipeline {
         //GIT_COMMIT4=sh(script: "\${PROJECT_DIR}",returnStdout: true).trim()
         //GIT_COMMIT5=sh(script: "\${$PROJECT_DIR}",returnStdout: true).trim()
         GIT_COMMIT6="""${sh(
-                returnStatus: true,
+                returnStdout: true,
                 script: 'echo $PROJECT_DIR'
            )}"""
         //GIT_COMMIT3=sh(script: "export TESTX=\$(echo ${PROJECT_DIR})) | pwd ${WORKSPACE}/$TESTX",returnStdout: true).trim()
