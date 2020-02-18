@@ -8,13 +8,13 @@ pipeline {
     options { checkoutToSubdirectory('argo-messaging') }
     environment {
         PROJECT_DIR='argo-messaging'
-        TEST1="env.PROJECT_DIR"
         TEST2="${env.PROJECT_DIR}"
         TEST3="${PROJECT_DIR}"
         TEST4=sh(script: 'echo ${PROJECT_DIR}',returnStdout: true).trim()
         TEST5=sh(script: 'echo $PROJECT_DIR',returnStdout: true).trim()
-        TEST6=sh(script: 'echo $env.PROJECT_DIR',returnStdout: true).trim()
         GOPATH="${WORKSPACE}/go"
+        GIT_COMMIT2=sh(script: 'pwd ${WORKSPACE}/${PROJECT_DIR}',returnStdout: true).trim()
+        GIT_COMMIT3=sh(script: 'pwd ${WORKSPACE}/${env.PROJECT_DIR}',returnStdout: true).trim()
         GIT_COMMIT=sh(script: 'cd ${WORKSPACE}/argo-messaging && git log -1 --format="%H"',returnStdout: true).trim()
         GIT_COMMIT_HASH=sh(script: 'cd ${WORKSPACE}/argo-messaging && git log -1 --format="%H" | cut -c1-7',returnStdout: true).trim()
         GIT_COMMIT_DATE=sh(script: 'date -d "$(cd ${WORKSPACE}/argo-messaging && git show -s --format=%ci ${GIT_COMMIT_HASH})" "+%Y%m%d%H%M%S"',returnStdout: true).trim()
@@ -25,7 +25,8 @@ pipeline {
                 echo 'Build...'
                 sh """
                 printenv | grep "TEST"
-                exit 0
+                printenv | grep "GIT_COMMIT"
+                exit 1
                 mkdir -p ${WORKSPACE}/go/src/github.com/ARGOeu
                 ln -sf ${WORKSPACE}/${PROJECT_DIR} ${WORKSPACE}/go/src/github.com/ARGOeu/${PROJECT_DIR}
                 rm -rf ${WORKSPACE}/go/src/github.com/ARGOeu/${PROJECT_DIR}/${PROJECT_DIR}
