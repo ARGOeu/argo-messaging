@@ -7,16 +7,9 @@ pipeline {
     }
     options { checkoutToSubdirectory('argo-messaging') }
     environment {
-        PROJECT_DIR=sh(script: 'echo argo-messaging',returnStdout: true).trim()
+        PROJECT_DIR="argo-messaging"
         GOPATH="${WORKSPACE}/go"
-        GIT_COMMIT2=sh(script: 'bash -c "$(echo ${PROJECT_DIR})"',returnStdout: true).trim()
-        GIT_COMMIT3=sh(script: 'bash -c "$(echo $PROJECT_DIR)"',returnStdout: true).trim()
-        GIT_COMMIT4=sh(script: "echo $PROJECT_DIR",returnStdout: true).trim()
-        GIT_COMMIT5=sh(script: "echo ${$PROJECT_DIR}",returnStdout: true).trim()
-        GIT_COMMIT6="""${sh(
-                returnStdout: true,
-                script: "echo ${PROJECT_DIR}"
-           )}"""
+        GIT_COMMIT2=sh(script: "echo $PROJECT_DIR",returnStdout: true).trim()
         //GIT_COMMIT3=sh(script: "export TESTX=\$(echo ${PROJECT_DIR})) | pwd ${WORKSPACE}/$TESTX",returnStdout: true).trim()
         //GIT_COMMIT4=sh(script: 'printenv | grep "PROJECT_DIR"',returnStdout: false).trim()
         GIT_COMMIT=sh(script: 'cd ${WORKSPACE}/argo-messaging && git log -1 --format="%H"',returnStdout: true).trim()
