@@ -1,11 +1,14 @@
 pipeline {
-    agent { 
-        docker { 
-            image 'argo.registry:5000/epel-7-mgo' 
+    agent {
+        docker {
+            image 'argo.registry:5000/epel-7-mgo'
             args '-u jenkins:jenkins'
         }
     }
-    options { checkoutToSubdirectory('argo-messaging') }
+    options {
+        checkoutToSubdirectory('argo-messaging')
+        newContainerPerStage()
+    }
     environment {
         PROJECT_DIR="argo-messaging"
         GOPATH="${WORKSPACE}/go"
