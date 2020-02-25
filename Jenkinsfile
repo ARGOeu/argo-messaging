@@ -45,41 +45,11 @@ pipeline {
         stage('Package') {
             steps {
                 echo 'Building Rpm...'
-                sh """
-                cd ${WORKSPACE}/${PROJECT_DIR} && make sources
-                cp ${WORKSPACE}/${PROJECT_DIR}/${PROJECT_DIR}*.tar.gz /home/jenkins/rpmbuild/SOURCES/
-                if [ "$env.BRANCH_NAME" != "master" ]; then
-                    sed -i 's/^Release.*/Release: %(echo $GIT_COMMIT_DATE).%(echo $GIT_COMMIT_HASH)%{?dist}/' ${WORKSPACE}/${PROJECT_DIR}/${PROJECT_DIR}.spec
-                fi
-                cd /home/jenkins/rpmbuild/SOURCES && tar -xzvf ${PROJECT_DIR}*.tar.gz
-                cp ${WORKSPACE}/${PROJECT_DIR}/${PROJECT_DIR}.spec /home/jenkins/rpmbuild/SPECS/
-                rpmbuild -bb /home/jenkins/rpmbuild/SPECS/*.spec
-                rm -f ${WORKSPACE}/*.rpm
-                cp /home/jenkins/rpmbuild/RPMS/**/*.rpm ${WORKSPACE}/
-                """
-                archiveArtifacts artifacts: '**/*.rpm', fingerprint: true
-                script {
-                    if ( env.BRANCH_NAME == 'master' ) {
-                        echo 'Uploading rpm for devel...'
-                        withCredentials(bindings: [sshUserPrivateKey(credentialsId: 'jenkins-repo', usernameVariable: 'REPOUSER', \
-                                                                keyFileVariable: 'REPOKEY')]) {
-                            sh  '''
-                                scp -i ${REPOKEY} -o StrictHostKeyChecking=no ${WORKSPACE}/*.rpm ${REPOUSER}@rpm-repo.argo.grnet.gr:/repos/ARGO/prod/centos7/
-                                ssh -i ${REPOKEY} -o StrictHostKeyChecking=no ${REPOUSER}@rpm-repo.argo.grnet.gr createrepo --update /repos/ARGO/prod/centos7/
-                                '''
-                        }
-                    }
-                    else if ( env.BRANCH_NAME == 'devel' ) {
-                        echo 'Uploading rpm for devel...'
-                        withCredentials(bindings: [sshUserPrivateKey(credentialsId: 'jenkins-repo', usernameVariable: 'REPOUSER', \
-                                                                    keyFileVariable: 'REPOKEY')]) {
-                            sh  '''
-                                scp -i ${REPOKEY} -o StrictHostKeyChecking=no ${WORKSPACE}/*.rpm ${REPOUSER}@rpm-repo.argo.grnet.gr:/repos/ARGO/devel/centos7/
-                                ssh -i ${REPOKEY} -o StrictHostKeyChecking=no ${REPOUSER}@rpm-repo.argo.grnet.gr createrepo --update /repos/ARGO/devel/centos7/
-                                '''
-                        }
-                    }
+                withCredentials(bindings: [sshUserPrivateKey(credentialsId: 'jenkins-rpm-repo', usernameVariable: 'REPOUSER', \
+                                                             keyFileVariable: 'REPOKEY')]) {
+                    sh "/home/jenkins/build-rpm.sh -w ${WORKSPACE} -b ${BRANCH_NAME} -d centos7 -p ${PROJECT_DIR} -s ${REPOKEY}"
                 }
+                archiveArtifacts artifacts: '**/*.rpm', fingerprint: true
             }
         } 
     }
