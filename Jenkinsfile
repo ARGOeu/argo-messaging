@@ -57,7 +57,7 @@ pipeline {
         success {
             script{
                 if ( env.BRANCH_NAME == 'devel' ) {
-                    build job: '../../argo_swagger_docs', propagate: false
+                    build job: '/ARGO-utils/argo-swagger-docs', propagate: false
                 }
             }
         }
