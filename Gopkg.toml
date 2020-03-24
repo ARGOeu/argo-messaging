@@ -35,3 +35,7 @@
 [[constraint]]
   name = "github.com/xeipuuv/gojsonschema"
   version = "1.2.0"
+
+[[constraint]]
+  name = "github.com/linkedin/goavro"
+  version = "2.9.7"
