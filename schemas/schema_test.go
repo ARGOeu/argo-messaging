@@ -135,8 +135,9 @@ func (suite *SchemasTestSuite) TestFind() {
 							"type":     "object",
 						},
 					},
-					{UUID: "schema_uuid_2",
+					{
 						ProjectUUID: "argo_uuid",
+						UUID:        "schema_uuid_2",
 						Name:        "schema-2",
 						FullName:    "projects/ARGO/schemas/schema-2",
 						Type:        JSON,
@@ -149,6 +150,22 @@ func (suite *SchemasTestSuite) TestFind() {
 							},
 							"required": []interface{}{"name", "email"},
 							"type":     "object",
+						},
+					},
+					{
+						ProjectUUID: "argo_uuid",
+						UUID:        "schema_uuid_3",
+						Name:        "schema-3",
+						FullName:    "projects/ARGO/schemas/schema-3",
+						Type:        AVRO,
+						RawSchema: map[string]interface{}{
+							"namespace": "user.avro",
+							"type":      "record",
+							"name":      "User",
+							"fields": []interface{}{
+								map[string]interface{}{"name": "username", "type": "string"},
+								map[string]interface{}{"name": "phone", "type": "int"},
+							},
 						},
 					},
 				},
@@ -269,7 +286,7 @@ func (suite *SchemasTestSuite) TestUpdate() {
 					"type":     "object",
 				},
 			},
-			newName:        "schema-3",
+			newName:        "schema-new-type",
 			newType:        "new-type",
 			newSchema:      map[string]interface{}{"type": "string"},
 			expectedSchema: Schema{},
@@ -297,7 +314,7 @@ func (suite *SchemasTestSuite) TestUpdate() {
 					"type":     "object",
 				},
 			},
-			newName:        "schema-3",
+			newName:        "schema-error-type",
 			newType:        JSON,
 			newSchema:      map[string]interface{}{"type": "unknown"},
 			expectedSchema: Schema{},
@@ -344,6 +361,22 @@ func (suite *SchemasTestSuite) TestValidateMessages() {
 		},
 	}
 
+	avroschema := Schema{
+		ProjectUUID: "argo_uuid",
+		UUID:        "schema_uuid_3",
+		Name:        "schema-3",
+		Type:        AVRO,
+		RawSchema: map[string]interface{}{
+			"namespace": "user.avro",
+			"type":      "record",
+			"name":      "User",
+			"fields": []interface{}{
+				map[string]interface{}{"name": "username", "type": "string"},
+				map[string]interface{}{"name": "phone", "type": "int"},
+			},
+		},
+	}
+
 	testdata := []td{
 		{
 			schema: schema,
@@ -360,7 +393,24 @@ func (suite *SchemasTestSuite) TestValidateMessages() {
 				},
 			},
 			err: nil,
-			msg: "Case where the provided messages are successfully validated",
+			msg: "Case where the provided messages are successfully validated(JSON)",
+		},
+		{
+			schema: avroschema,
+			messageList: messages.MsgList{
+				Msgs: []messages.Message{
+					{
+						// {"username":"agelos", "email": "698090"}
+						Data: "DGFnZWxvc8T8Cg==",
+					},
+					{
+						//{"placename":"street 22", "address": "place a"}
+						Data: "T2JqAQQWYXZyby5zY2hlbWGYAnsidHlwZSI6InJlY29yZCIsIm5hbWUiOiJQbGFjZSIsIm5hbWVzcGFjZSI6InBsYWNlLmF2cm8iLCJmaWVsZHMiOlt7Im5hbWUiOiJwbGFjZW5hbWUiLCJ0eXBlIjoic3RyaW5nIn0seyJuYW1lIjoiYWRkcmVzcyIsInR5cGUiOiJzdHJpbmcifV19FGF2cm8uY29kZWMIbnVsbABM1P4b0GpYaCg9tqxa+YDZAiQSc3RyZWV0IDIyDnBsYWNlIGFM1P4b0GpYaCg9tqxa+YDZ",
+					},
+				},
+			},
+			err: errors.New("Message 1 is not valid.cannot decode binary record \"user.avro.User\" field \"username\": cannot decode binary string: cannot decode binary bytes: negative size: -40"),
+			msg: "Case where one of the messages is not successfully validated(1 errors)(AVRO)",
 		},
 		{
 			schema: schema,
@@ -377,7 +427,7 @@ func (suite *SchemasTestSuite) TestValidateMessages() {
 				},
 			},
 			err: errors.New("Message 0 data is not valid.1)(root): email is required.2)telephone: Invalid type. Expected: string, given: integer."),
-			msg: "Case where one of the messages is not successfully validated(2 errors)",
+			msg: "Case where one of the messages is not successfully validated(2 errors)(JSON)",
 		},
 		{
 			schema: schema,
@@ -394,7 +444,7 @@ func (suite *SchemasTestSuite) TestValidateMessages() {
 				},
 			},
 			err: errors.New("Message 0 data is not valid,(root): email is required"),
-			msg: "Case where the one of the messages is not successfully validated(1 error)",
+			msg: "Case where the one of the messages is not successfully validated(1 error)(JSON)",
 		},
 		{
 			schema: schema,
@@ -547,7 +597,31 @@ func (suite *SchemasTestSuite) TestCheckSchema() {
 				"type": "string",
 			},
 			err: nil,
-			msg: "Case where the provided schema type is supported and the format of the schema is correct",
+			msg: "Case where the provided schema type is supported and the format of the schema is correct(JSON)",
+		},
+		{
+			schemaType: AVRO,
+			schema: map[string]interface{}{
+				"namespace": "user.avro",
+				"type":      "record",
+				"name":      "User",
+				"fields": []interface{}{
+					map[string]interface{}{"name": "username", "type": "string"},
+					map[string]interface{}{"name": "phone", "type": "int"},
+				},
+			},
+			err: nil,
+			msg: "Case where the provided schema type is supported and the format of the schema is correct(AVRO)",
+		},
+		{
+			schemaType: AVRO,
+			schema: map[string]interface{}{
+				"namespace": "user.avro",
+				"type":      "unknown",
+				"name":      "User",
+			},
+			err: errors.New("unknown type name: \"unknown\""),
+			msg: "Case where the provided schema type is supported but the format of the schema is incorrect(AVRO)",
 		},
 		{
 			schemaType: JSON,
@@ -555,7 +629,7 @@ func (suite *SchemasTestSuite) TestCheckSchema() {
 				"type": "unknown",
 			},
 			err: errors.New("has a primitive type that is NOT VALID -- given: /unknown/ Expected valid values are:[array boolean integer number null object string]"),
-			msg: "Case where the provided schema type is supported but the format of the schema is incorrect",
+			msg: "Case where the provided schema type is supported but the format of the schema is incorrect(JSON)",
 		},
 		{
 			schemaType: "unknown",

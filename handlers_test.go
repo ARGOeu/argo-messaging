@@ -4818,7 +4818,8 @@ func (suite *HandlerTestSuite) TestTopicListAll() {
          "name": "/projects/ARGO/topics/topic4"
       },
       {
-         "name": "/projects/ARGO/topics/topic3"
+         "name": "/projects/ARGO/topics/topic3",
+         "schema": "projects/ARGO/schemas/schema-3"
       },
       {
          "name": "/projects/ARGO/topics/topic2",
@@ -4914,6 +4915,7 @@ func (suite *HandlerTestSuite) TestTopicListAllPublisherWithPagination() {
 func (suite *HandlerTestSuite) TestPublishWithSchema() {
 
 	type td struct {
+		topic              string
 		postBody           string
 		expectedResponse   string
 		expectedStatusCode int
@@ -4922,6 +4924,7 @@ func (suite *HandlerTestSuite) TestPublishWithSchema() {
 
 	testData := []td{
 		{
+			topic: "topic2",
 			postBody: `{
 	"messages" : [
 		
@@ -4943,9 +4946,34 @@ func (suite *HandlerTestSuite) TestPublishWithSchema() {
       "2"
    ]
 }`,
-			msg: "Case where the messages are validated successfully",
+			msg: "Case where the messages are validated successfully(JSON)",
 		},
 		{
+			topic: "topic3",
+			postBody: `{
+	"messages" : [
+		
+		{
+			"attributes": {},
+			"data": "DGFnZWxvc8T8Cg=="
+		},	
+		{
+			"attributes": {},
+			"data": "DGFnZWxvc8T8Cg=="
+		}
+	]
+}`,
+			expectedStatusCode: 200,
+			expectedResponse: `{
+   "messageIds": [
+      "3",
+      "4"
+   ]
+}`,
+			msg: "Case where the messages are validated successfully(AVRO)",
+		},
+		{
+			topic: "topic2",
 			postBody: `{
 	"messages" : [
 		
@@ -4971,6 +4999,34 @@ func (suite *HandlerTestSuite) TestPublishWithSchema() {
 			msg: "Case where one of the messages is not successfully validated(2 errors)",
 		},
 		{
+			topic: "topic3",
+			postBody: `{
+	"messages" : [
+		
+		{
+			"attributes": {},
+			"data": "T2JqAQQWYXZyby5zY2hlbWGYAnsidHlwZSI6InJlY29yZCIsIm5hbWUiOiJQbGFjZSIsIm5hbWVzcGFjZSI6InBsYWNlLmF2cm8iLCJmaWVsZHMiOlt7Im5hbWUiOiJwbGFjZW5hbWUiLCJ0eXBlIjoic3RyaW5nIn0seyJuYW1lIjoiYWRkcmVzcyIsInR5cGUiOiJzdHJpbmcifV19FGF2cm8uY29kZWMIbnVsbABM1P4b0GpYaCg9tqxa+YDZAiQSc3RyZWV0IDIyDnBsYWNlIGFM1P4b0GpYaCg9tqxa+YDZ"
+		},
+		
+		{
+			"attributes": {},
+			"data": "DGFnZWxvc8T8Cg=="
+		}
+	]
+}`,
+			expectedStatusCode: 400,
+			expectedResponse: `{
+   "error": {
+      "code": 400,
+      "message": "Message 0 is not valid.cannot decode binary record \"user.avro.User\" field \"username\": cannot decode binary string: cannot decode binary bytes: negative size: -40",
+      "status": "INVALID_ARGUMENT"
+   }
+}`,
+			msg: "Case where one of the messages is not successfully validated(1 error)(AVRO)",
+		},
+
+		{
+			topic: "topic2",
 			postBody: `{
 	"messages" : [
 		
@@ -4996,6 +5052,7 @@ func (suite *HandlerTestSuite) TestPublishWithSchema() {
 			msg: "Case where the one of the messages is not successfully validated(1 error)",
 		},
 		{
+			topic: "topic2",
 			postBody: `{
 	"messages" : [
 		
@@ -5026,6 +5083,7 @@ func (suite *HandlerTestSuite) TestPublishWithSchema() {
 	cfgKafka.LoadStrJSON(suite.cfgStr)
 	cfgKafka.PushEnabled = true
 	cfgKafka.PushWorkerToken = "push_token"
+	cfgKafka.ResAuth = false
 	brk := brokers.MockBroker{}
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
@@ -5035,7 +5093,7 @@ func (suite *HandlerTestSuite) TestPublishWithSchema() {
 	for _, t := range testData {
 
 		w := httptest.NewRecorder()
-		url := fmt.Sprintf("http://localhost:8080/v1/projects/ARGO/topics/%v", "topic2")
+		url := fmt.Sprintf("http://localhost:8080/v1/projects/ARGO/topics/%v", t.topic)
 		req, err := http.NewRequest("POST", url, strings.NewReader(t.postBody))
 		if err != nil {
 			log.Fatal(err)
@@ -5061,7 +5119,8 @@ func (suite *HandlerTestSuite) TestTopicListAllFirstPage() {
          "name": "/projects/ARGO/topics/topic4"
       },
       {
-         "name": "/projects/ARGO/topics/topic3"
+         "name": "/projects/ARGO/topics/topic3",
+         "schema": "projects/ARGO/schemas/schema-3"
       }
    ],
    "nextPageToken": "MQ==",
@@ -6174,7 +6233,44 @@ func (suite *HandlerTestSuite) TestSchemaCreate() {
   "type": "string"
  }
 }`,
-			msg: "Case where the schema is valid and successfully created",
+			msg: "Case where the schema is valid and successfully created(JSON)",
+		},
+		{
+			postBody: `{
+	"type": "avro",
+	"schema":{
+  			"type": "record",
+ 			"namespace": "user.avro",
+			"name":"User",
+			"fields": [
+						{"name": "username", "type": "string"},
+						{"name": "phone", "type": "int"}
+			]
+	}
+}`,
+			schemaName:         "new-schema-avro",
+			expectedStatusCode: 200,
+			expectedResponse: `{
+ "uuid": "{{UUID}}",
+ "name": "projects/ARGO/schemas/new-schema-avro",
+ "type": "avro",
+ "schema": {
+  "fields": [
+   {
+    "name": "username",
+    "type": "string"
+   },
+   {
+    "name": "phone",
+    "type": "int"
+   }
+  ],
+  "name": "User",
+  "namespace": "user.avro",
+  "type": "record"
+ }
+}`,
+			msg: "Case where the schema is valid and successfully created(AVRO)",
 		},
 		{
 			postBody: `{
@@ -6188,7 +6284,7 @@ func (suite *HandlerTestSuite) TestSchemaCreate() {
 			expectedResponse: `{
    "error": {
       "code": 400,
-      "message": "Schema type can only be 'json'",
+      "message": "Schema type can only be 'json' or 'avro'",
       "status": "INVALID_ARGUMENT"
    }
 }`,
@@ -6211,6 +6307,24 @@ func (suite *HandlerTestSuite) TestSchemaCreate() {
    }
 }`,
 			msg: "Case where the json schema is not valid",
+		},
+		{
+			postBody: `{
+	"type": "avro",
+	"schema":{
+  			"type": "unknown"
+	}
+}`,
+			schemaName:         "new-schema-2",
+			expectedStatusCode: 400,
+			expectedResponse: `{
+   "error": {
+      "code": 400,
+      "message": "unknown type name: \"unknown\"",
+      "status": "INVALID_ARGUMENT"
+   }
+}`,
+			msg: "Case where the avro schema is not valid",
 		},
 		{
 			postBody: `{
@@ -6412,6 +6526,26 @@ func (suite *HandlerTestSuite) TestSchemaListAll() {
     ],
     "type": "object"
    }
+  },
+  {
+   "uuid": "schema_uuid_3",
+   "name": "projects/ARGO/schemas/schema-3",
+   "type": "avro",
+   "schema": {
+    "fields": [
+     {
+      "name": "username",
+      "type": "string"
+     },
+     {
+      "name": "phone",
+      "type": "int"
+     }
+    ],
+    "name": "User",
+    "namespace": "user.avro",
+    "type": "record"
+   }
   }
  ]
 }`,
@@ -6484,7 +6618,7 @@ func (suite *HandlerTestSuite) TestSchemaUpdate() {
 			expectedResponse: `{
    "error": {
       "code": 400,
-      "message": "Schema type can only be 'json'",
+      "message": "Schema type can only be 'json' or 'avro'",
       "status": "INVALID_ARGUMENT"
    }
 }`,
@@ -6680,7 +6814,18 @@ func (suite *HandlerTestSuite) TestSchemaValidateMessage() {
 			},
 			schemaName:         "schema-1",
 			expectedStatusCode: 200,
-			msg:                "Case where the message is successfully validated",
+			msg:                "Case where the message is successfully validated(JSON)",
+		},
+		{
+			expectedResponse: `{
+ "message": "Message validated successfully"
+}`,
+			postBody: map[string]interface{}{
+				"data": "DGFnZWxvc8T8Cg==",
+			},
+			schemaName:         "schema-3",
+			expectedStatusCode: 200,
+			msg:                "Case where the message is successfully validated(AVRO)",
 		},
 		{
 			postBody: map[string]interface{}{
@@ -6688,11 +6833,56 @@ func (suite *HandlerTestSuite) TestSchemaValidateMessage() {
 			},
 			schemaName:         "schema-1",
 			expectedStatusCode: 400,
-			msg:                "Case where the message is not valid(omit required email field)",
+			msg:                "Case where the message is not valid(omit required email field)(JSON)",
 			expectedResponse: `{
    "error": {
       "code": 400,
       "message": "Message 0 data is not valid,(root): email is required",
+      "status": "INVALID_ARGUMENT"
+   }
+}`,
+		},
+		{
+			postBody: map[string]interface{}{
+				"data": "T2JqAQQWYXZyby5zY2hlbWGYAnsidHlwZSI6InJlY29yZCIsIm5hbWUiOiJQbGFjZSIsIm5hbWVzcGFjZSI6InBsYWNlLmF2cm8iLCJmaWVsZHMiOlt7Im5hbWUiOiJwbGFjZW5hbWUiLCJ0eXBlIjoic3RyaW5nIn0seyJuYW1lIjoiYWRkcmVzcyIsInR5cGUiOiJzdHJpbmcifV19FGF2cm8uY29kZWMIbnVsbABM1P4b0GpYaCg9tqxa+YDZAiQSc3RyZWV0IDIyDnBsYWNlIGFM1P4b0GpYaCg9tqxa+YDZ",
+			},
+			schemaName:         "schema-3",
+			expectedStatusCode: 400,
+			msg:                "Case where the message is not valid(AVRO)",
+			expectedResponse: `{
+   "error": {
+      "code": 400,
+      "message": "Message 0 is not valid.cannot decode binary record \"user.avro.User\" field \"username\": cannot decode binary string: cannot decode binary bytes: negative size: -40",
+      "status": "INVALID_ARGUMENT"
+   }
+}`,
+		},
+		{
+			postBody: map[string]interface{}{
+				"data": "DGFnZWxvc8T8Cg",
+			},
+			schemaName:         "schema-3",
+			expectedStatusCode: 400,
+			msg:                "Case where the message is not in valid base64(AVRO)",
+			expectedResponse: `{
+   "error": {
+      "code": 400,
+      "message": "Message 0 is not in valid base64 enocding,illegal base64 data at input byte 12",
+      "status": "INVALID_ARGUMENT"
+   }
+}`,
+		},
+		{
+			postBody: map[string]interface{}{
+				"unknown": "unknown",
+			},
+			schemaName:         "schema-3",
+			expectedStatusCode: 400,
+			msg:                "Case where the request arguments are missing the required data field(AVRO)",
+			expectedResponse: `{
+   "error": {
+      "code": 400,
+      "message": "Invalid Schema Payload Arguments",
       "status": "INVALID_ARGUMENT"
    }
 }`,
