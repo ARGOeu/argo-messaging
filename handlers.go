@@ -946,6 +946,118 @@ func ProjectUserListOne(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// ProjectUserCreate (POST) creates a user under the respective project by the project's admin
+func ProjectUserCreate(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+	urlUser := urlVars["user"]
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	refUserUUID := gorillaContext.Get(r, "auth_user_uuid").(string)
+	refProjUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
+	
+	// Read POST JSON body
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		err := APIErrorInvalidRequestBody()
+		respondErr(w, err)
+		return
+	}
+
+	// Parse pull options
+	postBody, err := auth.GetUserFromJSON(body)
+	if err != nil {
+		err := APIErrorInvalidArgument("User")
+		respondErr(w, err)
+		log.Error(string(body[:]))
+		return
+	}
+
+	// omit service wide roles
+	postBody.ServiceRoles = []string{}
+
+	// allow the user to be created to only have reference to the project under which is being created
+	prName := projects.GetNameByUUID(refProjUUID, refStr)
+	if prName == "" {
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	projectRoles := auth.ProjectRoles{}
+
+	for _, p := range postBody.Projects {
+		if p.Project == prName {
+			projectRoles.Project = prName
+			projectRoles.Roles = p.Roles
+			projectRoles.Topics = p.Topics
+			projectRoles.Subs = p.Subs
+			break
+		}
+	}
+
+	// if the project was not mentioned in the creation, add it
+	if projectRoles.Project == "" {
+		projectRoles.Project = prName
+	}
+
+	postBody.Projects = []auth.ProjectRoles{projectRoles}
+
+	uuid := uuid.NewV4().String() // generate a new uuid to attach to the new project
+	token, err := auth.GenToken() // generate a new user token
+	created := time.Now().UTC()
+
+	// Get Result Object
+	res, err := auth.CreateUser(uuid, urlUser, postBody.Projects, token, postBody.Email, postBody.ServiceRoles, created, refUserUUID, refStr)
+
+	if err != nil {
+		if err.Error() == "exists" {
+			err := APIErrorConflict("User")
+			respondErr(w, err)
+			return
+		}
+
+		if strings.HasPrefix(err.Error(), "invalid") {
+			err := APIErrorInvalidData(err.Error())
+			respondErr(w, err)
+			return
+		}
+
+		if strings.HasPrefix(err.Error(), "duplicate") {
+			err := APIErrorInvalidData(err.Error())
+			respondErr(w, err)
+			return
+		}
+
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	// Output result to JSON
+	resJSON, err := res.ExportJSON()
+	if err != nil {
+		err := APIErrExportJSON()
+		respondErr(w, err)
+		return
+	}
+
+	// Write response
+	output = []byte(resJSON)
+	respondOK(w, output)
+
+}
+
 // UserListOne (GET) one user
 func UserListOne(w http.ResponseWriter, r *http.Request) {
 

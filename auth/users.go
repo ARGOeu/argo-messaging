@@ -201,7 +201,14 @@ func FindUsers(projectUUID string, uuid string, name string, priviledged bool, s
 			for _, sbItem := range subList {
 				subNames = append(subNames, sbItem.Name)
 			}
-			pRoles = append(pRoles, ProjectRoles{Project: prName, Roles: pItem.Roles, Topics: topicNames, Subs: subNames})
+
+			// avoid null json reference with empty roles list
+			_pRoles := []string{}
+			if pItem.Roles != nil {
+				_pRoles = pItem.Roles
+			}
+
+			pRoles = append(pRoles, ProjectRoles{Project: prName, Roles: _pRoles, Topics: topicNames, Subs: subNames})
 		}
 
 		curUser := NewUser(item.UUID, pRoles, item.Name, token, item.Email, serviceRoles, item.CreatedOn.UTC(), item.ModifiedOn.UTC(), usernameC)
@@ -512,6 +519,7 @@ func CreateUser(uuid string, name string, projectList []ProjectRoles, token stri
 	var duplicates []string
 	// Prep project roles for datastore insert
 	prList := []stores.QProjectRoles{}
+
 	for _, item := range projectList {
 
 		// if no name has been given for the project, skip it

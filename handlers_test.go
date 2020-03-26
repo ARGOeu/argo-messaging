@@ -1627,6 +1627,171 @@ func (suite *HandlerTestSuite) TestProjectUserListUnprivARGO() {
 
 }
 
+func (suite *HandlerTestSuite) TestProjectUserCreate() {
+
+	type td struct {
+		user               string
+		postBody           string
+		expectedResponse   string
+		expectedStatusCode int
+		msg                string
+	}
+
+	testData := []td{
+		{
+			user: "member-user",
+			postBody: `{
+							"email": "test@example.com",
+							"service_roles": ["service_admin"],
+							"projects": [
+											{
+												"project": "ARGO",
+												"roles": ["project_admin", "publisher", "consumer"]
+											},
+											{
+												"project": "unknown"
+											}
+										]
+					   }`,
+			expectedResponse: `{
+   "uuid": "{{UUID}}",
+   "projects": [
+      {
+         "project": "ARGO",
+         "roles": [
+            "project_admin",
+            "publisher",
+            "consumer"
+         ],
+         "topics": [],
+         "subscriptions": []
+      }
+   ],
+   "name": "member-user",
+   "token": "{{TOKEN}}",
+   "email": "test@example.com",
+   "service_roles": [],
+   "created_on": "{{CON}}",
+   "modified_on": "{{MON}}",
+   "created_by": "UserA"
+}`,
+			expectedStatusCode: 200,
+			msg:                "Create a member of a project(ignore other projects & service roles)",
+		},
+		{
+			user: "member-user-2",
+			postBody: `{
+							"email": "test@example.com",
+							"service_roles": ["service_admin"],
+							"projects": []
+					   }`,
+			expectedResponse: `{
+   "uuid": "{{UUID}}",
+   "projects": [
+      {
+         "project": "ARGO",
+         "roles": [],
+         "topics": [],
+         "subscriptions": []
+      }
+   ],
+   "name": "member-user-2",
+   "token": "{{TOKEN}}",
+   "email": "test@example.com",
+   "service_roles": [],
+   "created_on": "{{CON}}",
+   "modified_on": "{{MON}}",
+   "created_by": "UserA"
+}`,
+			expectedStatusCode: 200,
+			msg:                "Create a member/user that automatically gets assigned to the respective project",
+		},
+		{
+			user: "member-user-unknown",
+			postBody: `{
+							"email": "test@example.com",
+							"service_roles": ["service_admin"],
+							"projects": [
+											{
+												"project": "ARGO",
+												"roles": ["unknown"]
+											},
+											{
+												"project": "unknown"
+											}
+										]
+					   }`,
+			expectedResponse: `{
+   "error": {
+      "code": 400,
+      "message": "invalid role: unknown",
+      "status": "INVALID_ARGUMENT"
+   }
+}`,
+			expectedStatusCode: 400,
+			msg:                "Invalid user role",
+		},
+		{
+			user: "member-user",
+			postBody: `{
+							"email": "test@example.com",
+							"service_roles": ["service_admin"],
+							"projects": [
+											{
+												"project": "ARGO",
+												"roles": ["unknown"]
+											},
+											{
+												"project": "unknown"
+											}
+										]
+					   }`,
+			expectedResponse: `{
+   "error": {
+      "code": 409,
+      "message": "User already exists",
+      "status": "ALREADY_EXISTS"
+   }
+}`,
+			expectedStatusCode: 409,
+			msg:                "user already exists",
+		},
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	cfgKafka.PushEnabled = true
+	cfgKafka.PushWorkerToken = "push_token"
+	cfgKafka.ResAuth = false
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+
+	for _, t := range testData {
+
+		w := httptest.NewRecorder()
+		url := fmt.Sprintf("http://localhost:8080/v1/projects/ARGO/members/%v", t.user)
+		req, err := http.NewRequest("POST", url, strings.NewReader(t.postBody))
+		if err != nil {
+			log.Fatal(err)
+		}
+		router.HandleFunc("/v1/projects/{project}/members/{user}", WrapMockAuthConfig(ProjectUserCreate, cfgKafka, &brk, str, &mgr, pc))
+		router.ServeHTTP(w, req)
+		if t.expectedStatusCode == 200 {
+			u, _ := auth.FindUsers("argo_uuid", "", t.user, true, str)
+			t.expectedResponse = strings.Replace(t.expectedResponse, "{{UUID}}", u.List[0].UUID, 1)
+			t.expectedResponse = strings.Replace(t.expectedResponse, "{{TOKEN}}", u.List[0].Token, 1)
+			t.expectedResponse = strings.Replace(t.expectedResponse, "{{CON}}", u.List[0].CreatedOn, 1)
+			t.expectedResponse = strings.Replace(t.expectedResponse, "{{MON}}", u.List[0].ModifiedOn, 1)
+		}
+		suite.Equal(t.expectedStatusCode, w.Code, t.msg)
+		suite.Equal(t.expectedResponse, w.Body.String(), t.msg)
+	}
+
+}
+
 func (suite *HandlerTestSuite) TestUserListAllProjectARGO2() {
 
 	req, err := http.NewRequest("GET", "http://localhost:8080/v1/users?project=ARGO2", nil)
