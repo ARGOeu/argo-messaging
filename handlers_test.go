@@ -238,6 +238,72 @@ func (suite *HandlerTestSuite) TestUserCreateDuplicateRef() {
 	suite.Equal(expJSON, w.Body.String())
 }
 
+func (suite *HandlerTestSuite) TestUserCreateInvalidProjectName() {
+
+	postJSON := `{
+	"email":"email@foo.com",
+	"projects":[{"project":"unknown","roles":["admin","viewer"]},{"project":"ARGO","roles":["admin","viewer"]}]
+}`
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/users/USERNEW", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expJSON := `{
+   "error": {
+      "code": 400,
+      "message": "invalid project: unknown",
+      "status": "INVALID_ARGUMENT"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/users/{user}", WrapMockAuthConfig(UserCreate, cfgKafka, &brk, str, &mgr, nil))
+	router.ServeHTTP(w, req)
+	suite.Equal(400, w.Code)
+	suite.Equal(expJSON, w.Body.String())
+}
+
+func (suite *HandlerTestSuite) TestUserCreateInvalidRoles() {
+
+	postJSON := `{
+	"email":"email@foo.com",
+	"projects":[{"project":"ARGO2","roles":["unknown","viewer"]},{"project":"ARGO","roles":["admin","viewer"]}]
+}`
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/users/USERNEW", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expJSON := `{
+   "error": {
+      "code": 400,
+      "message": "invalid role: unknown",
+      "status": "INVALID_ARGUMENT"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/users/{user}", WrapMockAuthConfig(UserCreate, cfgKafka, &brk, str, &mgr, nil))
+	router.ServeHTTP(w, req)
+	suite.Equal(400, w.Code)
+	suite.Equal(expJSON, w.Body.String())
+}
+
 func (suite *HandlerTestSuite) TestRefreshToken() {
 
 	req, err := http.NewRequest("POST", "http://localhost:8080/v1/users/UserZ:refreshToken", nil)
@@ -286,6 +352,74 @@ func (suite *HandlerTestSuite) TestUserUpdate() {
 	suite.Equal([]string{"service_admin"}, userOut.ServiceRoles)
 	suite.Equal("UserA", userOut.CreatedBy)
 
+}
+
+func (suite *HandlerTestSuite) TestUserUpdateInvalidProjectName() {
+
+	postJSON := `{
+	"name":"UPDATED_NAME",
+	"projects": [{"project": "unknown"}],
+	"service_roles":["service_admin"]
+}`
+
+	req, err := http.NewRequest("PUT", "http://localhost:8080/v1/users/UserZ", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expJSON := `{
+   "error": {
+      "code": 400,
+      "message": "invalid project: unknown",
+      "status": "INVALID_ARGUMENT"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/users/{user}", WrapMockAuthConfig(UserUpdate, cfgKafka, &brk, str, &mgr, nil))
+	router.ServeHTTP(w, req)
+	suite.Equal(400, w.Code)
+	suite.Equal(expJSON, w.Body.String())
+}
+
+func (suite *HandlerTestSuite) TestUserUpdateInvalidRoles() {
+
+	postJSON := `{
+	"name":"UPDATED_NAME",
+	"projects": [{"project": "ARGO2", "roles": ["unknown"]}],
+	"service_roles":["service_admin"]
+}`
+
+	req, err := http.NewRequest("PUT", "http://localhost:8080/v1/users/UserZ", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expJSON := `{
+   "error": {
+      "code": 400,
+      "message": "invalid role: unknown",
+      "status": "INVALID_ARGUMENT"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/users/{user}", WrapMockAuthConfig(UserUpdate, cfgKafka, &brk, str, &mgr, nil))
+	router.ServeHTTP(w, req)
+	suite.Equal(400, w.Code)
+	suite.Equal(expJSON, w.Body.String())
 }
 
 func (suite *HandlerTestSuite) TestUserUpdateDuplicate() {
