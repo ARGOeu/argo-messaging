@@ -451,6 +451,11 @@ func UpdateUser(uuid string, name string, projectList []ProjectRoles, email stri
 	if projectList != nil {
 		for _, item := range projectList {
 
+			// if no name has been given for the project, skip it
+			if item.Project == "" {
+				continue
+			}
+
 			// check if project is encountered before by consulting duplicate list
 			for _, dItem := range duplicates {
 				if dItem == item.Project {
@@ -508,6 +513,11 @@ func CreateUser(uuid string, name string, projectList []ProjectRoles, token stri
 	// Prep project roles for datastore insert
 	prList := []stores.QProjectRoles{}
 	for _, item := range projectList {
+
+		// if no name has been given for the project, skip it
+		if item.Project == "" {
+			continue
+		}
 
 		// check if project is encountered before by consulting duplicate list
 		for _, dItem := range duplicates {

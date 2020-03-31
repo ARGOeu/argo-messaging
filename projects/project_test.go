@@ -54,6 +54,11 @@ func (suite *ProjectsTestSuite) TestProjects() {
 
 	// Test GetNameByUUID
 	suite.Equal("BRAND_NEW", GetNameByUUID("uuid_new", store))
+	suite.Equal("", GetNameByUUID("", store))
+
+	// Test GetUUIDByName
+	suite.Equal("uuid_new", GetUUIDByName("BRAND_NEW", store))
+	suite.Equal("", GetUUIDByName("", store))
 
 	pAllNew, err := Find("", "", store)
 

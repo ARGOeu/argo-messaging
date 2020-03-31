@@ -443,6 +443,12 @@ func (suite *AuthTestSuite) TestAuth() {
 	usrJSON, _ := usrs.List[0].ExportJSON()
 	suite.Equal(expUsrJSON, usrJSON)
 
+	// Test Create with empty project list
+	CreateUser("uuid13", "empty-proj", []ProjectRoles{{Project: "", Roles: []string{"consumer"}}}, "TOK3N", "johndoe@fake.email.foo", []string{"service_admin"}, tm, "", store)
+	usrs2, _ := FindUsers("", "uuid13", "", true, store)
+	expusrs2 := Users{List: []User{{UUID: "uuid13", Projects: []ProjectRoles{}, Name: "empty-proj", Token: "TOK3N", Email: "johndoe@fake.email.foo", ServiceRoles: []string{"service_admin"}, CreatedOn: "2009-11-10T23:00:00Z", ModifiedOn: "2009-11-10T23:00:00Z", CreatedBy: ""}}}
+	suite.Equal(expusrs2, usrs2)
+
 	// Test Update
 	expUpdate := `{
    "uuid": "uuid12",
@@ -470,6 +476,12 @@ func (suite *AuthTestSuite) TestAuth() {
 	usrUpd, _ := FindUsers("", "uuid12", "", true, store)
 	usrUpdJSON, _ := usrUpd.List[0].ExportJSON()
 	suite.Equal(expUpdate, usrUpdJSON)
+
+	// Test update with empty project
+	UpdateUser("uuid13", "empty-proj", []ProjectRoles{{Project: "", Roles: []string{"consumer"}}}, "johndoe@fake.email.foo", []string{"service_admin"}, tm, store)
+	usrs2, _ = FindUsers("", "uuid13", "", true, store)
+	expusrs2 = Users{List: []User{{UUID: "uuid13", Projects: []ProjectRoles{}, Name: "empty-proj", Token: "TOK3N", Email: "johndoe@fake.email.foo", ServiceRoles: []string{"service_admin"}, CreatedOn: "2009-11-10T23:00:00Z", ModifiedOn: "2009-11-10T23:00:00Z", CreatedBy: ""}}}
+	suite.Equal(expusrs2, usrs2)
 
 	RemoveUser("uuid12", store)
 	_, err = FindUsers("", "uuid12", "", true, store)
