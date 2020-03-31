@@ -8,6 +8,7 @@ import (
 	"github.com/ARGOeu/argo-messaging/messages"
 	"github.com/ARGOeu/argo-messaging/projects"
 	"github.com/ARGOeu/argo-messaging/stores"
+	"github.com/linkedin/goavro"
 	log "github.com/sirupsen/logrus"
 	"github.com/xeipuuv/gojsonschema"
 	"strings"
@@ -15,7 +16,8 @@ import (
 
 const (
 	JSON                   = "json"
-	UnsupportedSchemaError = `Schema type can only be 'json'`
+	AVRO                   = "avro"
+	UnsupportedSchemaError = `Schema type can only be 'json' or 'avro'`
 	GenericError           = "Could not load schema for topic"
 )
 
@@ -88,6 +90,46 @@ func ValidateMessages(schema Schema, msgList messages.MsgList) error {
 				}
 			}
 		}
+	case AVRO:
+		// convert the schema to a json string representation
+		b, err := json.Marshal(schema.RawSchema)
+		if err != nil {
+			log.WithFields(
+				log.Fields{
+					"type":        "service_log",
+					"schema_name": schema.FullName,
+					"error":       err.Error(),
+				},
+			).Error("Could not convert to json bytes representation")
+			return errors.New("500")
+		}
+
+		c, err := goavro.NewCodec(string(b))
+		if err != nil {
+			log.WithFields(
+				log.Fields{
+					"type":        "service_log",
+					"schema_name": schema.FullName,
+					"error":       err.Error(),
+				},
+			).Error("Could not load avro schema")
+			return errors.New("500")
+		}
+
+		for idx, msg := range msgList.Msgs {
+
+			// decode the message payload from base64
+			messageBytes, err := base64.StdEncoding.DecodeString(msg.Data)
+			if err != nil {
+				return fmt.Errorf("Message %v is not in valid base64 enocding,%s", idx, err.Error())
+			}
+
+			_, _, err = c.NativeFromBinary(messageBytes)
+			if err != nil {
+				return fmt.Errorf("Message %v is not valid.%s", idx, err.Error())
+			}
+		}
+
 	default:
 		log.WithFields(
 			log.Fields{
@@ -313,6 +355,20 @@ func checkSchema(schemaType string, schemaContent map[string]interface{}) error 
 		if err != nil {
 			return err
 		}
+
+	case AVRO:
+
+		// convert the schema to a json string representation
+		b, err := json.Marshal(schemaContent)
+		if err != nil {
+			return err
+		}
+
+		_, err = goavro.NewCodec(string(b))
+		if err != nil {
+			return err
+		}
+
 	default:
 		return errors.New("unsupported")
 	}

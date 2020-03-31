@@ -117,6 +117,14 @@
   revision = "197e8d3cf42199cfd53cd775deb37f3637234635"
 
 [[projects]]
+  digest = "1:2426cb380ec3b29b19d33bbef27119e9aca634384e4796c3cfa7ad98798b4ac5"
+  name = "github.com/linkedin/goavro"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "3f2df383ea70dfd9099547c42a2aafc3b09d87d8"
+  version = "v2.9.7"
+
+[[projects]]
   digest = "1:61bcafe5cab02e6002cd473b15752a6ea8228a60765a5bbe3d4df6ef2f298e0b"
   name = "github.com/magiconair/properties"
   packages = ["."]
@@ -391,6 +399,7 @@
     "github.com/gorilla/context",
     "github.com/gorilla/handlers",
     "github.com/gorilla/mux",
+    "github.com/linkedin/goavro",
     "github.com/samuel/go-zookeeper/zk",
     "github.com/sirupsen/logrus",
     "github.com/sirupsen/logrus/hooks/syslog",

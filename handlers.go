@@ -3701,12 +3701,41 @@ func SchemaValidateMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	msgList := messages.MsgList{
-		Msgs: []messages.Message{
-			{
-				Data: base64.StdEncoding.EncodeToString(buf.Bytes()),
-			},
-		},
+	msgList := messages.MsgList{}
+
+	switch schemasList.Schemas[0].Type {
+	case schemas.JSON:
+		msg := messages.Message{
+			Data: base64.StdEncoding.EncodeToString(buf.Bytes()),
+		}
+
+		msgList.Msgs = append(msgList.Msgs, msg)
+
+	case schemas.AVRO:
+
+		body := map[string]string{}
+		err := json.Unmarshal(buf.Bytes(), &body)
+		if err != nil {
+			err := APIErrorInvalidRequestBody()
+			respondErr(w, err)
+			return
+		}
+
+		// check to find the payload field
+		if val, ok := body["data"]; ok {
+
+			msg := messages.Message{
+				Data: val,
+			}
+
+			msgList.Msgs = append(msgList.Msgs, msg)
+
+		} else {
+
+			err := APIErrorInvalidArgument("Schema Payload")
+			respondErr(w, err)
+			return
+		}
 	}
 
 	err = schemas.ValidateMessages(schemasList.Schemas[0], msgList)
