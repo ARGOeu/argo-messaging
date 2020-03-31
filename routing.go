@@ -86,6 +86,7 @@ var defaultRoutes = []APIRoute{
 	{"projects:list", "GET", "/projects", ProjectListAll},
 	{"projects:metrics", "GET", "/projects/{project}:metrics", ProjectMetrics},
 	{"projects:showUser", "GET", "/projects/{project}/members/{user}", ProjectUserListOne},
+	{"projects:createUser", "POST", "/projects/{project}/members/{user}", ProjectUserCreate},
 	{"projects:listUsers", "GET", "/projects/{project}/members", ProjectListUsers},
 	{"projects:show", "GET", "/projects/{project}", ProjectListOne},
 	{"projects:create", "POST", "/projects/{project}", ProjectCreate},
