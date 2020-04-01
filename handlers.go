@@ -614,7 +614,7 @@ func UserUpdate(w http.ResponseWriter, r *http.Request) {
 	// Get Result Object
 	userUUID := auth.GetUUIDByName(urlUser, refStr)
 	modified := time.Now().UTC()
-	res, err := auth.UpdateUser(userUUID, postBody.Name, postBody.Projects, postBody.Email, postBody.ServiceRoles, modified, refStr)
+	res, err := auth.UpdateUser(userUUID, postBody.Name, postBody.Projects, postBody.Email, postBody.ServiceRoles, modified, true, refStr)
 
 	if err != nil {
 
@@ -965,7 +965,7 @@ func ProjectUserCreate(w http.ResponseWriter, r *http.Request) {
 	refStr := gorillaContext.Get(r, "str").(stores.Store)
 	refUserUUID := gorillaContext.Get(r, "auth_user_uuid").(string)
 	refProjUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
-	
+
 	// Read POST JSON body
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -989,7 +989,7 @@ func ProjectUserCreate(w http.ResponseWriter, r *http.Request) {
 	// allow the user to be created to only have reference to the project under which is being created
 	prName := projects.GetNameByUUID(refProjUUID, refStr)
 	if prName == "" {
-		err := APIErrGenericInternal(err.Error())
+		err := APIErrGenericInternal("Internal Error")
 		respondErr(w, err)
 		return
 	}
@@ -1046,6 +1046,163 @@ func ProjectUserCreate(w http.ResponseWriter, r *http.Request) {
 
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
+	if err != nil {
+		err := APIErrExportJSON()
+		respondErr(w, err)
+		return
+	}
+
+	// Write response
+	output = []byte(resJSON)
+	respondOK(w, output)
+
+}
+
+// ProjectUserUpdate (PUT) updates a user under the respective project by the project's admin
+func ProjectUserUpdate(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+	urlUser := urlVars["user"]
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	refProjUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
+	refRoles := gorillaContext.Get(r, "auth_roles").([]string)
+
+	// allow the user to be updated to only have reference to the project under which is being updated
+	prName := projects.GetNameByUUID(refProjUUID, refStr)
+	if prName == "" {
+		err := APIErrGenericInternal("Internal Error")
+		respondErr(w, err)
+		return
+	}
+
+	// Read POST JSON body
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		err := APIErrorInvalidRequestBody()
+		respondErr(w, err)
+		return
+	}
+
+	// Parse pull options
+	postBody, err := auth.GetUserFromJSON(body)
+	if err != nil {
+		err := APIErrorInvalidArgument("User")
+		respondErr(w, err)
+		return
+	}
+
+	u, err := auth.FindUsers("", "", urlUser, true, refStr)
+	if err != nil {
+		if err.Error() == "not found" {
+			err := APIErrorNotFound("User")
+			respondErr(w, err)
+			return
+		}
+
+		err := APIErrQueryDatastore()
+		respondErr(w, err)
+		return
+	}
+
+	// from the post request keep only the reference to the current project
+	projectRoles := auth.ProjectRoles{}
+
+	for _, p := range postBody.Projects {
+		if p.Project == prName {
+			projectRoles.Project = prName
+			projectRoles.Roles = p.Roles
+			projectRoles.Topics = p.Topics
+			projectRoles.Subs = p.Subs
+			break
+		}
+	}
+
+	// if the user is already a member of the project, update it with the accepted contents of the post body
+	found := false
+	for idx, p := range u.One().Projects {
+		if p.Project == projectRoles.Project {
+			u.One().Projects[idx].Roles = projectRoles.Roles
+			u.One().Projects[idx].Topics = projectRoles.Topics
+			u.One().Projects[idx].Subs = projectRoles.Subs
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		err := APIErrorForbiddenWithMsg("User is not a member of the project")
+		respondErr(w, err)
+		return
+	}
+
+	// check that user is indeed a service admin in order to be privileged to see full user info
+	privileged := auth.IsServiceAdmin(refRoles)
+
+	// Get Result Object
+	userUUID := u.One().UUID
+	modified := time.Now().UTC()
+	userProjects := u.One().Projects
+	userEmail := u.One().Email
+	userSRoles := u.One().ServiceRoles
+	userName := u.One().Name
+
+	_, err = auth.UpdateUser(userUUID, userName, userProjects, userEmail, userSRoles, modified, false, refStr)
+
+	if err != nil {
+
+		// In case of invalid project or role in post body
+		if err.Error() == "not found" {
+			err := APIErrorNotFound("User")
+			respondErr(w, err)
+			return
+		}
+
+		if strings.HasPrefix(err.Error(), "invalid") {
+			err := APIErrorInvalidData(err.Error())
+			respondErr(w, err)
+			return
+		}
+
+		if strings.HasPrefix(err.Error(), "duplicate") {
+			err := APIErrorInvalidData(err.Error())
+			respondErr(w, err)
+			return
+		}
+
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	stored, err := auth.FindUsers(refProjUUID, userUUID, urlUser, privileged, refStr)
+
+	if err != nil {
+
+		if err.Error() == "not found" {
+			err := APIErrorNotFound("User")
+			respondErr(w, err)
+			return
+		}
+
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+
+	}
+
+	// Output result to JSON
+	resJSON, err := json.MarshalIndent(stored.One(), "", "   ")
 	if err != nil {
 		err := APIErrExportJSON()
 		respondErr(w, err)
@@ -3999,6 +4156,12 @@ var APIErrorUnauthorized = func() APIErrorRoot {
 // api err to be used when access to a resource is forbidden for the request user
 var APIErrorForbidden = func() APIErrorRoot {
 	apiErrBody := APIErrorBody{Code: http.StatusForbidden, Message: "Access to this resource is forbidden", Status: "FORBIDDEN"}
+	return APIErrorRoot{Body: apiErrBody}
+}
+
+// api err to be used when access to a resource is forbidden for the request user
+var APIErrorForbiddenWithMsg = func(msg string) APIErrorRoot {
+	apiErrBody := APIErrorBody{Code: http.StatusForbidden, Message: fmt.Sprintf("Access to this resource is forbidden. %v", msg), Status: "FORBIDDEN"}
 	return APIErrorRoot{Body: apiErrBody}
 }
 

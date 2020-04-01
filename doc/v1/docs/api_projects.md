@@ -386,6 +386,58 @@ Success Response
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
 
+### [PUT] Updates the rolesfor a member user under the specific project
+
+### Example request
+```
+curl -X PUT -H "Content-Type: application/json"
+  -d POSTDATA "https://{URL}/v1/projects/ARGO2/members/NewUser?key=S3CR3T"
+```
+
+### Post body:
+
+```json
+{
+	"projects": [
+			{
+				"project": "ARGO2",
+				"roles": ["consumer"]
+			}
+		]
+}
+```
+
+### Responses  
+If successful, the response contains information about the updated user
+
+Success Response
+`200 OK`
+
+```json
+{
+
+       "uuid": "99bfd746-4ebe-11e8-9c2d-fa7ae01bbebw",
+       "projects": [
+          {
+             "project": "ARGO2",
+             "roles": [
+                "consumer"
+             ],
+             "topics": [],
+             "subscriptions": []
+          }
+       ],
+       "name": "NewUSer",
+       "token": "S3CR3T",
+       "email": "email@test.com",
+       "service_roles": [],
+       "created_on": "2009-11-10T23:00:00Z",
+       "modified_on": "2009-11-10T23:00:00Z"
+}
+```
+
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors
 
 ## [GET] Project Metrics
 The following request returns related metrics for the specific project: eg. the number of topics
