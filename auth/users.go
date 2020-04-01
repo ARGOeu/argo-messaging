@@ -447,7 +447,8 @@ func AppendToUserProjects(userUUID string, projectUUID string, store stores.Stor
 }
 
 // UpdateUser updates an existing user's information
-func UpdateUser(uuid string, name string, projectList []ProjectRoles, email string, serviceRoles []string, modifiedOn time.Time, store stores.Store) (User, error) {
+// IF the function caller needs to have a view on the updated user object it can set the reflectObj to true
+func UpdateUser(uuid string, name string, projectList []ProjectRoles, email string, serviceRoles []string, modifiedOn time.Time, reflectObj bool, store stores.Store) (User, error) {
 
 	prList := []stores.QProjectRoles{}
 
@@ -492,7 +493,7 @@ func UpdateUser(uuid string, name string, projectList []ProjectRoles, email stri
 		prList = nil
 	}
 
-	if serviceRoles != nil {
+	if serviceRoles != nil && len(serviceRoles) > 0 {
 		for _, roleItem := range serviceRoles {
 			if IsRoleValid(roleItem, validRoles) == false {
 				return User{}, errors.New("invalid role: " + roleItem)
@@ -505,8 +506,12 @@ func UpdateUser(uuid string, name string, projectList []ProjectRoles, email stri
 	}
 
 	// reflect stored object
-	stored, err := FindUsers("", uuid, "", true, store)
-	return stored.One(), err
+	if reflectObj {
+		stored, err := FindUsers("", uuid, "", true, store)
+		return stored.One(), err
+	}
+
+	return User{}, nil
 }
 
 // CreateUser creates a new user
