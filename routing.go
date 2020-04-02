@@ -85,6 +85,7 @@ var defaultRoutes = []APIRoute{
 	{"users:delete", "DELETE", "/users/{user}", UserDelete},
 	{"projects:list", "GET", "/projects", ProjectListAll},
 	{"projects:metrics", "GET", "/projects/{project}:metrics", ProjectMetrics},
+	{"projects:removeUser", "POST", "/projects/{project}/members/{user}:remove", ProjectUserRemove},
 	{"projects:showUser", "GET", "/projects/{project}/members/{user}", ProjectUserListOne},
 	{"projects:createUser", "POST", "/projects/{project}/members/{user}", ProjectUserCreate},
 	{"projects:updateUser", "PUT", "/projects/{project}/members/{user}", ProjectUserUpdate},

@@ -386,7 +386,7 @@ Success Response
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
 
-### [PUT] Updates the rolesfor a member user under the specific project
+### [PUT] Updates the roles for a member user under the specific project
 
 ### Example request
 ```
@@ -438,6 +438,26 @@ Success Response
 
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
+
+### [POST] Remove a user from the project
+
+### Example request
+```
+curl -X POST -H "Content-Type: application/json"
+ "https://{URL}/v1/projects/ARGO2/members/NewUser:remove?key=S3CR3T"
+```
+
+### Responses  
+Empty response on success
+`200 OK`
+
+```json
+{}
+```
+
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors
+
 
 ## [GET] Project Metrics
 The following request returns related metrics for the specific project: eg. the number of topics
