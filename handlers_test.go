@@ -238,6 +238,40 @@ func (suite *HandlerTestSuite) TestUserCreateDuplicateRef() {
 	suite.Equal(expJSON, w.Body.String())
 }
 
+func (suite *HandlerTestSuite) TestUserCreateInvalidServiceRole() {
+
+	postJSON := `{
+	"email":"email@foo.com",
+	"projects":[{"project":"ARGO","roles":["admin","viewer"]}],
+	"service_roles": ["unknown"]
+}`
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/users/USERNEW", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expJSON := `{
+   "error": {
+      "code": 400,
+      "message": "invalid role: unknown",
+      "status": "INVALID_ARGUMENT"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/users/{user}", WrapMockAuthConfig(UserCreate, cfgKafka, &brk, str, &mgr, nil))
+	router.ServeHTTP(w, req)
+	suite.Equal(400, w.Code)
+	suite.Equal(expJSON, w.Body.String())
+}
+
 func (suite *HandlerTestSuite) TestUserCreateInvalidProjectName() {
 
 	postJSON := `{
@@ -394,6 +428,40 @@ func (suite *HandlerTestSuite) TestUserUpdateInvalidRoles() {
 	"name":"UPDATED_NAME",
 	"projects": [{"project": "ARGO2", "roles": ["unknown"]}],
 	"service_roles":["service_admin"]
+}`
+
+	req, err := http.NewRequest("PUT", "http://localhost:8080/v1/users/UserZ", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expJSON := `{
+   "error": {
+      "code": 400,
+      "message": "invalid role: unknown",
+      "status": "INVALID_ARGUMENT"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/users/{user}", WrapMockAuthConfig(UserUpdate, cfgKafka, &brk, str, &mgr, nil))
+	router.ServeHTTP(w, req)
+	suite.Equal(400, w.Code)
+	suite.Equal(expJSON, w.Body.String())
+}
+
+func (suite *HandlerTestSuite) TestUserUpdateInvalidServiceRoles() {
+
+	postJSON := `{
+	"name":"UPDATED_NAME",
+	"projects": [{"project": "ARGO2", "roles": ["consumer"]}],
+	"service_roles":["unknown"]
 }`
 
 	req, err := http.NewRequest("PUT", "http://localhost:8080/v1/users/UserZ", bytes.NewBuffer([]byte(postJSON)))

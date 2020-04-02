@@ -520,6 +520,8 @@ func CreateUser(uuid string, name string, projectList []ProjectRoles, token stri
 		return User{}, errors.New("exists")
 	}
 
+	validRoles := store.GetAllRoles()
+
 	var duplicates []string
 	// Prep project roles for datastore insert
 	prList := []stores.QProjectRoles{}
@@ -548,13 +550,20 @@ func CreateUser(uuid string, name string, projectList []ProjectRoles, token stri
 		}
 
 		// Check roles
-		validRoles := store.GetAllRoles()
 		for _, roleItem := range item.Roles {
 			if IsRoleValid(roleItem, validRoles) == false {
 				return User{}, errors.New("invalid role: " + roleItem)
 			}
 		}
 		prList = append(prList, stores.QProjectRoles{ProjectUUID: prUUID, Roles: item.Roles})
+	}
+
+	if serviceRoles != nil && len(serviceRoles) > 0 {
+		for _, roleItem := range serviceRoles {
+			if IsRoleValid(roleItem, validRoles) == false {
+				return User{}, errors.New("invalid role: " + roleItem)
+			}
+		}
 	}
 
 	if err := store.InsertUser(uuid, prList, name, token, email, serviceRoles, createdOn, createdOn, createdBy); err != nil {
