@@ -1215,6 +1215,84 @@ func ProjectUserUpdate(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// ProjectUserRemove (POST) removes a user from the respective project
+func ProjectUserRemove(w http.ResponseWriter, r *http.Request) {
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+	urlUser := urlVars["user"]
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	refProjUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
+
+	projName := projects.GetNameByUUID(refProjUUID, refStr)
+
+	u, err := auth.FindUsers("", "", urlUser, true, refStr)
+	if err != nil {
+		if err.Error() == "not found" {
+			err := APIErrorNotFound("User")
+			respondErr(w, err)
+			return
+		}
+
+		err := APIErrQueryDatastore()
+		respondErr(w, err)
+		return
+	}
+
+	userProjects := []auth.ProjectRoles{}
+
+	// if the user is already a member of the project, update it with the accepted contents of the post body
+	found := false
+	for idx, p := range u.One().Projects {
+		if p.Project == projName {
+			userProjects = append(userProjects, u.One().Projects[:idx]...)
+			userProjects = append(userProjects, u.One().Projects[idx+1:]...)
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		err := APIErrorForbiddenWithMsg("User is not a member of the project")
+		respondErr(w, err)
+		return
+	}
+
+	// Get Result Object
+	userUUID := u.One().UUID
+	modified := time.Now().UTC()
+	userEmail := u.One().Email
+	userSRoles := u.One().ServiceRoles
+	userName := u.One().Name
+
+	_, err = auth.UpdateUser(userUUID, userName, userProjects, userEmail, userSRoles, modified, false, refStr)
+
+	if err != nil {
+
+		// In case of invalid project or role in post body
+		if err.Error() == "not found" {
+			err := APIErrorNotFound("User")
+			respondErr(w, err)
+			return
+		}
+
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	// Write response
+	respondOK(w, []byte("{}"))
+
+}
+
 // UserListOne (GET) one user
 func UserListOne(w http.ResponseWriter, r *http.Request) {
 

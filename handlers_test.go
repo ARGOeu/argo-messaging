@@ -2011,6 +2011,30 @@ func (suite *HandlerTestSuite) TestProjectUserUpdate() {
 			expectedStatusCode: 403,
 			msg:                "user is not a member of the project",
 		},
+		{
+			user: "unknown",
+			postBody: `{
+							"email": "test@example.com",
+							"service_roles": ["service_admin"],
+							"projects": [
+											{
+												"project": "ARGO",
+												"roles": ["publisher"]
+											}
+										]
+					   }`,
+			authRole: "project_admin",
+			expectedResponse: `{
+   "error": {
+      "code": 404,
+      "message": "User doesn't exist",
+      "status": "NOT_FOUND"
+   }
+}`,
+			expectedStatusCode: 404,
+			msg: "user doesn't exist" +
+				"",
+		},
 	}
 
 	cfgKafka := config.NewAPICfg()
@@ -2045,6 +2069,75 @@ func (suite *HandlerTestSuite) TestProjectUserUpdate() {
 		suite.Equal(t.expectedResponse, w.Body.String(), t.msg)
 	}
 
+}
+
+func (suite *HandlerTestSuite) TestProjectUserRemove() {
+
+	type td struct {
+		user               string
+		expectedResponse   string
+		expectedStatusCode int
+		msg                string
+	}
+
+	testData := []td{
+		{
+			user:               "UserA",
+			expectedResponse:   `{}`,
+			expectedStatusCode: 200,
+			msg:                "Remove a member from the project",
+		},
+		{
+			user: "UserA",
+			expectedResponse: `{
+   "error": {
+      "code": 403,
+      "message": "Access to this resource is forbidden. User is not a member of the project",
+      "status": "FORBIDDEN"
+   }
+}`,
+			expectedStatusCode: 403,
+			msg:                "user is not a member of the project",
+		},
+		{
+			user: "unknown",
+			expectedResponse: `{
+   "error": {
+      "code": 404,
+      "message": "User doesn't exist",
+      "status": "NOT_FOUND"
+   }
+}`,
+			expectedStatusCode: 404,
+			msg: "user doesn't exist" +
+				"",
+		},
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	cfgKafka.PushEnabled = true
+	cfgKafka.PushWorkerToken = "push_token"
+	cfgKafka.ResAuth = true
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+
+	for _, t := range testData {
+
+		w := httptest.NewRecorder()
+		url := fmt.Sprintf("http://localhost:8080/v1/projects/ARGO/members/%v:remove", t.user)
+		req, err := http.NewRequest("POST", url, nil)
+		if err != nil {
+			log.Fatal(err)
+		}
+		router.HandleFunc("/v1/projects/{project}/members/{user}:remove", WrapMockAuthConfig(ProjectUserRemove, cfgKafka, &brk, str, &mgr, pc))
+		router.ServeHTTP(w, req)
+		suite.Equal(t.expectedStatusCode, w.Code, t.msg)
+		suite.Equal(t.expectedResponse, w.Body.String(), t.msg)
+	}
 }
 
 func (suite *HandlerTestSuite) TestUserListAllProjectARGO2() {
