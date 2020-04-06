@@ -706,6 +706,55 @@ paths:
         500:
           $ref: "#/responses/500"
 
+  /projects/{PROJECT}/members/{USER}:add:
+    post:
+      summary: Add a user to the project
+      description: |
+        Add a user to the project
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: USER
+          in: path
+          description: Name of the user
+          required: true
+          type: string
+        - name: User information
+          in: body
+          description: Extra user information such as roles and email
+          required: false
+          schema:
+           type: object
+           properties:
+             projects:
+               type: array
+               items:
+                 $ref: "#/definitions/ProjectRoles"
+      tags:
+        - Projects
+      responses:
+        200:
+          description: A User object
+          schema:
+            $ref: '#/definitions/User'
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        409:
+          $ref: "#/responses/409"
+        500:
+          $ref: "#/responses/500"
+
+
   /projects/{PROJECT}/members/{USER}:remove:
     post:
       summary: Remove a user from the respective project
@@ -738,8 +787,6 @@ paths:
           $ref: "#/responses/403"
         404:
           $ref: "#/responses/404"
-        409:
-          $ref: "#/responses/409"
         500:
           $ref: "#/responses/500"
   /users:

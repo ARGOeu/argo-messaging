@@ -439,6 +439,61 @@ Success Response
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
 
+### [POST] Add/Invite a user to a project
+
+### Example request
+```
+curl -X POST -H "Content-Type: application/json"
+  -d POSTDATA "https://{URL}/v1/projects/ARGO2/members/NewUser:add?key=S3CR3T"
+```
+
+### Post body:
+
+```json
+{
+  "roles": ["consumer"],
+   "topics": ["topic1"],
+   "subscriptions": ["sub1"]
+}
+```
+
+### Responses  
+If successful, the response contains information about the added user
+
+Success Response
+`200 OK`
+
+```json
+{
+
+       "uuid": "99bfd746-4ebe-11e8-9c2d-fa7ae01bbebw",
+       "projects": [
+          {
+             "project": "ARGO2",
+             "roles": [
+                "consumer"
+             ],
+             "topics": [
+                "topic1"
+             ],
+             "subscriptions": [
+                "sub1"
+             ]
+          }
+       ],
+       "name": "NewUSer",
+       "token": "S3CR3T",
+       "email": "email@test.com",
+       "service_roles": [],
+       "created_on": "2009-11-10T23:00:00Z",
+       "modified_on": "2009-11-10T23:00:00Z"
+}
+```
+
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors
+
+
 ### [POST] Remove a user from the project
 
 ### Example request
