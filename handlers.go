@@ -1293,6 +1293,139 @@ func ProjectUserRemove(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// ProjectUserAdd (POST) adds a user to the respective project
+func ProjectUserAdd(w http.ResponseWriter, r *http.Request) {
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+	urlUser := urlVars["user"]
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	refProjUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
+	refRoles := gorillaContext.Get(r, "auth_roles").([]string)
+
+	projName := projects.GetNameByUUID(refProjUUID, refStr)
+
+	u, err := auth.FindUsers("", "", urlUser, true, refStr)
+	if err != nil {
+		if err.Error() == "not found" {
+			err := APIErrorNotFound("User")
+			respondErr(w, err)
+			return
+		}
+
+		err := APIErrQueryDatastore()
+		respondErr(w, err)
+		return
+	}
+
+	// Read POST JSON body
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		err := APIErrorInvalidRequestBody()
+		respondErr(w, err)
+		return
+	}
+
+	data := auth.ProjectRoles{}
+
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		err := APIErrorInvalidRequestBody()
+		respondErr(w, err)
+		return
+	}
+
+	// check if the user is already a user of the project
+	found := false
+	for _, p := range u.One().Projects {
+		if p.Project == projName {
+			found = true
+			break
+		}
+	}
+
+	if found {
+		err := APIErrorGenericConflict("User is already a member of the project")
+		respondErr(w, err)
+		return
+	}
+
+	// Get Result Object
+	userUUID := u.One().UUID
+	modified := time.Now().UTC()
+	userEmail := u.One().Email
+	userSRoles := u.One().ServiceRoles
+	userName := u.One().Name
+	userProjects := u.One().Projects
+
+	userProjects = append(userProjects, auth.ProjectRoles{
+		Project: projName,
+		Roles:   data.Roles,
+		Subs:    data.Subs,
+		Topics:  data.Topics,
+	})
+
+	_, err = auth.UpdateUser(userUUID, userName, userProjects, userEmail, userSRoles, modified, false, refStr)
+
+	if err != nil {
+
+		// In case of invalid project or role in post body
+		if err.Error() == "not found" {
+			err := APIErrorNotFound("User")
+			respondErr(w, err)
+			return
+		}
+
+		if strings.HasPrefix(err.Error(), "invalid") {
+			err := APIErrorInvalidData(err.Error())
+			respondErr(w, err)
+			return
+		}
+
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	// Write response
+	privileged := auth.IsServiceAdmin(refRoles)
+	fmt.Println(privileged)
+	results, err := auth.FindUsers(refProjUUID, "", urlUser, privileged, refStr)
+
+	if err != nil {
+		if err.Error() == "not found" {
+			err := APIErrorNotFound("User")
+			respondErr(w, err)
+			return
+		}
+
+		err := APIErrQueryDatastore()
+		respondErr(w, err)
+		return
+	}
+
+	res := results.One()
+
+	// Output result to JSON
+	resJSON, err := res.ExportJSON()
+
+	if err != nil {
+		err := APIErrExportJSON()
+		respondErr(w, err)
+		return
+	}
+
+	// Write response
+	respondOK(w, []byte(resJSON))
+}
+
 // UserListOne (GET) one user
 func UserListOne(w http.ResponseWriter, r *http.Request) {
 
