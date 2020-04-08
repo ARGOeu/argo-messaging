@@ -697,7 +697,7 @@ func UserCreate(w http.ResponseWriter, r *http.Request) {
 	token, err := auth.GenToken() // generate a new user token
 	created := time.Now().UTC()
 	// Get Result Object
-	res, err := auth.CreateUser(uuid, urlUser, postBody.Projects, token, postBody.Email, postBody.ServiceRoles, created, refUserUUID, refStr)
+	res, err := auth.CreateUser(uuid, urlUser, "", "", "", "", postBody.Projects, token, postBody.Email, postBody.ServiceRoles, created, refUserUUID, refStr)
 
 	if err != nil {
 		if err.Error() == "exists" {
@@ -1018,7 +1018,7 @@ func ProjectUserCreate(w http.ResponseWriter, r *http.Request) {
 	created := time.Now().UTC()
 
 	// Get Result Object
-	res, err := auth.CreateUser(uuid, urlUser, postBody.Projects, token, postBody.Email, postBody.ServiceRoles, created, refUserUUID, refStr)
+	res, err := auth.CreateUser(uuid, urlUser, "", "", "", "", postBody.Projects, token, postBody.Email, postBody.ServiceRoles, created, refUserUUID, refStr)
 
 	if err != nil {
 		if err.Error() == "exists" {

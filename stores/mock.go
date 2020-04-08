@@ -62,8 +62,22 @@ func (mk *MockStore) Close() {
 }
 
 // InsertUser inserts a new user to the store
-func (mk *MockStore) InsertUser(uuid string, projects []QProjectRoles, name string, token string, email string, serviceRoles []string, createdOn time.Time, modifiedOn time.Time, createdBy string) error {
-	user := QUser{UUID: uuid, Name: name, Email: email, Projects: projects, Token: token, ServiceRoles: serviceRoles, CreatedOn: createdOn, ModifiedOn: modifiedOn, CreatedBy: createdBy}
+func (mk *MockStore) InsertUser(uuid string, projects []QProjectRoles, name string, fname string, lname string, org string, desc string, token string, email string, serviceRoles []string, createdOn time.Time, modifiedOn time.Time, createdBy string) error {
+	user := QUser{
+		UUID:         uuid,
+		Name:         name,
+		Email:        email,
+		Token:        token,
+		FirstName:    fname,
+		LastName:     lname,
+		Organization: org,
+		Description:  desc,
+		Projects:     projects,
+		ServiceRoles: serviceRoles,
+		CreatedOn:    createdOn,
+		ModifiedOn:   modifiedOn,
+		CreatedBy:    createdBy,
+	}
 	mk.UserList = append(mk.UserList, user)
 	return nil
 }
@@ -695,20 +709,20 @@ func (mk *MockStore) Initialize() {
 	// populate Users
 	qRole := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"consumer", "publisher"}}}
 	qRoleB := []QProjectRoles{QProjectRoles{"argo_uuid2", []string{"consumer", "publisher"}}}
-	qUsr := QUser{0, "uuid0", qRole, "Test", "S3CR3T", "Test@test.com", []string{}, created, modified, ""}
+	qUsr := QUser{0, "uuid0", qRole, "Test", "", "", "", "", "S3CR3T", "Test@test.com", []string{}, created, modified, ""}
 
 	mk.UserList = append(mk.UserList, qUsr)
 
 	qRoleConsumerPub := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"publisher", "consumer"}}}
 
-	mk.UserList = append(mk.UserList, QUser{1, "uuid1", qRole, "UserA", "S3CR3T1", "foo-email", []string{}, created, modified, ""})
-	mk.UserList = append(mk.UserList, QUser{2, "uuid2", qRole, "UserB", "S3CR3T2", "foo-email", []string{}, created, modified, "uuid1"})
-	mk.UserList = append(mk.UserList, QUser{3, "uuid3", qRoleConsumerPub, "UserX", "S3CR3T3", "foo-email", []string{}, created, modified, "uuid1"})
-	mk.UserList = append(mk.UserList, QUser{4, "uuid4", qRoleConsumerPub, "UserZ", "S3CR3T4", "foo-email", []string{}, created, modified, "uuid1"})
-	mk.UserList = append(mk.UserList, QUser{5, "same_uuid", qRoleConsumerPub, "UserSame1", "S3CR3T41", "foo-email", []string{}, created, modified, "uuid1"})
-	mk.UserList = append(mk.UserList, QUser{6, "same_uuid", qRoleConsumerPub, "UserSame2", "S3CR3T42", "foo-email", []string{}, created, modified, "uuid1"})
-	mk.UserList = append(mk.UserList, QUser{7, "uuid7", []QProjectRoles{}, "push_worker_0", "push_token", "foo-email", []string{"push_worker"}, created, modified, ""})
-	mk.UserList = append(mk.UserList, QUser{8, "uuid8", qRoleB, "UserZ", "S3CR3T1", "foo-email", []string{}, created, modified, ""})
+	mk.UserList = append(mk.UserList, QUser{1, "uuid1", qRole, "UserA", "FirstA", "LastA", "OrgA", "DescA", "S3CR3T1", "foo-email", []string{}, created, modified, ""})
+	mk.UserList = append(mk.UserList, QUser{2, "uuid2", qRole, "UserB", "", "", "", "", "S3CR3T2", "foo-email", []string{}, created, modified, "uuid1"})
+	mk.UserList = append(mk.UserList, QUser{3, "uuid3", qRoleConsumerPub, "UserX", "", "", "", "", "S3CR3T3", "foo-email", []string{}, created, modified, "uuid1"})
+	mk.UserList = append(mk.UserList, QUser{4, "uuid4", qRoleConsumerPub, "UserZ", "", "", "", "", "S3CR3T4", "foo-email", []string{}, created, modified, "uuid1"})
+	mk.UserList = append(mk.UserList, QUser{5, "same_uuid", qRoleConsumerPub, "UserSame1", "", "", "", "", "S3CR3T41", "foo-email", []string{}, created, modified, "uuid1"})
+	mk.UserList = append(mk.UserList, QUser{6, "same_uuid", qRoleConsumerPub, "UserSame2", "", "", "", "", "S3CR3T42", "foo-email", []string{}, created, modified, "uuid1"})
+	mk.UserList = append(mk.UserList, QUser{7, "uuid7", []QProjectRoles{}, "push_worker_0", "", "", "", "", "push_token", "foo-email", []string{"push_worker"}, created, modified, ""})
+	mk.UserList = append(mk.UserList, QUser{8, "uuid8", qRoleB, "UserZ", "", "", "", "", "S3CR3T1", "foo-email", []string{}, created, modified, ""})
 
 	qRole1 := QRole{"topics:list_all", []string{"admin", "reader", "publisher"}}
 	qRole2 := QRole{"topics:publish", []string{"admin", "publisher"}}
