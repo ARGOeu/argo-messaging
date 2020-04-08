@@ -1154,8 +1154,22 @@ func (mong *MongoStore) InsertOpMetric(hostname string, cpu float64, mem float64
 }
 
 // InsertUser inserts a new user to the store
-func (mong *MongoStore) InsertUser(uuid string, projects []QProjectRoles, name string, token string, email string, serviceRoles []string, createdOn time.Time, modifiedOn time.Time, createdBy string) error {
-	user := QUser{UUID: uuid, Name: name, Email: email, Token: token, Projects: projects, ServiceRoles: serviceRoles, CreatedOn: createdOn, ModifiedOn: modifiedOn, CreatedBy: createdBy}
+func (mong *MongoStore) InsertUser(uuid string, projects []QProjectRoles, name string, fname string, lname string, org string, desc string, token string, email string, serviceRoles []string, createdOn time.Time, modifiedOn time.Time, createdBy string) error {
+	user := QUser{
+		UUID:         uuid,
+		Name:         name,
+		Email:        email,
+		Token:        token,
+		FirstName:    fname,
+		LastName:     lname,
+		Organization: org,
+		Description:  desc,
+		Projects:     projects,
+		ServiceRoles: serviceRoles,
+		CreatedOn:    createdOn,
+		ModifiedOn:   modifiedOn,
+		CreatedBy:    createdBy,
+	}
 	return mong.InsertResource("users", user)
 }
 

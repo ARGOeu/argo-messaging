@@ -54,6 +54,10 @@ type QUser struct {
 	UUID         string          `bson:"uuid"`
 	Projects     []QProjectRoles `bson:"projects"`
 	Name         string          `bson:"name"`
+	FirstName    string          `bson:"first_name,omitempty"`
+	LastName     string          `bson:"last_name,omitempty"`
+	Organization string          `bson:"organization,omitempty"`
+	Description  string          `bson:"description,omitempty"`
 	Token        string          `bson:"token"`
 	Email        string          `bson:"email"`
 	ServiceRoles []string        `bson:"service_roles"`

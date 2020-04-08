@@ -20,6 +20,10 @@ type User struct {
 	UUID         string         `json:"uuid"`
 	Projects     []ProjectRoles `json:"projects"`
 	Name         string         `json:"name"`
+	FirstName    string         `json:"first_name,omitempty"`
+	LastName     string         `json:"last_name,omitempty"`
+	Organization string         `json:"organization,omitempty"`
+	Description  string         `json:"description,omitempty"`
 	Token        string         `json:"token,omitempty"`
 	Email        string         `json:"email"`
 	ServiceRoles []string       `json:"service_roles"`
@@ -90,9 +94,22 @@ func GetUserFromJSON(input []byte) (User, error) {
 }
 
 // NewUser accepts parameters and creates a new user
-func NewUser(uuid string, projects []ProjectRoles, name string, token string, email string, serviceRoles []string, createdOn time.Time, modifiedOn time.Time, createdBy string) User {
+func NewUser(uuid string, projects []ProjectRoles, name string, fname string, lname string, org string, desc string, token string, email string, serviceRoles []string, createdOn time.Time, modifiedOn time.Time, createdBy string) User {
 	zuluForm := "2006-01-02T15:04:05Z"
-	return User{UUID: uuid, Projects: projects, Name: name, Token: token, Email: email, ServiceRoles: serviceRoles, CreatedOn: createdOn.Format(zuluForm), ModifiedOn: modifiedOn.Format(zuluForm), CreatedBy: createdBy}
+	return User{
+		UUID:         uuid,
+		Projects:     projects,
+		Name:         name,
+		FirstName:    fname,
+		LastName:     lname,
+		Organization: org,
+		Description:  desc,
+		Token:        token,
+		Email:        email,
+		ServiceRoles: serviceRoles,
+		CreatedOn:    createdOn.Format(zuluForm),
+		ModifiedOn:   modifiedOn.Format(zuluForm),
+		CreatedBy:    createdBy}
 }
 
 // GetPushWorker returns a push worker user by token
@@ -145,7 +162,9 @@ func GetUserByToken(token string, store stores.Store) (User, error) {
 		pRoles = append(pRoles, ProjectRoles{Project: prName, Roles: pItem.Roles, Topics: topicNames, Subs: subNames})
 	}
 
-	curUser := NewUser(user.UUID, pRoles, user.Name, user.Token, user.Email, user.ServiceRoles, user.CreatedOn.UTC(), user.ModifiedOn.UTC(), usernameC)
+	curUser := NewUser(user.UUID, pRoles, user.Name, user.FirstName,
+		user.LastName, user.Organization, user.Description, user.Token, user.Email,
+		user.ServiceRoles, user.CreatedOn.UTC(), user.ModifiedOn.UTC(), usernameC)
 
 	result = curUser
 
@@ -211,7 +230,9 @@ func FindUsers(projectUUID string, uuid string, name string, priviledged bool, s
 			pRoles = append(pRoles, ProjectRoles{Project: prName, Roles: _pRoles, Topics: topicNames, Subs: subNames})
 		}
 
-		curUser := NewUser(item.UUID, pRoles, item.Name, token, item.Email, serviceRoles, item.CreatedOn.UTC(), item.ModifiedOn.UTC(), usernameC)
+		curUser := NewUser(item.UUID, pRoles, item.Name, item.FirstName, item.LastName,
+			item.Organization, item.Description, token, item.Email, serviceRoles,
+			item.CreatedOn.UTC(), item.ModifiedOn.UTC(), usernameC)
 
 		result.List = append(result.List, curUser)
 	}
@@ -287,7 +308,9 @@ func PaginatedFindUsers(pageToken string, pageSize int32, projectUUID string, pr
 			pRoles = append(pRoles, ProjectRoles{Project: prName, Roles: pItem.Roles, Topics: topicNames, Subs: subNames})
 		}
 
-		curUser := NewUser(item.UUID, pRoles, item.Name, token, item.Email, serviceRoles, item.CreatedOn.UTC(), item.ModifiedOn.UTC(), usernameC)
+		curUser := NewUser(item.UUID, pRoles, item.Name, item.FirstName, item.LastName,
+			item.Organization, item.Description, token, item.Email, serviceRoles,
+			item.CreatedOn.UTC(), item.ModifiedOn.UTC(), usernameC)
 
 		result.Users = append(result.Users, curUser)
 	}
@@ -392,7 +415,9 @@ func GetUserByUUID(uuid string, store stores.Store) (User, error) {
 		pRoles = append(pRoles, ProjectRoles{Project: prName, Roles: pItem.Roles, Topics: topicNames, Subs: subNames})
 	}
 
-	curUser := NewUser(user.UUID, pRoles, user.Name, user.Token, user.Email, user.ServiceRoles, user.CreatedOn, user.ModifiedOn, usernameC)
+	curUser := NewUser(user.UUID, pRoles, user.Name, user.FirstName,
+		user.LastName, user.Organization, user.Description, user.Token, user.Email,
+		user.ServiceRoles, user.CreatedOn.UTC(), user.ModifiedOn.UTC(), usernameC)
 
 	result = curUser
 
@@ -515,7 +540,7 @@ func UpdateUser(uuid string, name string, projectList []ProjectRoles, email stri
 }
 
 // CreateUser creates a new user
-func CreateUser(uuid string, name string, projectList []ProjectRoles, token string, email string, serviceRoles []string, createdOn time.Time, createdBy string, store stores.Store) (User, error) {
+func CreateUser(uuid string, name string, fname string, lname string, org string, desc string, projectList []ProjectRoles, token string, email string, serviceRoles []string, createdOn time.Time, createdBy string, store stores.Store) (User, error) {
 	// check if project with the same name exists
 	if ExistsWithName(name, store) {
 		return User{}, errors.New("exists")
@@ -567,7 +592,7 @@ func CreateUser(uuid string, name string, projectList []ProjectRoles, token stri
 		}
 	}
 
-	if err := store.InsertUser(uuid, prList, name, token, email, serviceRoles, createdOn, createdOn, createdBy); err != nil {
+	if err := store.InsertUser(uuid, prList, name, fname, lname, org, desc, token, email, serviceRoles, createdOn, createdOn, createdBy); err != nil {
 		return User{}, errors.New("backend error")
 	}
 

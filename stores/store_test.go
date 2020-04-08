@@ -435,10 +435,10 @@ func (suite *StoreTestSuite) TestMockStore() {
 	// Test Insert User
 	qRoleAdmin1 := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"admin"}}}
 	qRoles := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"admin"}}, QProjectRoles{"argo_uuid2", []string{"admin", "viewer"}}}
-	expUsr10 := QUser{UUID: "user_uuid10", Projects: qRoleAdmin1, Name: "newUser1", Token: "A3B94A94V3A", Email: "fake@email.com", ServiceRoles: []string{}, CreatedOn: created, ModifiedOn: modified, CreatedBy: "uuid1"}
+	expUsr10 := QUser{UUID: "user_uuid10", Projects: qRoleAdmin1, Name: "newUser1", FirstName: "fname", LastName: "lname", Organization: "org1", Description: "desc1", Token: "A3B94A94V3A", Email: "fake@email.com", ServiceRoles: []string{}, CreatedOn: created, ModifiedOn: modified, CreatedBy: "uuid1"}
 	expUsr11 := QUser{UUID: "user_uuid11", Projects: qRoles, Name: "newUser2", Token: "BX312Z34NLQ", Email: "fake@email.com", ServiceRoles: []string{}, CreatedOn: created, ModifiedOn: modified, CreatedBy: "uuid1"}
-	store.InsertUser("user_uuid10", qRoleAdmin1, "newUser1", "A3B94A94V3A", "fake@email.com", []string{}, created, modified, "uuid1")
-	store.InsertUser("user_uuid11", qRoles, "newUser2", "BX312Z34NLQ", "fake@email.com", []string{}, created, modified, "uuid1")
+	store.InsertUser("user_uuid10", qRoleAdmin1, "newUser1", "fname", "lname", "org1", "desc1", "A3B94A94V3A", "fake@email.com", []string{}, created, modified, "uuid1")
+	store.InsertUser("user_uuid11", qRoles, "newUser2", "", "", "", "", "BX312Z34NLQ", "fake@email.com", []string{}, created, modified, "uuid1")
 	usr10, _ := store.QueryUsers("argo_uuid", "user_uuid10", "")
 	usr11, _ := store.QueryUsers("argo_uuid", "", "newUser2")
 

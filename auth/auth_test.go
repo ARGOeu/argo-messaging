@@ -175,6 +175,10 @@ func (suite *AuthTestSuite) TestAuth() {
             }
          ],
          "name": "UserA",
+         "first_name": "FirstA",
+         "last_name": "LastA",
+         "organization": "OrgA",
+         "description": "DescA",
          "token": "S3CR3T1",
          "email": "foo-email",
          "service_roles": [],
@@ -426,6 +430,10 @@ func (suite *AuthTestSuite) TestAuth() {
       }
    ],
    "name": "johndoe",
+   "first_name": "firstdoe",
+   "last_name": "lastdoe",
+   "organization": "orgdoe",
+   "description": "descdoe",
    "token": "johndoe@fake.email.foo",
    "email": "TOK3N",
    "service_roles": [
@@ -438,13 +446,13 @@ func (suite *AuthTestSuite) TestAuth() {
 	tm := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
 
 	// Test Create
-	CreateUser("uuid12", "johndoe", []ProjectRoles{ProjectRoles{Project: "ARGO", Roles: []string{"consumer"}}}, "johndoe@fake.email.foo", "TOK3N", []string{"service_admin"}, tm, "", store)
+	CreateUser("uuid12", "johndoe", "firstdoe", "lastdoe", "orgdoe", "descdoe", []ProjectRoles{ProjectRoles{Project: "ARGO", Roles: []string{"consumer"}}}, "johndoe@fake.email.foo", "TOK3N", []string{"service_admin"}, tm, "", store)
 	usrs, _ := FindUsers("", "uuid12", "", true, store)
 	usrJSON, _ := usrs.List[0].ExportJSON()
 	suite.Equal(expUsrJSON, usrJSON)
 
 	// Test Create with empty project list
-	CreateUser("uuid13", "empty-proj", []ProjectRoles{{Project: "", Roles: []string{"consumer"}}}, "TOK3N", "johndoe@fake.email.foo", []string{"service_admin"}, tm, "", store)
+	CreateUser("uuid13", "empty-proj", "", "", "", "", []ProjectRoles{{Project: "", Roles: []string{"consumer"}}}, "TOK3N", "johndoe@fake.email.foo", []string{"service_admin"}, tm, "", store)
 	usrs2, _ := FindUsers("", "uuid13", "", true, store)
 	expusrs2 := Users{List: []User{{UUID: "uuid13", Projects: []ProjectRoles{}, Name: "empty-proj", Token: "TOK3N", Email: "johndoe@fake.email.foo", ServiceRoles: []string{"service_admin"}, CreatedOn: "2009-11-10T23:00:00Z", ModifiedOn: "2009-11-10T23:00:00Z", CreatedBy: ""}}}
 	suite.Equal(expusrs2, usrs2)
@@ -463,6 +471,10 @@ func (suite *AuthTestSuite) TestAuth() {
       }
    ],
    "name": "johnny_doe",
+   "first_name": "firstdoe",
+   "last_name": "lastdoe",
+   "organization": "orgdoe",
+   "description": "descdoe",
    "token": "johndoe@fake.email.foo",
    "email": "TOK3N",
    "service_roles": [
@@ -498,29 +510,29 @@ func (suite *AuthTestSuite) TestAuth() {
 	modified := "2009-11-10T23:00:00Z"
 
 	var qUsers1 []User
-	qUsers1 = append(qUsers1, User{"uuid8", []ProjectRoles{{"ARGO2", []string{"consumer", "publisher"}, []string{}, []string{}}}, "UserZ", "S3CR3T1", "foo-email", []string{}, created, modified, ""})
-	qUsers1 = append(qUsers1, User{"uuid7", []ProjectRoles{}, "push_worker_0", "push_token", "foo-email", []string{"push_worker"}, created, modified, ""})
-	qUsers1 = append(qUsers1, User{"same_uuid", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{}, []string{}}}, "UserSame2", "S3CR3T42", "foo-email", []string{}, created, modified, "UserA"})
-	qUsers1 = append(qUsers1, User{"same_uuid", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{}, []string{}}}, "UserSame1", "S3CR3T41", "foo-email", []string{}, created, modified, "UserA"})
-	qUsers1 = append(qUsers1, User{"uuid4", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{"topic2"}, []string{"sub3", "sub4"}}}, "UserZ", "S3CR3T4", "foo-email", []string{}, created, modified, "UserA"})
-	qUsers1 = append(qUsers1, User{"uuid3", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{"topic3"}, []string{"sub2"}}}, "UserX", "S3CR3T3", "foo-email", []string{}, created, modified, "UserA"})
-	qUsers1 = append(qUsers1, User{"uuid2", []ProjectRoles{{"ARGO", []string{"consumer", "publisher"}, []string{"topic1", "topic2"}, []string{"sub1", "sub3", "sub4"}}}, "UserB", "S3CR3T2", "foo-email", []string{}, created, modified, "UserA"})
-	qUsers1 = append(qUsers1, User{"uuid1", []ProjectRoles{{"ARGO", []string{"consumer", "publisher"}, []string{"topic1", "topic2"}, []string{"sub1", "sub2", "sub3"}}}, "UserA", "S3CR3T1", "foo-email", []string{}, created, modified, ""})
-	qUsers1 = append(qUsers1, User{"uuid0", []ProjectRoles{{"ARGO", []string{"consumer", "publisher"}, []string{}, []string{}}}, "Test", "S3CR3T", "Test@test.com", []string{}, created, modified, ""})
+	qUsers1 = append(qUsers1, User{"uuid8", []ProjectRoles{{"ARGO2", []string{"consumer", "publisher"}, []string{}, []string{}}}, "UserZ", "", "", "", "", "S3CR3T1", "foo-email", []string{}, created, modified, ""})
+	qUsers1 = append(qUsers1, User{"uuid7", []ProjectRoles{}, "push_worker_0", "", "", "", "", "push_token", "foo-email", []string{"push_worker"}, created, modified, ""})
+	qUsers1 = append(qUsers1, User{"same_uuid", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{}, []string{}}}, "UserSame2", "", "", "", "", "S3CR3T42", "foo-email", []string{}, created, modified, "UserA"})
+	qUsers1 = append(qUsers1, User{"same_uuid", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{}, []string{}}}, "UserSame1", "", "", "", "", "S3CR3T41", "foo-email", []string{}, created, modified, "UserA"})
+	qUsers1 = append(qUsers1, User{"uuid4", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{"topic2"}, []string{"sub3", "sub4"}}}, "UserZ", "", "", "", "", "S3CR3T4", "foo-email", []string{}, created, modified, "UserA"})
+	qUsers1 = append(qUsers1, User{"uuid3", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{"topic3"}, []string{"sub2"}}}, "UserX", "", "", "", "", "S3CR3T3", "foo-email", []string{}, created, modified, "UserA"})
+	qUsers1 = append(qUsers1, User{"uuid2", []ProjectRoles{{"ARGO", []string{"consumer", "publisher"}, []string{"topic1", "topic2"}, []string{"sub1", "sub3", "sub4"}}}, "UserB", "", "", "", "", "S3CR3T2", "foo-email", []string{}, created, modified, "UserA"})
+	qUsers1 = append(qUsers1, User{"uuid1", []ProjectRoles{{"ARGO", []string{"consumer", "publisher"}, []string{"topic1", "topic2"}, []string{"sub1", "sub2", "sub3"}}}, "UserA", "FirstA", "LastA", "OrgA", "DescA", "S3CR3T1", "foo-email", []string{}, created, modified, ""})
+	qUsers1 = append(qUsers1, User{"uuid0", []ProjectRoles{{"ARGO", []string{"consumer", "publisher"}, []string{}, []string{}}}, "Test", "", "", "", "", "S3CR3T", "Test@test.com", []string{}, created, modified, ""})
 	// return all users
 	pu1, e1 := PaginatedFindUsers("", 0, "", true, store2)
 
 	var qUsers2 []User
-	qUsers2 = append(qUsers2, User{"uuid8", []ProjectRoles{{"ARGO2", []string{"consumer", "publisher"}, []string{}, []string{}}}, "UserZ", "S3CR3T1", "foo-email", []string{}, created, modified, ""})
-	qUsers2 = append(qUsers2, User{"uuid7", []ProjectRoles{}, "push_worker_0", "push_token", "foo-email", []string{"push_worker"}, created, modified, ""})
-	qUsers2 = append(qUsers2, User{"same_uuid", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{}, []string{}}}, "UserSame2", "S3CR3T42", "foo-email", []string{}, created, modified, "UserA"})
+	qUsers2 = append(qUsers2, User{"uuid8", []ProjectRoles{{"ARGO2", []string{"consumer", "publisher"}, []string{}, []string{}}}, "UserZ", "", "", "", "", "S3CR3T1", "foo-email", []string{}, created, modified, ""})
+	qUsers2 = append(qUsers2, User{"uuid7", []ProjectRoles{}, "push_worker_0", "", "", "", "", "push_token", "foo-email", []string{"push_worker"}, created, modified, ""})
+	qUsers2 = append(qUsers2, User{"same_uuid", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{}, []string{}}}, "UserSame2", "", "", "", "", "S3CR3T42", "foo-email", []string{}, created, modified, "UserA"})
 
 	// return the first page with 2 users
 	pu2, e2 := PaginatedFindUsers("", 3, "", true, store2)
 
 	var qUsers3 []User
-	qUsers3 = append(qUsers3, User{"uuid4", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{"topic2"}, []string{"sub3", "sub4"}}}, "UserZ", "S3CR3T4", "foo-email", []string{}, created, modified, "UserA"})
-	qUsers3 = append(qUsers3, User{"uuid3", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{"topic3"}, []string{"sub2"}}}, "UserX", "S3CR3T3", "foo-email", []string{}, created, modified, "UserA"})
+	qUsers3 = append(qUsers3, User{"uuid4", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{"topic2"}, []string{"sub3", "sub4"}}}, "UserZ", "", "", "", "", "S3CR3T4", "foo-email", []string{}, created, modified, "UserA"})
+	qUsers3 = append(qUsers3, User{"uuid3", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{"topic3"}, []string{"sub2"}}}, "UserX", "", "", "", "", "S3CR3T3", "foo-email", []string{}, created, modified, "UserA"})
 	// return the next 2 users
 	pu3, e3 := PaginatedFindUsers("NA==", 2, "", true, store2)
 
@@ -534,11 +546,11 @@ func (suite *AuthTestSuite) TestAuth() {
 
 	// check user list by project
 	var qUsersB []User
-	qUsersB = append(qUsersB, User{"uuid8", []ProjectRoles{{"ARGO2", []string{"consumer", "publisher"}, []string{}, []string{}}}, "UserZ", "S3CR3T1", "foo-email", []string{}, created, modified, ""})
+	qUsersB = append(qUsersB, User{"uuid8", []ProjectRoles{{"ARGO2", []string{"consumer", "publisher"}, []string{}, []string{}}}, "UserZ", "", "", "", "", "S3CR3T1", "foo-email", []string{}, created, modified, ""})
 
 	// check user list by project and with unprivileged mode (token redacted)
 	var qUsersC []User
-	qUsersC = append(qUsersC, User{"uuid8", []ProjectRoles{{"ARGO2", []string{"consumer", "publisher"}, []string{}, []string{}}}, "UserZ", "", "foo-email", []string{}, created, modified, ""})
+	qUsersC = append(qUsersC, User{"uuid8", []ProjectRoles{{"ARGO2", []string{"consumer", "publisher"}, []string{}, []string{}}}, "UserZ", "", "", "", "", "", "foo-email", []string{}, created, modified, ""})
 
 	puC, e1 := PaginatedFindUsers("", 1, "argo_uuid2", false, store2)
 	suite.Equal(qUsersC, puC.Users)
@@ -794,7 +806,7 @@ func (suite *AuthTestSuite) TestGetPushWorkerToken() {
 
 	// normal case of push enabled true and correct push worker token
 	u1, err1 := GetPushWorker("push_token", store)
-	suite.Equal(User{"uuid7", []ProjectRoles{}, "push_worker_0", "push_token", "foo-email", []string{"push_worker"}, "2009-11-10T23:00:00Z", "2009-11-10T23:00:00Z", ""}, u1)
+	suite.Equal(User{"uuid7", []ProjectRoles{}, "push_worker_0", "", "", "", "", "push_token", "foo-email", []string{"push_worker"}, "2009-11-10T23:00:00Z", "2009-11-10T23:00:00Z", ""}, u1)
 	suite.Nil(err1)
 
 	//  incorrect push worker token
