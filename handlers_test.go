@@ -5730,12 +5730,12 @@ func (suite *HandlerTestSuite) TestPublishWithSchema() {
 			topic: "topic2",
 			postBody: `{
 	"messages" : [
-		
+
 		{
 			"attributes": {},
 			"data": "eyJuYW1lIjoibmFtZS0xIiwgImVtYWlsIjogInRlc3RAZXhhbXBsZS5jb20ifQ=="
 		},
-		
+
 		{
 			"attributes": {},
 			"data": "eyJuYW1lIjoibmFtZS0xIiwgImVtYWlsIjogInRlc3RAZXhhbXBsZS5jb20iLCAiYWRkcmVzcyI6IlN0cmVldCAxMyIsInRlbGVwaG9uZSI6IjY5NDg1Njc4ODkifQ=="
@@ -5755,11 +5755,11 @@ func (suite *HandlerTestSuite) TestPublishWithSchema() {
 			topic: "topic3",
 			postBody: `{
 	"messages" : [
-		
+
 		{
 			"attributes": {},
 			"data": "DGFnZWxvc8T8Cg=="
-		},	
+		},
 		{
 			"attributes": {},
 			"data": "DGFnZWxvc8T8Cg=="
@@ -5779,12 +5779,12 @@ func (suite *HandlerTestSuite) TestPublishWithSchema() {
 			topic: "topic2",
 			postBody: `{
 	"messages" : [
-		
+
 		{
 			"attributes": {},
 			"data": "eyJuYW1lIjoibmFtZS0xIiwiYWRkcmVzcyI6IlN0cmVldCAxMyIsInRlbGVwaG9uZSI6Njk0ODU2Nzg4OX0="
 		},
-		
+
 		{
 			"attributes": {},
 			"data": "eyJuYW1lIjoibmFtZS0xIiwgImVtYWlsIjogInRlc3RAZXhhbXBsZS5jb20iLCAiYWRkcmVzcyI6IlN0cmVldCAxMyIsInRlbGVwaG9uZSI6IjY5NDg1Njc4ODkifQ=="
@@ -5805,12 +5805,12 @@ func (suite *HandlerTestSuite) TestPublishWithSchema() {
 			topic: "topic3",
 			postBody: `{
 	"messages" : [
-		
+
 		{
 			"attributes": {},
 			"data": "T2JqAQQWYXZyby5zY2hlbWGYAnsidHlwZSI6InJlY29yZCIsIm5hbWUiOiJQbGFjZSIsIm5hbWVzcGFjZSI6InBsYWNlLmF2cm8iLCJmaWVsZHMiOlt7Im5hbWUiOiJwbGFjZW5hbWUiLCJ0eXBlIjoic3RyaW5nIn0seyJuYW1lIjoiYWRkcmVzcyIsInR5cGUiOiJzdHJpbmcifV19FGF2cm8uY29kZWMIbnVsbABM1P4b0GpYaCg9tqxa+YDZAiQSc3RyZWV0IDIyDnBsYWNlIGFM1P4b0GpYaCg9tqxa+YDZ"
 		},
-		
+
 		{
 			"attributes": {},
 			"data": "DGFnZWxvc8T8Cg=="
@@ -5832,12 +5832,12 @@ func (suite *HandlerTestSuite) TestPublishWithSchema() {
 			topic: "topic2",
 			postBody: `{
 	"messages" : [
-		
+
 		{
 			"attributes": {},
 			"data": "eyJuYW1lIjoibmFtZS0xIiwiYWRkcmVzcyI6IlN0cmVldCAxMyIsInRlbGVwaG9uZSI6IjY5NDg1Njc4ODkifQo="
 		},
-		
+
 		{
 			"attributes": {},
 			"data": "eyJuYW1lIjoibmFtZS0xIiwgImVtYWlsIjogInRlc3RAZXhhbXBsZS5jb20iLCAiYWRkcmVzcyI6IlN0cmVldCAxMyIsInRlbGVwaG9uZSI6IjY5NDg1Njc4ODkifQ=="
@@ -5858,12 +5858,12 @@ func (suite *HandlerTestSuite) TestPublishWithSchema() {
 			topic: "topic2",
 			postBody: `{
 	"messages" : [
-		
+
 		{
 			"attributes": {},
 			"data": "eyJuYW1lIjoibmFtZS0xIiwgImVtYWlsIjogInRlc3RAZXhhbXBsZS5jb20iLCAiYWRkcmVzcyI6IlN0cmVldCAxMyIsInRlbGVwaG9uZSI6IjY5NDg1Njc4ODkifQ=="
 		},
-		
+
 		{
 			"attributes": {},
 			"data": "eyJuYW1lIjoibmFtZS0xIiwiYWRkcmVzcyI6IlN0cmVldCAxMyIsInRlbGVwaG9uZSI6IjY5NDg1Njc4ODkiCg=="

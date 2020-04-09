@@ -3,7 +3,7 @@
 ARGO Messaging Service supports calls for registering users
 
 ## [POST] Manage Registrations - New user registration
-This request is 
+This request is
 
 ### Request
 ```json
@@ -49,4 +49,3 @@ Success Response
    "registered_at": "2009-11-10T23:00:00Z"
 }
 ```
-

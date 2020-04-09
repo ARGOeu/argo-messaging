@@ -2289,8 +2289,8 @@ definitions:
         type: string
       value:
         type: string
-        
-  
+
+
 
 
   AuthUsers:
@@ -2609,21 +2609,21 @@ definitions:
           status:
             type: string
             description: status of the error
-            
+
   Version:
     type: object
     properties:
       release:
         type: string
-      commit: 
-        type: string        
-      build_time: 
+      commit:
+        type: string
+      build_time:
         type: string
       golang:
         type: string
-      compiler: 
+      compiler:
         type: string
-      os: 
+      os:
         type: string
       architecture:
           type: string
