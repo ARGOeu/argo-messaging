@@ -1760,6 +1760,72 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 	respondOK(w, output)
 }
 
+// AcceptUserRegister (POST) accepts a user registration and creates the respective user
+func AcceptRegisterUser(w http.ResponseWriter, r *http.Request) {
+
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+	activationToken := urlVars["activation_token"]
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	refUserUUID := gorillaContext.Get(r, "auth_user_uuid").(string)
+
+	ru, err := auth.FindUserRegistration(activationToken, auth.PendingRegistrationStatus, refStr)
+	if err != nil {
+
+		if err.Error() == "not found" {
+			err := APIErrorNotFound("User registration")
+			respondErr(w, err)
+			return
+		}
+
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	userUUID := uuid.NewV4().String() // generate a new userUUID to attach to the new project
+	token, err := auth.GenToken()     // generate a new user token
+	created := time.Now().UTC()
+	// Get Result Object
+	res, err := auth.CreateUser(userUUID, ru.Name, ru.FirstName, ru.LastName, ru.Organization, ru.Description,
+		[]auth.ProjectRoles{}, token, ru.Email, []string{}, created, refUserUUID, refStr)
+
+	if err != nil {
+		if err.Error() == "exists" {
+			err := APIErrorConflict("User")
+			respondErr(w, err)
+			return
+		}
+
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	// update the registration
+	err = auth.UpdateUserRegistration(activationToken, auth.AcceptedRegistrationStatus, refUserUUID, created, refStr)
+	if err != nil {
+		log.Errorf("Could not update registration, %v", err.Error())
+	}
+
+	// Output result to JSON
+	resJSON, err := res.ExportJSON()
+	if err != nil {
+		err := APIErrExportJSON()
+		respondErr(w, err)
+		return
+	}
+
+	// Write response
+	respondOK(w, []byte(resJSON))
+}
+
 // SubAck (GET) one subscription
 func SubAck(w http.ResponseWriter, r *http.Request) {
 

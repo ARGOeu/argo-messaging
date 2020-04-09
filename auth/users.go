@@ -70,6 +70,8 @@ type UserRegistration struct {
 	Status          string `json:"status"`
 	ActivationToken string `json:"activation_token"`
 	RegisteredAt    string `json:"registered_at"`
+	ModifiedBy      string `json:"modified_by,omitempty"`
+	ModifiedAt      string `json:"modified_at,omitempty"`
 }
 
 // ExportJSON exports User to json format
@@ -133,6 +135,48 @@ func RegisterUser(uuid, name, fname, lname, email, org, desc, registeredAt, atkn
 		ActivationToken: atkn,
 		Status:          status,
 	}, nil
+}
+
+func FindUserRegistration(activationToken, status string, str stores.Store) (UserRegistration, error) {
+
+	q, err := str.QueryRegistrations(activationToken, status)
+	if err != nil {
+		return UserRegistration{}, err
+	}
+
+	if len(q) == 0 {
+		return UserRegistration{}, errors.New("not found")
+	}
+
+	usernameC := ""
+	if q[0].ModifiedBy != "" {
+		usr, err := str.QueryUsers("", q[0].ModifiedBy, "")
+		if err == nil && len(usr) > 0 {
+			usernameC = usr[0].Name
+
+		}
+	}
+
+	ur := UserRegistration{
+		UUID:            q[0].UUID,
+		Name:            q[0].Name,
+		FirstName:       q[0].FirstName,
+		LastName:        q[0].LastName,
+		Email:           q[0].Email,
+		ActivationToken: q[0].ActivationToken,
+		Status:          q[0].Status,
+		Organization:    q[0].Organization,
+		Description:     q[0].Description,
+		RegisteredAt:    q[0].RegisteredAt,
+		ModifiedBy:      usernameC,
+		ModifiedAt:      q[0].ModifiedAt,
+	}
+
+	return ur, nil
+}
+
+func UpdateUserRegistration(activationToken, status, modifiedBy string, modifiedAt time.Time, refStr stores.Store) error {
+	return refStr.UpdateRegistration(activationToken, status, modifiedBy, modifiedAt.Format("2006-01-02T15:04:05Z"))
 }
 
 // NewUser accepts parameters and creates a new user
@@ -374,8 +418,9 @@ func Authenticate(projectUUID string, token string, store stores.Store) ([]strin
 // ExistsWithName returns true if a user with name exists
 func ExistsWithName(name string, store stores.Store) bool {
 	result := false
-
 	users, err := store.QueryUsers("", "", name)
+	fmt.Println(users)
+	fmt.Println(name)
 	if len(users) > 0 && err == nil {
 		result = true
 	}
