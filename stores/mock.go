@@ -11,6 +11,7 @@ import (
 type MockStore struct {
 	Server             string
 	Database           string
+	UserRegistrations  []QUserRegister
 	SubList            []QSub
 	TopicList          []QTopic
 	DailyTopicMsgCount []QDailyTopicMsgCount
@@ -79,6 +80,25 @@ func (mk *MockStore) InsertUser(uuid string, projects []QProjectRoles, name stri
 		CreatedBy:    createdBy,
 	}
 	mk.UserList = append(mk.UserList, user)
+	return nil
+}
+
+func (mk *MockStore) RegisterUser(uuid, name, firstName, lastName, email, org, desc, registeredAt, atkn, status string) error {
+
+	ur := QUserRegister{
+		UUID:            uuid,
+		Name:            name,
+		FirstName:       firstName,
+		LastName:        lastName,
+		Email:           email,
+		Organization:    org,
+		Description:     desc,
+		RegisteredAt:    registeredAt,
+		ActivationToken: atkn,
+		Status:          status,
+	}
+
+	mk.UserRegistrations = append(mk.UserRegistrations, ur)
 	return nil
 }
 

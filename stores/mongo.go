@@ -148,6 +148,25 @@ func (mong *MongoStore) UpdateProject(projectUUID string, name string, descripti
 
 }
 
+// RegisterUser inserts a new user registration to the database
+func (mong *MongoStore) RegisterUser(uuid, name, firstName, lastName, email, org, desc, registeredAt, atkn, status string) error {
+
+	ur := QUserRegister{
+		UUID:            uuid,
+		Name:            name,
+		FirstName:       firstName,
+		LastName:        lastName,
+		Email:           email,
+		Organization:    org,
+		Description:     desc,
+		RegisteredAt:    registeredAt,
+		ActivationToken: atkn,
+		Status:          status,
+	}
+
+	return mong.InsertResource("user_registrations", ur)
+}
+
 // UpdateUserToken updates user's token
 func (mong *MongoStore) UpdateUserToken(uuid string, token string) error {
 
