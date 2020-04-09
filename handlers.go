@@ -1690,6 +1690,76 @@ func UserDelete(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// RegisterUser(POST) registers a new user
+func RegisterUser(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+	username := urlVars["user"]
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+
+	// check if a user with that name already exists
+	if auth.ExistsWithName(username, refStr) {
+		err := APIErrorConflict("User")
+		respondErr(w, err)
+		return
+	}
+
+	// Read POST JSON body
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		err := APIErrorInvalidRequestBody()
+		respondErr(w, err)
+		return
+	}
+
+	// Parse pull options
+	requestBody := auth.UserRegistration{}
+	err = json.Unmarshal(body, &requestBody)
+	if err != nil {
+		err := APIErrorInvalidArgument("User")
+		respondErr(w, err)
+		return
+	}
+
+	uuid := uuid.NewV4().String()
+	registered := time.Now().UTC().Format("2006-01-02T15:04:05Z")
+	tkn, err := auth.GenToken()
+	if err != nil {
+		err := APIErrGenericInternal("")
+		respondErr(w, err)
+		return
+	}
+
+	ur, err := auth.RegisterUser(uuid, username, requestBody.FirstName, requestBody.LastName, requestBody.Email,
+		requestBody.Organization, requestBody.Description, registered, tkn, auth.PendingRegistrationStatus, refStr)
+
+	if err != nil {
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	output, err = json.MarshalIndent(ur, "", "   ")
+	if err != nil {
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	respondOK(w, output)
+}
+
 // SubAck (GET) one subscription
 func SubAck(w http.ResponseWriter, r *http.Request) {
 

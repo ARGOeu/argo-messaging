@@ -1723,6 +1723,95 @@ func (suite *HandlerTestSuite) TestProjectUserListUnprivARGO() {
 
 }
 
+func (suite *HandlerTestSuite) TestRegisterUser() {
+
+	type td struct {
+		user               string
+		postBody           string
+		expectedResponse   string
+		expectedStatusCode int
+		msg                string
+	}
+
+	testData := []td{
+		{
+			user: "new-register-user",
+			postBody: `{
+							"first_name": "first-name",
+							"last_name": "last-name",
+							"email": "test@example.com",
+							"organization": "org1",
+							"description": "desc1"
+					   }`,
+			expectedResponse: `{
+   "uuid": "{{UUID}}",
+   "name": "new-register-user",
+   "first_name": "first-name",
+   "last_name": "last-name",
+   "organization": "org1",
+   "description": "desc1",
+   "email": "test@example.com",
+   "status": "pending",
+   "activation_token": "{{ATKN}}",
+   "registered_at": "{{REAT}}"
+}`,
+			expectedStatusCode: 200,
+			msg:                "User registration successful",
+		},
+		{
+			user: "UserA",
+			postBody: `{
+							"first_name": "new-name",
+							"last_name": "last-name",
+							"email": "test@example.com",
+							"organization": "org1",
+							"description": "desc1"
+					   }`,
+			expectedResponse: `{
+   "error": {
+      "code": 409,
+      "message": "User already exists",
+      "status": "ALREADY_EXISTS"
+   }
+}`,
+			expectedStatusCode: 409,
+			msg:                "user already exists",
+		},
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	cfgKafka.PushEnabled = true
+	cfgKafka.PushWorkerToken = "push_token"
+	cfgKafka.ResAuth = false
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+
+	for _, t := range testData {
+
+		w := httptest.NewRecorder()
+		url := fmt.Sprintf("http://localhost:8080/v1/registrations/%v", t.user)
+		req, err := http.NewRequest("POST", url, strings.NewReader(t.postBody))
+		if err != nil {
+			log.Fatal(err)
+		}
+		router.HandleFunc("/v1/registrations/{user}", WrapMockAuthConfig(RegisterUser, cfgKafka, &brk, str, &mgr, pc))
+		router.ServeHTTP(w, req)
+		if t.expectedStatusCode == 200 {
+			t.expectedResponse = strings.Replace(t.expectedResponse, "{{UUID}}", str.UserRegistrations[0].UUID, 1)
+			t.expectedResponse = strings.Replace(t.expectedResponse, "{{REAT}}", str.UserRegistrations[0].RegisteredAt, 1)
+			t.expectedResponse = strings.Replace(t.expectedResponse, "{{ATKN}}", str.UserRegistrations[0].ActivationToken, 1)
+
+		}
+		suite.Equal(t.expectedStatusCode, w.Code, t.msg)
+		suite.Equal(t.expectedResponse, w.Body.String(), t.msg)
+	}
+
+}
+
 func (suite *HandlerTestSuite) TestProjectUserCreate() {
 
 	type td struct {

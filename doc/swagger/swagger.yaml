@@ -25,7 +25,40 @@ tags:
     description: Projects available in the service
   - name: Schemas
     description: Available schemas under a project for validating published messages payload
+  - name: Registrations
+    description: User registrations
 paths:
+
+  /registrations/{USER}:
+    post:
+      summary: Register a new user
+      description: |
+        Register a new user
+      parameters:
+        - name: USER
+          in: path
+          description: Username
+          required: true
+          type: string
+        - name: User information
+          in: body
+          description: Extra user  information
+          required: true
+          schema:
+            $ref: "#/definitions/UserRegistration"
+      tags:
+        - Registrations
+      responses:
+        200:
+          description: User registration object
+          schema:
+            $ref: '#/definitions/UserRegistration'
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/409"
+        500:
+          $ref: "#/responses/500"
 
   /projects/{PROJECT}/schemas:
     get:
@@ -2046,7 +2079,7 @@ paths:
           $ref: "#/responses/404"
         500:
           $ref: "#/responses/500"
-  
+
   /version:
     get:
       summary: "List API Version information"
@@ -2154,6 +2187,30 @@ responses:
       $ref: '#/definitions/ErrorMsg'
 
 definitions:
+
+  UserRegistration:
+     type: object
+     properties:
+       uuid:
+        type: string
+       name:
+        type: string
+       email:
+        type: string
+       first_name:
+        type: string
+       last_name:
+        type: string
+       organization:
+        type: string
+       description:
+        type: string
+       activation_token:
+        type: string
+       status:
+        type: string
+       registered_at:
+        type: string
 
   SchemaList:
     type: object
