@@ -11,17 +11,6 @@ pipeline {
         GIT_COMMIT_HASH=sh(script: "cd ${WORKSPACE}/$PROJECT_DIR && git log -1 --format=\"%H\" | cut -c1-7",returnStdout: true).trim()
         GIT_COMMIT_DATE=sh(script: "date -d \"\$(cd ${WORKSPACE}/$PROJECT_DIR && git show -s --format=%ci ${GIT_COMMIT_HASH})\" \"+%Y%m%d%H%M%S\"",returnStdout: true).trim()
     }
-    stages {
-        stage('Build') {
-            steps {
-                echo 'Build...'
-                sh """
-                cd ${WORKSPACE}/${PROJECT_DIR}
-                touch ${PROJECT_DIR}.TEST.CLEAN.tar.gz
-                """
-            }
-        }
-    }
     stage ('Build'){
             parallel {
                 stage ('Build Centos 6') {
@@ -56,7 +45,6 @@ pipeline {
                 }
             }
         }
-    }
     post{
         always {
             cleanWs()
