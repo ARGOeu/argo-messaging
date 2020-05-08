@@ -51,18 +51,33 @@ pipeline {
                 }
                 archiveArtifacts artifacts: '**/*.rpm', fingerprint: true
             }
+            post{
+                always {
+                    cleanWs()
+                }
+            }
         } 
     }
     post{
+        always {
+            cleanWs()
+        }
         success {
             script{
                 if ( env.BRANCH_NAME == 'devel' ) {
                     build job: '/ARGO-utils/argo-swagger-docs', propagate: false
                 }
+                if ( env.BRANCH_NAME == 'master' || env.BRANCH_NAME == 'devel' ) {
+                    slackSend( message: ":rocket: New version for <$BUILD_URL|$PROJECT_DIR>:$BRANCH_NAME Job: $JOB_NAME !")
+                }
             }
         }
-        always {
-            cleanWs()
+        failure {
+            script{
+                if ( env.BRANCH_NAME == 'master' || env.BRANCH_NAME == 'devel' ) {
+                    slackSend( message: ":rain_cloud: Build Failed for <$BUILD_URL|$PROJECT_DIR>:$BRANCH_NAME Job: $JOB_NAME")
+                }
+            }
         }
     }
 }
