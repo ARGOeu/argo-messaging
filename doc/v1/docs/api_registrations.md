@@ -93,3 +93,29 @@ Success Response
 ```
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
+
+## [POST] Manage Registrations - Decline a User's Registration
+This request declines a user's registration
+
+### Request
+```json
+POST "/v1/registrations/{activation_token}:decline"
+```
+
+### Example request
+```bash
+curl -X POST -H "Content-Type: application/json"
+"https://{URL}/v1/registrations/token:decline"
+```
+
+### Responses  
+If successful, the response contains the newly created user
+
+Success Response
+`200 OK`
+
+```json
+{}
+```
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors
