@@ -1826,6 +1826,46 @@ func AcceptRegisterUser(w http.ResponseWriter, r *http.Request) {
 	respondOK(w, []byte(resJSON))
 }
 
+// DeclineRegisterUser(POST) declines a user's registration
+func DeclineRegisterUser(w http.ResponseWriter, r *http.Request) {
+
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+	activationToken := urlVars["activation_token"]
+	refUserUUID := gorillaContext.Get(r, "auth_user_uuid").(string)
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+
+	_, err := auth.FindUserRegistration(activationToken, auth.PendingRegistrationStatus, refStr)
+	if err != nil {
+
+		if err.Error() == "not found" {
+			err := APIErrorNotFound("User registration")
+			respondErr(w, err)
+			return
+		}
+
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	err = auth.UpdateUserRegistration(activationToken, auth.DeclineddRegistrationStatus, refUserUUID, time.Now().UTC(), refStr)
+	if err != nil {
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	respondOK(w, []byte("{}"))
+
+}
+
 // SubAck (GET) one subscription
 func SubAck(w http.ResponseWriter, r *http.Request) {
 

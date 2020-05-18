@@ -85,6 +85,33 @@ paths:
         500:
           $ref: "#/responses/500"
 
+  /registrations/{ACTIVATION_TOKEN}:decline:
+    post:
+      summary: Declines the registration for a new user
+      description: |
+        Decline a new user
+      parameters:
+        - name: ACTIVATION_TOKEN
+          in: path
+          description: Activation token of the registration
+          required: true
+          type: string
+      tags:
+        - Registrations
+      responses:
+        200:
+          description: Empty response if the registration is succesfully declined
+          schema:
+            type: string
+            default: "{}"
+            description: empty string
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
+
   /projects/{PROJECT}/schemas:
     get:
       summary: Retrieve all schemas under a project
