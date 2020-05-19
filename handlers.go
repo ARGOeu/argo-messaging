@@ -1855,7 +1855,7 @@ func DeclineRegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = auth.UpdateUserRegistration(activationToken, auth.DeclineddRegistrationStatus, refUserUUID, time.Now().UTC(), refStr)
+	err = auth.UpdateUserRegistration(activationToken, auth.DeclinedRegistrationStatus, refUserUUID, time.Now().UTC(), refStr)
 	if err != nil {
 		err := APIErrGenericInternal(err.Error())
 		respondErr(w, err)
@@ -1864,6 +1864,44 @@ func DeclineRegisterUser(w http.ResponseWriter, r *http.Request) {
 
 	respondOK(w, []byte("{}"))
 
+}
+
+// ListOneRegistration(GET) retrieves information for a specific registration based on the provided activation token
+func ListOneRegistration(w http.ResponseWriter, r *http.Request) {
+
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+	activationToken := urlVars["activation_token"]
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+
+	ur, err := auth.FindUserRegistration(activationToken, "", refStr)
+	if err != nil {
+
+		if err.Error() == "not found" {
+			err := APIErrorNotFound("User registration")
+			respondErr(w, err)
+			return
+		}
+
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	urb, err := json.MarshalIndent(ur, "", "   ")
+	if err != nil {
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	respondOK(w, urb)
 }
 
 // SubAck (GET) one subscription

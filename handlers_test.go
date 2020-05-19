@@ -1812,6 +1812,76 @@ func (suite *HandlerTestSuite) TestRegisterUser() {
 
 }
 
+func (suite *HandlerTestSuite) TestListOneRegistration() {
+
+	type td struct {
+		activationToken    string
+		expectedResponse   string
+		expectedStatusCode int
+		msg                string
+	}
+
+	testData := []td{
+		{
+			activationToken: "uratkn-1",
+			expectedResponse: `{
+   "uuid": "ur-uuid1",
+   "name": "urname",
+   "first_name": "urfname",
+   "last_name": "urlname",
+   "organization": "urorg",
+   "description": "urdesc",
+   "email": "uremail",
+   "status": "pending",
+   "activation_token": "uratkn-1",
+   "registered_at": "2019-05-12T22:26:58Z",
+   "modified_by": "UserA",
+   "modified_at": "2020-05-15T22:26:58Z"
+}`,
+			expectedStatusCode: 200,
+			msg:                "User registration retrieved successfully",
+		},
+		{
+			activationToken: "unknown",
+			expectedResponse: `{
+   "error": {
+      "code": 404,
+      "message": "User registration doesn't exist",
+      "status": "NOT_FOUND"
+   }
+}`,
+			expectedStatusCode: 404,
+			msg:                "User registration doesn't exist",
+		},
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	cfgKafka.PushEnabled = true
+	cfgKafka.PushWorkerToken = "push_token"
+	cfgKafka.ResAuth = false
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+
+	for _, t := range testData {
+
+		w := httptest.NewRecorder()
+		url := fmt.Sprintf("http://localhost:8080/v1/registrations/%v", t.activationToken)
+		req, err := http.NewRequest("GET", url, nil)
+		if err != nil {
+			log.Fatal(err)
+		}
+		router.HandleFunc("/v1/registrations/{activation_token}", WrapMockAuthConfig(ListOneRegistration, cfgKafka, &brk, str, &mgr, pc))
+		router.ServeHTTP(w, req)
+		suite.Equal(t.expectedStatusCode, w.Code, t.msg)
+		suite.Equal(t.expectedResponse, w.Body.String(), t.msg)
+	}
+
+}
+
 func (suite *HandlerTestSuite) TestAcceptRegisterUser() {
 
 	type td struct {
@@ -1941,7 +2011,7 @@ func (suite *HandlerTestSuite) TestDeclineRegisterUser() {
 		router.HandleFunc("/v1/registrations/{activation_token}:decline", WrapMockAuthConfig(DeclineRegisterUser, cfgKafka, &brk, str, &mgr, pc))
 		router.ServeHTTP(w, req)
 		if t.expectedStatusCode == 200 {
-			suite.Equal(auth.DeclineddRegistrationStatus, str.UserRegistrations[0].Status)
+			suite.Equal(auth.DeclinedRegistrationStatus, str.UserRegistrations[0].Status)
 		}
 		suite.Equal(t.expectedStatusCode, w.Code, t.msg)
 		suite.Equal(t.expectedResponse, w.Body.String(), t.msg)

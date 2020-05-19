@@ -85,6 +85,7 @@ var defaultRoutes = []APIRoute{
 	{"users:delete", "DELETE", "/users/{user}", UserDelete},
 	{"registrations:declineNewUser", "POST", "/registrations/{activation_token}:decline", DeclineRegisterUser},
 	{"registrations:acceptNewUser", "POST", "/registrations/{activation_token}:accept", AcceptRegisterUser},
+	{"registrations:show", "GET", "/registrations/{activation_token}", ListOneRegistration},
 	{"registrations:newUser", "POST", "/registrations/{user}", RegisterUser},
 	{"projects:list", "GET", "/projects", ProjectListAll},
 	{"projects:metrics", "GET", "/projects/{project}:metrics", ProjectMetrics},

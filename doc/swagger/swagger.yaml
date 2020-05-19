@@ -56,6 +56,10 @@ paths:
         400:
           $ref: "#/responses/400"
         401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        409:
           $ref: "#/responses/409"
         500:
           $ref: "#/responses/500"
@@ -78,9 +82,11 @@ paths:
           description: Newly created user object
           schema:
             $ref: '#/definitions/User'
-        400:
-          $ref: "#/responses/400"
         401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
           $ref: "#/responses/404"
         500:
           $ref: "#/responses/500"
@@ -105,9 +111,38 @@ paths:
             type: string
             default: "{}"
             description: empty string
-        400:
-          $ref: "#/responses/400"
         401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
+
+  /registrations/{ACTIVATION_TOKEN}:
+    get:
+      summary: Retrieves information about a specific user registration
+      description: |
+        Retrieves a user's registration
+      parameters:
+        - name: ACTIVATION_TOKEN
+          in: path
+          description: Activation token of the registration
+          required: true
+          type: string
+      tags:
+        - Registrations
+      responses:
+        200:
+          description: User's registration
+          schema:
+            $ref: '#/definitions/UserRegistration'
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
           $ref: "#/responses/404"
         500:
           $ref: "#/responses/500"

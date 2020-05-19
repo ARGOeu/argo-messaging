@@ -171,7 +171,10 @@ func (mong *MongoStore) QueryRegistrations(activationToken, status string) ([]QU
 
 	query := bson.M{
 		"activation_token": activationToken,
-		"status":           status,
+	}
+
+	if status != "" {
+		query["status"] = status
 	}
 
 	qur := []QUserRegistration{}
@@ -199,8 +202,8 @@ func (mong *MongoStore) UpdateRegistration(atkn, status, modifiedBy, modifiedAt 
 			"modified_at": modifiedAt,
 		},
 	}
-	_, e := c.Upsert(ur, change)
-	return e
+
+	return c.Update(ur, change)
 }
 
 // UpdateUserToken updates user's token

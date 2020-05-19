@@ -104,12 +104,19 @@ func (mk *MockStore) RegisterUser(uuid, name, firstName, lastName, email, org, d
 
 func (mk *MockStore) QueryRegistrations(activationToken, status string) ([]QUserRegistration, error) {
 
-	for idx, ur := range mk.UserRegistrations {
-		if ur.ActivationToken == activationToken && ur.Status == status {
-			return []QUserRegistration{mk.UserRegistrations[idx]}, nil
+	if status != "" {
+		for idx, ur := range mk.UserRegistrations {
+			if ur.ActivationToken == activationToken && ur.Status == status {
+				return []QUserRegistration{mk.UserRegistrations[idx]}, nil
+			}
+		}
+	} else {
+		for idx, ur := range mk.UserRegistrations {
+			if ur.ActivationToken == activationToken {
+				return []QUserRegistration{mk.UserRegistrations[idx]}, nil
+			}
 		}
 	}
-
 	return []QUserRegistration{}, nil
 }
 

@@ -611,6 +611,9 @@ func (suite *StoreTestSuite) TestMockStore() {
 	ur1, _ := store.QueryRegistrations("atkn", "pending")
 	suite.Equal(expur1, ur1)
 
+	ur12, _ := store.QueryRegistrations("atkn", "")
+	suite.Equal(expur1, ur12)
+
 	expur2 := []QUserRegistration{{
 		UUID:            "ur-uuid1",
 		Name:            "urname",
