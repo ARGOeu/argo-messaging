@@ -110,12 +110,14 @@ func (mk *MockStore) QueryRegistrations(activationToken, status string) ([]QUser
 				return []QUserRegistration{mk.UserRegistrations[idx]}, nil
 			}
 		}
-	} else {
+	} else if status == "" && activationToken != "" {
 		for idx, ur := range mk.UserRegistrations {
 			if ur.ActivationToken == activationToken {
 				return []QUserRegistration{mk.UserRegistrations[idx]}, nil
 			}
 		}
+	} else if status == "" && activationToken == "" {
+		return mk.UserRegistrations, nil
 	}
 	return []QUserRegistration{}, nil
 }

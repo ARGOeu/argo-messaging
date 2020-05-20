@@ -35,6 +35,7 @@ paths:
       description: |
         Register a new user
       parameters:
+        - $ref: '#/parameters/ApiKey'
         - name: USER
           in: path
           description: Username
@@ -70,6 +71,7 @@ paths:
       description: |
         Register a new user
       parameters:
+        - $ref: '#/parameters/ApiKey'
         - name: ACTIVATION_TOKEN
           in: path
           description: Activation token of the registration
@@ -97,6 +99,7 @@ paths:
       description: |
         Decline a new user
       parameters:
+        - $ref: '#/parameters/ApiKey'
         - name: ACTIVATION_TOKEN
           in: path
           description: Activation token of the registration
@@ -126,6 +129,7 @@ paths:
       description: |
         Retrieves a user's registration
       parameters:
+        - $ref: '#/parameters/ApiKey'
         - name: ACTIVATION_TOKEN
           in: path
           description: Activation token of the registration
@@ -144,6 +148,27 @@ paths:
           $ref: "#/responses/403"
         404:
           $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
+
+  /registrations:
+    get:
+      summary: Retrieves all available registration in the service
+      description: |
+        Retrieves all registrations
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+      tags:
+        - Registrations
+      responses:
+        200:
+          description: List of user registrations
+          schema:
+            $ref: '#/definitions/UserRegistrations'
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
         500:
           $ref: "#/responses/500"
 
@@ -2302,6 +2327,14 @@ definitions:
         type: string
        modified_by:
         type: string
+
+  UserRegistrations:
+    type: object
+    properties:
+      user_registrations:
+        type: array
+        items:
+          $ref: '#/definitions/UserRegistration'
 
   SchemaList:
     type: object

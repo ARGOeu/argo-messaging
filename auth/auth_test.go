@@ -887,6 +887,32 @@ func (suite *AuthTestSuite) TestUpdateUserRegistration() {
 	suite.Equal(expur1, ur1)
 }
 
+func (suite *AuthTestSuite) TestFindUserRegistrations() {
+
+	store := stores.NewMockStore("", "")
+	ur1, e1 := FindUserRegistrations(store)
+	expur1 := UserRegistrationsList{
+		UserRegistrations: []UserRegistration{{
+
+			UUID:            "ur-uuid1",
+			Name:            "urname",
+			FirstName:       "urfname",
+			LastName:        "urlname",
+			Organization:    "urorg",
+			Description:     "urdesc",
+			Email:           "uremail",
+			ActivationToken: "uratkn-1",
+			Status:          "pending",
+			RegisteredAt:    "2019-05-12T22:26:58Z",
+			ModifiedBy:      "UserA",
+			ModifiedAt:      "2020-05-15T22:26:58Z",
+		},
+		},
+	}
+	suite.Nil(e1)
+	suite.Equal(expur1, ur1)
+}
+
 func TestAuthTestSuite(t *testing.T) {
 	suite.Run(t, new(AuthTestSuite))
 }

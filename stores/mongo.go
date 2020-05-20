@@ -169,8 +169,11 @@ func (mong *MongoStore) RegisterUser(uuid, name, firstName, lastName, email, org
 
 func (mong *MongoStore) QueryRegistrations(activationToken, status string) ([]QUserRegistration, error) {
 
-	query := bson.M{
-		"activation_token": activationToken,
+	query := bson.M{}
+
+	if activationToken != "" {
+		query["activation_token"] = activationToken
+
 	}
 
 	if status != "" {

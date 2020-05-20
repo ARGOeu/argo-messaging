@@ -1882,6 +1882,49 @@ func (suite *HandlerTestSuite) TestListOneRegistration() {
 
 }
 
+func (suite *HandlerTestSuite) TestListAllRegistrations() {
+
+	expectedResponse := `{
+   "user_registrations": [
+      {
+         "uuid": "ur-uuid1",
+         "name": "urname",
+         "first_name": "urfname",
+         "last_name": "urlname",
+         "organization": "urorg",
+         "description": "urdesc",
+         "email": "uremail",
+         "status": "pending",
+         "activation_token": "uratkn-1",
+         "registered_at": "2019-05-12T22:26:58Z",
+         "modified_by": "UserA",
+         "modified_at": "2020-05-15T22:26:58Z"
+      }
+   ]
+}`
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	cfgKafka.PushEnabled = true
+	cfgKafka.PushWorkerToken = "push_token"
+	cfgKafka.ResAuth = false
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/registrations", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	router.HandleFunc("/v1/registrations", WrapMockAuthConfig(ListAllRegistrations, cfgKafka, &brk, str, &mgr, pc))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expectedResponse, w.Body.String())
+
+}
+
 func (suite *HandlerTestSuite) TestAcceptRegisterUser() {
 
 	type td struct {

@@ -74,6 +74,11 @@ type UserRegistration struct {
 	ModifiedAt      string `json:"modified_at,omitempty"`
 }
 
+// UserRegistration holds a list with all the user registrations in the service
+type UserRegistrationsList struct {
+	UserRegistrations []UserRegistration `json:"user_registrations"`
+}
+
 // ExportJSON exports User to json format
 func (u *User) ExportJSON() (string, error) {
 	output, err := json.MarshalIndent(u, "", "   ")
@@ -173,6 +178,49 @@ func FindUserRegistration(activationToken, status string, str stores.Store) (Use
 	}
 
 	return ur, nil
+}
+
+func FindUserRegistrations(str stores.Store) (UserRegistrationsList, error) {
+
+	q, err := str.QueryRegistrations("", "")
+	if err != nil {
+		return UserRegistrationsList{}, err
+	}
+
+	urList := UserRegistrationsList{
+		UserRegistrations: []UserRegistration{},
+	}
+
+	for _, ur := range q {
+
+		usernameC := ""
+		if ur.ModifiedBy != "" {
+			usr, err := str.QueryUsers("", ur.ModifiedBy, "")
+			if err == nil && len(usr) > 0 {
+				usernameC = usr[0].Name
+
+			}
+		}
+
+		_ur := UserRegistration{
+			UUID:            ur.UUID,
+			Name:            ur.Name,
+			FirstName:       ur.FirstName,
+			LastName:        ur.LastName,
+			Email:           ur.Email,
+			ActivationToken: ur.ActivationToken,
+			Status:          ur.Status,
+			Organization:    ur.Organization,
+			Description:     ur.Description,
+			RegisteredAt:    ur.RegisteredAt,
+			ModifiedBy:      usernameC,
+			ModifiedAt:      ur.ModifiedAt,
+		}
+
+		urList.UserRegistrations = append(urList.UserRegistrations, _ur)
+	}
+
+	return urList, nil
 }
 
 func UpdateUserRegistration(activationToken, status, modifiedBy string, modifiedAt time.Time, refStr stores.Store) error {
