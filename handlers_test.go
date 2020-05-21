@@ -183,6 +183,10 @@ func (suite *HandlerTestSuite) TestUserCreate() {
 
 	postJSON := `{
 	"email":"email@foo.com",
+	"first_name": "fname-1",
+	"last_name": "lname-1",
+	"organization": "org-1",
+	"description": "desc-1",
 	"projects":[{"project_uuid":"argo_uuid","roles":["admin","viewer"]}]
 }`
 
@@ -207,6 +211,10 @@ func (suite *HandlerTestSuite) TestUserCreate() {
 	// Check if the mock authenticated userA has been marked as the creator
 	suite.Equal("email@foo.com", usrOut.Email)
 	//suite.Equal([]string{"admin", "viewer"}, usrOut.Projects[0].Role)
+	suite.Equal("fname-1", usrOut.FirstName)
+	suite.Equal("lname-1", usrOut.LastName)
+	suite.Equal("org-1", usrOut.Organization)
+	suite.Equal("desc-1", usrOut.Description)
 }
 
 func (suite *HandlerTestSuite) TestUserCreateDuplicateRef() {

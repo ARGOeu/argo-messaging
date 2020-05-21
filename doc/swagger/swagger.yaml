@@ -1015,6 +1015,14 @@ paths:
                type: array
                items:
                  $ref: "#/definitions/ProjectRoles"
+             first_name:
+              type: string
+             last_name:
+              type: string
+             organization:
+              type: string
+             description:
+              type: string
              email:
                type: string
              service_roles:
