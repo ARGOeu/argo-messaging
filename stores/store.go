@@ -30,7 +30,7 @@ type Store interface {
 	RemoveProjectSubs(projectUUID string) error
 	QueryDailyProjectMsgCount(projectUUID string) ([]QDailyProjectMsgCount, error)
 	QueryTotalMessagesPerProject(projectUUIDs []string, startDate time.Time, endDate time.Time) ([]QProjectMessageCount, error)
-	InsertUser(uuid string, projects []QProjectRoles, name string, token string, email string, serviceRoles []string, createdOn time.Time, modifiedOn time.Time, createdBy string) error
+	InsertUser(uuid string, projects []QProjectRoles, name string, firstName string, lastName string, org string, desc string, token string, email string, serviceRoles []string, createdOn time.Time, modifiedOn time.Time, createdBy string) error
 	InsertProject(uuid string, name string, createdOn time.Time, modifiedOn time.Time, createdBy string, description string) error
 	InsertOpMetric(hostname string, cpu float64, mem float64) error
 	InsertTopic(projectUUID string, name string, schemaUUID string) error
