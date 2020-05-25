@@ -21,7 +21,7 @@ type Store interface {
 	RemoveSub(projectUUID string, name string) error
 	PaginatedQueryUsers(pageToken string, pageSize int32, projectUUID string) ([]QUser, int32, string, error)
 	QueryUsers(projectUUID string, uuid string, name string) ([]QUser, error)
-	UpdateUser(uuid string, projects []QProjectRoles, name string, email string, serviceRoles []string, modifiedOn time.Time) error
+	UpdateUser(uuid, fname, lname, org, desc string, projects []QProjectRoles, name string, email string, serviceRoles []string, modifiedOn time.Time) error
 	AppendToUserProjects(userUUID string, projectUUID string, pRoles ...string) error
 	UpdateUserToken(uuid string, token string) error
 	RemoveUser(uuid string) error

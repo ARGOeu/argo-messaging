@@ -607,7 +607,7 @@ func AppendToUserProjects(userUUID string, projectUUID string, store stores.Stor
 }
 
 // UpdateUser updates an existing user's information
-func UpdateUser(uuid string, name string, projectList []ProjectRoles, email string, serviceRoles []string, modifiedOn time.Time, reflectObj bool, store stores.Store) (User, error) {
+func UpdateUser(uuid, firstName, lastName, organization, description string, name string, projectList []ProjectRoles, email string, serviceRoles []string, modifiedOn time.Time, reflectObj bool, store stores.Store) (User, error) {
 
 	prList := []stores.QProjectRoles{}
 
@@ -660,7 +660,7 @@ func UpdateUser(uuid string, name string, projectList []ProjectRoles, email stri
 		}
 	}
 
-	if err := store.UpdateUser(uuid, prList, name, email, serviceRoles, modifiedOn); err != nil {
+	if err := store.UpdateUser(uuid, firstName, lastName, organization, description, prList, name, email, serviceRoles, modifiedOn); err != nil {
 		return User{}, err
 	}
 

@@ -614,7 +614,8 @@ func UserUpdate(w http.ResponseWriter, r *http.Request) {
 	// Get Result Object
 	userUUID := auth.GetUUIDByName(urlUser, refStr)
 	modified := time.Now().UTC()
-	res, err := auth.UpdateUser(userUUID, postBody.Name, postBody.Projects, postBody.Email, postBody.ServiceRoles, modified, true, refStr)
+	res, err := auth.UpdateUser(userUUID, postBody.FirstName, postBody.LastName, postBody.Organization, postBody.Description,
+		postBody.Name, postBody.Projects, postBody.Email, postBody.ServiceRoles, modified, true, refStr)
 
 	if err != nil {
 
@@ -1157,8 +1158,12 @@ func ProjectUserUpdate(w http.ResponseWriter, r *http.Request) {
 	userEmail := u.One().Email
 	userSRoles := u.One().ServiceRoles
 	userName := u.One().Name
+	userFN := u.One().FirstName
+	userLN := u.One().LastName
+	userOrg := u.One().Organization
+	userDesc := u.One().Description
 
-	_, err = auth.UpdateUser(userUUID, userName, userProjects, userEmail, userSRoles, modified, false, refStr)
+	_, err = auth.UpdateUser(userUUID, userFN, userLN, userOrg, userDesc, userName, userProjects, userEmail, userSRoles, modified, false, refStr)
 
 	if err != nil {
 
@@ -1272,8 +1277,12 @@ func ProjectUserRemove(w http.ResponseWriter, r *http.Request) {
 	userEmail := u.One().Email
 	userSRoles := u.One().ServiceRoles
 	userName := u.One().Name
+	userFN := u.One().FirstName
+	userLN := u.One().LastName
+	userOrg := u.One().Organization
+	userDesc := u.One().Description
 
-	_, err = auth.UpdateUser(userUUID, userName, userProjects, userEmail, userSRoles, modified, false, refStr)
+	_, err = auth.UpdateUser(userUUID, userFN, userLN, userOrg, userDesc, userName, userProjects, userEmail, userSRoles, modified, false, refStr)
 
 	if err != nil {
 
@@ -1365,6 +1374,10 @@ func ProjectUserAdd(w http.ResponseWriter, r *http.Request) {
 	userSRoles := u.One().ServiceRoles
 	userName := u.One().Name
 	userProjects := u.One().Projects
+	userFN := u.One().FirstName
+	userLN := u.One().LastName
+	userOrg := u.One().Organization
+	userDesc := u.One().Description
 
 	userProjects = append(userProjects, auth.ProjectRoles{
 		Project: projName,
@@ -1373,7 +1386,7 @@ func ProjectUserAdd(w http.ResponseWriter, r *http.Request) {
 		Topics:  data.Topics,
 	})
 
-	_, err = auth.UpdateUser(userUUID, userName, userProjects, userEmail, userSRoles, modified, false, refStr)
+	_, err = auth.UpdateUser(userUUID, userFN, userLN, userOrg, userDesc, userName, userProjects, userEmail, userSRoles, modified, false, refStr)
 
 	if err != nil {
 
