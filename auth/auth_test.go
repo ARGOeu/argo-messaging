@@ -815,6 +815,27 @@ func (suite *AuthTestSuite) TestGetPushWorkerToken() {
 	suite.Equal("push_500", err4.Error())
 }
 
+func (suite *AuthTestSuite) TestRegisterUser() {
+
+	store := stores.NewMockStore("", "")
+
+	ur, err := RegisterUser("ruuid1", "n1", "f1", "l1", "e1", "o1", "d1", "time", "atkn", PendingRegistrationStatus, store)
+	suite.Nil(err)
+	suite.Equal(UserRegistration{
+		UUID:            "ruuid1",
+		Name:            "n1",
+		FirstName:       "f1",
+		LastName:        "l1",
+		Email:           "e1",
+		Organization:    "o1",
+		Description:     "d1",
+		RegisteredAt:    "time",
+		ActivationToken: "atkn",
+		Status:          PendingRegistrationStatus,
+	}, ur)
+
+}
+
 func TestAuthTestSuite(t *testing.T) {
 	suite.Run(t, new(AuthTestSuite))
 }

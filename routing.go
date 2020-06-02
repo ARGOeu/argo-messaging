@@ -83,6 +83,7 @@ var defaultRoutes = []APIRoute{
 	{"users:create", "POST", "/users/{user}", UserCreate},
 	{"users:update", "PUT", "/users/{user}", UserUpdate},
 	{"users:delete", "DELETE", "/users/{user}", UserDelete},
+	{"registrations:newUser", "POST", "/registrations", RegisterUser},
 	{"projects:list", "GET", "/projects", ProjectListAll},
 	{"projects:metrics", "GET", "/projects/{project}:metrics", ProjectMetrics},
 	{"projects:addUser", "POST", "/projects/{project}/members/{user}:add", ProjectUserAdd},

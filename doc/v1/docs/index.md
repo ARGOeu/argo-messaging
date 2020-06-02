@@ -21,6 +21,7 @@ API Calls
 -   [Metrics](api_metrics.md)
 -   [Schemas](api_schemas.md)
 -   [Version Information](api_version.md)
+-   [Registrations](api_registrations.md)
 
 Frequent Questions
 
