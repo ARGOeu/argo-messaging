@@ -60,6 +60,31 @@ paths:
         500:
           $ref: "#/responses/500"
 
+  /registrations/{UUID}:accept:
+    post:
+      summary: Accepts the registration for a new user
+      description: |
+        Register a new user
+      parameters:
+        - name: UUID
+          in: path
+          description: UUID of the registration
+          required: true
+          type: string
+      tags:
+        - Registrations
+      responses:
+        200:
+          description: Newly created user object
+          schema:
+            $ref: '#/definitions/User'
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
+
   /projects/{PROJECT}/schemas:
     get:
       summary: Retrieve all schemas under a project
@@ -2210,6 +2235,10 @@ definitions:
        status:
         type: string
        registered_at:
+        type: string
+       modified_at:
+        type: string
+       modified_by:
         type: string
 
   SchemaList:

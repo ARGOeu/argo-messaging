@@ -48,8 +48,8 @@ type QProject struct {
 	Description string    `bson:"description"`
 }
 
-// QUserRegister holds information about a UserRegister query
-type QUserRegister struct {
+// QUserRegistration holds information about a UserRegister query
+type QUserRegistration struct {
 	UUID            string `bson:"uuid"`
 	Name            string `bson:"name"`
 	FirstName       string `bson:"first_name"`
@@ -60,6 +60,8 @@ type QUserRegister struct {
 	ActivationToken string `bson:"activation_token"`
 	Status          string `bson:"status"`
 	RegisteredAt    string `bson:"registered_at"`
+	ModifiedBy      string `bson:"modified_by"`
+	ModifiedAt      string `bson:"modified_at"`
 }
 
 // QUser are the results of the QUser query

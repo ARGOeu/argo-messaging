@@ -1799,10 +1799,88 @@ func (suite *HandlerTestSuite) TestRegisterUser() {
 		router.HandleFunc("/v1/registrations", WrapMockAuthConfig(RegisterUser, cfgKafka, &brk, str, &mgr, pc))
 		router.ServeHTTP(w, req)
 		if t.expectedStatusCode == 200 {
-			t.expectedResponse = strings.Replace(t.expectedResponse, "{{UUID}}", str.UserRegistrations[0].UUID, 1)
-			t.expectedResponse = strings.Replace(t.expectedResponse, "{{REAT}}", str.UserRegistrations[0].RegisteredAt, 1)
-			t.expectedResponse = strings.Replace(t.expectedResponse, "{{ATKN}}", str.UserRegistrations[0].ActivationToken, 1)
+			t.expectedResponse = strings.Replace(t.expectedResponse, "{{UUID}}", str.UserRegistrations[1].UUID, 1)
+			t.expectedResponse = strings.Replace(t.expectedResponse, "{{REAT}}", str.UserRegistrations[1].RegisteredAt, 1)
+			t.expectedResponse = strings.Replace(t.expectedResponse, "{{ATKN}}", str.UserRegistrations[1].ActivationToken, 1)
+		}
+		suite.Equal(t.expectedStatusCode, w.Code, t.msg)
+		suite.Equal(t.expectedResponse, w.Body.String(), t.msg)
+	}
 
+}
+
+func (suite *HandlerTestSuite) TestAcceptRegisterUser() {
+
+	type td struct {
+		ruuid              string
+		uname              string
+		expectedResponse   string
+		expectedStatusCode int
+		msg                string
+	}
+
+	testData := []td{{
+		ruuid: "ur-uuid1",
+		uname: "urname",
+		expectedResponse: `{
+   "uuid": "{{UUID}}",
+   "projects": [],
+   "name": "urname",
+   "first_name": "urfname",
+   "last_name": "urlname",
+   "organization": "urorg",
+   "description": "urdesc",
+   "token": "{{TOKEN}}",
+   "email": "uremail",
+   "service_roles": [],
+   "created_on": "{{CON}}",
+   "modified_on": "{{MON}}",
+   "created_by": "UserA"
+}`,
+		expectedStatusCode: 200,
+		msg:                "Successfully accepted a user's registration",
+	},
+		{
+			ruuid: "ur-uuid1",
+			uname: "urname",
+			expectedResponse: `{
+   "error": {
+      "code": 404,
+      "message": "User registration doesn't exist",
+      "status": "NOT_FOUND"
+   }
+}`,
+			expectedStatusCode: 404,
+			msg:                "User registration doesn't exist",
+		}}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	cfgKafka.PushEnabled = true
+	cfgKafka.PushWorkerToken = "push_token"
+	cfgKafka.ResAuth = false
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+
+	for _, t := range testData {
+
+		w := httptest.NewRecorder()
+		url := fmt.Sprintf("http://localhost:8080/v1/registrations/%v:accept", t.ruuid)
+		req, err := http.NewRequest("POST", url, nil)
+		if err != nil {
+			log.Fatal(err)
+		}
+		router.HandleFunc("/v1/registrations/{uuid}:accept", WrapMockAuthConfig(AcceptRegisterUser, cfgKafka, &brk, str, &mgr, pc))
+		router.ServeHTTP(w, req)
+		if t.expectedStatusCode == 200 {
+			u, _ := auth.FindUsers("", "", t.uname, true, str)
+			t.expectedResponse = strings.Replace(t.expectedResponse, "{{UUID}}", u.List[0].UUID, 1)
+			t.expectedResponse = strings.Replace(t.expectedResponse, "{{TOKEN}}", u.List[0].Token, 1)
+			t.expectedResponse = strings.Replace(t.expectedResponse, "{{CON}}", u.List[0].CreatedOn, 1)
+			t.expectedResponse = strings.Replace(t.expectedResponse, "{{MON}}", u.List[0].ModifiedOn, 1)
 		}
 		suite.Equal(t.expectedStatusCode, w.Code, t.msg)
 		suite.Equal(t.expectedResponse, w.Body.String(), t.msg)

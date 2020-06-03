@@ -11,7 +11,7 @@ import (
 type MockStore struct {
 	Server             string
 	Database           string
-	UserRegistrations  []QUserRegister
+	UserRegistrations  []QUserRegistration
 	SubList            []QSub
 	TopicList          []QTopic
 	DailyTopicMsgCount []QDailyTopicMsgCount
@@ -85,7 +85,7 @@ func (mk *MockStore) InsertUser(uuid string, projects []QProjectRoles, name stri
 
 func (mk *MockStore) RegisterUser(uuid, name, firstName, lastName, email, org, desc, registeredAt, atkn, status string) error {
 
-	ur := QUserRegister{
+	ur := QUserRegistration{
 		UUID:            uuid,
 		Name:            name,
 		FirstName:       firstName,
@@ -99,6 +99,31 @@ func (mk *MockStore) RegisterUser(uuid, name, firstName, lastName, email, org, d
 	}
 
 	mk.UserRegistrations = append(mk.UserRegistrations, ur)
+	return nil
+}
+
+func (mk *MockStore) QueryRegistrations(regUUID, status string) ([]QUserRegistration, error) {
+
+	for idx, ur := range mk.UserRegistrations {
+		if ur.UUID == regUUID && ur.Status == status {
+			return []QUserRegistration{mk.UserRegistrations[idx]}, nil
+		}
+	}
+
+	return []QUserRegistration{}, nil
+}
+
+func (mk *MockStore) UpdateRegistration(regUUID, status, modifiedBy, modifiedAt string) error {
+
+	for idx, ur := range mk.UserRegistrations {
+		if ur.UUID == regUUID {
+			mk.UserRegistrations[idx].Status = status
+			mk.UserRegistrations[idx].ModifiedBy = modifiedBy
+			mk.UserRegistrations[idx].ModifiedAt = modifiedAt
+			mk.UserRegistrations[idx].ActivationToken = ""
+		}
+	}
+
 	return nil
 }
 
@@ -770,6 +795,23 @@ func (mk *MockStore) Initialize() {
 	mk.SubsACL["sub3"] = qSubACL03
 	mk.SubsACL["sub4"] = qSubACL04
 
+	// Populate user registrations
+	ur1 := QUserRegistration{
+		UUID:            "ur-uuid1",
+		Name:            "urname",
+		FirstName:       "urfname",
+		LastName:        "urlname",
+		Organization:    "urorg",
+		Description:     "urdesc",
+		Email:           "uremail",
+		ActivationToken: "uratkn-1",
+		Status:          "pending",
+		RegisteredAt:    "2019-05-12T22:26:58Z",
+		ModifiedBy:      "uuid1",
+		ModifiedAt:      "2020-05-15T22:26:58Z",
+	}
+
+	mk.UserRegistrations = append(mk.UserRegistrations, ur1)
 }
 
 func (mk *MockStore) QueryTotalMessagesPerProject(projectUUIDs []string, startDate time.Time, endDate time.Time) ([]QProjectMessageCount, error) {
