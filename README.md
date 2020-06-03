@@ -123,4 +123,6 @@ Please visit http://argoeu.github.io/messaging/v1/ to learn how to use the servi
 
 The ARGO Messaging Service is developed by [GRNET](http://www.grnet.gr)
 
-The work represented by this software was partially funded by the EGI-ENGAGE project through the European Union (EU) Horizon 2020 program under Grant number 654142.
+The work represented by this software was partially funded by 
+ - EGI-ENGAGE project through the European Union (EU) Horizon 2020 program under Grant number 654142.
+ - EOSC-Hub project through the European Union (EU) Horizon 2020 program under Grant number 77753642.
