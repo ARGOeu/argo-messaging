@@ -104,9 +104,17 @@ func (mk *MockStore) RegisterUser(uuid, name, firstName, lastName, email, org, d
 
 func (mk *MockStore) QueryRegistrations(regUUID, status string) ([]QUserRegistration, error) {
 
-	for idx, ur := range mk.UserRegistrations {
-		if ur.UUID == regUUID && ur.Status == status {
-			return []QUserRegistration{mk.UserRegistrations[idx]}, nil
+	if status != "" {
+		for idx, ur := range mk.UserRegistrations {
+			if ur.UUID == regUUID && ur.Status == status {
+				return []QUserRegistration{mk.UserRegistrations[idx]}, nil
+			}
+		}
+	} else {
+		for idx, ur := range mk.UserRegistrations {
+			if ur.UUID == regUUID {
+				return []QUserRegistration{mk.UserRegistrations[idx]}, nil
+			}
 		}
 	}
 

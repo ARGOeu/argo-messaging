@@ -170,8 +170,11 @@ func (mong *MongoStore) RegisterUser(uuid, name, firstName, lastName, email, org
 func (mong *MongoStore) QueryRegistrations(regUUID, status string) ([]QUserRegistration, error) {
 
 	query := bson.M{
-		"uuid":   regUUID,
-		"status": status,
+		"uuid": regUUID,
+	}
+
+	if status != "" {
+		query["status"] = status
 	}
 
 	qur := []QUserRegistration{}
