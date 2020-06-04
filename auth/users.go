@@ -18,7 +18,7 @@ import (
 const (
 	AcceptedRegistrationStatus = "accepted"
 	PendingRegistrationStatus  = "pending"
-	RejectedRegistrationStatus = "rejected"
+	DeclinedRegistrationStatus = "declined"
 )
 
 // User is the struct that holds user information

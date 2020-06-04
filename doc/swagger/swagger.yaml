@@ -29,23 +29,18 @@ tags:
     description: User registrations
 paths:
 
-  /registrations/{USER}:
+  /registrations:
     post:
       summary: Register a new user
       description: |
         Register a new user
       parameters:
-        - name: USER
-          in: path
-          description: Username
-          required: true
-          type: string
         - name: User information
           in: body
           description: Extra user  information
           required: true
           schema:
-            $ref: "#/definitions/UserRegistration"
+            $ref: "#/definitions/UserRegistrationPost"
       tags:
         - Registrations
       responses:
@@ -56,6 +51,10 @@ paths:
         400:
           $ref: "#/responses/400"
         401:
+          $ref: "#/responses/409"
+        403:
+          $ref: "#/responses/403"
+        409:
           $ref: "#/responses/409"
         500:
           $ref: "#/responses/500"
@@ -81,6 +80,39 @@ paths:
         400:
           $ref: "#/responses/400"
         401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        409:
+          $ref: "#/responses/409"
+        500:
+          $ref: "#/responses/500"
+
+  /registrations/{UUID}:decline:
+    post:
+      summary: Declines the registration for a new user
+      description: |
+        Decline a new user
+      parameters:
+        - name: UUID
+          in: path
+          description: UUID of the registration
+          required: true
+          type: string
+      tags:
+        - Registrations
+      responses:
+        200:
+          description: Empty response if the registration is succesfully declined
+          schema:
+            type: string
+            default: "{}"
+            description: empty string
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
           $ref: "#/responses/404"
         500:
           $ref: "#/responses/500"
@@ -2104,7 +2136,7 @@ paths:
           $ref: "#/responses/404"
         500:
           $ref: "#/responses/500"
-  
+
   /version:
     get:
       summary: "List API Version information"
@@ -2239,6 +2271,22 @@ definitions:
        modified_at:
         type: string
        modified_by:
+        type: string
+
+  UserRegistrationPost:
+     type: object
+     properties:
+       name:
+        type: string
+       email:
+        type: string
+       first_name:
+        type: string
+       last_name:
+        type: string
+       organization:
+        type: string
+       description:
         type: string
 
   SchemaList:
