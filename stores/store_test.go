@@ -595,8 +595,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 
 	// test user registration
 	store.RegisterUser("ruuid1", "n1", "f1", "l1", "e1", "o1", "d1", "time", "atkn", "pending")
-	suite.Equal(1, len(store.UserRegistrations))
-	suite.Equal(QUserRegister{
+	expur1 := []QUserRegistration{{
 		UUID:            "ruuid1",
 		Name:            "n1",
 		FirstName:       "f1",
@@ -607,7 +606,29 @@ func (suite *StoreTestSuite) TestMockStore() {
 		RegisteredAt:    "time",
 		ActivationToken: "atkn",
 		Status:          "pending",
-	}, store.UserRegistrations[0])
+	}}
+
+	ur1, _ := store.QueryRegistrations("ruuid1", "pending")
+	suite.Equal(expur1, ur1)
+
+	expur2 := []QUserRegistration{{
+		UUID:            "ur-uuid1",
+		Name:            "urname",
+		FirstName:       "urfname",
+		LastName:        "urlname",
+		Organization:    "urorg",
+		Description:     "urdesc",
+		Email:           "uremail",
+		ActivationToken: "",
+		Status:          "accepted",
+		RegisteredAt:    "2019-05-12T22:26:58Z",
+		ModifiedBy:      "uuid1",
+		ModifiedAt:      "2020-05-17T22:26:58Z",
+	}}
+	store.UpdateRegistration("ur-uuid1", "accepted", "uuid1", "2020-05-17T22:26:58Z")
+	ur2, _ := store.QueryRegistrations("ur-uuid1", "accepted")
+	suite.Equal(expur2, ur2)
+
 }
 
 func TestStoresTestSuite(t *testing.T) {

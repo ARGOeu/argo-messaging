@@ -836,6 +836,57 @@ func (suite *AuthTestSuite) TestRegisterUser() {
 
 }
 
+func (suite *AuthTestSuite) TestFindUserRegistration() {
+
+	store := stores.NewMockStore("", "")
+
+	ur1, e1 := FindUserRegistration("ur-uuid1", "pending", store)
+	expur1 := UserRegistration{
+		UUID:            "ur-uuid1",
+		Name:            "urname",
+		FirstName:       "urfname",
+		LastName:        "urlname",
+		Organization:    "urorg",
+		Description:     "urdesc",
+		Email:           "uremail",
+		ActivationToken: "uratkn-1",
+		Status:          "pending",
+		RegisteredAt:    "2019-05-12T22:26:58Z",
+		ModifiedBy:      "UserA",
+		ModifiedAt:      "2020-05-15T22:26:58Z",
+	}
+	suite.Nil(e1)
+	suite.Equal(expur1, ur1)
+
+	// not found
+	_, e2 := FindUserRegistration("unknown", "pending", store)
+	suite.Equal(errors.New("not found"), e2)
+}
+
+func (suite *AuthTestSuite) TestUpdateUserRegistration() {
+
+	store := stores.NewMockStore("", "")
+	m := time.Date(2020, 8, 5, 11, 33, 45, 0, time.UTC)
+	e1 := UpdateUserRegistration("ur-uuid1", AcceptedRegistrationStatus, "uuid1", m, store)
+	ur1, _ := FindUserRegistration("ur-uuid1", "accepted", store)
+	expur1 := UserRegistration{
+		UUID:            "ur-uuid1",
+		Name:            "urname",
+		FirstName:       "urfname",
+		LastName:        "urlname",
+		Organization:    "urorg",
+		Description:     "urdesc",
+		Email:           "uremail",
+		ActivationToken: "",
+		Status:          "accepted",
+		RegisteredAt:    "2019-05-12T22:26:58Z",
+		ModifiedBy:      "UserA",
+		ModifiedAt:      "2020-08-05T11:33:45Z",
+	}
+	suite.Nil(e1)
+	suite.Equal(expur1, ur1)
+}
+
 func TestAuthTestSuite(t *testing.T) {
 	suite.Run(t, new(AuthTestSuite))
 }
