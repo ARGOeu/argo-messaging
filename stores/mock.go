@@ -102,23 +102,76 @@ func (mk *MockStore) RegisterUser(uuid, name, firstName, lastName, email, org, d
 	return nil
 }
 
-func (mk *MockStore) QueryRegistrations(regUUID, status string) ([]QUserRegistration, error) {
+func (mk *MockStore) QueryRegistrations(regUUID, status, activationToken, name, email, org string) ([]QUserRegistration, error) {
 
-	if status != "" {
-		for idx, ur := range mk.UserRegistrations {
-			if ur.UUID == regUUID && ur.Status == status {
-				return []QUserRegistration{mk.UserRegistrations[idx]}, nil
+	if regUUID == "" && status == "" && activationToken == "" && name == "" && email == "" && org == "" {
+		return mk.UserRegistrations, nil
+	}
+
+	reqs := []QUserRegistration{}
+
+	if regUUID != "" {
+		for idx, req := range mk.UserRegistrations {
+			if req.UUID == regUUID {
+				reqs = append(reqs, mk.UserRegistrations[idx])
+				continue
 			}
 		}
 	} else {
-		for idx, ur := range mk.UserRegistrations {
-			if ur.UUID == regUUID {
-				return []QUserRegistration{mk.UserRegistrations[idx]}, nil
-			}
-		}
+		reqs = mk.UserRegistrations
 	}
 
-	return []QUserRegistration{}, nil
+	if status != "" {
+		tempReqs := []QUserRegistration{}
+		for idx, req := range reqs {
+			if req.Status == status {
+				tempReqs = append(tempReqs, reqs[idx])
+			}
+		}
+		reqs = tempReqs
+	}
+
+	if activationToken != "" {
+		tempReqs := []QUserRegistration{}
+		for idx, req := range reqs {
+			if req.ActivationToken == activationToken {
+				tempReqs = append(tempReqs, reqs[idx])
+			}
+		}
+		reqs = tempReqs
+	}
+
+	if name != "" {
+		tempReqs := []QUserRegistration{}
+		for idx, req := range reqs {
+			if req.Name == name {
+				tempReqs = append(tempReqs, reqs[idx])
+			}
+		}
+		reqs = tempReqs
+	}
+
+	if email != "" {
+		tempReqs := []QUserRegistration{}
+		for idx, req := range reqs {
+			if req.Email == email {
+				tempReqs = append(tempReqs, reqs[idx])
+			}
+		}
+		reqs = tempReqs
+	}
+
+	if org != "" {
+		tempReqs := []QUserRegistration{}
+		for idx, req := range reqs {
+			if req.Organization == org {
+				tempReqs = append(tempReqs, reqs[idx])
+			}
+		}
+		reqs = tempReqs
+	}
+
+	return reqs, nil
 }
 
 func (mk *MockStore) UpdateRegistration(regUUID, status, modifiedBy, modifiedAt string) error {

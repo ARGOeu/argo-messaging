@@ -1901,6 +1901,40 @@ func ListOneRegistration(w http.ResponseWriter, r *http.Request) {
 	respondOK(w, urb)
 }
 
+// ListAllRegistrations(GET) retrieves information about all the registrations in the service
+func ListAllRegistrations(w http.ResponseWriter, r *http.Request) {
+
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+
+	name := r.URL.Query().Get("name")
+	status := r.URL.Query().Get("status")
+	email := r.URL.Query().Get("email")
+	org := r.URL.Query().Get("organization")
+	activationToken := r.URL.Query().Get("activation_token")
+
+	ur, err := auth.FindUserRegistrations(status, activationToken, name, email, org, refStr)
+	if err != nil {
+
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	urb, err := json.MarshalIndent(ur, "", "   ")
+	if err != nil {
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	respondOK(w, urb)
+}
+
 // SubAck (GET) one subscription
 func SubAck(w http.ResponseWriter, r *http.Request) {
 

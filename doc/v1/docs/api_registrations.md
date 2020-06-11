@@ -160,3 +160,54 @@ Success Response
 ```
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
+
+## [GET] Manage Registrations - Retrieve all registrations
+This request retrieves all registration in the service
+
+### Request
+```json
+GET "/v1/registrations"
+```
+
+### Optional Filters
+
+- status
+- activation_token
+- email
+- organization
+- name
+
+### Example request
+```bash
+curl -X GET -H "Content-Type: application/json"
+"https://{URL}/v1/registrations"
+```
+
+### Responses  
+If successful, the response contains all registrations
+
+Success Response
+`200 OK`
+
+```json
+{
+   "user_registrations": [
+   {
+      "uuid": "ur-uuid1",
+      "name": "urname",
+      "first_name": "urfname",
+      "last_name": "urlname",
+      "organization": "urorg",
+      "description": "urdesc",
+      "email": "uremail",
+      "status": "pending",
+      "activation_token": "uratkn-1",
+      "registered_at": "2019-05-12T22:26:58Z",
+      "modified_by": "UserA",
+      "modified_at": "2020-05-15T22:26:58Z"
+   }
+  ]
+}
+```
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors

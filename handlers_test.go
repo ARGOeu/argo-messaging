@@ -2016,6 +2016,91 @@ func (suite *HandlerTestSuite) TestListOneRegistration() {
 
 }
 
+func (suite *HandlerTestSuite) TestListManyregistrations() {
+
+	type td struct {
+		urlPath            string
+		expectedResponse   string
+		expectedStatusCode int
+		msg                string
+	}
+
+	testData := []td{
+		{
+			urlPath: "registrations",
+			expectedResponse: `{
+   "user_registrations": [
+      {
+         "uuid": "ur-uuid1",
+         "name": "urname",
+         "first_name": "urfname",
+         "last_name": "urlname",
+         "organization": "urorg",
+         "description": "urdesc",
+         "email": "uremail",
+         "status": "pending",
+         "activation_token": "uratkn-1",
+         "registered_at": "2019-05-12T22:26:58Z",
+         "modified_by": "UserA",
+         "modified_at": "2020-05-15T22:26:58Z"
+      }
+   ]
+}`,
+			expectedStatusCode: 200,
+			msg:                "Retrieve all available user registrations without any filters",
+		},
+		{
+			urlPath: "registrations?status=pending&name=urname&activation_token=uratkn-1&email=uremail&organization=urorg",
+			expectedResponse: `{
+   "user_registrations": [
+      {
+         "uuid": "ur-uuid1",
+         "name": "urname",
+         "first_name": "urfname",
+         "last_name": "urlname",
+         "organization": "urorg",
+         "description": "urdesc",
+         "email": "uremail",
+         "status": "pending",
+         "activation_token": "uratkn-1",
+         "registered_at": "2019-05-12T22:26:58Z",
+         "modified_by": "UserA",
+         "modified_at": "2020-05-15T22:26:58Z"
+      }
+   ]
+}`,
+			expectedStatusCode: 200,
+			msg:                "Retrieve all available user registrations with filters",
+		},
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	cfgKafka.PushEnabled = true
+	cfgKafka.PushWorkerToken = "push_token"
+	cfgKafka.ResAuth = false
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+
+	for _, t := range testData {
+
+		w := httptest.NewRecorder()
+		url := fmt.Sprintf("http://localhost:8080/v1/%v", t.urlPath)
+		req, err := http.NewRequest("GET", url, nil)
+		if err != nil {
+			log.Fatal(err)
+		}
+		router.HandleFunc("/v1/registrations", WrapMockAuthConfig(ListAllRegistrations, cfgKafka, &brk, str, &mgr, pc))
+		router.ServeHTTP(w, req)
+		suite.Equal(t.expectedStatusCode, w.Code, t.msg)
+		suite.Equal(t.expectedResponse, w.Body.String(), t.msg)
+	}
+
+}
+
 func (suite *HandlerTestSuite) TestProjectUserCreate() {
 
 	type td struct {

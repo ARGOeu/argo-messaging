@@ -33,7 +33,7 @@ type Store interface {
 	QueryDailyProjectMsgCount(projectUUID string) ([]QDailyProjectMsgCount, error)
 	QueryTotalMessagesPerProject(projectUUIDs []string, startDate time.Time, endDate time.Time) ([]QProjectMessageCount, error)
 	RegisterUser(uuid, name, firstName, lastName, email, org, desc, registeredAt, atkn, status string) error
-	QueryRegistrations(regUUID, status string) ([]QUserRegistration, error)
+	QueryRegistrations(regUUID, status, activationToken, name, email, org string) ([]QUserRegistration, error)
 	UpdateRegistration(regUUID, status, modifiedBy, modifiedAt string) error
 	InsertUser(uuid string, projects []QProjectRoles, name string, firstName string, lastName string, org string, desc string, token string, email string, serviceRoles []string, createdOn time.Time, modifiedOn time.Time, createdBy string) error
 	InsertProject(uuid string, name string, createdOn time.Time, modifiedOn time.Time, createdBy string, description string) error
