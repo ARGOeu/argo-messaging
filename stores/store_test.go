@@ -608,10 +608,10 @@ func (suite *StoreTestSuite) TestMockStore() {
 		Status:          "pending",
 	}}
 
-	ur1, _ := store.QueryRegistrations("ruuid1", "pending")
+	ur1, _ := store.QueryRegistrations("ruuid1", "pending", "atkn", "n1", "e1", "o1")
 	suite.Equal(expur1, ur1)
 
-	ur12, _ := store.QueryRegistrations("ruuid1", "")
+	ur12, _ := store.QueryRegistrations("ruuid1", "", "", "", "", "")
 	suite.Equal(expur1, ur12)
 
 	expur2 := []QUserRegistration{{
@@ -629,7 +629,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 		ModifiedAt:      "2020-05-17T22:26:58Z",
 	}}
 	store.UpdateRegistration("ur-uuid1", "accepted", "uuid1", "2020-05-17T22:26:58Z")
-	ur2, _ := store.QueryRegistrations("ur-uuid1", "accepted")
+	ur2, _ := store.QueryRegistrations("ur-uuid1", "accepted", "", "", "", "")
 	suite.Equal(expur2, ur2)
 
 }

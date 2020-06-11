@@ -167,14 +167,32 @@ func (mong *MongoStore) RegisterUser(uuid, name, firstName, lastName, email, org
 	return mong.InsertResource("user_registrations", ur)
 }
 
-func (mong *MongoStore) QueryRegistrations(regUUID, status string) ([]QUserRegistration, error) {
+func (mong *MongoStore) QueryRegistrations(regUUID, status, activationToken, name, email, org string) ([]QUserRegistration, error) {
 
-	query := bson.M{
-		"uuid": regUUID,
+	query := bson.M{}
+
+	if regUUID != "" {
+		query["uuid"] = regUUID
 	}
 
 	if status != "" {
 		query["status"] = status
+	}
+
+	if activationToken != "" {
+		query["activation_token"] = activationToken
+	}
+
+	if name != "" {
+		query["name"] = name
+	}
+
+	if email != "" {
+		query["email"] = email
+	}
+
+	if org != "" {
+		query["organization"] = org
 	}
 
 	qur := []QUserRegistration{}
