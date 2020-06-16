@@ -247,7 +247,7 @@ func (mk *MockStore) AppendToUserProjects(userUUID string, projectUUID string, p
 }
 
 // UpdateUser updates user information
-func (mk *MockStore) UpdateUser(uuid string, projects []QProjectRoles, name string, email string, serviceRoles []string, modifiedOn time.Time) error {
+func (mk *MockStore) UpdateUser(uuid, fname, lname, org, desc string, projects []QProjectRoles, name string, email string, serviceRoles []string, modifiedOn time.Time) error {
 
 	for i, item := range mk.UserList {
 		if item.UUID == uuid {
@@ -262,6 +262,22 @@ func (mk *MockStore) UpdateUser(uuid string, projects []QProjectRoles, name stri
 			}
 			if email != "" {
 				mk.UserList[i].Email = email
+			}
+
+			if fname != "" {
+				mk.UserList[i].FirstName = fname
+			}
+
+			if lname != "" {
+				mk.UserList[i].LastName = lname
+			}
+
+			if org != "" {
+				mk.UserList[i].Organization = org
+			}
+
+			if desc != "" {
+				mk.UserList[i].Description = desc
 			}
 
 			mk.UserList[i].ModifiedOn = modifiedOn

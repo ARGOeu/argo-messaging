@@ -471,10 +471,10 @@ func (suite *AuthTestSuite) TestAuth() {
       }
    ],
    "name": "johnny_doe",
-   "first_name": "firstdoe",
-   "last_name": "lastdoe",
-   "organization": "orgdoe",
-   "description": "descdoe",
+   "first_name": "firstdoe2",
+   "last_name": "lastdoe2",
+   "organization": "orgdoe2",
+   "description": "descdoe2",
    "token": "johndoe@fake.email.foo",
    "email": "TOK3N",
    "service_roles": [
@@ -484,18 +484,18 @@ func (suite *AuthTestSuite) TestAuth() {
    "created_on": "2009-11-10T23:00:00Z",
    "modified_on": "2009-11-10T23:00:00Z"
 }`
-	UpdateUser("uuid12", "johnny_doe", nil, "", []string{"consumer", "producer"}, tm, false, store)
+	UpdateUser("uuid12", "firstdoe2", "lastdoe2", "orgdoe2", "descdoe2", "johnny_doe", nil, "", []string{"consumer", "producer"}, tm, false, store)
 	usrUpd, _ := FindUsers("", "uuid12", "", true, store)
 	usrUpdJSON, _ := usrUpd.List[0].ExportJSON()
 	suite.Equal(expUpdate, usrUpdJSON)
 
 	// reflect obj true
-	usrUpd2, _ := UpdateUser("uuid12", "johnny_doe", nil, "", []string{"consumer", "producer"}, tm, true, store)
+	usrUpd2, _ := UpdateUser("uuid12", "", "", "", "", "johnny_doe", nil, "", []string{"consumer", "producer"}, tm, true, store)
 	usrUpdJSON2, _ := usrUpd2.ExportJSON()
 	suite.Equal(expUpdate, usrUpdJSON2)
 
 	// Test update with empty project
-	UpdateUser("uuid13", "empty-proj", []ProjectRoles{{Project: "", Roles: []string{"consumer"}}}, "johndoe@fake.email.foo", []string{"service_admin"}, tm, false, store)
+	UpdateUser("uuid13", "", "", "", "", "empty-proj", []ProjectRoles{{Project: "", Roles: []string{"consumer"}}}, "johndoe@fake.email.foo", []string{"service_admin"}, tm, false, store)
 	usrs2, _ = FindUsers("", "uuid13", "", true, store)
 	expusrs2 = Users{List: []User{{UUID: "uuid13", Projects: []ProjectRoles{}, Name: "empty-proj", Token: "TOK3N", Email: "johndoe@fake.email.foo", ServiceRoles: []string{"service_admin"}, CreatedOn: "2009-11-10T23:00:00Z", ModifiedOn: "2009-11-10T23:00:00Z", CreatedBy: ""}}}
 	suite.Equal(expusrs2, usrs2)

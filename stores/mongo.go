@@ -271,7 +271,7 @@ func (mong *MongoStore) AppendToUserProjects(userUUID string, projectUUID string
 }
 
 // UpdateUser updates user information
-func (mong *MongoStore) UpdateUser(uuid string, projects []QProjectRoles, name string, email string, serviceRoles []string, modifiedOn time.Time) error {
+func (mong *MongoStore) UpdateUser(uuid, fname, lname, org, desc string, projects []QProjectRoles, name string, email string, serviceRoles []string, modifiedOn time.Time) error {
 	db := mong.Session.DB(mong.Database)
 	c := db.C("users")
 
@@ -295,6 +295,22 @@ func (mong *MongoStore) UpdateUser(uuid string, projects []QProjectRoles, name s
 
 	if email != "" {
 		curUsr.Email = email
+	}
+
+	if fname != "" {
+		curUsr.FirstName = fname
+	}
+
+	if lname != "" {
+		curUsr.LastName = lname
+	}
+
+	if org != "" {
+		curUsr.Organization = org
+	}
+
+	if desc != "" {
+		curUsr.Description = desc
 	}
 
 	if projects != nil {
