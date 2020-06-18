@@ -752,6 +752,10 @@ PUT "/v1/users/{user_name}"
     }
  ],
  "name": "CHANGED_NAME",
+ "first_name": "fname-1",
+ "last_name": "lname-1",
+ "organization": "org-1",
+ "description": "desc-1",
  "email": "foo-email",
  "service_roles":[]
 }
@@ -793,6 +797,10 @@ Success Response
  "name": "CHANGED_NAME",
  "token": "R4ND0MT0K3N",
  "email": "foo-email",
+ "first_name": "fname-1",
+ "last_name": "lname-1",
+ "organization": "org-1",
+ "description": "desc-1",
  "service_roles":[],
  "created_on": "2009-11-10T23:00:00Z",
  "modified_on": "2009-11-11T10:00:00Z",

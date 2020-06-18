@@ -455,7 +455,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 
 	// Test Update User
 	usrUpdated := QUser{UUID: "user_uuid11", Projects: qRoles, Name: "updated_name", Token: "BX312Z34NLQ", Email: "fake@email.com", ServiceRoles: []string{"service_admin"}, CreatedOn: created, ModifiedOn: modified, CreatedBy: "uuid1"}
-	store.UpdateUser("user_uuid11", nil, "updated_name", "", []string{"service_admin"}, modified)
+	store.UpdateUser("user_uuid11", "", "", "", "", nil, "updated_name", "", []string{"service_admin"}, modified)
 	usr11, _ = store.QueryUsers("", "user_uuid11", "")
 	suite.Equal(usrUpdated, usr11[0])
 
