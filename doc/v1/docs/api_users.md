@@ -659,6 +659,10 @@ POST "/v1/users/{user_name}"
     }
  ],
  "email": "foo-email",
+ "first_name": "fname-1",
+ "last_name": "lname-1",
+ "organization": "org-1",
+ "description": "desc-1",
  "service_roles":[]
 }
 ```
@@ -693,7 +697,7 @@ curl -X POST -H "Content-Type: application/json"
 ```
 
 ### Responses  
-If successful, the response contains the newly created project
+If successful, the response contains the newly created user
 
 Success Response
 `200 OK`
@@ -713,6 +717,10 @@ Success Response
  "name": "USERNEW",
  "token": "R4ND0MT0K3N",
  "email": "foo-email",
+ "first_name": "fname-1",
+ "last_name": "lname-1",
+ "organization": "org-1",
+ "description": "desc-1",
  "service_roles":[],
  "created_on": "2009-11-10T23:00:00Z",
  "modified_on": "2009-11-10T23:00:00Z",
