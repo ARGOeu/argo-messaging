@@ -1,0 +1,715 @@
+{
+	"info": {
+		"_postman_id": "5830126e-b83c-473c-9dde-d321b59107d6",
+		"name": "ams_ci-cd_tests",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Check project c reation",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "e2adddbb-8ca9-4d89-a283-900529189567",
+						"type": "text/javascript",
+						"exec": [
+							"pm.test(\"Check that the projection creation was successfull\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"description\": \"Ams project to be used during the CI/CD tests\"\n}"
+				},
+				"url": {
+					"raw": "https://{{dev-api}}/v1/projects/ams-cicd-test?key={{dev-api-key}}",
+					"protocol": "https",
+					"host": [
+						"{{dev-api}}"
+					],
+					"path": [
+						"v1",
+						"projects",
+						"ams-cicd-test"
+					],
+					"query": [
+						{
+							"key": "key",
+							"value": "{{dev-api-key}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Check project admin user creation",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "5c269750-15cb-4b8e-aef5-58adb4bb7458",
+						"type": "text/javascript",
+						"exec": [
+							"pm.test(\"Check that project admin user creation was successfull\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"var jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"proj-admin-key\", jsonData.token);"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"email\": \"test@admin.example.com\",\n  \"projects\": [\n    {\n      \"project\": \"ams-cicd-test\",\n      \"roles\": [\"project_admin\"]\n    }\n  ]\n}"
+				},
+				"url": {
+					"raw": "https://{{dev-api}}/v1/users/ams_cicd_admin?key={{dev-api-key}}",
+					"protocol": "https",
+					"host": [
+						"{{dev-api}}"
+					],
+					"path": [
+						"v1",
+						"users",
+						"ams_cicd_admin"
+					],
+					"query": [
+						{
+							"key": "key",
+							"value": "{{dev-api-key}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Check pubsub member creation",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "5b225e28-b4a8-4f39-98e2-dc775ffeb3b6",
+						"type": "text/javascript",
+						"exec": [
+							"pm.test(\"Check that pubsub user creation was successfull\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"var jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"pubsub-key\", jsonData.token);"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"projects\": [\n\t\t\t{\n\t\t\t\t\"project\": \"ams-cicd-test\",\n\t\t\t\t\"roles\": [\"publisher\", \"consumer\"]\n\t\t\t}\n\t\t],\n\t\"email\": \"email@test.com\"\n}"
+				},
+				"url": {
+					"raw": "https://{{dev-api}}/v1/projects/ams-cicd-test/members/ams_cicd_pubsub?key={{proj-admin-key}}",
+					"protocol": "https",
+					"host": [
+						"{{dev-api}}"
+					],
+					"path": [
+						"v1",
+						"projects",
+						"ams-cicd-test",
+						"members",
+						"ams_cicd_pubsub"
+					],
+					"query": [
+						{
+							"key": "key",
+							"value": "{{proj-admin-key}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Check topic creation",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "3f9f1478-dc01-4601-840c-ae230cc25135",
+						"type": "text/javascript",
+						"exec": [
+							"pm.test(\"Check that topic creation was successfull\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "https://{{dev-api}}/v1/projects/ams-cicd-test/topics/cicd-topic?key={{proj-admin-key}}",
+					"protocol": "https",
+					"host": [
+						"{{dev-api}}"
+					],
+					"path": [
+						"v1",
+						"projects",
+						"ams-cicd-test",
+						"topics",
+						"cicd-topic"
+					],
+					"query": [
+						{
+							"key": "key",
+							"value": "{{proj-admin-key}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Check modify topic acl",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "08811f96-7fd4-44ac-8331-c22fa4552b3b",
+						"type": "text/javascript",
+						"exec": [
+							"pm.test(\"Check that the user has successfully been added to the topic's acl\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"authorized_users\": [\"ams_cicd_pubsub\"]\n}"
+				},
+				"url": {
+					"raw": "https://{{dev-api}}/v1/projects/ams-cicd-test/topics/cicd-topic:modifyAcl?key={{proj-admin-key}}",
+					"protocol": "https",
+					"host": [
+						"{{dev-api}}"
+					],
+					"path": [
+						"v1",
+						"projects",
+						"ams-cicd-test",
+						"topics",
+						"cicd-topic:modifyAcl"
+					],
+					"query": [
+						{
+							"key": "key",
+							"value": "{{proj-admin-key}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Check sub creation",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "69454612-829a-447d-bf7c-8f50fb9892e7",
+						"type": "text/javascript",
+						"exec": [
+							"pm.test(\"Check that the subscription creation was successfull\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"topic\": \"projects/ams-cicd-test/topics/cicd-topic\",\n\t \"ackDeadlineSeconds\": 300 ,\n\t\n  \"pushConfig\": {}\n\t \n}"
+				},
+				"url": {
+					"raw": "https://{{dev-api}}/v1/projects/ams-cicd-test/subscriptions/cicd-sub?key={{proj-admin-key}}",
+					"protocol": "https",
+					"host": [
+						"{{dev-api}}"
+					],
+					"path": [
+						"v1",
+						"projects",
+						"ams-cicd-test",
+						"subscriptions",
+						"cicd-sub"
+					],
+					"query": [
+						{
+							"key": "key",
+							"value": "{{proj-admin-key}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Check modify sub acl",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "14fcabde-c872-48d1-9a5b-ff4a4606ea39",
+						"type": "text/javascript",
+						"exec": [
+							"pm.test(\"Check that the user has successfully been added to the sub's acl\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"authorized_users\": [\"ams_cicd_pubsub\"]\n}"
+				},
+				"url": {
+					"raw": "https://{{dev-api}}/v1/projects/ams-cicd-test/subscriptions/cicd-sub:modifyAcl?key={{proj-admin-key}}",
+					"protocol": "https",
+					"host": [
+						"{{dev-api}}"
+					],
+					"path": [
+						"v1",
+						"projects",
+						"ams-cicd-test",
+						"subscriptions",
+						"cicd-sub:modifyAcl"
+					],
+					"query": [
+						{
+							"key": "key",
+							"value": "{{proj-admin-key}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Check message publish",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "6fb68220-ecfc-4b97-b201-f60d10dc19a9",
+						"type": "text/javascript",
+						"exec": [
+							"pm.test(\"Check that the two messages were published successfully\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Check message IDs\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.messageIds).to.eql([\"0\", \"1\"]);",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"messages\" : [\n\t\t\t\t\t{\n\t\t\t\t\t\"attributes\": {},\n\t\t\t\t\t\"data\": \"msg 1\"\n\t\t\t\t\t},\n\t\t\t\t\t{\n\t\t\t\t\t\"attributes\": {},\n\t\t\t\t\t\"data\": \"msg 2\"\n\t\t\t\t\t}\n\t\t\t]\n}"
+				},
+				"url": {
+					"raw": "https://{{dev-api}}/v1/projects/ams-cicd-test/topics/cicd-topic:publish?key={{pubsub-key}}",
+					"protocol": "https",
+					"host": [
+						"{{dev-api}}"
+					],
+					"path": [
+						"v1",
+						"projects",
+						"ams-cicd-test",
+						"topics",
+						"cicd-topic:publish"
+					],
+					"query": [
+						{
+							"key": "key",
+							"value": "{{pubsub-key}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Check consume 1st message",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "d408cb7f-bfad-4052-9c0c-8e7547e1c8d5",
+						"type": "text/javascript",
+						"exec": [
+							"pm.test(\"Check that the consumtion of the first message was successfull\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Check the data of the 1st message\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.receivedMessages[0].ackId).to.eql(\"projects/ams-cicd-test/subscriptions/cicd-sub:0\");",
+							"    pm.expect(jsonData.receivedMessages[0].message.data).to.eql(\"msg 1\");",
+							"    pm.expect(jsonData.receivedMessages[0].message.messageId).to.eql(\"0\");",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"maxMessages\": \"1\"}"
+				},
+				"url": {
+					"raw": "https://{{dev-api}}/v1/projects/ams-cicd-test/subscriptions/cicd-sub:pull?key={{pubsub-key}}",
+					"protocol": "https",
+					"host": [
+						"{{dev-api}}"
+					],
+					"path": [
+						"v1",
+						"projects",
+						"ams-cicd-test",
+						"subscriptions",
+						"cicd-sub:pull"
+					],
+					"query": [
+						{
+							"key": "key",
+							"value": "{{pubsub-key}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Check 1st message ack",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "ac8d7101-b024-45a2-941e-fc39f2e086f1",
+						"type": "text/javascript",
+						"exec": [
+							"pm.test(\"Check that the acknowledgement of the 1st message was successfull\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"ackIds\": [\n   \"projects/ams-cicd-test/subscriptions/cicd-sub:0\"\n  ]\n}"
+				},
+				"url": {
+					"raw": "https://{{dev-api}}/v1/projects/ams-cicd-test/subscriptions/cicd-sub:acknowledge?key={{pubsub-key}}",
+					"protocol": "https",
+					"host": [
+						"{{dev-api}}"
+					],
+					"path": [
+						"v1",
+						"projects",
+						"ams-cicd-test",
+						"subscriptions",
+						"cicd-sub:acknowledge"
+					],
+					"query": [
+						{
+							"key": "key",
+							"value": "{{pubsub-key}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Check consume 2nd message",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "551609a4-be56-4b6e-9b62-28f1f59c6471",
+						"type": "text/javascript",
+						"exec": [
+							"pm.test(\"Check that the consumtion of the second message was successfull\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Check the data of the 2nd message\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.receivedMessages[0].ackId).to.eql(\"projects/ams-cicd-test/subscriptions/cicd-sub:1\");",
+							"    pm.expect(jsonData.receivedMessages[0].message.data).to.eql(\"msg 2\");",
+							"    pm.expect(jsonData.receivedMessages[0].message.messageId).to.eql(\"1\");",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"maxMessages\": \"1\"}"
+				},
+				"url": {
+					"raw": "https://{{dev-api}}/v1/projects/ams-cicd-test/subscriptions/cicd-sub:pull?key={{pubsub-key}}",
+					"protocol": "https",
+					"host": [
+						"{{dev-api}}"
+					],
+					"path": [
+						"v1",
+						"projects",
+						"ams-cicd-test",
+						"subscriptions",
+						"cicd-sub:pull"
+					],
+					"query": [
+						{
+							"key": "key",
+							"value": "{{pubsub-key}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Check project admin user deletion",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "3d890704-7589-4f28-a0e1-3e93394d9207",
+						"type": "text/javascript",
+						"exec": [
+							"pm.test(\"Check project admin user deletion\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"body": {},
+				"url": {
+					"raw": "https://{{dev-api}}/v1/users/ams_cicd_admin?key={{dev-api-key}}",
+					"protocol": "https",
+					"host": [
+						"{{dev-api}}"
+					],
+					"path": [
+						"v1",
+						"users",
+						"ams_cicd_admin"
+					],
+					"query": [
+						{
+							"key": "key",
+							"value": "{{dev-api-key}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Check pubusb user deletion",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "4dd283de-e78d-4da8-aff1-1b5eac201256",
+						"type": "text/javascript",
+						"exec": [
+							"pm.test(\"Check pubsub user deletion was successfull\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"body": {},
+				"url": {
+					"raw": "https://{{dev-api}}/v1/users/ams_cicd_pubsub?key={{dev-api-key}}",
+					"protocol": "https",
+					"host": [
+						"{{dev-api}}"
+					],
+					"path": [
+						"v1",
+						"users",
+						"ams_cicd_pubsub"
+					],
+					"query": [
+						{
+							"key": "key",
+							"value": "{{dev-api-key}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Check project deletion",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "8bb4c989-66b9-4a20-a9d2-8c0cf0ba3d0c",
+						"type": "text/javascript",
+						"exec": [
+							"pm.test(\"Check project deletion was successfull\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"body": {},
+				"url": {
+					"raw": "https://{{dev-api}}/v1/projects/ams-cicd-test?key={{dev-api-key}}",
+					"protocol": "https",
+					"host": [
+						"{{dev-api}}"
+					],
+					"path": [
+						"v1",
+						"projects",
+						"ams-cicd-test"
+					],
+					"query": [
+						{
+							"key": "key",
+							"value": "{{dev-api-key}}"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
