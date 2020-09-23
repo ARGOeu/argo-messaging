@@ -25,7 +25,153 @@ tags:
     description: Projects available in the service
   - name: Schemas
     description: Available schemas under a project for validating published messages payload
+  - name: Registrations
+    description: User registrations
 paths:
+
+  /registrations:
+    post:
+      summary: Register a new user
+      description: |
+        Register a new user
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: User information
+          in: body
+          description: Extra user  information
+          required: true
+          schema:
+            $ref: "#/definitions/UserRegistrationPost"
+      tags:
+        - Registrations
+      responses:
+        200:
+          description: User registration object
+          schema:
+            $ref: '#/definitions/UserRegistration'
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/409"
+        403:
+          $ref: "#/responses/403"
+        409:
+          $ref: "#/responses/409"
+        500:
+          $ref: "#/responses/500"
+    get:
+      summary: Retrive all registrations in the service
+      description: |
+        Retrieve all registrations the service with or without any filters applied
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - $ref: '#/parameters/RegistrationStatus'
+        - $ref: '#/parameters/RegistrationActivationToken'
+        - $ref: '#/parameters/RegistrationName'
+        - $ref: '#/parameters/RegistrationEmail'
+        - $ref: '#/parameters/RegistrationOrganization'
+      tags:
+        - Registrations
+      responses:
+        200:
+          description: User registration list
+          schema:
+            $ref: '#/definitions/UserRegistrationList'
+        401:
+          $ref: "#/responses/409"
+        403:
+          $ref: "#/responses/403"
+        500:
+          $ref: "#/responses/500"
+
+
+  /registrations/{UUID}:accept:
+    post:
+      summary: Accepts the registration for a new user
+      description: |
+        Register a new user
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: UUID
+          in: path
+          description: UUID of the registration
+          required: true
+          type: string
+      tags:
+        - Registrations
+      responses:
+        200:
+          description: Newly created user object
+          schema:
+            $ref: '#/definitions/User'
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        409:
+          $ref: "#/responses/409"
+        500:
+          $ref: "#/responses/500"
+
+  /registrations/{UUID}:decline:
+    post:
+      summary: Declines the registration for a new user
+      description: |
+        Decline a new user
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: UUID
+          in: path
+          description: UUID of the registration
+          required: true
+          type: string
+      tags:
+        - Registrations
+      responses:
+        200:
+          description: Empty response if the registration is succesfully declined
+          schema:
+            type: string
+            default: "{}"
+            description: empty string
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
+
+  /registrations/{UUID}:
+    get:
+      summary: Retrieves information about a specific user registration
+      description: |
+        Retrieves a user's registration
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: UUID
+          in: path
+          description: UUID of the registration
+          required: true
+          type: string
+      tags:
+        - Registrations
+      responses:
+        200:
+          description: User's registration
+          schema:
+            $ref: '#/definitions/UserRegistration'
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
 
   /projects/{PROJECT}/schemas:
     get:
@@ -611,8 +757,184 @@ paths:
           $ref: "#/responses/404"
         500:
           $ref: "#/responses/500"
+    post:
+      summary: Create a new user member under the specified project
+      description: |
+        Creates a new user memeber under the specified project.Can be used by the project admin of the project when previosuly only service admins could create users.
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: USER
+          in: path
+          description: Name of the user
+          required: true
+          type: string
+        - name: User information
+          in: body
+          description: Extra user information such as roles and email
+          required: false
+          schema:
+           type: object
+           properties:
+             projects:
+               type: array
+               items:
+                 $ref: "#/definitions/ProjectRoles"
+             email:
+               type: string
+      tags:
+        - Projects
+      responses:
+        200:
+          description: A User object
+          schema:
+            $ref: '#/definitions/User'
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        409:
+          $ref: "#/responses/409"
+        500:
+          $ref: "#/responses/500"
+    put:
+      summary: Update the roles of a user member under the specified project
+      description: |
+        Update a  user memeber under the specified project.Can be used by the project admin of the project when previosuly only service admins could update users.
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: USER
+          in: path
+          description: Name of the user
+          required: true
+          type: string
+        - name: User information
+          in: body
+          description: Extra user information such as roles and email
+          required: false
+          schema:
+           type: object
+           properties:
+             projects:
+               type: array
+               items:
+                 $ref: "#/definitions/ProjectRoles"
+      tags:
+        - Projects
+      responses:
+        200:
+          description: A User object
+          schema:
+            $ref: '#/definitions/User'
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        409:
+          $ref: "#/responses/409"
+        500:
+          $ref: "#/responses/500"
+
+  /projects/{PROJECT}/members/{USER}:add:
+    post:
+      summary: Add a user to the project
+      description: |
+        Add a user to the project
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: USER
+          in: path
+          description: Name of the user
+          required: true
+          type: string
+        - name: User information
+          in: body
+          description: Extra user information such as roles and email
+          required: false
+          schema:
+           type: object
+           properties:
+             projects:
+               type: array
+               items:
+                 $ref: "#/definitions/ProjectRoles"
+      tags:
+        - Projects
+      responses:
+        200:
+          description: A User object
+          schema:
+            $ref: '#/definitions/User'
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        409:
+          $ref: "#/responses/409"
+        500:
+          $ref: "#/responses/500"
 
 
+  /projects/{PROJECT}/members/{USER}:remove:
+    post:
+      summary: Remove a user from the respective project
+      description: |
+        Removes the user from the respective project.
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: USER
+          in: path
+          description: Name of the user
+          required: true
+          type: string
+      tags:
+        - Projects
+      responses:
+        200:
+          description: Empty response if the user is successfully removed
+          schema:
+            type: string
+            default: "{}"
+            description: empty string
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
   /users:
     get:
       summary: List users in the service
@@ -740,6 +1062,14 @@ paths:
                type: array
                items:
                  $ref: "#/definitions/ProjectRoles"
+             first_name:
+               type: string
+             last_name:
+               type: string
+             description:
+               type: string
+             organization:
+               type: string
              email:
                type: string
              service_roles:
@@ -1870,7 +2200,7 @@ paths:
           $ref: "#/responses/404"
         500:
           $ref: "#/responses/500"
-  
+
   /version:
     get:
       summary: "List API Version information"
@@ -1894,6 +2224,41 @@ parameters:
     required: true
     type: string
     default: SecretKey123
+  RegistrationStatus:
+    name: status
+    in: query
+    description: Filter registrations based on the provided status
+    required: false
+    type: string
+    default: ""
+  RegistrationActivationToken:
+    name: activation_token
+    in: query
+    description: Filter registrations based on the provided activation token
+    required: false
+    type: string
+    default: ""
+  RegistrationName:
+    name: name
+    in: query
+    description: Filter registrations based on the provided name
+    required: false
+    type: string
+    default: ""
+  RegistrationEmail:
+    name: email
+    in: query
+    description: Filter registrations based on the provided email
+    required: false
+    type: string
+    default: ""
+  RegistrationOrganization:
+    name: organization
+    in: query
+    description: Filter registrations based on the provided organization
+    required: false
+    type: string
+    default: ""
   PageToken:
     name: pageToken
     in: query
@@ -1978,6 +2343,58 @@ responses:
       $ref: '#/definitions/ErrorMsg'
 
 definitions:
+
+  UserRegistration:
+     type: object
+     properties:
+       uuid:
+        type: string
+       name:
+        type: string
+       email:
+        type: string
+       first_name:
+        type: string
+       last_name:
+        type: string
+       organization:
+        type: string
+       description:
+        type: string
+       activation_token:
+        type: string
+       status:
+        type: string
+       registered_at:
+        type: string
+       modified_at:
+        type: string
+       modified_by:
+        type: string
+
+  UserRegistrationList:
+    type: object
+    properties:
+      user_registrations:
+        type: array
+        items:
+          $ref: '#/definitions/UserRegistration'
+
+  UserRegistrationPost:
+     type: object
+     properties:
+       name:
+        type: string
+       email:
+        type: string
+       first_name:
+        type: string
+       last_name:
+        type: string
+       organization:
+        type: string
+       description:
+        type: string
 
   SchemaList:
     type: object
@@ -2281,6 +2698,14 @@ definitions:
        uuid:
         type: string
        name:
+        type: string
+       first_name:
+        type: string
+       last_name:
+        type: string
+       organization:
+        type: string
+       description:
         type: string
        projects:
         type: array

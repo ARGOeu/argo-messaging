@@ -20,7 +20,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 
 	eTopList := []QTopic{
 		{3, "argo_uuid", "topic4", 0, 0, time.Date(0, 0, 0, 0, 0, 0, 0, time.Local), 0, ""},
-		{2, "argo_uuid", "topic3", 0, 0, time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local), 8.99, ""},
+		{2, "argo_uuid", "topic3", 0, 0, time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local), 8.99, "schema_uuid_3"},
 		{1, "argo_uuid", "topic2", 0, 0, time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local), 5.45, "schema_uuid_1"},
 		{0, "argo_uuid", "topic1", 0, 0, time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10, ""},
 	}
@@ -40,7 +40,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 	// retrieve first 2
 	eTopList1st2 := []QTopic{
 		{3, "argo_uuid", "topic4", 0, 0, time.Date(0, 0, 0, 0, 0, 0, 0, time.Local), 0, ""},
-		{2, "argo_uuid", "topic3", 0, 0, time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local), 8.99, ""},
+		{2, "argo_uuid", "topic3", 0, 0, time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local), 8.99, "schema_uuid_3"},
 	}
 	tpList2, ts2, pg2, _ := store.QueryTopics("argo_uuid", "", "", "", 2)
 	suite.Equal(eTopList1st2, tpList2)
@@ -205,7 +205,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 	eTopList2 := []QTopic{
 		{4, "argo_uuid", "topicFresh", 0, 0, time.Time{}, 0, ""},
 		{3, "argo_uuid", "topic4", 0, 0, time.Date(0, 0, 0, 0, 0, 0, 0, time.Local), 0, ""},
-		{2, "argo_uuid", "topic3", 0, 0, time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local), 8.99, ""},
+		{2, "argo_uuid", "topic3", 0, 0, time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local), 8.99, "schema_uuid_3"},
 		{1, "argo_uuid", "topic2", 0, 0, time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local), 5.45, "schema_uuid_1"},
 		{0, "argo_uuid", "topic1", 0, 0, time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10, ""},
 	}
@@ -435,10 +435,10 @@ func (suite *StoreTestSuite) TestMockStore() {
 	// Test Insert User
 	qRoleAdmin1 := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"admin"}}}
 	qRoles := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"admin"}}, QProjectRoles{"argo_uuid2", []string{"admin", "viewer"}}}
-	expUsr10 := QUser{UUID: "user_uuid10", Projects: qRoleAdmin1, Name: "newUser1", Token: "A3B94A94V3A", Email: "fake@email.com", ServiceRoles: []string{}, CreatedOn: created, ModifiedOn: modified, CreatedBy: "uuid1"}
+	expUsr10 := QUser{UUID: "user_uuid10", Projects: qRoleAdmin1, Name: "newUser1", FirstName: "fname", LastName: "lname", Organization: "org1", Description: "desc1", Token: "A3B94A94V3A", Email: "fake@email.com", ServiceRoles: []string{}, CreatedOn: created, ModifiedOn: modified, CreatedBy: "uuid1"}
 	expUsr11 := QUser{UUID: "user_uuid11", Projects: qRoles, Name: "newUser2", Token: "BX312Z34NLQ", Email: "fake@email.com", ServiceRoles: []string{}, CreatedOn: created, ModifiedOn: modified, CreatedBy: "uuid1"}
-	store.InsertUser("user_uuid10", qRoleAdmin1, "newUser1", "A3B94A94V3A", "fake@email.com", []string{}, created, modified, "uuid1")
-	store.InsertUser("user_uuid11", qRoles, "newUser2", "BX312Z34NLQ", "fake@email.com", []string{}, created, modified, "uuid1")
+	store.InsertUser("user_uuid10", qRoleAdmin1, "newUser1", "fname", "lname", "org1", "desc1", "A3B94A94V3A", "fake@email.com", []string{}, created, modified, "uuid1")
+	store.InsertUser("user_uuid11", qRoles, "newUser2", "", "", "", "", "BX312Z34NLQ", "fake@email.com", []string{}, created, modified, "uuid1")
 	usr10, _ := store.QueryUsers("argo_uuid", "user_uuid10", "")
 	usr11, _ := store.QueryUsers("argo_uuid", "", "newUser2")
 
@@ -455,7 +455,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 
 	// Test Update User
 	usrUpdated := QUser{UUID: "user_uuid11", Projects: qRoles, Name: "updated_name", Token: "BX312Z34NLQ", Email: "fake@email.com", ServiceRoles: []string{"service_admin"}, CreatedOn: created, ModifiedOn: modified, CreatedBy: "uuid1"}
-	store.UpdateUser("user_uuid11", nil, "updated_name", "", []string{"service_admin"}, modified)
+	store.UpdateUser("user_uuid11", "", "", "", "", nil, "updated_name", "", []string{"service_admin"}, modified)
 	usr11, _ = store.QueryUsers("", "user_uuid11", "")
 	suite.Equal(usrUpdated, usr11[0])
 
@@ -563,9 +563,11 @@ func (suite *StoreTestSuite) TestMockStore() {
 
 	// test QuerySchemas
 	s := "eyJwcm9wZXJ0aWVzIjp7ImFkZHJlc3MiOnsidHlwZSI6InN0cmluZyJ9LCJlbWFpbCI6eyJ0eXBlIjoic3RyaW5nIn0sIm5hbWUiOnsidHlwZSI6InN0cmluZyJ9LCJ0ZWxlcGhvbmUiOnsidHlwZSI6InN0cmluZyJ9fSwicmVxdWlyZWQiOlsibmFtZSIsImVtYWlsIl0sInR5cGUiOiJvYmplY3QifQ=="
+	avros := "eyJmaWVsZHMiOlt7Im5hbWUiOiJ1c2VybmFtZSIsInR5cGUiOiJzdHJpbmcifSx7Im5hbWUiOiJwaG9uZSIsInR5cGUiOiJpbnQifV0sIm5hbWUiOiJVc2VyIiwibmFtZXNwYWNlIjoidXNlci5hdnJvIiwidHlwZSI6InJlY29yZCJ9"
 	expectedSchemas := []QSchema{
 		{UUID: "schema_uuid_1", ProjectUUID: "argo_uuid", Type: "json", Name: "schema-1", RawSchema: s},
 		{UUID: "schema_uuid_2", ProjectUUID: "argo_uuid", Type: "json", Name: "schema-2", RawSchema: s},
+		{UUID: "schema_uuid_3", ProjectUUID: "argo_uuid", Type: "avro", Name: "schema-3", RawSchema: avros},
 	}
 	qqs1, _ := store2.QuerySchemas("argo_uuid", "", "")
 	qqs2, _ := store2.QuerySchemas("argo_uuid", "schema_uuid_1", "")
@@ -590,6 +592,46 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal("", qtd[0].SchemaUUID)
 	suite.Equal([]QSchema{}, expd)
 	suite.Nil(ed)
+
+	// test user registration
+	store.RegisterUser("ruuid1", "n1", "f1", "l1", "e1", "o1", "d1", "time", "atkn", "pending")
+	expur1 := []QUserRegistration{{
+		UUID:            "ruuid1",
+		Name:            "n1",
+		FirstName:       "f1",
+		LastName:        "l1",
+		Email:           "e1",
+		Organization:    "o1",
+		Description:     "d1",
+		RegisteredAt:    "time",
+		ActivationToken: "atkn",
+		Status:          "pending",
+	}}
+
+	ur1, _ := store.QueryRegistrations("ruuid1", "pending", "atkn", "n1", "e1", "o1")
+	suite.Equal(expur1, ur1)
+
+	ur12, _ := store.QueryRegistrations("ruuid1", "", "", "", "", "")
+	suite.Equal(expur1, ur12)
+
+	expur2 := []QUserRegistration{{
+		UUID:            "ur-uuid1",
+		Name:            "urname",
+		FirstName:       "urfname",
+		LastName:        "urlname",
+		Organization:    "urorg",
+		Description:     "urdesc",
+		Email:           "uremail",
+		ActivationToken: "",
+		Status:          "accepted",
+		RegisteredAt:    "2019-05-12T22:26:58Z",
+		ModifiedBy:      "uuid1",
+		ModifiedAt:      "2020-05-17T22:26:58Z",
+	}}
+	store.UpdateRegistration("ur-uuid1", "accepted", "uuid1", "2020-05-17T22:26:58Z")
+	ur2, _ := store.QueryRegistrations("ur-uuid1", "accepted", "", "", "", "")
+	suite.Equal(expur2, ur2)
+
 }
 
 func TestStoresTestSuite(t *testing.T) {

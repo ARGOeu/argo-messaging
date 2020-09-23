@@ -15,11 +15,21 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	AcceptedRegistrationStatus = "accepted"
+	PendingRegistrationStatus  = "pending"
+	DeclinedRegistrationStatus = "declined"
+)
+
 // User is the struct that holds user information
 type User struct {
 	UUID         string         `json:"uuid"`
 	Projects     []ProjectRoles `json:"projects"`
 	Name         string         `json:"name"`
+	FirstName    string         `json:"first_name,omitempty"`
+	LastName     string         `json:"last_name,omitempty"`
+	Organization string         `json:"organization,omitempty"`
+	Description  string         `json:"description,omitempty"`
 	Token        string         `json:"token,omitempty"`
 	Email        string         `json:"email"`
 	ServiceRoles []string       `json:"service_roles"`
@@ -46,6 +56,27 @@ type PaginatedUsers struct {
 	Users         []User `json:"users"`
 	NextPageToken string `json:"nextPageToken"`
 	TotalSize     int32  `json:"totalSize"`
+}
+
+// UserRegistration holds information about a new user registration
+type UserRegistration struct {
+	UUID            string `json:"uuid"`
+	Name            string `json:"name"`
+	FirstName       string `json:"first_name"`
+	LastName        string `json:"last_name"`
+	Organization    string `json:"organization"`
+	Description     string `json:"description"`
+	Email           string `json:"email"`
+	Status          string `json:"status"`
+	ActivationToken string `json:"activation_token"`
+	RegisteredAt    string `json:"registered_at"`
+	ModifiedBy      string `json:"modified_by,omitempty"`
+	ModifiedAt      string `json:"modified_at,omitempty"`
+}
+
+// UserRegistration holds a list with all the user registrations in the service
+type UserRegistrationsList struct {
+	UserRegistrations []UserRegistration `json:"user_registrations"`
 }
 
 // ExportJSON exports User to json format
@@ -89,10 +120,130 @@ func GetUserFromJSON(input []byte) (User, error) {
 	return u, err
 }
 
+// RegisterUser registers a new user to the store
+func RegisterUser(uuid, name, fname, lname, email, org, desc, registeredAt, atkn, status string, str stores.Store) (UserRegistration, error) {
+
+	err := str.RegisterUser(uuid, name, fname, lname, email, org, desc, registeredAt, atkn, status)
+	if err != nil {
+		return UserRegistration{}, err
+	}
+
+	return UserRegistration{
+		UUID:            uuid,
+		Name:            name,
+		FirstName:       fname,
+		LastName:        lname,
+		Email:           email,
+		Organization:    org,
+		Description:     desc,
+		RegisteredAt:    registeredAt,
+		ActivationToken: atkn,
+		Status:          status,
+	}, nil
+}
+
+func FindUserRegistration(regUUID, status string, str stores.Store) (UserRegistration, error) {
+
+	q, err := str.QueryRegistrations(regUUID, status, "", "", "", "")
+	if err != nil {
+		return UserRegistration{}, err
+	}
+
+	if len(q) == 0 {
+		return UserRegistration{}, errors.New("not found")
+	}
+
+	usernameC := ""
+	if q[0].ModifiedBy != "" {
+		usr, err := str.QueryUsers("", q[0].ModifiedBy, "")
+		if err == nil && len(usr) > 0 {
+			usernameC = usr[0].Name
+
+		}
+	}
+
+	ur := UserRegistration{
+		UUID:            q[0].UUID,
+		Name:            q[0].Name,
+		FirstName:       q[0].FirstName,
+		LastName:        q[0].LastName,
+		Email:           q[0].Email,
+		ActivationToken: q[0].ActivationToken,
+		Status:          q[0].Status,
+		Organization:    q[0].Organization,
+		Description:     q[0].Description,
+		RegisteredAt:    q[0].RegisteredAt,
+		ModifiedBy:      usernameC,
+		ModifiedAt:      q[0].ModifiedAt,
+	}
+
+	return ur, nil
+}
+
+func FindUserRegistrations(status, activationToken, name, email, org string, str stores.Store) (UserRegistrationsList, error) {
+
+	q, err := str.QueryRegistrations("", status, activationToken, name, email, org)
+	if err != nil {
+		return UserRegistrationsList{}, err
+	}
+
+	urList := UserRegistrationsList{
+		UserRegistrations: []UserRegistration{},
+	}
+
+	for _, ur := range q {
+
+		usernameC := ""
+		if ur.ModifiedBy != "" {
+			usr, err := str.QueryUsers("", ur.ModifiedBy, "")
+			if err == nil && len(usr) > 0 {
+				usernameC = usr[0].Name
+
+			}
+		}
+
+		tempUR := UserRegistration{
+			UUID:            ur.UUID,
+			Name:            ur.Name,
+			FirstName:       ur.FirstName,
+			LastName:        ur.LastName,
+			Email:           ur.Email,
+			ActivationToken: ur.ActivationToken,
+			Status:          ur.Status,
+			Organization:    ur.Organization,
+			Description:     ur.Description,
+			RegisteredAt:    ur.RegisteredAt,
+			ModifiedBy:      usernameC,
+			ModifiedAt:      ur.ModifiedAt,
+		}
+
+		urList.UserRegistrations = append(urList.UserRegistrations, tempUR)
+	}
+
+	return urList, nil
+}
+
+func UpdateUserRegistration(regUUID, status, modifiedBy string, modifiedAt time.Time, refStr stores.Store) error {
+	return refStr.UpdateRegistration(regUUID, status, modifiedBy, modifiedAt.Format("2006-01-02T15:04:05Z"))
+}
+
 // NewUser accepts parameters and creates a new user
-func NewUser(uuid string, projects []ProjectRoles, name string, token string, email string, serviceRoles []string, createdOn time.Time, modifiedOn time.Time, createdBy string) User {
+func NewUser(uuid string, projects []ProjectRoles, name string, fname string, lname string, org string, desc string, token string, email string, serviceRoles []string, createdOn time.Time, modifiedOn time.Time, createdBy string) User {
 	zuluForm := "2006-01-02T15:04:05Z"
-	return User{UUID: uuid, Projects: projects, Name: name, Token: token, Email: email, ServiceRoles: serviceRoles, CreatedOn: createdOn.Format(zuluForm), ModifiedOn: modifiedOn.Format(zuluForm), CreatedBy: createdBy}
+	return User{
+		UUID:         uuid,
+		Projects:     projects,
+		Name:         name,
+		FirstName:    fname,
+		LastName:     lname,
+		Organization: org,
+		Description:  desc,
+		Token:        token,
+		Email:        email,
+		ServiceRoles: serviceRoles,
+		CreatedOn:    createdOn.Format(zuluForm),
+		ModifiedOn:   modifiedOn.Format(zuluForm),
+		CreatedBy:    createdBy}
 }
 
 // GetPushWorker returns a push worker user by token
@@ -145,7 +296,9 @@ func GetUserByToken(token string, store stores.Store) (User, error) {
 		pRoles = append(pRoles, ProjectRoles{Project: prName, Roles: pItem.Roles, Topics: topicNames, Subs: subNames})
 	}
 
-	curUser := NewUser(user.UUID, pRoles, user.Name, user.Token, user.Email, user.ServiceRoles, user.CreatedOn.UTC(), user.ModifiedOn.UTC(), usernameC)
+	curUser := NewUser(user.UUID, pRoles, user.Name, user.FirstName,
+		user.LastName, user.Organization, user.Description, user.Token, user.Email,
+		user.ServiceRoles, user.CreatedOn.UTC(), user.ModifiedOn.UTC(), usernameC)
 
 	result = curUser
 
@@ -201,10 +354,19 @@ func FindUsers(projectUUID string, uuid string, name string, priviledged bool, s
 			for _, sbItem := range subList {
 				subNames = append(subNames, sbItem.Name)
 			}
-			pRoles = append(pRoles, ProjectRoles{Project: prName, Roles: pItem.Roles, Topics: topicNames, Subs: subNames})
+
+			// avoid null json reference with empty roles list
+			_pRoles := []string{}
+			if pItem.Roles != nil {
+				_pRoles = pItem.Roles
+			}
+
+			pRoles = append(pRoles, ProjectRoles{Project: prName, Roles: _pRoles, Topics: topicNames, Subs: subNames})
 		}
 
-		curUser := NewUser(item.UUID, pRoles, item.Name, token, item.Email, serviceRoles, item.CreatedOn.UTC(), item.ModifiedOn.UTC(), usernameC)
+		curUser := NewUser(item.UUID, pRoles, item.Name, item.FirstName, item.LastName,
+			item.Organization, item.Description, token, item.Email, serviceRoles,
+			item.CreatedOn.UTC(), item.ModifiedOn.UTC(), usernameC)
 
 		result.List = append(result.List, curUser)
 	}
@@ -280,7 +442,9 @@ func PaginatedFindUsers(pageToken string, pageSize int32, projectUUID string, pr
 			pRoles = append(pRoles, ProjectRoles{Project: prName, Roles: pItem.Roles, Topics: topicNames, Subs: subNames})
 		}
 
-		curUser := NewUser(item.UUID, pRoles, item.Name, token, item.Email, serviceRoles, item.CreatedOn.UTC(), item.ModifiedOn.UTC(), usernameC)
+		curUser := NewUser(item.UUID, pRoles, item.Name, item.FirstName, item.LastName,
+			item.Organization, item.Description, token, item.Email, serviceRoles,
+			item.CreatedOn.UTC(), item.ModifiedOn.UTC(), usernameC)
 
 		result.Users = append(result.Users, curUser)
 	}
@@ -385,7 +549,9 @@ func GetUserByUUID(uuid string, store stores.Store) (User, error) {
 		pRoles = append(pRoles, ProjectRoles{Project: prName, Roles: pItem.Roles, Topics: topicNames, Subs: subNames})
 	}
 
-	curUser := NewUser(user.UUID, pRoles, user.Name, user.Token, user.Email, user.ServiceRoles, user.CreatedOn, user.ModifiedOn, usernameC)
+	curUser := NewUser(user.UUID, pRoles, user.Name, user.FirstName,
+		user.LastName, user.Organization, user.Description, user.Token, user.Email,
+		user.ServiceRoles, user.CreatedOn.UTC(), user.ModifiedOn.UTC(), usernameC)
 
 	result = curUser
 
@@ -440,7 +606,8 @@ func AppendToUserProjects(userUUID string, projectUUID string, store stores.Stor
 }
 
 // UpdateUser updates an existing user's information
-func UpdateUser(uuid string, name string, projectList []ProjectRoles, email string, serviceRoles []string, modifiedOn time.Time, store stores.Store) (User, error) {
+// IF the function caller needs to have a view on the updated user object it can set the reflectObj to true
+func UpdateUser(uuid, firstName, lastName, organization, description string, name string, projectList []ProjectRoles, email string, serviceRoles []string, modifiedOn time.Time, reflectObj bool, store stores.Store) (User, error) {
 
 	prList := []stores.QProjectRoles{}
 
@@ -450,6 +617,11 @@ func UpdateUser(uuid string, name string, projectList []ProjectRoles, email stri
 	// Prep project roles for datastore insert
 	if projectList != nil {
 		for _, item := range projectList {
+
+			// if no name has been given for the project, skip it
+			if item.Project == "" {
+				continue
+			}
 
 			// check if project is encountered before by consulting duplicate list
 			for _, dItem := range duplicates {
@@ -480,7 +652,7 @@ func UpdateUser(uuid string, name string, projectList []ProjectRoles, email stri
 		prList = nil
 	}
 
-	if serviceRoles != nil {
+	if serviceRoles != nil && len(serviceRoles) > 0 {
 		for _, roleItem := range serviceRoles {
 			if IsRoleValid(roleItem, validRoles) == false {
 				return User{}, errors.New("invalid role: " + roleItem)
@@ -488,26 +660,38 @@ func UpdateUser(uuid string, name string, projectList []ProjectRoles, email stri
 		}
 	}
 
-	if err := store.UpdateUser(uuid, prList, name, email, serviceRoles, modifiedOn); err != nil {
+	if err := store.UpdateUser(uuid, firstName, lastName, organization, description, prList, name, email, serviceRoles, modifiedOn); err != nil {
 		return User{}, err
 	}
 
 	// reflect stored object
-	stored, err := FindUsers("", uuid, "", true, store)
-	return stored.One(), err
+	if reflectObj {
+		stored, err := FindUsers("", uuid, "", true, store)
+		return stored.One(), err
+	}
+
+	return User{}, nil
 }
 
 // CreateUser creates a new user
-func CreateUser(uuid string, name string, projectList []ProjectRoles, token string, email string, serviceRoles []string, createdOn time.Time, createdBy string, store stores.Store) (User, error) {
+func CreateUser(uuid string, name string, fname string, lname string, org string, desc string, projectList []ProjectRoles, token string, email string, serviceRoles []string, createdOn time.Time, createdBy string, store stores.Store) (User, error) {
 	// check if project with the same name exists
 	if ExistsWithName(name, store) {
 		return User{}, errors.New("exists")
 	}
 
+	validRoles := store.GetAllRoles()
+
 	var duplicates []string
 	// Prep project roles for datastore insert
 	prList := []stores.QProjectRoles{}
+
 	for _, item := range projectList {
+
+		// if no name has been given for the project, skip it
+		if item.Project == "" {
+			continue
+		}
 
 		// check if project is encountered before by consulting duplicate list
 		for _, dItem := range duplicates {
@@ -526,7 +710,6 @@ func CreateUser(uuid string, name string, projectList []ProjectRoles, token stri
 		}
 
 		// Check roles
-		validRoles := store.GetAllRoles()
 		for _, roleItem := range item.Roles {
 			if IsRoleValid(roleItem, validRoles) == false {
 				return User{}, errors.New("invalid role: " + roleItem)
@@ -535,7 +718,15 @@ func CreateUser(uuid string, name string, projectList []ProjectRoles, token stri
 		prList = append(prList, stores.QProjectRoles{ProjectUUID: prUUID, Roles: item.Roles})
 	}
 
-	if err := store.InsertUser(uuid, prList, name, token, email, serviceRoles, createdOn, createdOn, createdBy); err != nil {
+	if serviceRoles != nil && len(serviceRoles) > 0 {
+		for _, roleItem := range serviceRoles {
+			if IsRoleValid(roleItem, validRoles) == false {
+				return User{}, errors.New("invalid role: " + roleItem)
+			}
+		}
+	}
+
+	if err := store.InsertUser(uuid, prList, name, fname, lname, org, desc, token, email, serviceRoles, createdOn, createdOn, createdBy); err != nil {
 		return User{}, errors.New("backend error")
 	}
 

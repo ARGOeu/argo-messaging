@@ -332,6 +332,188 @@ Success Response
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
 
+### [POST] Create a new member user under the specific project
+
+### Example request
+```
+curl -X POST -H "Content-Type: application/json"
+  -d POSTDATA "https://{URL}/v1/projects/ARGO2/members/NewUser?key=S3CR3T"
+```
+
+### Post body:
+
+```json
+{
+	"projects": [
+			{
+				"project": "ARGO2",
+				"roles": ["consumer"]
+			}
+		],
+	"email": "email@test.com"
+}
+```
+
+### Responses  
+If successful, the response contains information about the newly created user
+
+Success Response
+`200 OK`
+
+```json
+{
+
+       "uuid": "99bfd746-4ebe-11e8-9c2d-fa7ae01bbebw",
+       "projects": [
+          {
+             "project": "ARGO2",
+             "roles": [
+                "consumer"
+             ],
+             "topics": [],
+             "subscriptions": []
+          }
+       ],
+       "name": "NewUSer",
+       "token": "S3CR3T",
+       "email": "email@test.com",
+       "service_roles": [],
+       "created_on": "2009-11-10T23:00:00Z",
+       "modified_on": "2009-11-10T23:00:00Z"
+}
+```
+
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors
+
+### [PUT] Updates the roles for a member user under the specific project
+
+### Example request
+```
+curl -X PUT -H "Content-Type: application/json"
+  -d POSTDATA "https://{URL}/v1/projects/ARGO2/members/NewUser?key=S3CR3T"
+```
+
+### Post body:
+
+```json
+{
+	"projects": [
+			{
+				"project": "ARGO2",
+				"roles": ["consumer"]
+			}
+		]
+}
+```
+
+### Responses  
+If successful, the response contains information about the updated user
+
+Success Response
+`200 OK`
+
+```json
+{
+
+       "uuid": "99bfd746-4ebe-11e8-9c2d-fa7ae01bbebw",
+       "projects": [
+          {
+             "project": "ARGO2",
+             "roles": [
+                "consumer"
+             ],
+             "topics": [],
+             "subscriptions": []
+          }
+       ],
+       "name": "NewUSer",
+       "token": "S3CR3T",
+       "email": "email@test.com",
+       "service_roles": [],
+       "created_on": "2009-11-10T23:00:00Z",
+       "modified_on": "2009-11-10T23:00:00Z"
+}
+```
+
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors
+
+### [POST] Add/Invite a user to a project
+
+### Example request
+```
+curl -X POST -H "Content-Type: application/json"
+  -d POSTDATA "https://{URL}/v1/projects/ARGO2/members/NewUser:add?key=S3CR3T"
+```
+
+### Post body:
+
+```json
+{
+  "roles": ["consumer"],
+   "topics": ["topic1"],
+   "subscriptions": ["sub1"]
+}
+```
+
+### Responses  
+If successful, the response contains information about the added user
+
+Success Response
+`200 OK`
+
+```json
+{
+
+       "uuid": "99bfd746-4ebe-11e8-9c2d-fa7ae01bbebw",
+       "projects": [
+          {
+             "project": "ARGO2",
+             "roles": [
+                "consumer"
+             ],
+             "topics": [
+                "topic1"
+             ],
+             "subscriptions": [
+                "sub1"
+             ]
+          }
+       ],
+       "name": "NewUSer",
+       "token": "S3CR3T",
+       "email": "email@test.com",
+       "service_roles": [],
+       "created_on": "2009-11-10T23:00:00Z",
+       "modified_on": "2009-11-10T23:00:00Z"
+}
+```
+
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors
+
+
+### [POST] Remove a user from the project
+
+### Example request
+```
+curl -X POST -H "Content-Type: application/json"
+ "https://{URL}/v1/projects/ARGO2/members/NewUser:remove?key=S3CR3T"
+```
+
+### Responses  
+Empty response on success
+`200 OK`
+
+```json
+{}
+```
+
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors
+
+
 ## [GET] Project Metrics
 The following request returns related metrics for the specific project: eg. the number of topics
 

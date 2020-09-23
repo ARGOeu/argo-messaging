@@ -237,7 +237,6 @@ POST "/v1/projects/{project_name}/topics/{topic_name}:publish"
 - Project_name: Name of the project to post the messages
 - topic_name: to post the messages
 
-
 ### Post data
 ```json
 {
@@ -257,6 +256,10 @@ POST "/v1/projects/{project_name}/topics/{topic_name}:publish"
 
 > The value of the data property must be always encoded in base64 format.
 
+#### AVRO Schema Use case
+Whenever a topic has an AVRO Schema attached to it, all messages
+need to have their schema encoded alongside them in order for the validation
+to work properly.
 
 ### Example request
 

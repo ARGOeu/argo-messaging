@@ -148,6 +148,82 @@ func (mong *MongoStore) UpdateProject(projectUUID string, name string, descripti
 
 }
 
+// RegisterUser inserts a new user registration to the database
+func (mong *MongoStore) RegisterUser(uuid, name, firstName, lastName, email, org, desc, registeredAt, atkn, status string) error {
+
+	ur := QUserRegistration{
+		UUID:            uuid,
+		Name:            name,
+		FirstName:       firstName,
+		LastName:        lastName,
+		Email:           email,
+		Organization:    org,
+		Description:     desc,
+		RegisteredAt:    registeredAt,
+		ActivationToken: atkn,
+		Status:          status,
+	}
+
+	return mong.InsertResource("user_registrations", ur)
+}
+
+func (mong *MongoStore) QueryRegistrations(regUUID, status, activationToken, name, email, org string) ([]QUserRegistration, error) {
+
+	query := bson.M{}
+
+	if regUUID != "" {
+		query["uuid"] = regUUID
+	}
+
+	if status != "" {
+		query["status"] = status
+	}
+
+	if activationToken != "" {
+		query["activation_token"] = activationToken
+	}
+
+	if name != "" {
+		query["name"] = name
+	}
+
+	if email != "" {
+		query["email"] = email
+	}
+
+	if org != "" {
+		query["organization"] = org
+	}
+
+	qur := []QUserRegistration{}
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C("user_registrations")
+	err := c.Find(query).All(&qur)
+	if err != nil {
+		return qur, err
+	}
+
+	return qur, nil
+}
+
+func (mong *MongoStore) UpdateRegistration(regUUID, status, modifiedBy, modifiedAt string) error {
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C("user_registrations")
+
+	ur := bson.M{"uuid": regUUID}
+	change := bson.M{
+		"$set": bson.M{
+			"status":           status,
+			"modified_by":      modifiedBy,
+			"modified_at":      modifiedAt,
+			"activation_token": "",
+		},
+	}
+	return c.Update(ur, change)
+}
+
 // UpdateUserToken updates user's token
 func (mong *MongoStore) UpdateUserToken(uuid string, token string) error {
 
@@ -195,7 +271,7 @@ func (mong *MongoStore) AppendToUserProjects(userUUID string, projectUUID string
 }
 
 // UpdateUser updates user information
-func (mong *MongoStore) UpdateUser(uuid string, projects []QProjectRoles, name string, email string, serviceRoles []string, modifiedOn time.Time) error {
+func (mong *MongoStore) UpdateUser(uuid, fname, lname, org, desc string, projects []QProjectRoles, name string, email string, serviceRoles []string, modifiedOn time.Time) error {
 	db := mong.Session.DB(mong.Database)
 	c := db.C("users")
 
@@ -219,6 +295,22 @@ func (mong *MongoStore) UpdateUser(uuid string, projects []QProjectRoles, name s
 
 	if email != "" {
 		curUsr.Email = email
+	}
+
+	if fname != "" {
+		curUsr.FirstName = fname
+	}
+
+	if lname != "" {
+		curUsr.LastName = lname
+	}
+
+	if org != "" {
+		curUsr.Organization = org
+	}
+
+	if desc != "" {
+		curUsr.Description = desc
 	}
 
 	if projects != nil {
@@ -1154,8 +1246,22 @@ func (mong *MongoStore) InsertOpMetric(hostname string, cpu float64, mem float64
 }
 
 // InsertUser inserts a new user to the store
-func (mong *MongoStore) InsertUser(uuid string, projects []QProjectRoles, name string, token string, email string, serviceRoles []string, createdOn time.Time, modifiedOn time.Time, createdBy string) error {
-	user := QUser{UUID: uuid, Name: name, Email: email, Token: token, Projects: projects, ServiceRoles: serviceRoles, CreatedOn: createdOn, ModifiedOn: modifiedOn, CreatedBy: createdBy}
+func (mong *MongoStore) InsertUser(uuid string, projects []QProjectRoles, name string, fname string, lname string, org string, desc string, token string, email string, serviceRoles []string, createdOn time.Time, modifiedOn time.Time, createdBy string) error {
+	user := QUser{
+		UUID:         uuid,
+		Name:         name,
+		Email:        email,
+		Token:        token,
+		FirstName:    fname,
+		LastName:     lname,
+		Organization: org,
+		Description:  desc,
+		Projects:     projects,
+		ServiceRoles: serviceRoles,
+		CreatedOn:    createdOn,
+		ModifiedOn:   modifiedOn,
+		CreatedBy:    createdBy,
+	}
 	return mong.InsertResource("users", user)
 }
 

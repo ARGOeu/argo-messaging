@@ -146,6 +146,10 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 ## [POST] Manage Schemas - Create new Schema
 This request creates a new schema
 
+
+### Supported Schema Types
+> JSON,AVRO
+
 ### Request
 ```json
 POST "/v1/projects/{project_name}/schemas/{schema_name}"
@@ -348,12 +352,23 @@ curl -X POST -H "Content-Type: application/json -d POSTDATA"
 
 ### Post body:
 
+#### JSON Schema
+
 ```json
 {
   "name": "name1",
   "email": "e1@example.com",
   "address": "address1",
   "telephone": "6980574421"
+}
+```
+
+#### AVRO Schema
+When dealing with an AVRO Schema, the binary message needs to be encoded to `base64`
+alongside its `schema` and sent via the `data` field which is required.
+```json
+{
+  "data": "DGFnZWxvc8T8Cg=="
 }
 ```
 

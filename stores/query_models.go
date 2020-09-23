@@ -48,12 +48,32 @@ type QProject struct {
 	Description string    `bson:"description"`
 }
 
+// QUserRegistration holds information about a UserRegister query
+type QUserRegistration struct {
+	UUID            string `bson:"uuid"`
+	Name            string `bson:"name"`
+	FirstName       string `bson:"first_name"`
+	LastName        string `bson:"last_name"`
+	Organization    string `bson:"organization"`
+	Description     string `bson:"description"`
+	Email           string `bson:"email"`
+	ActivationToken string `bson:"activation_token"`
+	Status          string `bson:"status"`
+	RegisteredAt    string `bson:"registered_at"`
+	ModifiedBy      string `bson:"modified_by"`
+	ModifiedAt      string `bson:"modified_at"`
+}
+
 // QUser are the results of the QUser query
 type QUser struct {
 	ID           interface{}     `bson:"_id,omitempty"`
 	UUID         string          `bson:"uuid"`
 	Projects     []QProjectRoles `bson:"projects"`
 	Name         string          `bson:"name"`
+	FirstName    string          `bson:"first_name,omitempty"`
+	LastName     string          `bson:"last_name,omitempty"`
+	Organization string          `bson:"organization,omitempty"`
+	Description  string          `bson:"description,omitempty"`
 	Token        string          `bson:"token"`
 	Email        string          `bson:"email"`
 	ServiceRoles []string        `bson:"service_roles"`

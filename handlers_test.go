@@ -111,6 +111,10 @@ func (suite *HandlerTestSuite) TestUserProfile() {
       }
    ],
    "name": "UserA",
+   "first_name": "FirstA",
+   "last_name": "LastA",
+   "organization": "OrgA",
+   "description": "DescA",
    "token": "S3CR3T1",
    "email": "foo-email",
    "service_roles": [],
@@ -179,6 +183,10 @@ func (suite *HandlerTestSuite) TestUserCreate() {
 
 	postJSON := `{
 	"email":"email@foo.com",
+	"first_name": "fname-1",
+	"last_name": "lname-1",
+	"organization": "org-1",
+	"description": "desc-1",
 	"projects":[{"project_uuid":"argo_uuid","roles":["admin","viewer"]}]
 }`
 
@@ -203,6 +211,10 @@ func (suite *HandlerTestSuite) TestUserCreate() {
 	// Check if the mock authenticated userA has been marked as the creator
 	suite.Equal("email@foo.com", usrOut.Email)
 	//suite.Equal([]string{"admin", "viewer"}, usrOut.Projects[0].Role)
+	suite.Equal("fname-1", usrOut.FirstName)
+	suite.Equal("lname-1", usrOut.LastName)
+	suite.Equal("org-1", usrOut.Organization)
+	suite.Equal("desc-1", usrOut.Description)
 }
 
 func (suite *HandlerTestSuite) TestUserCreateDuplicateRef() {
@@ -221,6 +233,106 @@ func (suite *HandlerTestSuite) TestUserCreateDuplicateRef() {
    "error": {
       "code": 400,
       "message": "duplicate reference of project ARGO",
+      "status": "INVALID_ARGUMENT"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/users/{user}", WrapMockAuthConfig(UserCreate, cfgKafka, &brk, str, &mgr, nil))
+	router.ServeHTTP(w, req)
+	suite.Equal(400, w.Code)
+	suite.Equal(expJSON, w.Body.String())
+}
+
+func (suite *HandlerTestSuite) TestUserCreateInvalidServiceRole() {
+
+	postJSON := `{
+	"email":"email@foo.com",
+	"projects":[{"project":"ARGO","roles":["admin","viewer"]}],
+	"service_roles": ["unknown"]
+}`
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/users/USERNEW", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expJSON := `{
+   "error": {
+      "code": 400,
+      "message": "invalid role: unknown",
+      "status": "INVALID_ARGUMENT"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/users/{user}", WrapMockAuthConfig(UserCreate, cfgKafka, &brk, str, &mgr, nil))
+	router.ServeHTTP(w, req)
+	suite.Equal(400, w.Code)
+	suite.Equal(expJSON, w.Body.String())
+}
+
+func (suite *HandlerTestSuite) TestUserCreateInvalidProjectName() {
+
+	postJSON := `{
+	"email":"email@foo.com",
+	"projects":[{"project":"unknown","roles":["admin","viewer"]},{"project":"ARGO","roles":["admin","viewer"]}]
+}`
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/users/USERNEW", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expJSON := `{
+   "error": {
+      "code": 400,
+      "message": "invalid project: unknown",
+      "status": "INVALID_ARGUMENT"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/users/{user}", WrapMockAuthConfig(UserCreate, cfgKafka, &brk, str, &mgr, nil))
+	router.ServeHTTP(w, req)
+	suite.Equal(400, w.Code)
+	suite.Equal(expJSON, w.Body.String())
+}
+
+func (suite *HandlerTestSuite) TestUserCreateInvalidRoles() {
+
+	postJSON := `{
+	"email":"email@foo.com",
+	"projects":[{"project":"ARGO2","roles":["unknown","viewer"]},{"project":"ARGO","roles":["admin","viewer"]}]
+}`
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/users/USERNEW", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expJSON := `{
+   "error": {
+      "code": 400,
+      "message": "invalid role: unknown",
       "status": "INVALID_ARGUMENT"
    }
 }`
@@ -288,6 +400,108 @@ func (suite *HandlerTestSuite) TestUserUpdate() {
 
 }
 
+func (suite *HandlerTestSuite) TestUserUpdateInvalidProjectName() {
+
+	postJSON := `{
+	"name":"UPDATED_NAME",
+	"projects": [{"project": "unknown"}],
+	"service_roles":["service_admin"]
+}`
+
+	req, err := http.NewRequest("PUT", "http://localhost:8080/v1/users/UserZ", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expJSON := `{
+   "error": {
+      "code": 400,
+      "message": "invalid project: unknown",
+      "status": "INVALID_ARGUMENT"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/users/{user}", WrapMockAuthConfig(UserUpdate, cfgKafka, &brk, str, &mgr, nil))
+	router.ServeHTTP(w, req)
+	suite.Equal(400, w.Code)
+	suite.Equal(expJSON, w.Body.String())
+}
+
+func (suite *HandlerTestSuite) TestUserUpdateInvalidRoles() {
+
+	postJSON := `{
+	"name":"UPDATED_NAME",
+	"projects": [{"project": "ARGO2", "roles": ["unknown"]}],
+	"service_roles":["service_admin"]
+}`
+
+	req, err := http.NewRequest("PUT", "http://localhost:8080/v1/users/UserZ", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expJSON := `{
+   "error": {
+      "code": 400,
+      "message": "invalid role: unknown",
+      "status": "INVALID_ARGUMENT"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/users/{user}", WrapMockAuthConfig(UserUpdate, cfgKafka, &brk, str, &mgr, nil))
+	router.ServeHTTP(w, req)
+	suite.Equal(400, w.Code)
+	suite.Equal(expJSON, w.Body.String())
+}
+
+func (suite *HandlerTestSuite) TestUserUpdateInvalidServiceRoles() {
+
+	postJSON := `{
+	"name":"UPDATED_NAME",
+	"projects": [{"project": "ARGO2", "roles": ["consumer"]}],
+	"service_roles":["unknown"]
+}`
+
+	req, err := http.NewRequest("PUT", "http://localhost:8080/v1/users/UserZ", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expJSON := `{
+   "error": {
+      "code": 400,
+      "message": "invalid role: unknown",
+      "status": "INVALID_ARGUMENT"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/users/{user}", WrapMockAuthConfig(UserUpdate, cfgKafka, &brk, str, &mgr, nil))
+	router.ServeHTTP(w, req)
+	suite.Equal(400, w.Code)
+	suite.Equal(expJSON, w.Body.String())
+}
+
 func (suite *HandlerTestSuite) TestUserUpdateDuplicate() {
 	postJSON := `{
 		"email":"email@foo.com",
@@ -349,6 +563,10 @@ func (suite *HandlerTestSuite) TestUserListByToken() {
       }
    ],
    "name": "UserA",
+   "first_name": "FirstA",
+   "last_name": "LastA",
+   "organization": "OrgA",
+   "description": "DescA",
    "token": "S3CR3T1",
    "email": "foo-email",
    "service_roles": [],
@@ -602,6 +820,10 @@ func (suite *HandlerTestSuite) TestUserListOne() {
       }
    ],
    "name": "UserA",
+   "first_name": "FirstA",
+   "last_name": "LastA",
+   "organization": "OrgA",
+   "description": "DescA",
    "token": "S3CR3T1",
    "email": "foo-email",
    "service_roles": [],
@@ -807,6 +1029,10 @@ func (suite *HandlerTestSuite) TestUserListAll() {
             }
          ],
          "name": "UserA",
+         "first_name": "FirstA",
+         "last_name": "LastA",
+         "organization": "OrgA",
+         "description": "DescA",
          "token": "S3CR3T1",
          "email": "foo-email",
          "service_roles": [],
@@ -1065,6 +1291,10 @@ func (suite *HandlerTestSuite) TestUserListAllProjectARGO() {
             }
          ],
          "name": "UserA",
+         "first_name": "FirstA",
+         "last_name": "LastA",
+         "organization": "OrgA",
+         "description": "DescA",
          "token": "S3CR3T1",
          "email": "foo-email",
          "service_roles": [],
@@ -1262,6 +1492,10 @@ func (suite *HandlerTestSuite) TestProjectUserListARGO() {
             }
          ],
          "name": "UserA",
+         "first_name": "FirstA",
+         "last_name": "LastA",
+         "organization": "OrgA",
+         "description": "DescA",
          "token": "S3CR3T1",
          "email": "foo-email",
          "service_roles": [],
@@ -1449,6 +1683,10 @@ func (suite *HandlerTestSuite) TestProjectUserListUnprivARGO() {
             }
          ],
          "name": "UserA",
+         "first_name": "FirstA",
+         "last_name": "LastA",
+         "organization": "OrgA",
+         "description": "DescA",
          "email": "foo-email",
          "service_roles": [],
          "created_on": "2009-11-10T23:00:00Z",
@@ -1490,6 +1728,1002 @@ func (suite *HandlerTestSuite) TestProjectUserListUnprivARGO() {
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
+
+}
+
+func (suite *HandlerTestSuite) TestRegisterUser() {
+
+	type td struct {
+		postBody           string
+		expectedResponse   string
+		expectedStatusCode int
+		msg                string
+	}
+
+	testData := []td{
+		{
+			postBody: `{
+							"name": "new-register-user",
+							"first_name": "first-name",
+							"last_name": "last-name",
+							"email": "test@example.com",
+							"organization": "org1",
+							"description": "desc1"
+					   }`,
+			expectedResponse: `{
+   "uuid": "{{UUID}}",
+   "name": "new-register-user",
+   "first_name": "first-name",
+   "last_name": "last-name",
+   "organization": "org1",
+   "description": "desc1",
+   "email": "test@example.com",
+   "status": "pending",
+   "activation_token": "{{ATKN}}",
+   "registered_at": "{{REAT}}"
+}`,
+			expectedStatusCode: 200,
+			msg:                "User registration successful",
+		},
+		{
+			postBody: `{
+							"name": "UserA",
+							"first_name": "new-name",
+							"last_name": "last-name",
+							"email": "test@example.com",
+							"organization": "org1",
+							"description": "desc1"
+					   }`,
+			expectedResponse: `{
+   "error": {
+      "code": 409,
+      "message": "User already exists",
+      "status": "ALREADY_EXISTS"
+   }
+}`,
+			expectedStatusCode: 409,
+			msg:                "user already exists",
+		},
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	cfgKafka.PushEnabled = true
+	cfgKafka.PushWorkerToken = "push_token"
+	cfgKafka.ResAuth = false
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+
+	for _, t := range testData {
+
+		w := httptest.NewRecorder()
+		req, err := http.NewRequest("POST", "http://localhost:8080/v1/registrations", strings.NewReader(t.postBody))
+		if err != nil {
+			log.Fatal(err)
+		}
+		router.HandleFunc("/v1/registrations", WrapMockAuthConfig(RegisterUser, cfgKafka, &brk, str, &mgr, pc))
+		router.ServeHTTP(w, req)
+		if t.expectedStatusCode == 200 {
+			t.expectedResponse = strings.Replace(t.expectedResponse, "{{UUID}}", str.UserRegistrations[1].UUID, 1)
+			t.expectedResponse = strings.Replace(t.expectedResponse, "{{REAT}}", str.UserRegistrations[1].RegisteredAt, 1)
+			t.expectedResponse = strings.Replace(t.expectedResponse, "{{ATKN}}", str.UserRegistrations[1].ActivationToken, 1)
+		}
+		suite.Equal(t.expectedStatusCode, w.Code, t.msg)
+		suite.Equal(t.expectedResponse, w.Body.String(), t.msg)
+	}
+
+}
+
+func (suite *HandlerTestSuite) TestAcceptRegisterUser() {
+
+	type td struct {
+		ruuid              string
+		uname              string
+		expectedResponse   string
+		expectedStatusCode int
+		msg                string
+	}
+
+	testData := []td{{
+		ruuid: "ur-uuid1",
+		uname: "urname",
+		expectedResponse: `{
+   "uuid": "{{UUID}}",
+   "projects": [],
+   "name": "urname",
+   "first_name": "urfname",
+   "last_name": "urlname",
+   "organization": "urorg",
+   "description": "urdesc",
+   "token": "{{TOKEN}}",
+   "email": "uremail",
+   "service_roles": [],
+   "created_on": "{{CON}}",
+   "modified_on": "{{MON}}",
+   "created_by": "UserA"
+}`,
+		expectedStatusCode: 200,
+		msg:                "Successfully accepted a user's registration",
+	},
+		{
+			ruuid: "ur-uuid1",
+			uname: "urname",
+			expectedResponse: `{
+   "error": {
+      "code": 404,
+      "message": "User registration doesn't exist",
+      "status": "NOT_FOUND"
+   }
+}`,
+			expectedStatusCode: 404,
+			msg:                "User registration doesn't exist",
+		}}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	cfgKafka.PushEnabled = true
+	cfgKafka.PushWorkerToken = "push_token"
+	cfgKafka.ResAuth = false
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+
+	for _, t := range testData {
+
+		w := httptest.NewRecorder()
+		url := fmt.Sprintf("http://localhost:8080/v1/registrations/%v:accept", t.ruuid)
+		req, err := http.NewRequest("POST", url, nil)
+		if err != nil {
+			log.Fatal(err)
+		}
+		router.HandleFunc("/v1/registrations/{uuid}:accept", WrapMockAuthConfig(AcceptRegisterUser, cfgKafka, &brk, str, &mgr, pc))
+		router.ServeHTTP(w, req)
+		if t.expectedStatusCode == 200 {
+			u, _ := auth.FindUsers("", "", t.uname, true, str)
+			t.expectedResponse = strings.Replace(t.expectedResponse, "{{UUID}}", u.List[0].UUID, 1)
+			t.expectedResponse = strings.Replace(t.expectedResponse, "{{TOKEN}}", u.List[0].Token, 1)
+			t.expectedResponse = strings.Replace(t.expectedResponse, "{{CON}}", u.List[0].CreatedOn, 1)
+			t.expectedResponse = strings.Replace(t.expectedResponse, "{{MON}}", u.List[0].ModifiedOn, 1)
+		}
+		suite.Equal(t.expectedStatusCode, w.Code, t.msg)
+		suite.Equal(t.expectedResponse, w.Body.String(), t.msg)
+	}
+
+}
+
+func (suite *HandlerTestSuite) TestDeclineRegisterUser() {
+
+	type td struct {
+		regUUID            string
+		expectedResponse   string
+		expectedStatusCode int
+		msg                string
+	}
+
+	testData := []td{{
+		regUUID:            "ur-uuid1",
+		expectedResponse:   `{}`,
+		expectedStatusCode: 200,
+		msg:                "Successfully declined a user's registration",
+	},
+		{
+			regUUID: "unknown",
+			expectedResponse: `{
+   "error": {
+      "code": 404,
+      "message": "User registration doesn't exist",
+      "status": "NOT_FOUND"
+   }
+}`,
+			expectedStatusCode: 404,
+			msg:                "User registration doesn't exist",
+		}}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	cfgKafka.PushEnabled = true
+	cfgKafka.PushWorkerToken = "push_token"
+	cfgKafka.ResAuth = false
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+
+	for _, t := range testData {
+
+		w := httptest.NewRecorder()
+		url := fmt.Sprintf("http://localhost:8080/v1/registrations/%v:decline", t.regUUID)
+		req, err := http.NewRequest("POST", url, nil)
+		if err != nil {
+			log.Fatal(err)
+		}
+		router.HandleFunc("/v1/registrations/{uuid}:decline", WrapMockAuthConfig(DeclineRegisterUser, cfgKafka, &brk, str, &mgr, pc))
+		router.ServeHTTP(w, req)
+		if t.expectedStatusCode == 200 {
+			suite.Equal(auth.DeclinedRegistrationStatus, str.UserRegistrations[0].Status)
+		}
+		suite.Equal(t.expectedStatusCode, w.Code, t.msg)
+		suite.Equal(t.expectedResponse, w.Body.String(), t.msg)
+	}
+
+}
+
+func (suite *HandlerTestSuite) TestListOneRegistration() {
+
+	type td struct {
+		regUUID            string
+		expectedResponse   string
+		expectedStatusCode int
+		msg                string
+	}
+
+	testData := []td{
+		{
+			regUUID: "ur-uuid1",
+			expectedResponse: `{
+   "uuid": "ur-uuid1",
+   "name": "urname",
+   "first_name": "urfname",
+   "last_name": "urlname",
+   "organization": "urorg",
+   "description": "urdesc",
+   "email": "uremail",
+   "status": "pending",
+   "activation_token": "uratkn-1",
+   "registered_at": "2019-05-12T22:26:58Z",
+   "modified_by": "UserA",
+   "modified_at": "2020-05-15T22:26:58Z"
+}`,
+			expectedStatusCode: 200,
+			msg:                "User registration retrieved successfully",
+		},
+		{
+			regUUID: "unknown",
+			expectedResponse: `{
+   "error": {
+      "code": 404,
+      "message": "User registration doesn't exist",
+      "status": "NOT_FOUND"
+   }
+}`,
+			expectedStatusCode: 404,
+			msg:                "User registration doesn't exist",
+		},
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	cfgKafka.PushEnabled = true
+	cfgKafka.PushWorkerToken = "push_token"
+	cfgKafka.ResAuth = false
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+
+	for _, t := range testData {
+
+		w := httptest.NewRecorder()
+		url := fmt.Sprintf("http://localhost:8080/v1/registrations/%v", t.regUUID)
+		req, err := http.NewRequest("GET", url, nil)
+		if err != nil {
+			log.Fatal(err)
+		}
+		router.HandleFunc("/v1/registrations/{uuid}", WrapMockAuthConfig(ListOneRegistration, cfgKafka, &brk, str, &mgr, pc))
+		router.ServeHTTP(w, req)
+		suite.Equal(t.expectedStatusCode, w.Code, t.msg)
+		suite.Equal(t.expectedResponse, w.Body.String(), t.msg)
+	}
+
+}
+
+func (suite *HandlerTestSuite) TestListManyregistrations() {
+
+	type td struct {
+		urlPath            string
+		expectedResponse   string
+		expectedStatusCode int
+		msg                string
+	}
+
+	testData := []td{
+		{
+			urlPath: "registrations",
+			expectedResponse: `{
+   "user_registrations": [
+      {
+         "uuid": "ur-uuid1",
+         "name": "urname",
+         "first_name": "urfname",
+         "last_name": "urlname",
+         "organization": "urorg",
+         "description": "urdesc",
+         "email": "uremail",
+         "status": "pending",
+         "activation_token": "uratkn-1",
+         "registered_at": "2019-05-12T22:26:58Z",
+         "modified_by": "UserA",
+         "modified_at": "2020-05-15T22:26:58Z"
+      }
+   ]
+}`,
+			expectedStatusCode: 200,
+			msg:                "Retrieve all available user registrations without any filters",
+		},
+		{
+			urlPath: "registrations?status=pending&name=urname&activation_token=uratkn-1&email=uremail&organization=urorg",
+			expectedResponse: `{
+   "user_registrations": [
+      {
+         "uuid": "ur-uuid1",
+         "name": "urname",
+         "first_name": "urfname",
+         "last_name": "urlname",
+         "organization": "urorg",
+         "description": "urdesc",
+         "email": "uremail",
+         "status": "pending",
+         "activation_token": "uratkn-1",
+         "registered_at": "2019-05-12T22:26:58Z",
+         "modified_by": "UserA",
+         "modified_at": "2020-05-15T22:26:58Z"
+      }
+   ]
+}`,
+			expectedStatusCode: 200,
+			msg:                "Retrieve all available user registrations with filters",
+		},
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	cfgKafka.PushEnabled = true
+	cfgKafka.PushWorkerToken = "push_token"
+	cfgKafka.ResAuth = false
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+
+	for _, t := range testData {
+
+		w := httptest.NewRecorder()
+		url := fmt.Sprintf("http://localhost:8080/v1/%v", t.urlPath)
+		req, err := http.NewRequest("GET", url, nil)
+		if err != nil {
+			log.Fatal(err)
+		}
+		router.HandleFunc("/v1/registrations", WrapMockAuthConfig(ListAllRegistrations, cfgKafka, &brk, str, &mgr, pc))
+		router.ServeHTTP(w, req)
+		suite.Equal(t.expectedStatusCode, w.Code, t.msg)
+		suite.Equal(t.expectedResponse, w.Body.String(), t.msg)
+	}
+
+}
+
+func (suite *HandlerTestSuite) TestProjectUserCreate() {
+
+	type td struct {
+		user               string
+		postBody           string
+		expectedResponse   string
+		expectedStatusCode int
+		msg                string
+	}
+
+	testData := []td{
+		{
+			user: "member-user",
+			postBody: `{
+							"email": "test@example.com",
+							"service_roles": ["service_admin"],
+							"projects": [
+											{
+												"project": "ARGO",
+												"roles": ["project_admin", "publisher", "consumer"]
+											},
+											{
+												"project": "unknown"
+											}
+										]
+					   }`,
+			expectedResponse: `{
+   "uuid": "{{UUID}}",
+   "projects": [
+      {
+         "project": "ARGO",
+         "roles": [
+            "project_admin",
+            "publisher",
+            "consumer"
+         ],
+         "topics": [],
+         "subscriptions": []
+      }
+   ],
+   "name": "member-user",
+   "token": "{{TOKEN}}",
+   "email": "test@example.com",
+   "service_roles": [],
+   "created_on": "{{CON}}",
+   "modified_on": "{{MON}}",
+   "created_by": "UserA"
+}`,
+			expectedStatusCode: 200,
+			msg:                "Create a member of a project(ignore other projects & service roles)",
+		},
+		{
+			user: "member-user-2",
+			postBody: `{
+							"email": "test@example.com",
+							"service_roles": ["service_admin"],
+							"projects": []
+					   }`,
+			expectedResponse: `{
+   "uuid": "{{UUID}}",
+   "projects": [
+      {
+         "project": "ARGO",
+         "roles": [],
+         "topics": [],
+         "subscriptions": []
+      }
+   ],
+   "name": "member-user-2",
+   "token": "{{TOKEN}}",
+   "email": "test@example.com",
+   "service_roles": [],
+   "created_on": "{{CON}}",
+   "modified_on": "{{MON}}",
+   "created_by": "UserA"
+}`,
+			expectedStatusCode: 200,
+			msg:                "Create a member/user that automatically gets assigned to the respective project",
+		},
+		{
+			user: "member-user-unknown",
+			postBody: `{
+							"email": "test@example.com",
+							"service_roles": ["service_admin"],
+							"projects": [
+											{
+												"project": "ARGO",
+												"roles": ["unknown"]
+											},
+											{
+												"project": "unknown"
+											}
+										]
+					   }`,
+			expectedResponse: `{
+   "error": {
+      "code": 400,
+      "message": "invalid role: unknown",
+      "status": "INVALID_ARGUMENT"
+   }
+}`,
+			expectedStatusCode: 400,
+			msg:                "Invalid user role",
+		},
+		{
+			user: "member-user",
+			postBody: `{
+							"email": "test@example.com",
+							"service_roles": ["service_admin"],
+							"projects": [
+											{
+												"project": "ARGO",
+												"roles": ["unknown"]
+											},
+											{
+												"project": "unknown"
+											}
+										]
+					   }`,
+			expectedResponse: `{
+   "error": {
+      "code": 409,
+      "message": "User already exists",
+      "status": "ALREADY_EXISTS"
+   }
+}`,
+			expectedStatusCode: 409,
+			msg:                "user already exists",
+		},
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	cfgKafka.PushEnabled = true
+	cfgKafka.PushWorkerToken = "push_token"
+	cfgKafka.ResAuth = false
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+
+	for _, t := range testData {
+
+		w := httptest.NewRecorder()
+		url := fmt.Sprintf("http://localhost:8080/v1/projects/ARGO/members/%v", t.user)
+		req, err := http.NewRequest("POST", url, strings.NewReader(t.postBody))
+		if err != nil {
+			log.Fatal(err)
+		}
+		router.HandleFunc("/v1/projects/{project}/members/{user}", WrapMockAuthConfig(ProjectUserCreate, cfgKafka, &brk, str, &mgr, pc))
+		router.ServeHTTP(w, req)
+		if t.expectedStatusCode == 200 {
+			u, _ := auth.FindUsers("argo_uuid", "", t.user, true, str)
+			t.expectedResponse = strings.Replace(t.expectedResponse, "{{UUID}}", u.List[0].UUID, 1)
+			t.expectedResponse = strings.Replace(t.expectedResponse, "{{TOKEN}}", u.List[0].Token, 1)
+			t.expectedResponse = strings.Replace(t.expectedResponse, "{{CON}}", u.List[0].CreatedOn, 1)
+			t.expectedResponse = strings.Replace(t.expectedResponse, "{{MON}}", u.List[0].ModifiedOn, 1)
+		}
+		suite.Equal(t.expectedStatusCode, w.Code, t.msg)
+		suite.Equal(t.expectedResponse, w.Body.String(), t.msg)
+	}
+
+}
+
+func (suite *HandlerTestSuite) TestProjectUserUpdate() {
+
+	type td struct {
+		user               string
+		postBody           string
+		authRole           string
+		expectedResponse   string
+		expectedStatusCode int
+		msg                string
+	}
+
+	testData := []td{
+		{
+			user: "UserA",
+			postBody: `{
+							"email": "test@example.com",
+							"name": "new-name",
+							"service_roles": ["service_admin"],
+							"projects": [
+											{
+												"project": "ARGO",
+												"roles": ["project_admin", "publisher"]
+											},
+											{
+												"project": "unknown"
+											}
+										]
+					   }`,
+			authRole: "project_admin",
+			expectedResponse: `{
+   "uuid": "{{UUID}}",
+   "projects": [
+      {
+         "project": "ARGO",
+         "roles": [
+            "project_admin",
+            "publisher"
+         ],
+         "topics": [
+            "topic1",
+            "topic2"
+         ],
+         "subscriptions": [
+            "sub1",
+            "sub2",
+            "sub3"
+         ]
+      }
+   ],
+   "name": "UserA",
+   "first_name": "FirstA",
+   "last_name": "LastA",
+   "organization": "OrgA",
+   "description": "DescA",
+   "email": "foo-email",
+   "service_roles": [],
+   "created_on": "{{CON}}",
+   "modified_on": "{{MON}}"
+}`,
+			expectedStatusCode: 200,
+			msg:                "Update a member of a project(ignore other projects & service roles & email & name)(project_admin)",
+		},
+		{
+			user: "UserA",
+			postBody: `{
+							"email": "test@example.com",
+							"name": "new-name",
+							"service_roles": ["service_admin"],
+							"projects": [
+											{
+												"project": "ARGO",
+												"roles": ["project_admin", "publisher"]
+											},
+											{
+												"project": "unknown"
+											}
+										]
+					   }`,
+			authRole: "service_admin",
+			expectedResponse: `{
+   "uuid": "{{UUID}}",
+   "projects": [
+      {
+         "project": "ARGO",
+         "roles": [
+            "project_admin",
+            "publisher"
+         ],
+         "topics": [
+            "topic1",
+            "topic2"
+         ],
+         "subscriptions": [
+            "sub1",
+            "sub2",
+            "sub3"
+         ]
+      }
+   ],
+   "name": "UserA",
+   "first_name": "FirstA",
+   "last_name": "LastA",
+   "organization": "OrgA",
+   "description": "DescA",
+   "token": "{{TOKEN}}",
+   "email": "foo-email",
+   "service_roles": [],
+   "created_on": "{{CON}}",
+   "modified_on": "{{MON}}"
+}`,
+			expectedStatusCode: 200,
+			msg:                "Update a member of a project(ignore other projects & service roles & email & name)(service_admin)",
+		},
+		{
+			user: "UserA",
+			postBody: `{
+							"email": "test@example.com",
+							"service_roles": ["service_admin"],
+							"projects": [
+											{
+												"project": "ARGO",
+												"roles": ["unknown"]
+											}
+										]
+					   }`,
+			authRole: "project_admin",
+			expectedResponse: `{
+   "error": {
+      "code": 400,
+      "message": "invalid role: unknown",
+      "status": "INVALID_ARGUMENT"
+   }
+}`,
+			expectedStatusCode: 400,
+			msg:                "Invalid user role",
+		},
+		{
+			user: "UserA",
+			postBody: `{
+							"email": "test@example.com",
+							"service_roles": ["service_admin"],
+							"projects": [
+											{
+												"project": "ARGO2",
+												"roles": ["publisher"]
+											}
+										]
+					   }`,
+			authRole: "project_admin",
+			expectedResponse: `{
+   "error": {
+      "code": 403,
+      "message": "Access to this resource is forbidden. User is not a member of the project",
+      "status": "FORBIDDEN"
+   }
+}`,
+			expectedStatusCode: 403,
+			msg:                "user is not a member of the project",
+		},
+		{
+			user: "unknown",
+			postBody: `{
+							"email": "test@example.com",
+							"service_roles": ["service_admin"],
+							"projects": [
+											{
+												"project": "ARGO",
+												"roles": ["publisher"]
+											}
+										]
+					   }`,
+			authRole: "project_admin",
+			expectedResponse: `{
+   "error": {
+      "code": 404,
+      "message": "User doesn't exist",
+      "status": "NOT_FOUND"
+   }
+}`,
+			expectedStatusCode: 404,
+			msg: "user doesn't exist" +
+				"",
+		},
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	cfgKafka.PushEnabled = true
+	cfgKafka.PushWorkerToken = "push_token"
+	cfgKafka.ResAuth = true
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+
+	for _, t := range testData {
+
+		w := httptest.NewRecorder()
+		url := fmt.Sprintf("http://localhost:8080/v1/projects/ARGO/members/%v", t.user)
+		req, err := http.NewRequest("PUT", url, strings.NewReader(t.postBody))
+		if err != nil {
+			log.Fatal(err)
+		}
+		router := mux.NewRouter().StrictSlash(true)
+		router.HandleFunc("/v1/projects/{project}/members/{user}", WrapMockAuthConfig(ProjectUserUpdate, cfgKafka, &brk, str, &mgr, pc, t.authRole))
+		router.ServeHTTP(w, req)
+		if t.expectedStatusCode == 200 {
+			u, _ := auth.FindUsers("argo_uuid", "", t.user, true, str)
+			t.expectedResponse = strings.Replace(t.expectedResponse, "{{UUID}}", u.List[0].UUID, 1)
+			t.expectedResponse = strings.Replace(t.expectedResponse, "{{TOKEN}}", u.List[0].Token, 1)
+			t.expectedResponse = strings.Replace(t.expectedResponse, "{{CON}}", u.List[0].CreatedOn, 1)
+			t.expectedResponse = strings.Replace(t.expectedResponse, "{{MON}}", u.List[0].ModifiedOn, 1)
+		}
+		suite.Equal(t.expectedStatusCode, w.Code, t.msg)
+		suite.Equal(t.expectedResponse, w.Body.String(), t.msg)
+	}
+
+}
+
+func (suite *HandlerTestSuite) TestProjectUserRemove() {
+
+	type td struct {
+		user               string
+		expectedResponse   string
+		expectedStatusCode int
+		msg                string
+	}
+
+	testData := []td{
+		{
+			user:               "UserA",
+			expectedResponse:   `{}`,
+			expectedStatusCode: 200,
+			msg:                "Remove a member from the project",
+		},
+		{
+			user: "UserA",
+			expectedResponse: `{
+   "error": {
+      "code": 403,
+      "message": "Access to this resource is forbidden. User is not a member of the project",
+      "status": "FORBIDDEN"
+   }
+}`,
+			expectedStatusCode: 403,
+			msg:                "user is not a member of the project",
+		},
+		{
+			user: "unknown",
+			expectedResponse: `{
+   "error": {
+      "code": 404,
+      "message": "User doesn't exist",
+      "status": "NOT_FOUND"
+   }
+}`,
+			expectedStatusCode: 404,
+			msg: "user doesn't exist" +
+				"",
+		},
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	cfgKafka.PushEnabled = true
+	cfgKafka.PushWorkerToken = "push_token"
+	cfgKafka.ResAuth = true
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+
+	for _, t := range testData {
+
+		w := httptest.NewRecorder()
+		url := fmt.Sprintf("http://localhost:8080/v1/projects/ARGO/members/%v:remove", t.user)
+		req, err := http.NewRequest("POST", url, nil)
+		if err != nil {
+			log.Fatal(err)
+		}
+		router.HandleFunc("/v1/projects/{project}/members/{user}:remove", WrapMockAuthConfig(ProjectUserRemove, cfgKafka, &brk, str, &mgr, pc))
+		router.ServeHTTP(w, req)
+		suite.Equal(t.expectedStatusCode, w.Code, t.msg)
+		suite.Equal(t.expectedResponse, w.Body.String(), t.msg)
+	}
+}
+
+func (suite *HandlerTestSuite) TestProjectUserAdd() {
+
+	type td struct {
+		user               string
+		project            string
+		authRole           string
+		postBody           string
+		expectedResponse   string
+		expectedStatusCode int
+		msg                string
+	}
+
+	testData := []td{
+		{
+			user:    "UserA",
+			project: "ARGO2",
+			postBody: `{
+							"roles": ["unknown"]
+						}`,
+			expectedResponse: `{
+   "error": {
+      "code": 400,
+      "message": "invalid role: unknown",
+      "status": "INVALID_ARGUMENT"
+   }
+}`,
+			expectedStatusCode: 400,
+			msg:                "Invalid user role",
+		},
+		{
+			user:    "UserA",
+			project: "ARGO2",
+			postBody: `{
+						"roles": ["project_admin", "publisher", "consumer"]
+					   }`,
+			authRole: "project_admin",
+			expectedResponse: `{
+   "uuid": "{{UUID}}",
+   "projects": [
+      {
+         "project": "ARGO2",
+         "roles": [
+            "project_admin",
+            "publisher",
+            "consumer"
+         ],
+         "topics": [],
+         "subscriptions": []
+      }
+   ],
+   "name": "UserA",
+   "first_name": "FirstA",
+   "last_name": "LastA",
+   "organization": "OrgA",
+   "description": "DescA",
+   "email": "foo-email",
+   "service_roles": [],
+   "created_on": "{{CON}}",
+   "modified_on": "{{MON}}"
+}`,
+			expectedStatusCode: 200,
+			msg:                "Add user to project(project_admin)",
+		},
+		{
+			user:    "UserA",
+			project: "ARGO2",
+			postBody: `{
+						"roles": ["project_admin", "consumer", "publisher"]
+					   }`,
+			authRole: "service_admin",
+			expectedResponse: `{
+   "uuid": "{{UUID}}",
+   "projects": [
+      {
+         "project": "ARGO",
+         "roles": [
+            "consumer",
+            "publisher"
+         ],
+         "topics": [
+            "topic1",
+            "topic2"
+         ],
+         "subscriptions": [
+            "sub1",
+            "sub2",
+            "sub3"
+         ]
+      },
+      {
+         "project": "ARGO2",
+         "roles": [
+            "project_admin",
+            "consumer",
+            "publisher"
+         ],
+         "topics": [],
+         "subscriptions": []
+      }
+   ],
+   "name": "UserA",
+   "first_name": "FirstA",
+   "last_name": "LastA",
+   "organization": "OrgA",
+   "description": "DescA",
+   "token": "{{TOKEN}}",
+   "email": "foo-email",
+   "service_roles": [],
+   "created_on": "{{CON}}",
+   "modified_on": "{{MON}}"
+}`,
+			expectedStatusCode: 200,
+			msg:                "Add user to project(service_admin)",
+		},
+		{
+			user:    "UserA",
+			project: "ARGO",
+			postBody: `{
+							"roles": ["project_admin"]
+					   }`,
+			expectedResponse: `{
+   "error": {
+      "code": 409,
+      "message": "User is already a member of the project",
+      "status": "CONFLICT"
+   }
+}`,
+			expectedStatusCode: 409,
+			msg:                "user already member of the project",
+		},
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	cfgKafka.PushEnabled = true
+	cfgKafka.PushWorkerToken = "push_token"
+	cfgKafka.ResAuth = false
+	brk := brokers.MockBroker{}
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+
+	for _, t := range testData {
+		str := stores.NewMockStore("whatever", "argo_mgs")
+		w := httptest.NewRecorder()
+		url := fmt.Sprintf("http://localhost:8080/v1/projects/%v/members/%v:add", t.project, t.user)
+		req, err := http.NewRequest("POST", url, strings.NewReader(t.postBody))
+		if err != nil {
+			log.Fatal(err)
+		}
+		router := mux.NewRouter().StrictSlash(true)
+		router.HandleFunc("/v1/projects/{project}/members/{user}:add", WrapMockAuthConfig(ProjectUserAdd, cfgKafka, &brk, str, &mgr, pc, t.authRole))
+		router.ServeHTTP(w, req)
+		if t.expectedStatusCode == 200 {
+			u, _ := auth.FindUsers("argo_uuid", "", t.user, true, str)
+			t.expectedResponse = strings.Replace(t.expectedResponse, "{{UUID}}", u.List[0].UUID, 1)
+			t.expectedResponse = strings.Replace(t.expectedResponse, "{{TOKEN}}", u.List[0].Token, 1)
+			t.expectedResponse = strings.Replace(t.expectedResponse, "{{CON}}", u.List[0].CreatedOn, 1)
+			t.expectedResponse = strings.Replace(t.expectedResponse, "{{MON}}", u.List[0].ModifiedOn, 1)
+		}
+		suite.Equal(t.expectedStatusCode, w.Code, t.msg)
+		suite.Equal(t.expectedResponse, w.Body.String(), t.msg)
+	}
 
 }
 
@@ -4684,7 +5918,8 @@ func (suite *HandlerTestSuite) TestTopicListAll() {
          "name": "/projects/ARGO/topics/topic4"
       },
       {
-         "name": "/projects/ARGO/topics/topic3"
+         "name": "/projects/ARGO/topics/topic3",
+         "schema": "projects/ARGO/schemas/schema-3"
       },
       {
          "name": "/projects/ARGO/topics/topic2",
@@ -4780,6 +6015,7 @@ func (suite *HandlerTestSuite) TestTopicListAllPublisherWithPagination() {
 func (suite *HandlerTestSuite) TestPublishWithSchema() {
 
 	type td struct {
+		topic              string
 		postBody           string
 		expectedResponse   string
 		expectedStatusCode int
@@ -4788,6 +6024,7 @@ func (suite *HandlerTestSuite) TestPublishWithSchema() {
 
 	testData := []td{
 		{
+			topic: "topic2",
 			postBody: `{
 	"messages" : [
 		
@@ -4809,9 +6046,34 @@ func (suite *HandlerTestSuite) TestPublishWithSchema() {
       "2"
    ]
 }`,
-			msg: "Case where the messages are validated successfully",
+			msg: "Case where the messages are validated successfully(JSON)",
 		},
 		{
+			topic: "topic3",
+			postBody: `{
+	"messages" : [
+		
+		{
+			"attributes": {},
+			"data": "DGFnZWxvc8T8Cg=="
+		},	
+		{
+			"attributes": {},
+			"data": "DGFnZWxvc8T8Cg=="
+		}
+	]
+}`,
+			expectedStatusCode: 200,
+			expectedResponse: `{
+   "messageIds": [
+      "3",
+      "4"
+   ]
+}`,
+			msg: "Case where the messages are validated successfully(AVRO)",
+		},
+		{
+			topic: "topic2",
 			postBody: `{
 	"messages" : [
 		
@@ -4837,6 +6099,34 @@ func (suite *HandlerTestSuite) TestPublishWithSchema() {
 			msg: "Case where one of the messages is not successfully validated(2 errors)",
 		},
 		{
+			topic: "topic3",
+			postBody: `{
+	"messages" : [
+		
+		{
+			"attributes": {},
+			"data": "T2JqAQQWYXZyby5zY2hlbWGYAnsidHlwZSI6InJlY29yZCIsIm5hbWUiOiJQbGFjZSIsIm5hbWVzcGFjZSI6InBsYWNlLmF2cm8iLCJmaWVsZHMiOlt7Im5hbWUiOiJwbGFjZW5hbWUiLCJ0eXBlIjoic3RyaW5nIn0seyJuYW1lIjoiYWRkcmVzcyIsInR5cGUiOiJzdHJpbmcifV19FGF2cm8uY29kZWMIbnVsbABM1P4b0GpYaCg9tqxa+YDZAiQSc3RyZWV0IDIyDnBsYWNlIGFM1P4b0GpYaCg9tqxa+YDZ"
+		},
+		
+		{
+			"attributes": {},
+			"data": "DGFnZWxvc8T8Cg=="
+		}
+	]
+}`,
+			expectedStatusCode: 400,
+			expectedResponse: `{
+   "error": {
+      "code": 400,
+      "message": "Message 0 is not valid.cannot decode binary record \"user.avro.User\" field \"username\": cannot decode binary string: cannot decode binary bytes: negative size: -40",
+      "status": "INVALID_ARGUMENT"
+   }
+}`,
+			msg: "Case where one of the messages is not successfully validated(1 error)(AVRO)",
+		},
+
+		{
+			topic: "topic2",
 			postBody: `{
 	"messages" : [
 		
@@ -4862,6 +6152,7 @@ func (suite *HandlerTestSuite) TestPublishWithSchema() {
 			msg: "Case where the one of the messages is not successfully validated(1 error)",
 		},
 		{
+			topic: "topic2",
 			postBody: `{
 	"messages" : [
 		
@@ -4892,6 +6183,7 @@ func (suite *HandlerTestSuite) TestPublishWithSchema() {
 	cfgKafka.LoadStrJSON(suite.cfgStr)
 	cfgKafka.PushEnabled = true
 	cfgKafka.PushWorkerToken = "push_token"
+	cfgKafka.ResAuth = false
 	brk := brokers.MockBroker{}
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
@@ -4901,7 +6193,7 @@ func (suite *HandlerTestSuite) TestPublishWithSchema() {
 	for _, t := range testData {
 
 		w := httptest.NewRecorder()
-		url := fmt.Sprintf("http://localhost:8080/v1/projects/ARGO/topics/%v", "topic2")
+		url := fmt.Sprintf("http://localhost:8080/v1/projects/ARGO/topics/%v", t.topic)
 		req, err := http.NewRequest("POST", url, strings.NewReader(t.postBody))
 		if err != nil {
 			log.Fatal(err)
@@ -4927,7 +6219,8 @@ func (suite *HandlerTestSuite) TestTopicListAllFirstPage() {
          "name": "/projects/ARGO/topics/topic4"
       },
       {
-         "name": "/projects/ARGO/topics/topic3"
+         "name": "/projects/ARGO/topics/topic3",
+         "schema": "projects/ARGO/schemas/schema-3"
       }
    ],
    "nextPageToken": "MQ==",
@@ -6040,7 +7333,44 @@ func (suite *HandlerTestSuite) TestSchemaCreate() {
   "type": "string"
  }
 }`,
-			msg: "Case where the schema is valid and successfully created",
+			msg: "Case where the schema is valid and successfully created(JSON)",
+		},
+		{
+			postBody: `{
+	"type": "avro",
+	"schema":{
+  			"type": "record",
+ 			"namespace": "user.avro",
+			"name":"User",
+			"fields": [
+						{"name": "username", "type": "string"},
+						{"name": "phone", "type": "int"}
+			]
+	}
+}`,
+			schemaName:         "new-schema-avro",
+			expectedStatusCode: 200,
+			expectedResponse: `{
+ "uuid": "{{UUID}}",
+ "name": "projects/ARGO/schemas/new-schema-avro",
+ "type": "avro",
+ "schema": {
+  "fields": [
+   {
+    "name": "username",
+    "type": "string"
+   },
+   {
+    "name": "phone",
+    "type": "int"
+   }
+  ],
+  "name": "User",
+  "namespace": "user.avro",
+  "type": "record"
+ }
+}`,
+			msg: "Case where the schema is valid and successfully created(AVRO)",
 		},
 		{
 			postBody: `{
@@ -6054,7 +7384,7 @@ func (suite *HandlerTestSuite) TestSchemaCreate() {
 			expectedResponse: `{
    "error": {
       "code": 400,
-      "message": "Schema type can only be 'json'",
+      "message": "Schema type can only be 'json' or 'avro'",
       "status": "INVALID_ARGUMENT"
    }
 }`,
@@ -6077,6 +7407,24 @@ func (suite *HandlerTestSuite) TestSchemaCreate() {
    }
 }`,
 			msg: "Case where the json schema is not valid",
+		},
+		{
+			postBody: `{
+	"type": "avro",
+	"schema":{
+  			"type": "unknown"
+	}
+}`,
+			schemaName:         "new-schema-2",
+			expectedStatusCode: 400,
+			expectedResponse: `{
+   "error": {
+      "code": 400,
+      "message": "unknown type name: \"unknown\"",
+      "status": "INVALID_ARGUMENT"
+   }
+}`,
+			msg: "Case where the avro schema is not valid",
 		},
 		{
 			postBody: `{
@@ -6278,6 +7626,26 @@ func (suite *HandlerTestSuite) TestSchemaListAll() {
     ],
     "type": "object"
    }
+  },
+  {
+   "uuid": "schema_uuid_3",
+   "name": "projects/ARGO/schemas/schema-3",
+   "type": "avro",
+   "schema": {
+    "fields": [
+     {
+      "name": "username",
+      "type": "string"
+     },
+     {
+      "name": "phone",
+      "type": "int"
+     }
+    ],
+    "name": "User",
+    "namespace": "user.avro",
+    "type": "record"
+   }
   }
  ]
 }`,
@@ -6350,7 +7718,7 @@ func (suite *HandlerTestSuite) TestSchemaUpdate() {
 			expectedResponse: `{
    "error": {
       "code": 400,
-      "message": "Schema type can only be 'json'",
+      "message": "Schema type can only be 'json' or 'avro'",
       "status": "INVALID_ARGUMENT"
    }
 }`,
@@ -6546,7 +7914,18 @@ func (suite *HandlerTestSuite) TestSchemaValidateMessage() {
 			},
 			schemaName:         "schema-1",
 			expectedStatusCode: 200,
-			msg:                "Case where the message is successfully validated",
+			msg:                "Case where the message is successfully validated(JSON)",
+		},
+		{
+			expectedResponse: `{
+ "message": "Message validated successfully"
+}`,
+			postBody: map[string]interface{}{
+				"data": "DGFnZWxvc8T8Cg==",
+			},
+			schemaName:         "schema-3",
+			expectedStatusCode: 200,
+			msg:                "Case where the message is successfully validated(AVRO)",
 		},
 		{
 			postBody: map[string]interface{}{
@@ -6554,11 +7933,56 @@ func (suite *HandlerTestSuite) TestSchemaValidateMessage() {
 			},
 			schemaName:         "schema-1",
 			expectedStatusCode: 400,
-			msg:                "Case where the message is not valid(omit required email field)",
+			msg:                "Case where the message is not valid(omit required email field)(JSON)",
 			expectedResponse: `{
    "error": {
       "code": 400,
       "message": "Message 0 data is not valid,(root): email is required",
+      "status": "INVALID_ARGUMENT"
+   }
+}`,
+		},
+		{
+			postBody: map[string]interface{}{
+				"data": "T2JqAQQWYXZyby5zY2hlbWGYAnsidHlwZSI6InJlY29yZCIsIm5hbWUiOiJQbGFjZSIsIm5hbWVzcGFjZSI6InBsYWNlLmF2cm8iLCJmaWVsZHMiOlt7Im5hbWUiOiJwbGFjZW5hbWUiLCJ0eXBlIjoic3RyaW5nIn0seyJuYW1lIjoiYWRkcmVzcyIsInR5cGUiOiJzdHJpbmcifV19FGF2cm8uY29kZWMIbnVsbABM1P4b0GpYaCg9tqxa+YDZAiQSc3RyZWV0IDIyDnBsYWNlIGFM1P4b0GpYaCg9tqxa+YDZ",
+			},
+			schemaName:         "schema-3",
+			expectedStatusCode: 400,
+			msg:                "Case where the message is not valid(AVRO)",
+			expectedResponse: `{
+   "error": {
+      "code": 400,
+      "message": "Message 0 is not valid.cannot decode binary record \"user.avro.User\" field \"username\": cannot decode binary string: cannot decode binary bytes: negative size: -40",
+      "status": "INVALID_ARGUMENT"
+   }
+}`,
+		},
+		{
+			postBody: map[string]interface{}{
+				"data": "DGFnZWxvc8T8Cg",
+			},
+			schemaName:         "schema-3",
+			expectedStatusCode: 400,
+			msg:                "Case where the message is not in valid base64(AVRO)",
+			expectedResponse: `{
+   "error": {
+      "code": 400,
+      "message": "Message 0 is not in valid base64 enocding,illegal base64 data at input byte 12",
+      "status": "INVALID_ARGUMENT"
+   }
+}`,
+		},
+		{
+			postBody: map[string]interface{}{
+				"unknown": "unknown",
+			},
+			schemaName:         "schema-3",
+			expectedStatusCode: 400,
+			msg:                "Case where the request arguments are missing the required data field(AVRO)",
+			expectedResponse: `{
+   "error": {
+      "code": 400,
+      "message": "Invalid Schema Payload Arguments",
       "status": "INVALID_ARGUMENT"
    }
 }`,

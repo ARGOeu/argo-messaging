@@ -3,7 +3,7 @@
 
 Name: argo-messaging
 Summary: ARGO Messaging API for broker network
-Version: 1.0.6
+Version: 1.0.7
 Release: 1%{?dist}
 License: ASL 2.0
 Buildroot: %{_tmppath}/%{name}-buildroot
@@ -63,6 +63,8 @@ go clean
 %attr(0644,root,root) /usr/lib/systemd/system/argo-messaging.service
 
 %changelog
+* Wed Aug 05 2020 Agelos Tsalapatis  <agelos.tsal@gmail.com> 1.0.7-1%{?dist}
+- AMS release 1.0.7
 * Wed Jan 08 2020 Agelos Tsalapatis  <agelos.tsal@gmail.com> 1.0.6-1%{?dist}
 - ARGO-1984 Prohibit duplicate project references in user profiles
 - ARGO-1947 AMS subscriptions should be allowed to have slow start as their retry policy

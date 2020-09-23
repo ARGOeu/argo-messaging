@@ -167,11 +167,11 @@ func GetProjectsMessageCount(projects []string, startDate time.Time, endDate tim
 func GetNameByUUID(uuid string, store stores.Store) string {
 	result := ""
 
-	// if project string empty, returns all projects
-	projects, err := store.QueryProjects(uuid, "")
-
-	if len(projects) > 0 && err == nil {
-		result = projects[0].Name
+	if uuid != "" {
+		projects, err := store.QueryProjects(uuid, "")
+		if len(projects) > 0 && err == nil {
+			result = projects[0].Name
+		}
 	}
 
 	return result
@@ -180,11 +180,14 @@ func GetNameByUUID(uuid string, store stores.Store) string {
 // GetUUIDByName queries project by name and returns the corresponding UUID
 func GetUUIDByName(name string, store stores.Store) string {
 	result := ""
-	// if project string empty, returns all projects
-	projects, err := store.QueryProjects("", name)
-	if len(projects) > 0 && err == nil {
-		result = projects[0].UUID
+
+	if name != "" {
+		projects, err := store.QueryProjects("", name)
+		if len(projects) > 0 && err == nil {
+			result = projects[0].UUID
+		}
 	}
+
 	return result
 }
 

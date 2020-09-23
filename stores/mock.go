@@ -11,6 +11,7 @@ import (
 type MockStore struct {
 	Server             string
 	Database           string
+	UserRegistrations  []QUserRegistration
 	SubList            []QSub
 	TopicList          []QTopic
 	DailyTopicMsgCount []QDailyTopicMsgCount
@@ -62,9 +63,128 @@ func (mk *MockStore) Close() {
 }
 
 // InsertUser inserts a new user to the store
-func (mk *MockStore) InsertUser(uuid string, projects []QProjectRoles, name string, token string, email string, serviceRoles []string, createdOn time.Time, modifiedOn time.Time, createdBy string) error {
-	user := QUser{UUID: uuid, Name: name, Email: email, Projects: projects, Token: token, ServiceRoles: serviceRoles, CreatedOn: createdOn, ModifiedOn: modifiedOn, CreatedBy: createdBy}
+func (mk *MockStore) InsertUser(uuid string, projects []QProjectRoles, name string, fname string, lname string, org string, desc string, token string, email string, serviceRoles []string, createdOn time.Time, modifiedOn time.Time, createdBy string) error {
+	user := QUser{
+		UUID:         uuid,
+		Name:         name,
+		Email:        email,
+		Token:        token,
+		FirstName:    fname,
+		LastName:     lname,
+		Organization: org,
+		Description:  desc,
+		Projects:     projects,
+		ServiceRoles: serviceRoles,
+		CreatedOn:    createdOn,
+		ModifiedOn:   modifiedOn,
+		CreatedBy:    createdBy,
+	}
 	mk.UserList = append(mk.UserList, user)
+	return nil
+}
+
+func (mk *MockStore) RegisterUser(uuid, name, firstName, lastName, email, org, desc, registeredAt, atkn, status string) error {
+
+	ur := QUserRegistration{
+		UUID:            uuid,
+		Name:            name,
+		FirstName:       firstName,
+		LastName:        lastName,
+		Email:           email,
+		Organization:    org,
+		Description:     desc,
+		RegisteredAt:    registeredAt,
+		ActivationToken: atkn,
+		Status:          status,
+	}
+
+	mk.UserRegistrations = append(mk.UserRegistrations, ur)
+	return nil
+}
+
+func (mk *MockStore) QueryRegistrations(regUUID, status, activationToken, name, email, org string) ([]QUserRegistration, error) {
+
+	if regUUID == "" && status == "" && activationToken == "" && name == "" && email == "" && org == "" {
+		return mk.UserRegistrations, nil
+	}
+
+	reqs := []QUserRegistration{}
+
+	if regUUID != "" {
+		for idx, req := range mk.UserRegistrations {
+			if req.UUID == regUUID {
+				reqs = append(reqs, mk.UserRegistrations[idx])
+				continue
+			}
+		}
+	} else {
+		reqs = mk.UserRegistrations
+	}
+
+	if status != "" {
+		tempReqs := []QUserRegistration{}
+		for idx, req := range reqs {
+			if req.Status == status {
+				tempReqs = append(tempReqs, reqs[idx])
+			}
+		}
+		reqs = tempReqs
+	}
+
+	if activationToken != "" {
+		tempReqs := []QUserRegistration{}
+		for idx, req := range reqs {
+			if req.ActivationToken == activationToken {
+				tempReqs = append(tempReqs, reqs[idx])
+			}
+		}
+		reqs = tempReqs
+	}
+
+	if name != "" {
+		tempReqs := []QUserRegistration{}
+		for idx, req := range reqs {
+			if req.Name == name {
+				tempReqs = append(tempReqs, reqs[idx])
+			}
+		}
+		reqs = tempReqs
+	}
+
+	if email != "" {
+		tempReqs := []QUserRegistration{}
+		for idx, req := range reqs {
+			if req.Email == email {
+				tempReqs = append(tempReqs, reqs[idx])
+			}
+		}
+		reqs = tempReqs
+	}
+
+	if org != "" {
+		tempReqs := []QUserRegistration{}
+		for idx, req := range reqs {
+			if req.Organization == org {
+				tempReqs = append(tempReqs, reqs[idx])
+			}
+		}
+		reqs = tempReqs
+	}
+
+	return reqs, nil
+}
+
+func (mk *MockStore) UpdateRegistration(regUUID, status, modifiedBy, modifiedAt string) error {
+
+	for idx, ur := range mk.UserRegistrations {
+		if ur.UUID == regUUID {
+			mk.UserRegistrations[idx].Status = status
+			mk.UserRegistrations[idx].ModifiedBy = modifiedBy
+			mk.UserRegistrations[idx].ModifiedAt = modifiedAt
+			mk.UserRegistrations[idx].ActivationToken = ""
+		}
+	}
+
 	return nil
 }
 
@@ -127,7 +247,7 @@ func (mk *MockStore) AppendToUserProjects(userUUID string, projectUUID string, p
 }
 
 // UpdateUser updates user information
-func (mk *MockStore) UpdateUser(uuid string, projects []QProjectRoles, name string, email string, serviceRoles []string, modifiedOn time.Time) error {
+func (mk *MockStore) UpdateUser(uuid, fname, lname, org, desc string, projects []QProjectRoles, name string, email string, serviceRoles []string, modifiedOn time.Time) error {
 
 	for i, item := range mk.UserList {
 		if item.UUID == uuid {
@@ -142,6 +262,22 @@ func (mk *MockStore) UpdateUser(uuid string, projects []QProjectRoles, name stri
 			}
 			if email != "" {
 				mk.UserList[i].Email = email
+			}
+
+			if fname != "" {
+				mk.UserList[i].FirstName = fname
+			}
+
+			if lname != "" {
+				mk.UserList[i].LastName = lname
+			}
+
+			if org != "" {
+				mk.UserList[i].Organization = org
+			}
+
+			if desc != "" {
+				mk.UserList[i].Description = desc
 			}
 
 			mk.UserList[i].ModifiedOn = modifiedOn
@@ -630,7 +766,7 @@ func (mk *MockStore) Initialize() {
 
 	// populate topics
 	qtop4 := QTopic{3, "argo_uuid", "topic4", 0, 0, time.Date(0, 0, 0, 0, 0, 0, 0, time.Local), 0, ""}
-	qtop3 := QTopic{2, "argo_uuid", "topic3", 0, 0, time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local), 8.99, ""}
+	qtop3 := QTopic{2, "argo_uuid", "topic3", 0, 0, time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local), 8.99, "schema_uuid_3"}
 	qtop2 := QTopic{1, "argo_uuid", "topic2", 0, 0, time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local), 5.45, "schema_uuid_1"}
 	qtop1 := QTopic{0, "argo_uuid", "topic1", 0, 0, time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10, ""}
 	mk.TopicList = append(mk.TopicList, qtop1)
@@ -672,7 +808,18 @@ func (mk *MockStore) Initialize() {
 	s := "eyJwcm9wZXJ0aWVzIjp7ImFkZHJlc3MiOnsidHlwZSI6InN0cmluZyJ9LCJlbWFpbCI6eyJ0eXBlIjoic3RyaW5nIn0sIm5hbWUiOnsidHlwZSI6InN0cmluZyJ9LCJ0ZWxlcGhvbmUiOnsidHlwZSI6InN0cmluZyJ9fSwicmVxdWlyZWQiOlsibmFtZSIsImVtYWlsIl0sInR5cGUiOiJvYmplY3QifQ=="
 	qSchema1 := QSchema{UUID: "schema_uuid_1", ProjectUUID: "argo_uuid", Type: "json", Name: "schema-1", RawSchema: s}
 	qSchema2 := QSchema{UUID: "schema_uuid_2", ProjectUUID: "argo_uuid", Type: "json", Name: "schema-2", RawSchema: s}
-	mk.SchemaList = append(mk.SchemaList, qSchema1, qSchema2)
+	// {
+	//		"namespace": "user.avro",
+	//		"type": "record",
+	//		"name": "User",
+	//		"fields": [
+	//		{"name": "username", "type":"string"},
+	//		{"name": "phone", "type": "int"}
+	//      ]
+	// }
+	avros := "eyJmaWVsZHMiOlt7Im5hbWUiOiJ1c2VybmFtZSIsInR5cGUiOiJzdHJpbmcifSx7Im5hbWUiOiJwaG9uZSIsInR5cGUiOiJpbnQifV0sIm5hbWUiOiJVc2VyIiwibmFtZXNwYWNlIjoidXNlci5hdnJvIiwidHlwZSI6InJlY29yZCJ9"
+	qSchema3 := QSchema{UUID: "schema_uuid_3", ProjectUUID: "argo_uuid", Type: "avro", Name: "schema-3", RawSchema: avros}
+	mk.SchemaList = append(mk.SchemaList, qSchema1, qSchema2, qSchema3)
 
 	// populate daily msg count for topics
 	dc1 := QDailyTopicMsgCount{time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC), "argo_uuid", "topic1", 40}
@@ -684,20 +831,20 @@ func (mk *MockStore) Initialize() {
 	// populate Users
 	qRole := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"consumer", "publisher"}}}
 	qRoleB := []QProjectRoles{QProjectRoles{"argo_uuid2", []string{"consumer", "publisher"}}}
-	qUsr := QUser{0, "uuid0", qRole, "Test", "S3CR3T", "Test@test.com", []string{}, created, modified, ""}
+	qUsr := QUser{0, "uuid0", qRole, "Test", "", "", "", "", "S3CR3T", "Test@test.com", []string{}, created, modified, ""}
 
 	mk.UserList = append(mk.UserList, qUsr)
 
 	qRoleConsumerPub := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"publisher", "consumer"}}}
 
-	mk.UserList = append(mk.UserList, QUser{1, "uuid1", qRole, "UserA", "S3CR3T1", "foo-email", []string{}, created, modified, ""})
-	mk.UserList = append(mk.UserList, QUser{2, "uuid2", qRole, "UserB", "S3CR3T2", "foo-email", []string{}, created, modified, "uuid1"})
-	mk.UserList = append(mk.UserList, QUser{3, "uuid3", qRoleConsumerPub, "UserX", "S3CR3T3", "foo-email", []string{}, created, modified, "uuid1"})
-	mk.UserList = append(mk.UserList, QUser{4, "uuid4", qRoleConsumerPub, "UserZ", "S3CR3T4", "foo-email", []string{}, created, modified, "uuid1"})
-	mk.UserList = append(mk.UserList, QUser{5, "same_uuid", qRoleConsumerPub, "UserSame1", "S3CR3T41", "foo-email", []string{}, created, modified, "uuid1"})
-	mk.UserList = append(mk.UserList, QUser{6, "same_uuid", qRoleConsumerPub, "UserSame2", "S3CR3T42", "foo-email", []string{}, created, modified, "uuid1"})
-	mk.UserList = append(mk.UserList, QUser{7, "uuid7", []QProjectRoles{}, "push_worker_0", "push_token", "foo-email", []string{"push_worker"}, created, modified, ""})
-	mk.UserList = append(mk.UserList, QUser{8, "uuid8", qRoleB, "UserZ", "S3CR3T1", "foo-email", []string{}, created, modified, ""})
+	mk.UserList = append(mk.UserList, QUser{1, "uuid1", qRole, "UserA", "FirstA", "LastA", "OrgA", "DescA", "S3CR3T1", "foo-email", []string{}, created, modified, ""})
+	mk.UserList = append(mk.UserList, QUser{2, "uuid2", qRole, "UserB", "", "", "", "", "S3CR3T2", "foo-email", []string{}, created, modified, "uuid1"})
+	mk.UserList = append(mk.UserList, QUser{3, "uuid3", qRoleConsumerPub, "UserX", "", "", "", "", "S3CR3T3", "foo-email", []string{}, created, modified, "uuid1"})
+	mk.UserList = append(mk.UserList, QUser{4, "uuid4", qRoleConsumerPub, "UserZ", "", "", "", "", "S3CR3T4", "foo-email", []string{}, created, modified, "uuid1"})
+	mk.UserList = append(mk.UserList, QUser{5, "same_uuid", qRoleConsumerPub, "UserSame1", "", "", "", "", "S3CR3T41", "foo-email", []string{}, created, modified, "uuid1"})
+	mk.UserList = append(mk.UserList, QUser{6, "same_uuid", qRoleConsumerPub, "UserSame2", "", "", "", "", "S3CR3T42", "foo-email", []string{}, created, modified, "uuid1"})
+	mk.UserList = append(mk.UserList, QUser{7, "uuid7", []QProjectRoles{}, "push_worker_0", "", "", "", "", "push_token", "foo-email", []string{"push_worker"}, created, modified, ""})
+	mk.UserList = append(mk.UserList, QUser{8, "uuid8", qRoleB, "UserZ", "", "", "", "", "S3CR3T1", "foo-email", []string{}, created, modified, ""})
 
 	qRole1 := QRole{"topics:list_all", []string{"admin", "reader", "publisher"}}
 	qRole2 := QRole{"topics:publish", []string{"admin", "publisher"}}
@@ -725,6 +872,23 @@ func (mk *MockStore) Initialize() {
 	mk.SubsACL["sub3"] = qSubACL03
 	mk.SubsACL["sub4"] = qSubACL04
 
+	// Populate user registrations
+	ur1 := QUserRegistration{
+		UUID:            "ur-uuid1",
+		Name:            "urname",
+		FirstName:       "urfname",
+		LastName:        "urlname",
+		Organization:    "urorg",
+		Description:     "urdesc",
+		Email:           "uremail",
+		ActivationToken: "uratkn-1",
+		Status:          "pending",
+		RegisteredAt:    "2019-05-12T22:26:58Z",
+		ModifiedBy:      "uuid1",
+		ModifiedAt:      "2020-05-15T22:26:58Z",
+	}
+
+	mk.UserRegistrations = append(mk.UserRegistrations, ur1)
 }
 
 func (mk *MockStore) QueryTotalMessagesPerProject(projectUUIDs []string, startDate time.Time, endDate time.Time) ([]QProjectMessageCount, error) {

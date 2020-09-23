@@ -1,6 +1,8 @@
 package stores
 
-import "time"
+import (
+	"time"
+)
 
 // Store encapsulates the generic store interface
 type Store interface {
@@ -19,7 +21,7 @@ type Store interface {
 	RemoveSub(projectUUID string, name string) error
 	PaginatedQueryUsers(pageToken string, pageSize int32, projectUUID string) ([]QUser, int32, string, error)
 	QueryUsers(projectUUID string, uuid string, name string) ([]QUser, error)
-	UpdateUser(uuid string, projects []QProjectRoles, name string, email string, serviceRoles []string, modifiedOn time.Time) error
+	UpdateUser(uuid, fname, lname, org, desc string, projects []QProjectRoles, name string, email string, serviceRoles []string, modifiedOn time.Time) error
 	AppendToUserProjects(userUUID string, projectUUID string, pRoles ...string) error
 	UpdateUserToken(uuid string, token string) error
 	RemoveUser(uuid string) error
@@ -30,7 +32,10 @@ type Store interface {
 	RemoveProjectSubs(projectUUID string) error
 	QueryDailyProjectMsgCount(projectUUID string) ([]QDailyProjectMsgCount, error)
 	QueryTotalMessagesPerProject(projectUUIDs []string, startDate time.Time, endDate time.Time) ([]QProjectMessageCount, error)
-	InsertUser(uuid string, projects []QProjectRoles, name string, token string, email string, serviceRoles []string, createdOn time.Time, modifiedOn time.Time, createdBy string) error
+	RegisterUser(uuid, name, firstName, lastName, email, org, desc, registeredAt, atkn, status string) error
+	QueryRegistrations(regUUID, status, activationToken, name, email, org string) ([]QUserRegistration, error)
+	UpdateRegistration(regUUID, status, modifiedBy, modifiedAt string) error
+	InsertUser(uuid string, projects []QProjectRoles, name string, firstName string, lastName string, org string, desc string, token string, email string, serviceRoles []string, createdOn time.Time, modifiedOn time.Time, createdBy string) error
 	InsertProject(uuid string, name string, createdOn time.Time, modifiedOn time.Time, createdBy string, description string) error
 	InsertOpMetric(hostname string, cpu float64, mem float64) error
 	InsertTopic(projectUUID string, name string, schemaUUID string) error
