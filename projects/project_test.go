@@ -189,10 +189,14 @@ func (suite *ProjectsTestSuite) TestGetProjectsMessageCount() {
 	// test total message count per project
 	expectedTmpc := TotalProjectsMessageCount{
 		Projects: []ProjectMessageCount{
-			{Project: "ARGO", MessageCount: 60, AverageDailyMessages: 20},
+			{
+				Project:              "ARGO",
+				MessageCount:         60,
+				AverageDailyMessages: 15,
+			},
 		},
 		TotalCount:           60,
-		AverageDailyMessages: 20,
+		AverageDailyMessages: 15,
 	}
 
 	tmpc, tmpcerr := GetProjectsMessageCount(

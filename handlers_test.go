@@ -5030,11 +5030,11 @@ func (suite *HandlerTestSuite) TestProjectMessageCount() {
   {
    "project": "ARGO",
    "message_count": 30,
-   "average_daily_messages": 10
+   "average_daily_messages": 7
   }
  ],
  "total_message_count": 30,
- "average_daily_messages": 10
+ "average_daily_messages": 7
 }`
 
 	cfgKafka := config.NewAPICfg()
