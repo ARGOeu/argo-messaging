@@ -62,41 +62,6 @@ Success Response
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
 
-## [GET] Get Health status
-
-### Request
-```
-GET "/v1/status"
-```
-
-### Example request
-
-```
-curl -H "Content-Type: application/json"
- "https://{URL}/v1/status"
-```
-
-### Responses
-If successful, the response returns the health status of the service
-
-Success Response
-`200 OK`
-
-```json
-{
-  "status": "ok",
-  "push_servers": [
-    {
-      "endpoint": "localhost:5555",
-      "status": "Success: SERVING"
-    }
-  ]
-}
-```
-
-### Errors
-Please refer to section [Errors](api_errors.md) to see all possible Errors
-
 ## [GET] Get Daily Message Average
 
 This request returns the total amount of messages per project for the given time window.The number of messages

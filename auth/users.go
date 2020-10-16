@@ -458,9 +458,7 @@ func PaginatedFindUsers(pageToken string, pageSize int32, projectUUID string, pr
 
 // Authenticate based on token
 func Authenticate(projectUUID string, token string, store stores.Store) ([]string, string) {
-	roles, user := store.GetUserRoles(projectUUID, token)
-
-	return roles, user
+	return store.GetUserRoles(projectUUID, token)
 }
 
 // ExistsWithName returns true if a user with name exists
@@ -794,6 +792,17 @@ func IsProjectAdmin(roles []string) bool {
 func IsServiceAdmin(roles []string) bool {
 	for _, role := range roles {
 		if role == "service_admin" {
+			return true
+		}
+	}
+
+	return false
+}
+
+// IsAdminViewer checks if the user is an admon viewer
+func IsAdminViewer(roles []string) bool {
+	for _, role := range roles {
+		if role == "admin_viewer" {
 			return true
 		}
 	}

@@ -7244,6 +7244,47 @@ func (suite *HandlerTestSuite) TestHealthCheck() {
 	suite.Equal(expResp, w.Body.String())
 }
 
+func (suite *HandlerTestSuite) TestHealthCheckDetails() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/status?details=true&key=admin-viewer-token", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+ "status": "ok",
+ "push_servers": [
+  {
+   "endpoint": "localhost:5555",
+   "status": "SERVING"
+  }
+ ]
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	cfgKafka.PushEnabled = true
+	cfgKafka.PushWorkerToken = "push_token"
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	str.UserList = append(str.UserList, stores.QUser{
+		UUID:         "admin-viewer-id",
+		Name:         "admin-viewer",
+		Token:        "admin-viewer-token",
+		ServiceRoles: []string{"admin_viewer"},
+	})
+
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/status", WrapMockAuthConfig(HealthCheck, cfgKafka, &brk, str, &mgr, pc))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+
+	suite.Equal(expResp, w.Body.String())
+}
+
 func (suite *HandlerTestSuite) TestHealthCheckPushDisabled() {
 
 	req, err := http.NewRequest("GET", "http://localhost:8080/v1/status", nil)
