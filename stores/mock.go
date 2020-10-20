@@ -904,6 +904,9 @@ func (mk *MockStore) QueryTotalMessagesPerProject(projectUUIDs []string, startDa
 	days := int64(1)
 	if !endDate.Equal(startDate) {
 		days = int64(endDate.Sub(startDate).Hours() / 24)
+		// add an extra day to compensate for the fact that we need the starting day included as well
+		// e.g. Aug 1 to Aug 31 should be calculated as 31 days and not as 30
+		days += 1
 	}
 
 	if len(projectUUIDs) == 0 {

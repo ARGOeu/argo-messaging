@@ -227,7 +227,7 @@ paths:
           description: Schema information
           required: true
           schema:
-           type: object
+            type: object
       tags:
         - Schemas
       responses:
@@ -272,12 +272,12 @@ paths:
           description: Schema information
           required: true
           schema:
-           type: object
-           properties:
-             schema:
-               type: object
-             type:
-               type: string
+            type: object
+            properties:
+              schema:
+                type: object
+              type:
+                type: string
       tags:
         - Schemas
       responses:
@@ -351,14 +351,14 @@ paths:
           description: Update one or all of the fields of a schema
           required: true
           schema:
-           type: object
-           properties:
-             schema:
-               type: object
-             name:
-              type: string
-             type:
-               type: string
+            type: object
+            properties:
+              schema:
+                type: object
+              name:
+                type: string
+              type:
+                type: string
       tags:
         - Schemas
       responses:
@@ -444,11 +444,14 @@ paths:
 
   /status:
     get:
-      summary: List operational metrics of the ams service
+      summary: List the health status for ams and push server
       description: |
-        list operational metrics
+        list health status
+      parameters:
+        - $ref: '#/parameters/Details'
+        - $ref: '#/parameters/ApiKeyDetails'
       tags:
-        - Operational Metrics
+        - Health Check
       responses:
         200:
           description: Returns the health status
@@ -561,10 +564,10 @@ paths:
           description: Extra project information such as description
           required: true
           schema:
-           type: object
-           properties:
-             description:
-               type: string
+            type: object
+            properties:
+              description:
+                type: string
 
       tags:
         - Projects
@@ -600,12 +603,12 @@ paths:
           description: Extra project information such as description
           required: true
           schema:
-           type: object
-           properties:
-             name:
-               type: string
-             description:
-               type: string
+            type: object
+            properties:
+              name:
+                type: string
+              description:
+                type: string
       tags:
         - Projects
       responses:
@@ -778,14 +781,14 @@ paths:
           description: Extra user information such as roles and email
           required: false
           schema:
-           type: object
-           properties:
-             projects:
-               type: array
-               items:
-                 $ref: "#/definitions/ProjectRoles"
-             email:
-               type: string
+            type: object
+            properties:
+              projects:
+                type: array
+                items:
+                  $ref: "#/definitions/ProjectRoles"
+              email:
+                type: string
       tags:
         - Projects
       responses:
@@ -826,12 +829,12 @@ paths:
           description: Extra user information such as roles and email
           required: false
           schema:
-           type: object
-           properties:
-             projects:
-               type: array
-               items:
-                 $ref: "#/definitions/ProjectRoles"
+            type: object
+            properties:
+              projects:
+                type: array
+                items:
+                  $ref: "#/definitions/ProjectRoles"
       tags:
         - Projects
       responses:
@@ -874,12 +877,12 @@ paths:
           description: Extra user information such as roles and email
           required: false
           schema:
-           type: object
-           properties:
-             projects:
-               type: array
-               items:
-                 $ref: "#/definitions/ProjectRoles"
+            type: object
+            properties:
+              projects:
+                type: array
+                items:
+                  $ref: "#/definitions/ProjectRoles"
       tags:
         - Projects
       responses:
@@ -1010,18 +1013,18 @@ paths:
           description: Extra user information such as roles and email
           required: false
           schema:
-           type: object
-           properties:
-             projects:
-               type: array
-               items:
-                 $ref: "#/definitions/ProjectRoles"
-             email:
-               type: string
-             service_roles:
-               type: array
-               items:
-                 type: string
+            type: object
+            properties:
+              projects:
+                type: array
+                items:
+                  $ref: "#/definitions/ProjectRoles"
+              email:
+                type: string
+              service_roles:
+                type: array
+                items:
+                  type: string
       tags:
         - Users
       responses:
@@ -1056,26 +1059,26 @@ paths:
           description: Extra user information such as roles and email
           required: false
           schema:
-           type: object
-           properties:
-             projects:
-               type: array
-               items:
-                 $ref: "#/definitions/ProjectRoles"
-             first_name:
-               type: string
-             last_name:
-               type: string
-             description:
-               type: string
-             organization:
-               type: string
-             email:
-               type: string
-             service_roles:
-               type: array
-               items:
-                 type: string
+            type: object
+            properties:
+              projects:
+                type: array
+                items:
+                  $ref: "#/definitions/ProjectRoles"
+              first_name:
+                type: string
+              last_name:
+                type: string
+              description:
+                type: string
+              organization:
+                type: string
+              email:
+                type: string
+              service_roles:
+                type: array
+                items:
+                  type: string
       tags:
         - Users
       responses:
@@ -1359,7 +1362,7 @@ paths:
           description: Parameters of the new subscription object
           required: true
           schema:
-           $ref: '#/definitions/SubParameters'
+            $ref: '#/definitions/SubParameters'
       tags:
         - Subscriptions
       responses:
@@ -1475,7 +1478,7 @@ paths:
           description: List of authorized users
           required: true
           schema:
-           $ref: '#/definitions/AuthUsers'
+            $ref: '#/definitions/AuthUsers'
       tags:
         - Subscriptions
       responses:
@@ -1518,7 +1521,7 @@ paths:
           description: Offset
           required: true
           schema:
-           $ref: '#/definitions/Offset'
+            $ref: '#/definitions/Offset'
       tags:
         - Subscriptions
       responses:
@@ -1560,7 +1563,7 @@ paths:
           description: AckDeadline
           required: true
           schema:
-           $ref: '#/definitions/AckDeadline'
+            $ref: '#/definitions/AckDeadline'
       tags:
         - Subscriptions
       responses:
@@ -1681,7 +1684,7 @@ paths:
           description: Parameters to be used during pull
           required: true
           schema:
-           $ref: '#/definitions/PullOptions'
+            $ref: '#/definitions/PullOptions'
       tags:
         - Subscriptions
       responses:
@@ -1723,7 +1726,7 @@ paths:
           description: Parameters to be used during acknowledgement
           required: true
           schema:
-           $ref: '#/definitions/AckIDs'
+            $ref: '#/definitions/AckIDs'
       tags:
         - Subscriptions
       responses:
@@ -1765,7 +1768,7 @@ paths:
           description: Parameters to be used during acknowledgement
           required: true
           schema:
-           $ref: '#/definitions/PushConfigRef'
+            $ref: '#/definitions/PushConfigRef'
       tags:
         - Subscriptions
       responses:
@@ -1843,7 +1846,7 @@ paths:
           description: push status
           required: true
           schema:
-           $ref: '#/definitions/PushStatus'
+            $ref: '#/definitions/PushStatus'
       tags:
         - Subscriptions
       responses:
@@ -1985,10 +1988,10 @@ paths:
           description: The name of the schema to be linked with the topic.All published messages will be validated against the linked schema.
           required: false
           schema:
-           type: object
-           properties:
-             schema:
-               type: string
+            type: object
+            properties:
+              schema:
+                type: string
       tags:
         - Topics
       responses:
@@ -2071,7 +2074,7 @@ paths:
           description: Message JSON representation
           required: true
           schema:
-           $ref: '#/definitions/Messages'
+            $ref: '#/definitions/Messages'
       tags:
         - Topics
       responses:
@@ -2182,7 +2185,7 @@ paths:
           description: List of authorized users
           required: true
           schema:
-           $ref: '#/definitions/AuthUsers'
+            $ref: '#/definitions/AuthUsers'
       tags:
         - Topics
       responses:
@@ -2224,6 +2227,20 @@ parameters:
     required: true
     type: string
     default: SecretKey123
+  ApiKeyDetails:
+    name: key
+    in: query
+    description: user key token for authentication when accesing the url parameter details
+    required: false
+    type: string
+    default: ""
+  Details:
+    name: details
+    in: query
+    description: report detailed error for ams push server
+    required: false
+    type: boolean
+    default: false
   RegistrationStatus:
     name: status
     in: query
@@ -2328,14 +2345,14 @@ responses:
       $ref: '#/definitions/ErrorMsg'
 
   409_no_topic:
-      description: Subscription's topic doesn't exist
-      schema:
-        $ref: '#/definitions/ErrorMsg'
+    description: Subscription's topic doesn't exist
+    schema:
+      $ref: '#/definitions/ErrorMsg'
 
   409_no_offset_for_time:
-      description: Timestamp is out of bounds for the subscription's topic/partition
-      schema:
-        $ref: '#/definitions/ErrorMsg'
+    description: Timestamp is out of bounds for the subscription's topic/partition
+    schema:
+      $ref: '#/definitions/ErrorMsg'
 
   500:
     description: Internal Error
@@ -2345,31 +2362,31 @@ responses:
 definitions:
 
   UserRegistration:
-     type: object
-     properties:
-       uuid:
+    type: object
+    properties:
+      uuid:
         type: string
-       name:
+      name:
         type: string
-       email:
+      email:
         type: string
-       first_name:
+      first_name:
         type: string
-       last_name:
+      last_name:
         type: string
-       organization:
+      organization:
         type: string
-       description:
+      description:
         type: string
-       activation_token:
+      activation_token:
         type: string
-       status:
+      status:
         type: string
-       registered_at:
+      registered_at:
         type: string
-       modified_at:
+      modified_at:
         type: string
-       modified_by:
+      modified_by:
         type: string
 
   UserRegistrationList:
@@ -2381,19 +2398,19 @@ definitions:
           $ref: '#/definitions/UserRegistration'
 
   UserRegistrationPost:
-     type: object
-     properties:
-       name:
+    type: object
+    properties:
+      name:
         type: string
-       email:
+      email:
         type: string
-       first_name:
+      first_name:
         type: string
-       last_name:
+      last_name:
         type: string
-       organization:
+      organization:
         type: string
-       description:
+      description:
         type: string
 
   SchemaList:
@@ -2439,12 +2456,12 @@ definitions:
         type: integer
 
   Metrics:
-   type: object
-   properties:
-     metrics:
-       type: array
-       items:
-         $ref: '#/definitions/Metric'
+    type: object
+    properties:
+      metrics:
+        type: array
+        items:
+          $ref: '#/definitions/Metric'
 
   Metric:
     type: object
@@ -2473,8 +2490,8 @@ definitions:
         type: string
       value:
         type: string
-        
-  
+
+
 
 
   AuthUsers:
@@ -2483,7 +2500,7 @@ definitions:
       authorized_users:
         type: array
         items:
-         type: string
+          type: string
 
   PullOptions:
     type: object
@@ -2515,7 +2532,7 @@ definitions:
         type: string
         description: Name of the topic
       pushConfig:
-            $ref: '#/definitions/PushConfig'
+        $ref: '#/definitions/PushConfig'
       ackDeadlineSeconds:
         type: integer
         description: maximum wait time in seconds for Acknowledgement
@@ -2523,7 +2540,7 @@ definitions:
     type: object
     properties:
       pushConfig:
-         $ref: '#/definitions/PushConfig'
+        $ref: '#/definitions/PushConfig'
   PushConfig:
     type: object
     properties:
@@ -2551,38 +2568,38 @@ definitions:
     type: object
     properties:
       ackDeadlineSeconds:
-       type: integer
-       description: deadline to acknowledge a pulled message (in seconds)
+        type: integer
+        description: deadline to acknowledge a pulled message (in seconds)
 
   Offset:
     type: object
     properties:
       offset:
-       type: integer
-       description: offset number of current subscriptions
+        type: integer
+        description: offset number of current subscriptions
 
   Offsets:
     type: object
     properties:
       min:
-       type: integer
-       description: minimum offset
+        type: integer
+        description: minimum offset
       max:
-       type: integer
-       description: max offset
+        type: integer
+        description: max offset
       current:
-       type: integer
-       description: current offset
+        type: integer
+        description: current offset
 
   RetryPolicy:
     type: object
     properties:
-     type:
-       type: string
-       description: type of the retry policy used (Only linear policy supported)
-     period:
-       type: integer
-       description: period of retry policy in milliseconds
+      type:
+        type: string
+        description: type of the retry policy used (Only linear policy supported)
+      period:
+        type: integer
+        description: period of retry policy in milliseconds
 
   Topic:
     type: object
@@ -2667,17 +2684,17 @@ definitions:
           $ref: '#/definitions/Project'
 
   Project:
-     type: object
-     properties:
-       name:
+    type: object
+    properties:
+      name:
         type: string
-       created_on:
+      created_on:
         type: string
-       modified_on:
+      modified_on:
         type: string
-       created_by:
+      created_by:
         type: string
-       description:
+      description:
         type: string
 
   Users:
@@ -2693,64 +2710,64 @@ definitions:
         type: integer
 
   User:
-     type: object
-     properties:
-       uuid:
+    type: object
+    properties:
+      uuid:
         type: string
-       name:
+      name:
         type: string
-       first_name:
+      first_name:
         type: string
-       last_name:
+      last_name:
         type: string
-       organization:
+      organization:
         type: string
-       description:
+      description:
         type: string
-       projects:
+      projects:
         type: array
         items:
-           $ref: '#/definitions/ProjectRoles'
-       token:
+          $ref: '#/definitions/ProjectRoles'
+      token:
         type: string
-       email:
+      email:
         type: string
-       service_roles:
+      service_roles:
         type: array
         items:
           type: string
-       created_on:
+      created_on:
         type: string
-       modified_on:
+      modified_on:
         type: string
-       created_by:
+      created_by:
         type: string
 
   ProjectRoles:
-      type: object
-      properties:
-        project:
+    type: object
+    properties:
+      project:
+        type: string
+      roles:
+        type: array
+        items:
           type: string
-        roles:
-          type: array
-          items:
-            type: string
 
   MessageIDs:
-     type: object
-     properties:
-       messageIds:
-         type: array
-         items:
-           type: string
+    type: object
+    properties:
+      messageIds:
+        type: array
+        items:
+          type: string
 
   AckIDs:
-     type: object
-     properties:
-       ackIds:
-         type: array
-         items:
-           type: string
+    type: object
+    properties:
+      ackIds:
+        type: array
+        items:
+          type: string
 
   HealthCheck:
     type: object
@@ -2793,21 +2810,21 @@ definitions:
           status:
             type: string
             description: status of the error
-            
+
   Version:
     type: object
     properties:
       release:
         type: string
-      commit: 
-        type: string        
-      build_time: 
+      commit:
+        type: string
+      build_time:
         type: string
       golang:
         type: string
-      compiler: 
+      compiler:
         type: string
-      os: 
+      os:
         type: string
       architecture:
-          type: string
+        type: string

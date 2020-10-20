@@ -1320,6 +1320,9 @@ func (mong *MongoStore) QueryTotalMessagesPerProject(projectUUIDs []string, star
 	days := 1
 	if !endDate.Equal(startDate) {
 		days = int(endDate.Sub(startDate).Hours() / 24)
+		// add an extra day to compensate for the fact that we need the starting day included as well
+		// e.g. Aug 1 to Aug 31 should be calculated as 31 days and not as 30
+		days += 1
 	}
 
 	condQuery := []bson.M{
@@ -1381,8 +1384,6 @@ func (mong *MongoStore) QueryTotalMessagesPerProject(projectUUIDs []string, star
 			},
 		).Fatal(err.Error())
 	}
-
-	fmt.Printf("%+v\n", qdp)
 
 	return qdp, err
 }

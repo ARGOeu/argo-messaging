@@ -30,7 +30,7 @@ type GrpcClientStatus struct {
 }
 
 // Result prints the result of an grpc request
-func (st *GrpcClientStatus) Result() string {
+func (st *GrpcClientStatus) Result(details bool) string {
 
 	grpcStatus := status.Convert(st.err)
 
@@ -45,7 +45,11 @@ func (st *GrpcClientStatus) Result() string {
 				"backend_service": "ams-push-server",
 			},
 		).Error(grpcStatus.Message())
-		return "Push server is currently unavailable"
+		if details {
+			return grpcStatus.Message()
+		} else {
+			return "Push server is currently unavailable"
+		}
 	}
 
 	return fmt.Sprintf("Error: %v", grpcStatus.Message())

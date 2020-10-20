@@ -121,6 +121,10 @@ func (suite *AuthTestSuite) TestAuth() {
 	suite.Equal(true, IsPushWorker([]string{"push_worker", "publisher"}))
 	suite.Equal(false, IsPushWorker([]string{"publisher"}))
 
+	suite.Equal(true, IsAdminViewer([]string{"admin_viewer"}))
+	suite.Equal(true, IsAdminViewer([]string{"admin_viewer", "service_admin"}))
+	suite.Equal(false, IsAdminViewer([]string{"publisher"}))
+
 	// Check ValidUsers mechanism
 	v, err := AreValidUsers("ARGO", []string{"UserA", "foo", "bar"}, store)
 	suite.Equal(false, v)

@@ -2097,7 +2097,7 @@ func SubListOne(w http.ResponseWriter, r *http.Request) {
 	if results.Subscriptions[0].PushCfg != (subscriptions.PushConfig{}) {
 		if results.Subscriptions[0].PushCfg.Verified {
 			apsc := gorillaContext.Get(r, "apsc").(push.Client)
-			results.Subscriptions[0].PushStatus = apsc.SubscriptionStatus(context.TODO(), results.Subscriptions[0].FullName).Result()
+			results.Subscriptions[0].PushStatus = apsc.SubscriptionStatus(context.TODO(), results.Subscriptions[0].FullName).Result(false)
 		}
 	}
 
@@ -2408,7 +2408,7 @@ func SubDelete(w http.ResponseWriter, r *http.Request) {
 		if results.Subscriptions[0].PushCfg.Verified {
 			pr := make(map[string]string)
 			apsc := gorillaContext.Get(r, "apsc").(push.Client)
-			pr["message"] = apsc.DeactivateSubscription(context.TODO(), results.Subscriptions[0].FullName).Result()
+			pr["message"] = apsc.DeactivateSubscription(context.TODO(), results.Subscriptions[0].FullName).Result(false)
 			b, _ := json.Marshal(pr)
 			output = b
 		}
@@ -4151,9 +4151,33 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 		Status: "ok",
 	}
 
+	detailedStatus := false
+
 	pwToken := gorillaContext.Get(r, "push_worker_token").(string)
 	pushEnabled := gorillaContext.Get(r, "push_enabled").(bool)
 	refStr := gorillaContext.Get(r, "str").(stores.Store)
+
+	// check for the right roles when accessing the details part of the api call
+	if r.URL.Query().Get("details") == "true" {
+
+		user, _ := auth.GetUserByToken(r.URL.Query().Get("key"), refStr)
+
+		// if the user has a name, the token is valid
+		if user.Name == "" {
+			respondErr(w, APIErrorForbidden())
+			return
+		}
+
+		if !auth.IsAdminViewer(user.ServiceRoles) && !auth.IsServiceAdmin(user.ServiceRoles) {
+			respondErr(w, APIErrorUnauthorized())
+			return
+		}
+
+		// set uuid for logging
+		gorillaContext.Set(r, "auth_user_uuid", user.UUID)
+
+		detailedStatus = true
+	}
 
 	if pushEnabled {
 		_, err := auth.GetPushWorker(pwToken, refStr)
@@ -4164,7 +4188,7 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 		healthMsg.PushServers = []PushServerInfo{
 			{
 				Endpoint: apsc.Target(),
-				Status:   apsc.HealthCheck(context.TODO()).Result(),
+				Status:   apsc.HealthCheck(context.TODO()).Result(detailedStatus),
 			},
 		}
 

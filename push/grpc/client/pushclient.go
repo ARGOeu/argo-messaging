@@ -26,5 +26,5 @@ type Client interface {
 // ClientStatus represents responses from a push backend
 type ClientStatus interface {
 	// Result returns the string representation for the response from a push backend
-	Result() string
+	Result(details bool) string
 }

@@ -77,6 +77,6 @@ type MockClientStatus struct {
 	Status string
 }
 
-func (m *MockClientStatus) Result() string {
+func (m *MockClientStatus) Result(details bool) string {
 	return m.Status
 }

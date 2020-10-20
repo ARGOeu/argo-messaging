@@ -543,7 +543,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 
 	// test QueryTotalMessagesPerProject
 	expectedQpmc := []QProjectMessageCount{
-		{ProjectUUID: "argo_uuid", NumberOfMessages: 30, AverageDailyMessages: 10},
+		{ProjectUUID: "argo_uuid", NumberOfMessages: 30, AverageDailyMessages: 7},
 	}
 	qpmc, qpmcerr1 := store2.QueryTotalMessagesPerProject([]string{"argo_uuid"}, time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC), time.Date(2018, 10, 4, 0, 0, 0, 0, time.UTC))
 	suite.Equal(expectedQpmc, qpmc)
