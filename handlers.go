@@ -2225,13 +2225,25 @@ func SubGetOffsets(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Output result to JSON
-	brk_topic := projectUUID + "." + results.Subscriptions[0].Topic
-	cur_offset := results.Subscriptions[0].Offset
-	min_offset := refBrk.GetMinOffset(brk_topic)
-	max_offset := refBrk.GetMaxOffset(brk_topic)
+	brkTopic := projectUUID + "." + results.Subscriptions[0].Topic
+	curOffset := results.Subscriptions[0].Offset
+	minOffset := refBrk.GetMinOffset(brkTopic)
+	maxOffset := refBrk.GetMaxOffset(brkTopic)
+
+	// if the current subscription offset is behind the min available offset for the topic
+	// update it
+	if curOffset < minOffset {
+		refStr.UpdateSubOffset(projectUUID, urlVars["subscription"], minOffset)
+		curOffset = minOffset
+	}
 
 	// Create offset struct
-	offResult := subscriptions.Offsets{Current: cur_offset, Min: min_offset, Max: max_offset}
+	offResult := subscriptions.Offsets{
+		Current: curOffset,
+		Min:     minOffset,
+		Max:     maxOffset,
+	}
+
 	resJSON, err := offResult.ExportJSON()
 	if err != nil {
 		err := APIErrExportJSON()

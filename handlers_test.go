@@ -4318,6 +4318,34 @@ func (suite *HandlerTestSuite) TestSubWithPushConfigDeletePushServerError() {
 	suite.Equal(expResp, w.Body.String())
 }
 
+func (suite *HandlerTestSuite) TestSubGetOffsets() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/subscriptions/sub2:offsets", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	expResp := `{
+   "max": 2,
+   "min": 1,
+   "current": 1
+}`
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+
+	brk := brokers.MockBroker{}
+	// append a msg to the broker to cause the min topic from the offset to be at 1 while the sub's current is at 0
+	brk.MsgList = append(brk.MsgList, "msg1")
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := oldPush.Manager{}
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:offsets", WrapMockAuthConfig(SubGetOffsets, cfgKafka, &brk, str, &mgr, nil))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
 func (suite *HandlerTestSuite) TestSubListOne() {
 
 	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/subscriptions/sub1", nil)
