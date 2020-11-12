@@ -44,7 +44,7 @@ type Store interface {
 	IncrementTopicBytes(projectUUID string, name string, totalBytes int64) error
 	IncrementSubBytes(projectUUID string, name string, totalBytes int64) error
 	IncrementSubMsgNum(projectUUID string, name string, num int64) error
-	InsertSub(projectUUID string, name string, topic string, offest int64, maxMessages int64, ack int, push string, rPolicy string, rPeriod int, vhash string, verified bool) error
+	InsertSub(projectUUID string, name string, topic string, offest int64, maxMessages int64, authzType string, authzHeader string, ack int, push string, rPolicy string, rPeriod int, vhash string, verified bool) error
 	HasProject(name string) bool
 	HasUsers(projectUUID string, users []string) (bool, []string)
 	QueryOneSub(projectUUID string, name string) (QSub, error)

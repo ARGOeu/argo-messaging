@@ -3910,6 +3910,10 @@ func (suite *HandlerTestSuite) TestSubCreatePushConfig() {
    "pushConfig": {
       "pushEndpoint": "https://www.example.com",
       "maxMessages": 1,
+      "authorization_header": {
+         "type": "autogen",
+         "value": "{{AUTHZV}}"
+      },
       "retryPolicy": {
          "type": "linear",
          "period": 3000
@@ -3932,6 +3936,7 @@ func (suite *HandlerTestSuite) TestSubCreatePushConfig() {
 	router.ServeHTTP(w, req)
 	sub, _ := str.QueryOneSub("argo_uuid", "subNew")
 	expResp = strings.Replace(expResp, "{{VHASH}}", sub.VerificationHash, 1)
+	expResp = strings.Replace(expResp, "{{AUTHZV}}", sub.AuthorizationHeader, 1)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
 }
@@ -3942,6 +3947,9 @@ func (suite *HandlerTestSuite) TestSubCreatePushConfigSlowStart() {
 	"topic":"projects/ARGO/topics/topic1",
 	"pushConfig": {
 		 "pushEndpoint": "https://www.example.com",
+		 "authorization_header": {
+         	"type": "disabled"
+		 },
 		 "retryPolicy": {
 			"type": "slowstart"
 		 }
@@ -3959,6 +3967,9 @@ func (suite *HandlerTestSuite) TestSubCreatePushConfigSlowStart() {
    "pushConfig": {
       "pushEndpoint": "https://www.example.com",
       "maxMessages": 1,
+      "authorization_header": {
+         "type": "disabled"
+      },
       "retryPolicy": {
          "type": "slowstart"
       },
@@ -4161,6 +4172,7 @@ func (suite *HandlerTestSuite) TestSubCreate() {
    "pushConfig": {
       "pushEndpoint": "",
       "maxMessages": 0,
+      "authorization_header": {},
       "retryPolicy": {},
       "verification_hash": "",
       "verified": false
@@ -4359,6 +4371,7 @@ func (suite *HandlerTestSuite) TestSubListOne() {
    "pushConfig": {
       "pushEndpoint": "",
       "maxMessages": 0,
+      "authorization_header": {},
       "retryPolicy": {},
       "verification_hash": "",
       "verified": false
@@ -4396,6 +4409,10 @@ func (suite *HandlerTestSuite) TestSubListAll() {
          "pushConfig": {
             "pushEndpoint": "endpoint.foo",
             "maxMessages": 1,
+            "authorization_header": {
+               "type": "autogen",
+               "value": "auth-header-1"
+            },
             "retryPolicy": {
                "type": "linear",
                "period": 300
@@ -4411,6 +4428,7 @@ func (suite *HandlerTestSuite) TestSubListAll() {
          "pushConfig": {
             "pushEndpoint": "",
             "maxMessages": 0,
+            "authorization_header": {},
             "retryPolicy": {},
             "verification_hash": "",
             "verified": false
@@ -4423,6 +4441,7 @@ func (suite *HandlerTestSuite) TestSubListAll() {
          "pushConfig": {
             "pushEndpoint": "",
             "maxMessages": 0,
+            "authorization_header": {},
             "retryPolicy": {},
             "verification_hash": "",
             "verified": false
@@ -4435,6 +4454,7 @@ func (suite *HandlerTestSuite) TestSubListAll() {
          "pushConfig": {
             "pushEndpoint": "",
             "maxMessages": 0,
+            "authorization_header": {},
             "retryPolicy": {},
             "verification_hash": "",
             "verified": false
@@ -4475,6 +4495,10 @@ func (suite *HandlerTestSuite) TestSubListAllFirstPage() {
          "pushConfig": {
             "pushEndpoint": "endpoint.foo",
             "maxMessages": 1,
+            "authorization_header": {
+               "type": "autogen",
+               "value": "auth-header-1"
+            },
             "retryPolicy": {
                "type": "linear",
                "period": 300
@@ -4490,6 +4514,7 @@ func (suite *HandlerTestSuite) TestSubListAllFirstPage() {
          "pushConfig": {
             "pushEndpoint": "",
             "maxMessages": 0,
+            "authorization_header": {},
             "retryPolicy": {},
             "verification_hash": "",
             "verified": false
@@ -4530,6 +4555,7 @@ func (suite *HandlerTestSuite) TestSubListAllNextPage() {
          "pushConfig": {
             "pushEndpoint": "",
             "maxMessages": 0,
+            "authorization_header": {},
             "retryPolicy": {},
             "verification_hash": "",
             "verified": false
@@ -4542,6 +4568,7 @@ func (suite *HandlerTestSuite) TestSubListAllNextPage() {
          "pushConfig": {
             "pushEndpoint": "",
             "maxMessages": 0,
+            "authorization_header": {},
             "retryPolicy": {},
             "verification_hash": "",
             "verified": false
@@ -4611,6 +4638,10 @@ func (suite *HandlerTestSuite) TestSubListAllConsumer() {
          "pushConfig": {
             "pushEndpoint": "endpoint.foo",
             "maxMessages": 1,
+            "authorization_header": {
+               "type": "autogen",
+               "value": "auth-header-1"
+            },
             "retryPolicy": {
                "type": "linear",
                "period": 300
@@ -4626,6 +4657,7 @@ func (suite *HandlerTestSuite) TestSubListAllConsumer() {
          "pushConfig": {
             "pushEndpoint": "",
             "maxMessages": 0,
+            "authorization_header": {},
             "retryPolicy": {},
             "verification_hash": "",
             "verified": false
@@ -4638,6 +4670,7 @@ func (suite *HandlerTestSuite) TestSubListAllConsumer() {
          "pushConfig": {
             "pushEndpoint": "",
             "maxMessages": 0,
+            "authorization_header": {},
             "retryPolicy": {},
             "verification_hash": "",
             "verified": false
@@ -4678,6 +4711,10 @@ func (suite *HandlerTestSuite) TestSubListAllConsumerWithPagination() {
          "pushConfig": {
             "pushEndpoint": "endpoint.foo",
             "maxMessages": 1,
+            "authorization_header": {
+               "type": "autogen",
+               "value": "auth-header-1"
+            },
             "retryPolicy": {
                "type": "linear",
                "period": 300
@@ -4693,6 +4730,7 @@ func (suite *HandlerTestSuite) TestSubListAllConsumerWithPagination() {
          "pushConfig": {
             "pushEndpoint": "",
             "maxMessages": 0,
+            "authorization_header": {},
             "retryPolicy": {},
             "verification_hash": "",
             "verified": false
@@ -7097,6 +7135,7 @@ func (suite *HandlerTestSuite) TestValidationInSubs() {
    "pushConfig": {
       "pushEndpoint": "",
       "maxMessages": 0,
+      "authorization_header": {},
       "retryPolicy": {},
       "verification_hash": "",
       "verified": false

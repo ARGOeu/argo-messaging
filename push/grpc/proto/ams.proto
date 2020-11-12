@@ -75,6 +75,8 @@ message PushConfig {
     int64 max_messages = 3;
     // Required. Retry policy.
     RetryPolicy retry_policy = 2;
+    // Required. Authorization header that the sent messages should include into the request
+    string authorization_header = 4;
 }
 
 // RetryPolicy holds information regarding the retry policy.

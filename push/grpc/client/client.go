@@ -119,15 +119,16 @@ func (c *GrpcClient) SubscriptionStatus(ctx context.Context, fullSub string) Cli
 }
 
 // ActivateSubscription is a wrapper over the grpc ActivateSubscription call
-func (c *GrpcClient) ActivateSubscription(ctx context.Context, fullSub, fullTopic, pushEndpoint, retryType string, retryPeriod uint32, maxMessages int64) ClientStatus {
+func (c *GrpcClient) ActivateSubscription(ctx context.Context, fullSub, fullTopic, pushEndpoint, retryType string, retryPeriod uint32, maxMessages int64, authzHeader string) ClientStatus {
 
 	actSubR := &amsPb.ActivateSubscriptionRequest{
 		Subscription: &amsPb.Subscription{
 			FullName:  fullSub,
 			FullTopic: fullTopic,
 			PushConfig: &amsPb.PushConfig{
-				PushEndpoint: pushEndpoint,
-				MaxMessages:  maxMessages,
+				PushEndpoint:        pushEndpoint,
+				MaxMessages:         maxMessages,
+				AuthorizationHeader: authzHeader,
 				RetryPolicy: &amsPb.RetryPolicy{
 					Type:   retryType,
 					Period: retryPeriod,

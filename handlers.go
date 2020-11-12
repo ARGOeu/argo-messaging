@@ -2736,7 +2736,7 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 			// activate the subscription on the push backend
 			apsc := gorillaContext.Get(r, "apsc").(push.Client)
 			apsc.ActivateSubscription(context.TODO(), existingSub.FullName, existingSub.FullTopic,
-				pushEnd, rPolicy, uint32(rPeriod), maxMessages)
+				pushEnd, rPolicy, uint32(rPeriod), maxMessages, existingSub.PushCfg.AuthorizationHeader.Value)
 
 			// modify the sub's acl with the push worker's uuid
 			err = auth.AppendToACL(projectUUID, "subscriptions", existingSub.Name, []string{pushWorker.Name}, refStr)
@@ -2841,7 +2841,7 @@ func SubVerifyPushEndpoint(w http.ResponseWriter, r *http.Request) {
 	// activate the subscription on the push backend
 	apsc := gorillaContext.Get(r, "apsc").(push.Client)
 	apsc.ActivateSubscription(context.TODO(), sub.FullName, sub.FullTopic, sub.PushCfg.Pend,
-		sub.PushCfg.RetPol.PolicyType, uint32(sub.PushCfg.RetPol.Period), sub.PushCfg.MaxMessages)
+		sub.PushCfg.RetPol.PolicyType, uint32(sub.PushCfg.RetPol.Period), sub.PushCfg.MaxMessages, sub.PushCfg.AuthorizationHeader.Value)
 
 	// modify the sub's acl with the push worker's uuid
 	err = auth.AppendToACL(projectUUID, "subscriptions", sub.Name, []string{pushW.Name}, refStr)
@@ -2977,6 +2977,8 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 	curOff := refBrk.GetMaxOffset(fullTopic)
 
 	pushEnd := ""
+	authzType := ""
+	authzHeaderValue := ""
 	rPolicy := ""
 	rPeriod := 0
 	maxMessages := int64(1)
@@ -3014,6 +3016,30 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 		rPeriod = postBody.PushCfg.RetPol.Period
 		maxMessages = postBody.PushCfg.MaxMessages
 
+		authzType = postBody.PushCfg.AuthorizationHeader.Type
+		if authzType == "" {
+			authzType = subscriptions.AutoGenerationAuthorizationHeader
+		}
+
+		if !subscriptions.IsAuthorizationHeaderTypeSupported(authzType) {
+			err := APIErrorInvalidData(subscriptions.UnSupportedAuthorizationHeader)
+			respondErr(w, err)
+			return
+		}
+
+		switch authzType {
+		case subscriptions.AutoGenerationAuthorizationHeader:
+			authzHeaderValue, err = auth.GenToken()
+			if err != nil {
+				log.Errorf("Could not generate authorization header for subscription %v, %v", urlVars["subscription"], err.Error())
+				err := APIErrGenericInternal("Could not generate authorization header")
+				respondErr(w, err)
+				return
+			}
+		case subscriptions.DisabledAuthorizationHeader:
+			authzHeaderValue = ""
+		}
+
 		if rPolicy == "" {
 			rPolicy = subscriptions.LinearRetryPolicyType
 		}
@@ -3043,7 +3069,7 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get Result Object
-	res, err := subscriptions.CreateSub(projectUUID, urlVars["subscription"], tName, pushEnd, curOff, maxMessages, postBody.Ack, rPolicy, rPeriod, verifyHash, false, refStr)
+	res, err := subscriptions.CreateSub(projectUUID, urlVars["subscription"], tName, pushEnd, curOff, maxMessages, authzType, authzHeaderValue, postBody.Ack, rPolicy, rPeriod, verifyHash, false, refStr)
 
 	if err != nil {
 		if err.Error() == "exists" {

@@ -55,6 +55,8 @@ VERIFICATION_HASH = ""
 
 MESSAGE_FORMAT = ""
 
+AUTHZ_HEADER = ""
+
 app = Flask(__name__)
 
 app.logger.removeHandler(default_handler)
@@ -63,6 +65,12 @@ app.logger.removeHandler(default_handler)
 @app.route('/receive_here', methods=['POST'])
 def receive_msg():
 
+    # if there is an authz header provided, check it
+    if AUTHZ_HEADER != "":
+        print(request.headers.get("Authorization"))
+        if request.headers.get("Authorization") != AUTHZ_HEADER:
+            return "UNAUTHORIZED", 401
+        
     if MESSAGE_FORMAT is "single":
 
         try:
@@ -158,6 +166,10 @@ if __name__ == "__main__":
         "-vh", "--verification-hash", metavar="STRING", help="Verification hash for the push endpoint",
         required=True, dest="vhash")
 
+    parser.add_argument(
+        "-ah", "--authorization-header", metavar="STRING", help="Expected authorization header",
+        required=False, dest="authz")
+
     group = parser.add_mutually_exclusive_group(required=True)
 
     group.add_argument("--single", action="store_true", help="The endpoint should expect single message format",
@@ -174,6 +186,8 @@ if __name__ == "__main__":
     context.load_cert_chain(args.cert, args.key)
 
     VERIFICATION_HASH = args.vhash
+
+    AUTHZ_HEADER = args.authz
 
     if args.single_message:
         MESSAGE_FORMAT = "single"
