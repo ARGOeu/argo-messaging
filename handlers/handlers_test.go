@@ -1,8 +1,9 @@
-package main
+package handlers
 
 import (
 	"bytes"
 	"github.com/ARGOeu/argo-messaging/subscriptions"
+	"github.com/ARGOeu/argo-messaging/validation"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -52,35 +53,35 @@ func (suite *HandlerTestSuite) SetupTest() {
 }
 
 func (suite *HandlerTestSuite) TestValidHTTPS() {
-	suite.Equal(false, isValidHTTPS("ht"))
-	suite.Equal(false, isValidHTTPS("www.example.com"))
-	suite.Equal(false, isValidHTTPS("https:www.example.com"))
-	suite.Equal(false, isValidHTTPS("http://www.example.com"))
-	suite.Equal(true, isValidHTTPS("https://www.example.com"))
+	suite.Equal(false, validation.IsValidHTTPS("ht"))
+	suite.Equal(false, validation.IsValidHTTPS("www.example.com"))
+	suite.Equal(false, validation.IsValidHTTPS("https:www.example.com"))
+	suite.Equal(false, validation.IsValidHTTPS("http://www.example.com"))
+	suite.Equal(true, validation.IsValidHTTPS("https://www.example.com"))
 
 }
 
 func (suite *HandlerTestSuite) TestValidation() {
 	// nameValidations
-	suite.Equal(true, validName("topic101"))
-	suite.Equal(true, validName("topic_101"))
-	suite.Equal(true, validName("topic_101_another_thing"))
-	suite.Equal(true, validName("topic___343_random"))
-	suite.Equal(true, validName("topic_dc1cc538-1361-4317-a235-0bf383d4a69f"))
-	suite.Equal(false, validName("topic_dc1cc538.1361-4317-a235-0bf383d4a69f"))
-	suite.Equal(false, validName("topic.not.valid"))
-	suite.Equal(false, validName("spaces are not valid"))
-	suite.Equal(false, validName("topic/A"))
-	suite.Equal(false, validName("topic/B"))
+	suite.Equal(true, validation.ValidName("topic101"))
+	suite.Equal(true, validation.ValidName("topic_101"))
+	suite.Equal(true, validation.ValidName("topic_101_another_thing"))
+	suite.Equal(true, validation.ValidName("topic___343_random"))
+	suite.Equal(true, validation.ValidName("topic_dc1cc538-1361-4317-a235-0bf383d4a69f"))
+	suite.Equal(false, validation.ValidName("topic_dc1cc538.1361-4317-a235-0bf383d4a69f"))
+	suite.Equal(false, validation.ValidName("topic.not.valid"))
+	suite.Equal(false, validation.ValidName("spaces are not valid"))
+	suite.Equal(false, validation.ValidName("topic/A"))
+	suite.Equal(false, validation.ValidName("topic/B"))
 
 	// ackID validations
-	suite.Equal(true, validAckID("ARGO", "sub101", "projects/ARGO/subscriptions/sub101:5"))
-	suite.Equal(false, validAckID("ARGO", "sub101", "projects/ARGO/subscriptions/sub101:aaa"))
-	suite.Equal(false, validAckID("ARGO", "sub101", "projects/FARGO/subscriptions/sub101:5"))
-	suite.Equal(false, validAckID("ARGO", "sub101", "projects/ARGO/subscriptions/subF00:5"))
-	suite.Equal(false, validAckID("ARGO", "sub101", "falsepath/ARGO/subscriptions/sub101:5"))
-	suite.Equal(true, validAckID("FOO", "BAR", "projects/FOO/subscriptions/BAR:11155"))
-	suite.Equal(false, validAckID("FOO", "BAR", "projects/FOO//subscriptions/BAR:11155"))
+	suite.Equal(true, validation.ValidAckID("ARGO", "sub101", "projects/ARGO/subscriptions/sub101:5"))
+	suite.Equal(false, validation.ValidAckID("ARGO", "sub101", "projects/ARGO/subscriptions/sub101:aaa"))
+	suite.Equal(false, validation.ValidAckID("ARGO", "sub101", "projects/FARGO/subscriptions/sub101:5"))
+	suite.Equal(false, validation.ValidAckID("ARGO", "sub101", "projects/ARGO/subscriptions/subF00:5"))
+	suite.Equal(false, validation.ValidAckID("ARGO", "sub101", "falsepath/ARGO/subscriptions/sub101:5"))
+	suite.Equal(true, validation.ValidAckID("FOO", "BAR", "projects/FOO/subscriptions/BAR:11155"))
+	suite.Equal(false, validation.ValidAckID("FOO", "BAR", "projects/FOO//subscriptions/BAR:11155"))
 
 }
 
