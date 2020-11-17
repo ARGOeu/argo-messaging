@@ -312,7 +312,9 @@ func VerifyPushEndpoint(sub Subscription, c *http.Client, store stores.Store) er
 	}
 
 	// update the push config with verified true
-	err = ModSubPush(sub.ProjectUUID, sub.Name, sub.PushCfg.Pend, sub.PushCfg.MaxMessages, sub.PushCfg.RetPol.PolicyType, sub.PushCfg.RetPol.Period, sub.PushCfg.VerificationHash, true, store)
+	err = ModSubPush(sub.ProjectUUID, sub.Name, sub.PushCfg.Pend, sub.PushCfg.AuthorizationHeader.Type,
+		sub.PushCfg.AuthorizationHeader.Value, sub.PushCfg.MaxMessages, sub.PushCfg.RetPol.PolicyType,
+		sub.PushCfg.RetPol.Period, sub.PushCfg.VerificationHash, true, store)
 	if err != nil {
 		return err
 	}
@@ -471,7 +473,7 @@ func ModAck(projectUUID string, name string, ack int, store stores.Store) error 
 }
 
 // ModSubPush updates the subscription push config
-func ModSubPush(projectUUID string, name string, push string, maxMessages int64, retPolicy string, retPeriod int, vhash string, verified bool, store stores.Store) error {
+func ModSubPush(projectUUID string, name string, push string, authzType string, authzValue string, maxMessages int64, retPolicy string, retPeriod int, vhash string, verified bool, store stores.Store) error {
 
 	if HasSub(projectUUID, name, store) == false {
 		return errors.New("not found")
@@ -481,7 +483,7 @@ func ModSubPush(projectUUID string, name string, push string, maxMessages int64,
 		retPeriod = 0
 	}
 
-	return store.ModSubPush(projectUUID, name, push, maxMessages, retPolicy, retPeriod, vhash, verified)
+	return store.ModSubPush(projectUUID, name, push, authzType, authzValue, maxMessages, retPolicy, retPeriod, vhash, verified)
 }
 
 // RemoveSub removes an existing subscription

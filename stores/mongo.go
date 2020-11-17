@@ -1566,7 +1566,7 @@ func (mong *MongoStore) ModAck(projectUUID string, name string, ack int) error {
 }
 
 // ModSubPush modifies the push configuration
-func (mong *MongoStore) ModSubPush(projectUUID string, name string, push string, maxMessages int64, rPolicy string, rPeriod int, vhash string, verified bool) error {
+func (mong *MongoStore) ModSubPush(projectUUID string, name string, push string, authzType string, authzValue string, maxMessages int64, rPolicy string, rPeriod int, vhash string, verified bool) error {
 	db := mong.Session.DB(mong.Database)
 	c := db.C("subscriptions")
 
@@ -1575,12 +1575,14 @@ func (mong *MongoStore) ModSubPush(projectUUID string, name string, push string,
 		"name":         name,
 	},
 		bson.M{"$set": bson.M{
-			"push_endpoint":     push,
-			"max_messages":      maxMessages,
-			"retry_policy":      rPolicy,
-			"retry_period":      rPeriod,
-			"verification_hash": vhash,
-			"verified":          verified,
+			"push_endpoint":        push,
+			"authorization_type":   authzType,
+			"authorization_header": authzValue,
+			"max_messages":         maxMessages,
+			"retry_policy":         rPolicy,
+			"retry_period":         rPeriod,
+			"verification_hash":    vhash,
+			"verified":             verified,
 		},
 		})
 	return err

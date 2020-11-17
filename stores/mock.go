@@ -549,10 +549,12 @@ func (mk *MockStore) ModAck(projectUUID string, name string, ack int) error {
 }
 
 // ModSubPush modifies the subscription push configuration
-func (mk *MockStore) ModSubPush(projectUUID string, name string, push string, maxMessages int64, rPolicy string, rPeriod int, vhash string, verified bool) error {
+func (mk *MockStore) ModSubPush(projectUUID string, name string, push string, authzType string, authzValue string, maxMessages int64, rPolicy string, rPeriod int, vhash string, verified bool) error {
 	for i, item := range mk.SubList {
 		if item.ProjectUUID == projectUUID && item.Name == name {
 			mk.SubList[i].PushEndpoint = push
+			mk.SubList[i].AuthorizationType = authzType
+			mk.SubList[i].AuthorizationHeader = authzValue
 			mk.SubList[i].MaxMessages = maxMessages
 			mk.SubList[i].RetPolicy = rPolicy
 			mk.SubList[i].RetPeriod = rPeriod

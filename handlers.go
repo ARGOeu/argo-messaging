@@ -2588,16 +2588,35 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 	// Parse pull options
 	postBody, err := subscriptions.GetFromJSON(body)
 	if err != nil {
-		APIErrorInvalidArgument("Subscription")
-		log.Error(string(body[:]))
+		err := APIErrorInvalidArgument("Subscription")
+		respondErr(w, err)
 		return
 	}
+
+	// Get Result Object
+	res, err := subscriptions.Find(projectUUID, "", subName, "", 0, refStr)
+
+	if err != nil {
+		err := APIErrGenericBackend()
+		respondErr(w, err)
+		return
+	}
+
+	if res.Empty() {
+		err := APIErrorNotFound("Subscription")
+		respondErr(w, err)
+		return
+	}
+
+	existingSub := res.Subscriptions[0]
 
 	pushEnd := ""
 	rPolicy := ""
 	rPeriod := 0
 	vhash := ""
 	verified := false
+	authzType := subscriptions.AutoGenerationAuthorizationHeader
+	authzHeaderValue := ""
 	maxMessages := int64(0)
 	pushWorker := auth.User{}
 	pwToken := gorillaContext.Get(r, "push_worker_token").(string)
@@ -2627,6 +2646,7 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 			respondErr(w, err)
 			return
 		}
+
 		rPolicy = postBody.PushCfg.RetPol.PolicyType
 		rPeriod = postBody.PushCfg.RetPol.Period
 		maxMessages = postBody.PushCfg.MaxMessages
@@ -2643,24 +2663,61 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 			respondErr(w, err)
 			return
 		}
+
+		authzType = postBody.PushCfg.AuthorizationHeader.Type
+		// if there is a given authorization type check if its supported by the service
+		if authzType != "" {
+			if !subscriptions.IsAuthorizationHeaderTypeSupported(authzType) {
+				err := APIErrorInvalidData(subscriptions.UnSupportedAuthorizationHeader)
+				respondErr(w, err)
+				return
+			}
+		}
+
+		// if the subscription was not push enabled before
+		// and no authorization_header has been specified
+		// use autogen
+		if authzType == "" && (existingSub.PushCfg == subscriptions.PushConfig{}) {
+			authzType = subscriptions.AutoGenerationAuthorizationHeader
+		}
+
+		// if the provided authorization_header is of autogen type
+		// generate a new header
+		if authzType == subscriptions.AutoGenerationAuthorizationHeader {
+			authzHeaderValue, err = auth.GenToken()
+			if err != nil {
+				log.Errorf("Could not generate authorization header for subscription %v, %v", urlVars["subscription"], err.Error())
+				err := APIErrGenericInternal("Could not generate authorization header")
+				respondErr(w, err)
+				return
+			}
+		}
+
+		// if the provided authorization_header is of disabled type
+		if authzType == subscriptions.DisabledAuthorizationHeader {
+			authzHeaderValue = ""
+		}
+
+		// if there is no authorization_type provided and the push cfg has an empty value because the sub
+		// was push activated before the implementation of the feature
+		// declare it disabled
+		if authzType == "" && existingSub.PushCfg.AuthorizationHeader.Type == "" {
+			authzType = subscriptions.DisabledAuthorizationHeader
+		}
+
+		// if there is no authorization_header provided but the existing one is of disabled type
+		// preserve it
+		if authzType == "" && existingSub.PushCfg.AuthorizationHeader.Type == subscriptions.DisabledAuthorizationHeader {
+			authzType = subscriptions.DisabledAuthorizationHeader
+		}
+
+		// if there is no authorization_header provided but the existing one is of autogen type
+		// preserve the value and type
+		if authzType == "" && existingSub.PushCfg.AuthorizationHeader.Type == subscriptions.AutoGenerationAuthorizationHeader {
+			authzType = subscriptions.AutoGenerationAuthorizationHeader
+			authzHeaderValue = existingSub.PushCfg.AuthorizationHeader.Value
+		}
 	}
-
-	// Get Result Object
-	res, err := subscriptions.Find(projectUUID, "", subName, "", 0, refStr)
-
-	if err != nil {
-		err := APIErrGenericBackend()
-		respondErr(w, err)
-		return
-	}
-
-	if res.Empty() {
-		err := APIErrorNotFound("Subscription")
-		respondErr(w, err)
-		return
-	}
-
-	existingSub := res.Subscriptions[0]
 
 	if maxMessages == 0 {
 		if existingSub.PushCfg.MaxMessages == 0 {
@@ -2690,7 +2747,7 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	err = subscriptions.ModSubPush(projectUUID, subName, pushEnd, maxMessages, rPolicy, rPeriod, vhash, verified, refStr)
+	err = subscriptions.ModSubPush(projectUUID, subName, pushEnd, authzType, authzHeaderValue, maxMessages, rPolicy, rPeriod, vhash, verified, refStr)
 
 	if err != nil {
 		if err.Error() == "not found" {
@@ -2714,7 +2771,7 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 		if existingSub.PushCfg.Verified {
 			// deactivate the subscription on the push backend
 			apsc := gorillaContext.Get(r, "apsc").(push.Client)
-			apsc.DeactivateSubscription(context.TODO(), existingSub.FullName)
+			apsc.DeactivateSubscription(context.TODO(), existingSub.FullName).Result(false)
 
 			// remove the push worker user from the sub's acl
 			err = auth.RemoveFromACL(projectUUID, "subscriptions", existingSub.Name, []string{pushWorker.Name}, refStr)
@@ -2736,7 +2793,7 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 			// activate the subscription on the push backend
 			apsc := gorillaContext.Get(r, "apsc").(push.Client)
 			apsc.ActivateSubscription(context.TODO(), existingSub.FullName, existingSub.FullTopic,
-				pushEnd, rPolicy, uint32(rPeriod), maxMessages, existingSub.PushCfg.AuthorizationHeader.Value)
+				pushEnd, rPolicy, uint32(rPeriod), maxMessages, authzHeaderValue).Result(false)
 
 			// modify the sub's acl with the push worker's uuid
 			err = auth.AppendToACL(projectUUID, "subscriptions", existingSub.Name, []string{pushWorker.Name}, refStr)
@@ -2841,7 +2898,8 @@ func SubVerifyPushEndpoint(w http.ResponseWriter, r *http.Request) {
 	// activate the subscription on the push backend
 	apsc := gorillaContext.Get(r, "apsc").(push.Client)
 	apsc.ActivateSubscription(context.TODO(), sub.FullName, sub.FullTopic, sub.PushCfg.Pend,
-		sub.PushCfg.RetPol.PolicyType, uint32(sub.PushCfg.RetPol.Period), sub.PushCfg.MaxMessages, sub.PushCfg.AuthorizationHeader.Value)
+		sub.PushCfg.RetPol.PolicyType, uint32(sub.PushCfg.RetPol.Period),
+		sub.PushCfg.MaxMessages, sub.PushCfg.AuthorizationHeader.Value).Result(false)
 
 	// modify the sub's acl with the push worker's uuid
 	err = auth.AppendToACL(projectUUID, "subscriptions", sub.Name, []string{pushW.Name}, refStr)
