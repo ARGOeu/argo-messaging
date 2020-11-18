@@ -2550,6 +2550,8 @@ definitions:
       maxMessages:
         type: integer
         description: batch size of messages per push action
+      authorization_header:
+        $ref: '#/definitions/AuthorizationHeader'
       retryPolicy:
         $ref: '#/definitions/RetryPolicy'
       verification_hash:
@@ -2600,6 +2602,16 @@ definitions:
       period:
         type: integer
         description: period of retry policy in milliseconds
+
+  AuthorizationHeader:
+    type: object
+    properties:
+      type:
+        type: string
+        description: indicates how to generate the authorization header value. autogen and disabled are the supported values.
+      value:
+        type: string
+        description: the value that will be included in the Authotization header for every message delivered to a push endpoint
 
   Topic:
     type: object

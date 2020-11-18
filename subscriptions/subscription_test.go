@@ -193,12 +193,14 @@ func (suite *SubTestSuite) TestGetSubsByProject() {
 	expSub4.PushCfg.RetPol.PolicyType = "linear"
 	expSub4.PushCfg.RetPol.Period = 300
 	rp := RetryPolicy{"linear", 300}
+	authCFG := AuthorizationHeader{"autogen", "auth-header-1"}
 	expSub4.PushCfg = PushConfig{
-		Pend:             "endpoint.foo",
-		RetPol:           rp,
-		VerificationHash: "push-id-1",
-		Verified:         true,
-		MaxMessages:      1,
+		Pend:                "endpoint.foo",
+		AuthorizationHeader: authCFG,
+		RetPol:              rp,
+		VerificationHash:    "push-id-1",
+		Verified:            true,
+		MaxMessages:         1,
 	}
 	expSub4.LatestConsume = time.Date(0, 0, 0, 0, 0, 0, 0, time.Local)
 	expSub4.ConsumeRate = 0
@@ -289,13 +291,15 @@ func (suite *SubTestSuite) TestLoadFromCfg() {
 	expSub4 := New("argo_uuid", "ARGO", "sub4", "topic4")
 	expSub4.PushCfg.RetPol.PolicyType = "linear"
 	expSub4.PushCfg.RetPol.Period = 300
+	authCFG := AuthorizationHeader{"autogen", "auth-header-1"}
 	rp := RetryPolicy{"linear", 300}
 	expSub4.PushCfg = PushConfig{
-		Pend:             "endpoint.foo",
-		RetPol:           rp,
-		VerificationHash: "push-id-1",
-		Verified:         true,
-		MaxMessages:      1,
+		Pend:                "endpoint.foo",
+		AuthorizationHeader: authCFG,
+		RetPol:              rp,
+		VerificationHash:    "push-id-1",
+		Verified:            true,
+		MaxMessages:         1,
 	}
 	expSub4.LatestConsume = time.Date(0, 0, 0, 0, 0, 0, 0, time.Local)
 	expSub4.ConsumeRate = 0
@@ -306,6 +310,12 @@ func (suite *SubTestSuite) TestLoadFromCfg() {
 	expSubs = append(expSubs, expSub1)
 	suite.Equal(expSubs, results.Subscriptions)
 
+}
+
+func (suite *SubTestSuite) TestIsAuthzTypeSupported() {
+	suite.True(IsAuthorizationHeaderTypeSupported("autogen"))
+	suite.True(IsAuthorizationHeaderTypeSupported("disabled"))
+	suite.False(IsRetryPolicySupported("unknown"))
 }
 
 func (suite *SubTestSuite) TestIsRetPolSupported() {
@@ -335,11 +345,11 @@ func (suite *SubTestSuite) TestCreateSubStore() {
 
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
 
-	sub, err := CreateSub("argo_uuid", "sub1", "topic1", "", 0, 0, 0, "linear", 300, "", true, store)
+	sub, err := CreateSub("argo_uuid", "sub1", "topic1", "", 0, 0, "", "", 0, "linear", 300, "", true, store)
 	suite.Equal(Subscription{}, sub)
 	suite.Equal("exists", err.Error())
 
-	sub2, err2 := CreateSub("argo_uuid", "subNew", "topicNew", "", 0, 0, 0, "linear", 300, "", true, store)
+	sub2, err2 := CreateSub("argo_uuid", "subNew", "topicNew", "", 0, 0, "", "", 0, "linear", 300, "", true, store)
 	expSub := New("argo_uuid", "ARGO", "subNew", "topicNew")
 	suite.Equal(expSub, sub2)
 	suite.Equal(nil, err2)
@@ -508,6 +518,7 @@ func (suite *SubTestSuite) TestExportJson() {
    "pushConfig": {
       "pushEndpoint": "",
       "maxMessages": 0,
+      "authorization_header": {},
       "retryPolicy": {},
       "verification_hash": "",
       "verified": false
@@ -524,6 +535,10 @@ func (suite *SubTestSuite) TestExportJson() {
          "pushConfig": {
             "pushEndpoint": "endpoint.foo",
             "maxMessages": 1,
+            "authorization_header": {
+               "type": "autogen",
+               "value": "auth-header-1"
+            },
             "retryPolicy": {
                "type": "linear",
                "period": 300
@@ -539,6 +554,7 @@ func (suite *SubTestSuite) TestExportJson() {
          "pushConfig": {
             "pushEndpoint": "",
             "maxMessages": 0,
+            "authorization_header": {},
             "retryPolicy": {},
             "verification_hash": "",
             "verified": false
@@ -551,6 +567,7 @@ func (suite *SubTestSuite) TestExportJson() {
          "pushConfig": {
             "pushEndpoint": "",
             "maxMessages": 0,
+            "authorization_header": {},
             "retryPolicy": {},
             "verification_hash": "",
             "verified": false
@@ -563,6 +580,7 @@ func (suite *SubTestSuite) TestExportJson() {
          "pushConfig": {
             "pushEndpoint": "",
             "maxMessages": 0,
+            "authorization_header": {},
             "retryPolicy": {},
             "verification_hash": "",
             "verified": false
