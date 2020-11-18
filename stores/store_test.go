@@ -248,7 +248,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal(66, subAck.Ack)
 
 	// Test mod push sub
-	e1 := store.ModSubPush("argo_uuid", "sub1", "example.com", 3, "linear", 400, "hash-1", true)
+	e1 := store.ModSubPush("argo_uuid", "sub1", "example.com", "autogen", "auth-h-1", 3, "linear", 400, "hash-1", true)
 	sub1, _ := store.QueryOneSub("argo_uuid", "sub1")
 	suite.Nil(e1)
 	suite.Equal("example.com", sub1.PushEndpoint)
@@ -256,9 +256,11 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal("linear", sub1.RetPolicy)
 	suite.Equal(400, sub1.RetPeriod)
 	suite.Equal("hash-1", sub1.VerificationHash)
+	suite.Equal("autogen", sub1.AuthorizationType)
+	suite.Equal("auth-h-1", sub1.AuthorizationHeader)
 	suite.True(sub1.Verified)
 
-	e2 := store.ModSubPush("argo_uuid", "unknown", "", 0, "", 0, "", false)
+	e2 := store.ModSubPush("argo_uuid", "unknown", "", "", "", 0, "", 0, "", false)
 	suite.Equal("not found", e2.Error())
 
 	// exists in acl

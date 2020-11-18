@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"github.com/ARGOeu/argo-messaging/subscriptions"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -3377,6 +3378,8 @@ func (suite *HandlerTestSuite) TestSubModPushConfigToActive() {
 	suite.Equal("linear", sub.RetPolicy)
 	suite.False(sub.Verified)
 	suite.NotEqual("", sub.VerificationHash)
+	suite.Equal(subscriptions.AutoGenerationAuthorizationHeader, sub.AuthorizationType)
+	suite.NotEqual("", sub.AuthorizationHeader)
 }
 
 // TestSubModPushConfigToInactive tests the use case where the user modifies the push configuration
@@ -3496,6 +3499,9 @@ func (suite *HandlerTestSuite) TestSubModPushConfigUpdate() {
 	"pushConfig": {
 		 "pushEndpoint": "https://www.example2.com",
          "maxMessages": 5,
+		 "authorization_header": {
+			"type": "autogen"
+         },
 		 "retryPolicy": {
              "type":"linear",
              "period": 5000
@@ -3516,6 +3522,7 @@ func (suite *HandlerTestSuite) TestSubModPushConfigUpdate() {
 	mgr := oldPush.Manager{}
 	pc := new(push.MockClient)
 	w := httptest.NewRecorder()
+	subBeforeUpdate, _ := str.QueryOneSub("argo_uuid", "sub4")
 	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modifyPushConfig", WrapMockAuthConfig(SubModPush, cfgKafka, &brk, str, &mgr, pc))
 	router.ServeHTTP(w, req)
 	sub, _ := str.QueryOneSub("argo_uuid", "sub4")
@@ -3528,6 +3535,7 @@ func (suite *HandlerTestSuite) TestSubModPushConfigUpdate() {
 	suite.False(sub.Verified)
 	suite.NotEqual("", sub.VerificationHash)
 	suite.NotEqual("push-id-1", sub.VerificationHash)
+	suite.NotEqual(subBeforeUpdate.AuthorizationHeader, sub.AuthorizationHeader)
 }
 
 // TestSubModPushConfigToActiveORUpdatePushDisabled tests the case where the user modifies the push configuration,
@@ -3614,6 +3622,56 @@ func (suite *HandlerTestSuite) TestSubModPushConfigToActiveORUpdateMissingWorker
 	router.ServeHTTP(w, req)
 	suite.Equal(500, w.Code)
 	suite.Equal(expResp, w.Body.String())
+}
+
+// TestSubModPushConfigUpdateAuthzDisabled tests the case where the user modifies the push configuration,
+// in order to activate the subscription on the push server
+// the push configuration was empty before the api call
+// since the push endpoint that has been registered is different from the previous verified one
+// the sub will be deactivated on the push server and turn into unverified
+func (suite *HandlerTestSuite) TestSubModPushConfigUpdateAuthzDisabled() {
+
+	postJSON := `{
+	"pushConfig": {
+		 "pushEndpoint": "https://www.example2.com",
+         "maxMessages": 5,
+  		"authorization_header": {
+  		"type": "disabled"
+		},
+		 "retryPolicy": {
+             "type":"linear",
+             "period": 5000
+         }
+	}
+}`
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/projects/ARGO/subscriptions/sub4:modifyPushConfig", strings.NewReader(postJSON))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modifyPushConfig", WrapMockAuthConfig(SubModPush, cfgKafka, &brk, str, &mgr, pc))
+	router.ServeHTTP(w, req)
+	sub, _ := str.QueryOneSub("argo_uuid", "sub4")
+	suite.Equal(200, w.Code)
+	suite.Equal("", w.Body.String())
+	suite.Equal("https://www.example2.com", sub.PushEndpoint)
+	suite.Equal(int64(5), sub.MaxMessages)
+	suite.Equal(5000, sub.RetPeriod)
+	suite.Equal("linear", sub.RetPolicy)
+	suite.False(sub.Verified)
+	suite.NotEqual("", sub.VerificationHash)
+	suite.NotEqual("push-id-1", sub.VerificationHash)
+	suite.Equal(subscriptions.DisabledAuthorizationHeader, sub.AuthorizationType)
+	suite.Equal("", sub.AuthorizationHeader)
 }
 
 func (suite *HandlerTestSuite) TestVerifyPushEndpoint() {
