@@ -1273,7 +1273,7 @@ func (mong *MongoStore) InsertProject(uuid string, name string, createdOn time.T
 }
 
 // InsertSub inserts a subscription to the store
-func (mong *MongoStore) InsertSub(projectUUID string, name string, topic string, offset int64, maxMessages int64, authzType string, authzHeader string, ack int, push string, rPolicy string, rPeriod int, vhash string, verified bool) error {
+func (mong *MongoStore) InsertSub(projectUUID string, name string, topic string, offset int64, maxMessages int64, authzType string, authzHeader string, ack int, push string, rPolicy string, rPeriod int, vhash string, verified bool, createdOn time.Time) error {
 	sub := QSub{
 		ProjectUUID:         projectUUID,
 		Name:                name,
@@ -1292,6 +1292,7 @@ func (mong *MongoStore) InsertSub(projectUUID string, name string, topic string,
 		Verified:            verified,
 		MsgNum:              0,
 		TotalBytes:          0,
+		CreatedOn:           createdOn,
 	}
 	return mong.InsertResource("subscriptions", sub)
 }
