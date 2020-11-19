@@ -77,7 +77,8 @@ func (suite *TopicsHandlersTestSuite) TestTopicCreate() {
 	}
 
 	expResp := `{
-   "name": "/projects/ARGO/topics/topicNew"
+   "name": "/projects/ARGO/topics/topicNew",
+   "created_on": "{{CON}}"
 }`
 
 	cfgKafka := config.NewAPICfg()
@@ -87,11 +88,13 @@ func (suite *TopicsHandlersTestSuite) TestTopicCreate() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := oldPush.Manager{}
-
 	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapMockAuthConfig(TopicCreate, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
+	tp, _, _, _ := str.QueryTopics("argo_uuid", "", "topicNew", "", 1)
+	expResp = strings.Replace(expResp, "{{CON}}", tp[0].CreatedOn.Format("2006-01-02T15:04:05Z"), 1)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
+
 }
 
 func (suite *TopicsHandlersTestSuite) TestTopicCreateExists() {
@@ -130,7 +133,8 @@ func (suite *TopicsHandlersTestSuite) TestTopicListOne() {
 	}
 
 	expResp := `{
-   "name": "/projects/ARGO/topics/topic1"
+   "name": "/projects/ARGO/topics/topic1",
+   "created_on": "2020-11-22T00:00:00Z"
 }`
 
 	cfgKafka := config.NewAPICfg()
@@ -328,18 +332,22 @@ func (suite *TopicsHandlersTestSuite) TestTopicListAll() {
 	expResp := `{
    "topics": [
       {
-         "name": "/projects/ARGO/topics/topic4"
+         "name": "/projects/ARGO/topics/topic4",
+         "created_on": "2020-11-19T00:00:00Z"
       },
       {
          "name": "/projects/ARGO/topics/topic3",
-         "schema": "projects/ARGO/schemas/schema-3"
+         "schema": "projects/ARGO/schemas/schema-3",
+         "created_on": "2020-11-20T00:00:00Z"
       },
       {
          "name": "/projects/ARGO/topics/topic2",
-         "schema": "projects/ARGO/schemas/schema-1"
+         "schema": "projects/ARGO/schemas/schema-1",
+         "created_on": "2020-11-21T00:00:00Z"
       },
       {
-         "name": "/projects/ARGO/topics/topic1"
+         "name": "/projects/ARGO/topics/topic1",
+         "created_on": "2020-11-22T00:00:00Z"
       }
    ],
    "nextPageToken": "",
@@ -371,10 +379,12 @@ func (suite *TopicsHandlersTestSuite) TestTopicListAllPublisher() {
    "topics": [
       {
          "name": "/projects/ARGO/topics/topic2",
-         "schema": "projects/ARGO/schemas/schema-1"
+         "schema": "projects/ARGO/schemas/schema-1",
+         "created_on": "2020-11-21T00:00:00Z"
       },
       {
-         "name": "/projects/ARGO/topics/topic1"
+         "name": "/projects/ARGO/topics/topic1",
+         "created_on": "2020-11-22T00:00:00Z"
       }
    ],
    "nextPageToken": "",
@@ -405,7 +415,8 @@ func (suite *TopicsHandlersTestSuite) TestTopicListAllPublisherWithPagination() 
    "topics": [
       {
          "name": "/projects/ARGO/topics/topic2",
-         "schema": "projects/ARGO/schemas/schema-1"
+         "schema": "projects/ARGO/schemas/schema-1",
+         "created_on": "2020-11-21T00:00:00Z"
       }
    ],
    "nextPageToken": "MA==",
@@ -629,11 +640,13 @@ func (suite *TopicsHandlersTestSuite) TestTopicListAllFirstPage() {
 	expResp := `{
    "topics": [
       {
-         "name": "/projects/ARGO/topics/topic4"
+         "name": "/projects/ARGO/topics/topic4",
+         "created_on": "2020-11-19T00:00:00Z"
       },
       {
          "name": "/projects/ARGO/topics/topic3",
-         "schema": "projects/ARGO/schemas/schema-3"
+         "schema": "projects/ARGO/schemas/schema-3",
+         "created_on": "2020-11-20T00:00:00Z"
       }
    ],
    "nextPageToken": "MQ==",
@@ -664,7 +677,8 @@ func (suite *TopicsHandlersTestSuite) TestTopicListAllNextPage() {
 	expResp := `{
    "topics": [
       {
-         "name": "/projects/ARGO/topics/topic1"
+         "name": "/projects/ARGO/topics/topic1",
+         "created_on": "2020-11-22T00:00:00Z"
       }
    ],
    "nextPageToken": "",
@@ -987,7 +1001,8 @@ func (suite *TopicsHandlersTestSuite) TestValidationInTopics() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 
 	okResp := `{
-   "name": "/projects/ARGO/topics/topic1"
+   "name": "/projects/ARGO/topics/topic1",
+   "created_on": "2020-11-22T00:00:00Z"
 }`
 	invProject := `{
    "error": {

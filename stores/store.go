@@ -38,7 +38,7 @@ type Store interface {
 	InsertUser(uuid string, projects []QProjectRoles, name string, firstName string, lastName string, org string, desc string, token string, email string, serviceRoles []string, createdOn time.Time, modifiedOn time.Time, createdBy string) error
 	InsertProject(uuid string, name string, createdOn time.Time, modifiedOn time.Time, createdBy string, description string) error
 	InsertOpMetric(hostname string, cpu float64, mem float64) error
-	InsertTopic(projectUUID string, name string, schemaUUID string) error
+	InsertTopic(projectUUID string, name string, schemaUUID string, createdOn time.Time) error
 	IncrementTopicMsgNum(projectUUID string, name string, num int64) error
 	IncrementDailyTopicMsgCount(projectUUID string, topicName string, num int64, date time.Time) error
 	IncrementTopicBytes(projectUUID string, name string, totalBytes int64) error
