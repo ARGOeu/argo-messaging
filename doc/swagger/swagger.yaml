@@ -465,9 +465,9 @@ paths:
           $ref: "#/responses/500"
 
 
-  /metrics/daily-message-average:
+  /metrics/va_metrics:
     get:
-      summary: List of projects and their message count for the given time window
+      summary: List of projects and their message count, users, topics, subs for the given time window
       description: |
         list operational metrics
       parameters:
@@ -479,9 +479,9 @@ paths:
         - Operational Metrics
       responses:
         200:
-          description: Returns the message count metrics per project
+          description: Returns the message count metrics per project, and overall users, subs and topics
           schema:
-            $ref: '#/definitions/TotalProjectMessageCount'
+            $ref: '#/definitions/VAMetrics'
         401:
           $ref: "#/responses/401"
         403:
@@ -2433,6 +2433,19 @@ definitions:
       schema:
         type: object
 
+  VAMetrics:
+    type: object
+    properties:
+      projects_metrics:
+        type: object
+        $ref: '#/definitions/TotalProjectMessageCount'
+      users_count:
+        type: integer
+      topics_count:
+        type: integer
+      subscriptions_count:
+        type: integer
+
   TotalProjectMessageCount:
     type: object
     properties:
@@ -2490,9 +2503,6 @@ definitions:
         type: string
       value:
         type: string
-
-
-
 
   AuthUsers:
     type: object

@@ -78,6 +78,49 @@ func (mong *MongoStore) Initialize() {
 	}
 }
 
+// SubscriptionsCount returns the amount of subscriptions created in the given time period
+func (mong *MongoStore) SubscriptionsCount(startDate, endDate time.Time) (int, error) {
+	return mong.getDocCountForCollection(startDate, endDate, "subscriptions")
+}
+
+// TopicsCount returns the amount of topics created in the given time period
+func (mong *MongoStore) TopicsCount(startDate, endDate time.Time) (int, error) {
+	return mong.getDocCountForCollection(startDate, endDate, "topics")
+}
+
+// UserCount returns the amount of users created in the given time period
+func (mong *MongoStore) UsersCount(startDate, endDate time.Time) (int, error) {
+	return mong.getDocCountForCollection(startDate, endDate, "users")
+}
+
+// getDocCountForCollection returns the document count for a collection in a given time period
+// collection should support field created_on
+func (mong *MongoStore) getDocCountForCollection(startDate, endDate time.Time, col string) (int, error) {
+
+	query := bson.M{
+		"created_on": bson.M{
+			"$gte": startDate,
+			"$lte": endDate,
+		},
+	}
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C(col)
+
+	count, err := c.Find(query).Count()
+	if err != nil {
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
+	}
+
+	return count, nil
+}
+
 // QueryProjects queries the database for a specific project or a list of all projects
 func (mong *MongoStore) QueryProjects(uuid string, name string) ([]QProject, error) {
 

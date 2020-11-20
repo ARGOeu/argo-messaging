@@ -6,9 +6,7 @@ import (
 
 	"time"
 
-	"fmt"
 	"github.com/ARGOeu/argo-messaging/stores"
-	"math"
 )
 
 // ProjectUUID is the struct that holds ProjectUUID information
@@ -24,18 +22,6 @@ type Project struct {
 // Projects holds a list of available projects
 type Projects struct {
 	List []Project `json:"projects,omitempty"`
-}
-
-type ProjectMessageCount struct {
-	Project              string  `json:"project"`
-	MessageCount         int64   `json:"message_count"`
-	AverageDailyMessages float64 `json:"average_daily_messages"`
-}
-
-type TotalProjectsMessageCount struct {
-	Projects             []ProjectMessageCount `json:"projects"`
-	TotalCount           int64                 `json:"total_message_count"`
-	AverageDailyMessages float64               `json:"average_daily_messages"`
 }
 
 // ExportJSON exports ProjectUUID to json format
@@ -100,67 +86,6 @@ func Find(uuid string, name string, store stores.Store) (Projects, error) {
 	}
 
 	return result, err
-}
-
-// GetProjectsMessageCount returns the total amount of messages per project for the given time window
-func GetProjectsMessageCount(projects []string, startDate time.Time, endDate time.Time, str stores.Store) (TotalProjectsMessageCount, error) {
-
-	tpj := TotalProjectsMessageCount{
-		Projects:   []ProjectMessageCount{},
-		TotalCount: 0,
-	}
-
-	var qtpj []stores.QProjectMessageCount
-	var err error
-
-	// since we want to present the end result using project names and not uuids
-	// we need to hold the mapping of UUID to NAME
-	projectsUUIDNames := make(map[string]string)
-
-	// check that all project UUIDs are correct
-	// translate the project NAMES to their respective UUIDs
-	projectUUIDs := make([]string, 0)
-	for _, prj := range projects {
-		projectUUID := GetUUIDByName(prj, str)
-		if projectUUID == "" {
-			return TotalProjectsMessageCount{}, fmt.Errorf("Project %v", prj)
-		}
-		projectUUIDs = append(projectUUIDs, projectUUID)
-		projectsUUIDNames[projectUUID] = prj
-	}
-
-	qtpj, err = str.QueryTotalMessagesPerProject(projectUUIDs, startDate, endDate)
-	if err != nil {
-		return TotalProjectsMessageCount{}, err
-	}
-
-	for _, prj := range qtpj {
-
-		projectName := ""
-
-		// if no project names were provided we have to do the mapping between name and uuid
-		if len(projects) == 0 {
-			projectName = GetNameByUUID(prj.ProjectUUID, str)
-		} else {
-			projectName = projectsUUIDNames[prj.ProjectUUID]
-		}
-
-		avg := math.Ceil(prj.AverageDailyMessages*100) / 100
-
-		pc := ProjectMessageCount{
-			Project:              projectName,
-			MessageCount:         prj.NumberOfMessages,
-			AverageDailyMessages: avg,
-		}
-
-		tpj.Projects = append(tpj.Projects, pc)
-
-		tpj.TotalCount += prj.NumberOfMessages
-
-		tpj.AverageDailyMessages += avg
-	}
-
-	return tpj, nil
 }
 
 // GetNameByUUID queries projects by UUID and returns the project name. If not found, returns an empty string

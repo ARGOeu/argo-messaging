@@ -53,6 +53,25 @@ type Metric struct {
 	Description  string      `json:"description"`
 }
 
+type ProjectMessageCount struct {
+	Project              string  `json:"project"`
+	MessageCount         int64   `json:"message_count"`
+	AverageDailyMessages float64 `json:"average_daily_messages"`
+}
+
+type TotalProjectsMessageCount struct {
+	Projects             []ProjectMessageCount `json:"projects"`
+	TotalCount           int64                 `json:"total_message_count"`
+	AverageDailyMessages float64               `json:"average_daily_messages"`
+}
+
+type VAReport struct {
+	ProjectsMetrics    TotalProjectsMessageCount `json:"projects_metrics"`
+	UsersCount         int                       `json:"users_count"`
+	TopicsCount        int                       `json:"topics_count"`
+	SubscriptionsCount int                       `json:"subscriptions_count"`
+}
+
 type Timepoint struct {
 	Timestamp string      `json:"timestamp"`
 	Value     interface{} `json:"value"`

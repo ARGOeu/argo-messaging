@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/ARGOeu/argo-messaging/config"
 	"github.com/ARGOeu/argo-messaging/stores"
@@ -346,6 +347,71 @@ func (suite *MetricsTestSuite) TestAggrProjectUserTopicsTest() {
 
 	suite.Equal(expJSON, outJSON)
 
+}
+
+func (suite *MetricsTestSuite) TestGetProjectsMessageCount() {
+
+	store := stores.NewMockStore("", "")
+	store.Initialize()
+
+	// test total message count per project
+	expectedTmpc := TotalProjectsMessageCount{
+		Projects: []ProjectMessageCount{
+			{
+				Project:              "ARGO",
+				MessageCount:         60,
+				AverageDailyMessages: 15,
+			},
+		},
+		TotalCount:           60,
+		AverageDailyMessages: 15,
+	}
+
+	tmpc, tmpcerr := GetProjectsMessageCount(
+		[]string{"ARGO"},
+		time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2018, 10, 4, 0, 0, 0, 0, time.UTC),
+		store,
+	)
+
+	suite.Equal(expectedTmpc, tmpc)
+	suite.Nil(tmpcerr)
+}
+
+func (suite *MetricsTestSuite) TestGetVAReport() {
+
+	store := stores.NewMockStore("", "")
+	store.Initialize()
+
+	// test total message count per project
+	expectedTmpc := TotalProjectsMessageCount{
+		Projects: []ProjectMessageCount{
+			{
+				Project:              "ARGO",
+				MessageCount:         280,
+				AverageDailyMessages: 0,
+			},
+		},
+		TotalCount:           280,
+		AverageDailyMessages: 0,
+	}
+
+	va, tmpcerr := GetVAReport(
+		[]string{"ARGO"},
+		time.Date(2007, 10, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2020, 20, 4, 0, 0, 0, 0, time.UTC),
+		store,
+	)
+
+	expectedVA := VAReport{
+		ProjectsMetrics:    expectedTmpc,
+		UsersCount:         18,
+		TopicsCount:        8,
+		SubscriptionsCount: 8,
+	}
+
+	suite.Equal(expectedVA, va)
+	suite.Nil(tmpcerr)
 }
 
 func TestMetricsTestSuite(t *testing.T) {

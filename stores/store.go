@@ -68,6 +68,9 @@ type Store interface {
 	QuerySchemas(projectUUID, schemaUUID, name string) ([]QSchema, error)
 	UpdateSchema(schemaUUID, name, schemaType, rawSchemaString string) error
 	DeleteSchema(schemaUUID string) error
+	UsersCount(startDate, endDate time.Time) (int, error)
+	TopicsCount(startDate, endDate time.Time) (int, error)
+	SubscriptionsCount(startDate, endDate time.Time) (int, error)
 	Clone() Store
 	Close()
 }
