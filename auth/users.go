@@ -2,7 +2,7 @@ package auth
 
 import (
 	"crypto/rand"
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -740,7 +740,7 @@ func GenToken() (string, error) {
 	if _, err := rand.Read(tokenBytes); err != nil {
 		return "", err
 	}
-	sha1Bytes := sha1.Sum(tokenBytes)
+	sha1Bytes := sha256.Sum256(tokenBytes)
 	return hex.EncodeToString(sha1Bytes[:]), nil
 }
 
