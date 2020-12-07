@@ -37,7 +37,8 @@ Success Response
 `200 OK`
 ```json
 {
- "name": "projects/BRAND_NEW/topics/monitoring"
+ "name": "projects/BRAND_NEW/topics/monitoring",
+ "created_on": "2020-11-21T00:00:00Z"
 }
 ```
 
@@ -98,7 +99,9 @@ Success Response
 `200 OK`
 ```json
 {
- "name": "projects/BRAND_NEW/topics/monitoring"
+ "name": "projects/BRAND_NEW/topics/monitoring",
+ "created_on": "2020-11-21T00:00:00Z"
+
 }
 ```
 
@@ -149,10 +152,12 @@ Success Response
 {
   "topics": [
     {
-      "name":"/project/BRAND_NEW/topics/monitoring"
+      "name":"/project/BRAND_NEW/topics/monitoring",
+      "created_on": "2020-11-21T00:00:00Z"
     },
     {
-      "name":"/project/BRAND_NEW/topics/accounting"
+      "name":"/project/BRAND_NEW/topics/accounting",
+      "created_on": "2020-11-21T00:00:00Z"
     }
  ],
   "nextPageToken": "",
@@ -183,7 +188,8 @@ Success Response
 {
   "topics": [
     {
-      "name":"/project/BRAND_NEW/topics/monitoring"
+      "name":"/project/BRAND_NEW/topics/monitoring",
+      "created_on": "2020-11-21T00:00:00Z"
     }
  ],
   "nextPageToken": "some_token",
@@ -214,7 +220,8 @@ Success Response
 {
   "topics": [
     {
-      "name":"/project/BRAND_NEW/topics/accounting"
+      "name":"/project/BRAND_NEW/topics/accounting",
+      "created_on": "2020-11-21T00:00:00Z"
     }
  ],
   "nextPageToken": "",

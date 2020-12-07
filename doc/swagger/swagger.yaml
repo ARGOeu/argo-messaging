@@ -2619,6 +2619,9 @@ definitions:
       name:
         type: string
         description: Name of the topic
+      created_on:
+        type: string
+        description: creation date
 
   Topics:
     type: object

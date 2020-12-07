@@ -194,8 +194,11 @@ func TopicCreate(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+
+	created := time.Now().UTC()
+
 	// Get Result Object
-	res, err := topics.CreateTopic(projectUUID, urlVars["topic"], schemaUUID, refStr)
+	res, err := topics.CreateTopic(projectUUID, urlVars["topic"], schemaUUID, created, refStr)
 	if err != nil {
 		if err.Error() == "exists" {
 			err := APIErrorConflict("Topic")

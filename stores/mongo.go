@@ -1208,7 +1208,7 @@ func (mong *MongoStore) HasProject(name string) bool {
 }
 
 // InsertTopic inserts a topic to the store
-func (mong *MongoStore) InsertTopic(projectUUID string, name string, schemaUUID string) error {
+func (mong *MongoStore) InsertTopic(projectUUID string, name string, schemaUUID string, createdOn time.Time) error {
 
 	topic := QTopic{
 		ProjectUUID:   projectUUID,
@@ -1218,6 +1218,7 @@ func (mong *MongoStore) InsertTopic(projectUUID string, name string, schemaUUID 
 		LatestPublish: time.Time{},
 		PublishRate:   0,
 		SchemaUUID:    schemaUUID,
+		CreatedOn:     createdOn,
 	}
 
 	return mong.InsertResource("topics", topic)
