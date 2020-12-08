@@ -40,21 +40,26 @@ func (suite *MetricsHandlersTestSuite) SetupTest() {
 
 func (suite *MetricsHandlersTestSuite) TestProjectMessageCount() {
 
-	req, err := http.NewRequest("GET", "http://localhost:8080/v1/metrics/daily-message-average?start_date=2018-10-01&end_date=2018-10-04", nil)
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/metrics/va_metrics?start_date=2018-10-01&end_date=2018-10-04", nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	expResp := `{
- "projects": [
-  {
-   "project": "ARGO",
-   "message_count": 30,
-   "average_daily_messages": 7
-  }
- ],
- "total_message_count": 30,
- "average_daily_messages": 7
+ "projects_metrics": {
+  "projects": [
+   {
+    "project": "ARGO",
+    "message_count": 30,
+    "average_daily_messages": 7
+   }
+  ],
+  "total_message_count": 30,
+  "average_daily_messages": 7
+ },
+ "users_count": 0,
+ "topics_count": 0,
+ "subscriptions_count": 0
 }`
 
 	cfgKafka := config.NewAPICfg()
@@ -64,7 +69,44 @@ func (suite *MetricsHandlersTestSuite) TestProjectMessageCount() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/metrics/daily-message-average", WrapMockAuthConfig(DailyMessageAverage, cfgKafka, &brk, str, &mgr, nil))
+	router.HandleFunc("/v1/metrics/va_metrics", WrapMockAuthConfig(VaMetrics, cfgKafka, &brk, str, &mgr, nil))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+}
+
+func (suite *MetricsHandlersTestSuite) TestVaReportFull() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/metrics/va_metrics?start_date=2007-10-01&end_date=2020-11-24", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+ "projects_metrics": {
+  "projects": [
+   {
+    "project": "ARGO",
+    "message_count": 140,
+    "average_daily_messages": 0
+   }
+  ],
+  "total_message_count": 140,
+  "average_daily_messages": 0
+ },
+ "users_count": 9,
+ "topics_count": 4,
+ "subscriptions_count": 4
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := oldPush.Manager{}
+	router.HandleFunc("/v1/metrics/va_metrics", WrapMockAuthConfig(VaMetrics, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -79,7 +121,7 @@ func (suite *MetricsHandlersTestSuite) TestProjectMessageCountErrors() {
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
 	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects-message-count", WrapMockAuthConfig(DailyMessageAverage, cfgKafka, &brk, str, &mgr, nil))
+	router.HandleFunc("/v1/projects-message-count", WrapMockAuthConfig(VaMetrics, cfgKafka, &brk, str, &mgr, nil))
 
 	// wrong start date
 	expResp1 := `{

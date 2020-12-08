@@ -635,6 +635,15 @@ func (suite *StoreTestSuite) TestMockStore() {
 	ur2, _ := store.QueryRegistrations("ur-uuid1", "accepted", "", "", "", "")
 	suite.Equal(expur2, ur2)
 
+	sdate := time.Date(2008, 11, 19, 8, 0, 0, 0, time.Local)
+	edate := time.Date(2020, 11, 21, 6, 0, 0, 0, time.Local)
+	tc, _ := store3.TopicsCount(sdate, edate)
+	sc, _ := store3.SubscriptionsCount(sdate, edate)
+	uc, _ := store2.UsersCount(sdate, edate)
+
+	suite.Equal(3, tc)
+	suite.Equal(3, sc)
+	suite.Equal(9, uc)
 }
 
 func TestStoresTestSuite(t *testing.T) {

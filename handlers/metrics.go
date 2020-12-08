@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/ARGOeu/argo-messaging/auth"
 	"github.com/ARGOeu/argo-messaging/metrics"
-	"github.com/ARGOeu/argo-messaging/projects"
 	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/ARGOeu/argo-messaging/subscriptions"
 	"github.com/ARGOeu/argo-messaging/topics"
@@ -53,8 +52,8 @@ func OpMetrics(w http.ResponseWriter, r *http.Request) {
 	respondOK(w, output)
 }
 
-// DailyMessageAverage (GET) retrieves the average amount of published messages per day
-func DailyMessageAverage(w http.ResponseWriter, r *http.Request) {
+// VaMetrics (GET) retrieves metrics regrading projects, users, subscriptions, topics
+func VaMetrics(w http.ResponseWriter, r *http.Request) {
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -104,14 +103,14 @@ func DailyMessageAverage(w http.ResponseWriter, r *http.Request) {
 		projectsList = strings.Split(projectsUrlValue, ",")
 	}
 
-	cc, err := projects.GetProjectsMessageCount(projectsList, startDate, endDate, refStr)
+	vr, err := metrics.GetVAReport(projectsList, startDate, endDate, refStr)
 	if err != nil {
 		err := APIErrorNotFound(err.Error())
 		respondErr(w, err)
 		return
 	}
 
-	output, err := json.MarshalIndent(cc, "", " ")
+	output, err := json.MarshalIndent(vr, "", " ")
 	if err != nil {
 		err := APIErrExportJSON()
 		respondErr(w, err)

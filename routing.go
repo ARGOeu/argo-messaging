@@ -74,7 +74,7 @@ var defaultRoutes = []APIRoute{
 
 	{"ams:metrics", "GET", "/metrics", handlers.OpMetrics},
 	{"ams:healthStatus", "GET", "/status", handlers.HealthCheck},
-	{"ams:dailyMessageAverage", "GET", "/metrics/daily-message-average", handlers.DailyMessageAverage},
+	{"ams:vaMetrics", "GET", "/metrics/va_metrics", handlers.VaMetrics},
 	{"users:byToken", "GET", "/users:byToken/{token}", handlers.UserListByToken},
 	{"users:byUUID", "GET", "/users:byUUID/{uuid}", handlers.UserListByUUID},
 	{"users:list", "GET", "/users", handlers.UserListAll},

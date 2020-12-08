@@ -25,6 +25,44 @@ type MockStore struct {
 	OpMetrics          map[string]QopMetric
 }
 
+func (mk *MockStore) TopicsCount(startDate, endDate time.Time) (int, error) {
+
+	counter := 0
+
+	for _, sub := range mk.SubList {
+		if sub.CreatedOn.After(startDate) && sub.CreatedOn.Before(endDate) {
+			counter++
+		}
+	}
+
+	return counter, nil
+}
+
+func (mk *MockStore) SubscriptionsCount(startDate, endDate time.Time) (int, error) {
+
+	counter := 0
+	for _, t := range mk.TopicList {
+		if t.CreatedOn.After(startDate) && t.CreatedOn.Before(endDate) {
+			counter++
+		}
+	}
+
+	return counter, nil
+}
+
+func (mk *MockStore) UsersCount(startDate, endDate time.Time) (int, error) {
+
+	counter := 0
+
+	for _, u := range mk.UserList {
+		if u.CreatedOn.After(startDate) && u.CreatedOn.Before(endDate) {
+			counter++
+		}
+	}
+
+	return counter, nil
+}
+
 // QueryACL Topic/Subscription ACL
 func (mk *MockStore) QueryACL(projectUUID string, resource string, name string) (QAcl, error) {
 	if resource == "topics" {
