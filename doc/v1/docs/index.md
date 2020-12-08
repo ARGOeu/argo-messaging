@@ -5,6 +5,7 @@ ARGO Messaging Service Documentation
 -   [Messaging API flow](msg_flow.md)
 -   [Authentication & Authorization](auth.md)
 -   [Project and User creation](projects_users.md)
+-   [Security](security.md)
 
 Argo Messaging API
 
