@@ -1083,8 +1083,10 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 
 	}
 
+	created := time.Now().UTC()
+
 	// Get Result Object
-	res, err := subscriptions.CreateSub(projectUUID, urlVars["subscription"], tName, pushEnd, curOff, maxMessages, authzType, authzHeaderValue, postBody.Ack, rPolicy, rPeriod, verifyHash, false, refStr)
+	res, err := subscriptions.CreateSub(projectUUID, urlVars["subscription"], tName, pushEnd, curOff, maxMessages, authzType, authzHeaderValue, postBody.Ack, rPolicy, rPeriod, verifyHash, false, created, refStr)
 
 	if err != nil {
 		if err.Error() == "exists" {

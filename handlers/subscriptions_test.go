@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
 	oldPush "github.com/ARGOeu/argo-messaging/push"
@@ -753,7 +754,8 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubCreatePushConfig() {
       "verification_hash": "{{VHASH}}",
       "verified": false
    },
-   "ackDeadlineSeconds": 10
+   "ackDeadlineSeconds": 10,
+   "created_on": "{{CON}}"
 }`
 
 	cfgKafka := config.NewAPICfg()
@@ -769,6 +771,7 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubCreatePushConfig() {
 	sub, _ := str.QueryOneSub("argo_uuid", "subNew")
 	expResp = strings.Replace(expResp, "{{VHASH}}", sub.VerificationHash, 1)
 	expResp = strings.Replace(expResp, "{{AUTHZV}}", sub.AuthorizationHeader, 1)
+	expResp = strings.Replace(expResp, "{{CON}}", sub.CreatedOn.Format("2006-01-02T15:04:05Z"), 1)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
 }
@@ -808,7 +811,8 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubCreatePushConfigSlowStart() 
       "verification_hash": "{{VHASH}}",
       "verified": false
    },
-   "ackDeadlineSeconds": 10
+   "ackDeadlineSeconds": 10,
+   "created_on": "{{CON}}"
 }`
 
 	cfgKafka := config.NewAPICfg()
@@ -823,6 +827,7 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubCreatePushConfigSlowStart() 
 	router.ServeHTTP(w, req)
 	sub, _ := str.QueryOneSub("argo_uuid", "subNew")
 	expResp = strings.Replace(expResp, "{{VHASH}}", sub.VerificationHash, 1)
+	expResp = strings.Replace(expResp, "{{CON}}", sub.CreatedOn.Format("2006-01-02T15:04:05Z"), 1)
 	suite.Equal(0, sub.RetPeriod)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -1009,7 +1014,8 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubCreate() {
       "verification_hash": "",
       "verified": false
    },
-   "ackDeadlineSeconds": 10
+   "ackDeadlineSeconds": 10,
+   "created_on": "{{CON}}"
 }`
 
 	cfgKafka := config.NewAPICfg()
@@ -1021,6 +1027,9 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubCreate() {
 	w := httptest.NewRecorder()
 	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubCreate, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
+	sub, _ := str.QueryOneSub("argo_uuid", "subNew")
+	fmt.Println(sub)
+	expResp = strings.Replace(expResp, "{{CON}}", sub.CreatedOn.Format("2006-01-02T15:04:05Z"), 1)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
 
@@ -1208,7 +1217,8 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubListOne() {
       "verification_hash": "",
       "verified": false
    },
-   "ackDeadlineSeconds": 10
+   "ackDeadlineSeconds": 10,
+   "created_on": "2020-11-19T00:00:00Z"
 }`
 
 	cfgKafka := config.NewAPICfg()
@@ -1252,7 +1262,8 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubListAll() {
             "verification_hash": "push-id-1",
             "verified": true
          },
-         "ackDeadlineSeconds": 10
+         "ackDeadlineSeconds": 10,
+         "created_on": "2020-11-22T00:00:00Z"
       },
       {
          "name": "/projects/ARGO/subscriptions/sub3",
@@ -1265,7 +1276,8 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubListAll() {
             "verification_hash": "",
             "verified": false
          },
-         "ackDeadlineSeconds": 10
+         "ackDeadlineSeconds": 10,
+         "created_on": "2020-11-21T00:00:00Z"
       },
       {
          "name": "/projects/ARGO/subscriptions/sub2",
@@ -1278,7 +1290,8 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubListAll() {
             "verification_hash": "",
             "verified": false
          },
-         "ackDeadlineSeconds": 10
+         "ackDeadlineSeconds": 10,
+         "created_on": "2020-11-20T00:00:00Z"
       },
       {
          "name": "/projects/ARGO/subscriptions/sub1",
@@ -1291,7 +1304,8 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubListAll() {
             "verification_hash": "",
             "verified": false
          },
-         "ackDeadlineSeconds": 10
+         "ackDeadlineSeconds": 10,
+         "created_on": "2020-11-19T00:00:00Z"
       }
    ],
    "nextPageToken": "",
@@ -1338,7 +1352,8 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubListAllFirstPage() {
             "verification_hash": "push-id-1",
             "verified": true
          },
-         "ackDeadlineSeconds": 10
+         "ackDeadlineSeconds": 10,
+         "created_on": "2020-11-22T00:00:00Z"
       },
       {
          "name": "/projects/ARGO/subscriptions/sub3",
@@ -1351,7 +1366,8 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubListAllFirstPage() {
             "verification_hash": "",
             "verified": false
          },
-         "ackDeadlineSeconds": 10
+         "ackDeadlineSeconds": 10,
+         "created_on": "2020-11-21T00:00:00Z"
       }
    ],
    "nextPageToken": "MQ==",
@@ -1392,7 +1408,8 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubListAllNextPage() {
             "verification_hash": "",
             "verified": false
          },
-         "ackDeadlineSeconds": 10
+         "ackDeadlineSeconds": 10,
+         "created_on": "2020-11-20T00:00:00Z"
       },
       {
          "name": "/projects/ARGO/subscriptions/sub1",
@@ -1405,7 +1422,8 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubListAllNextPage() {
             "verification_hash": "",
             "verified": false
          },
-         "ackDeadlineSeconds": 10
+         "ackDeadlineSeconds": 10,
+         "created_on": "2020-11-19T00:00:00Z"
       }
    ],
    "nextPageToken": "",
@@ -1481,7 +1499,8 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubListAllConsumer() {
             "verification_hash": "push-id-1",
             "verified": true
          },
-         "ackDeadlineSeconds": 10
+         "ackDeadlineSeconds": 10,
+         "created_on": "2020-11-22T00:00:00Z"
       },
       {
          "name": "/projects/ARGO/subscriptions/sub3",
@@ -1494,7 +1513,8 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubListAllConsumer() {
             "verification_hash": "",
             "verified": false
          },
-         "ackDeadlineSeconds": 10
+         "ackDeadlineSeconds": 10,
+         "created_on": "2020-11-21T00:00:00Z"
       },
       {
          "name": "/projects/ARGO/subscriptions/sub2",
@@ -1507,7 +1527,8 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubListAllConsumer() {
             "verification_hash": "",
             "verified": false
          },
-         "ackDeadlineSeconds": 10
+         "ackDeadlineSeconds": 10,
+         "created_on": "2020-11-20T00:00:00Z"
       }
    ],
    "nextPageToken": "",
@@ -1554,7 +1575,8 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubListAllConsumerWithPaginatio
             "verification_hash": "push-id-1",
             "verified": true
          },
-         "ackDeadlineSeconds": 10
+         "ackDeadlineSeconds": 10,
+         "created_on": "2020-11-22T00:00:00Z"
       },
       {
          "name": "/projects/ARGO/subscriptions/sub3",
@@ -1567,7 +1589,8 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubListAllConsumerWithPaginatio
             "verification_hash": "",
             "verified": false
          },
-         "ackDeadlineSeconds": 10
+         "ackDeadlineSeconds": 10,
+         "created_on": "2020-11-21T00:00:00Z"
       }
    ],
    "nextPageToken": "MQ==",
@@ -2403,7 +2426,8 @@ func (suite *SubscriptionsHandlersTestSuite) TestValidationInSubs() {
       "verification_hash": "",
       "verified": false
    },
-   "ackDeadlineSeconds": 10
+   "ackDeadlineSeconds": 10,
+   "created_on": "2020-11-19T00:00:00Z"
 }`
 
 	invProject := `{

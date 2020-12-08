@@ -49,6 +49,7 @@ type Subscription struct {
 	NextOffset    int64      `json:"-"`
 	PendingAck    string     `json:"-"`
 	PushStatus    string     `json:"push_status,omitempty"`
+	CreatedOn     string     `json:"created_on"`
 	LatestConsume time.Time  `json:"-"`
 	ConsumeRate   float64    `json:"-"`
 }
@@ -354,6 +355,7 @@ func Find(projectUUID, userUUID, name, pageToken string, pageSize int32, store s
 		curSub.Offset = item.Offset
 		curSub.NextOffset = item.NextOffset
 		curSub.Ack = item.Ack
+		curSub.CreatedOn = item.CreatedOn.Format("2006-01-02T15:04:05Z")
 		if item.PushEndpoint != "" {
 			rp := RetryPolicy{
 				PolicyType: item.RetPolicy,
@@ -431,7 +433,7 @@ func LoadPushSubs(store stores.Store) PaginatedSubscriptions {
 }
 
 // CreateSub creates a new subscription
-func CreateSub(projectUUID string, name string, topic string, push string, offset int64, maxMessages int64, authzType string, authzHeader string, ack int, retPolicy string, retPeriod int, vhash string, verified bool, store stores.Store) (Subscription, error) {
+func CreateSub(projectUUID string, name string, topic string, push string, offset int64, maxMessages int64, authzType string, authzHeader string, ack int, retPolicy string, retPeriod int, vhash string, verified bool, createdOn time.Time, store stores.Store) (Subscription, error) {
 
 	if HasSub(projectUUID, name, store) {
 		return Subscription{}, errors.New("exists")
@@ -445,7 +447,7 @@ func CreateSub(projectUUID string, name string, topic string, push string, offse
 		retPeriod = 0
 	}
 
-	err := store.InsertSub(projectUUID, name, topic, offset, maxMessages, authzType, authzHeader, ack, push, retPolicy, retPeriod, vhash, verified)
+	err := store.InsertSub(projectUUID, name, topic, offset, maxMessages, authzType, authzHeader, ack, push, retPolicy, retPeriod, vhash, verified, createdOn)
 	if err != nil {
 		return Subscription{}, errors.New("backend error")
 	}

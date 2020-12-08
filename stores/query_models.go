@@ -26,6 +26,7 @@ type QSub struct {
 	Verified            bool        `bson:"verified"`
 	LatestConsume       time.Time   `bson:"latest_consume"`
 	ConsumeRate         float64     `bson:"consume_rate"`
+	CreatedOn           time.Time   `bson:"created_on"`
 }
 
 // QAcl holds a list of authorized users queried from topic or subscription collections

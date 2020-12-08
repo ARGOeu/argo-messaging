@@ -777,10 +777,10 @@ func (mk *MockStore) Initialize() {
 	mk.TopicList = append(mk.TopicList, qtop4)
 
 	// populate Subscriptions
-	qsub1 := QSub{0, "argo_uuid", "sub1", "topic1", 0, 0, "", "", 0, "", "", 10, "", 0, 0, 0, "", false, time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10}
-	qsub2 := QSub{1, "argo_uuid", "sub2", "topic2", 0, 0, "", "", 0, "", "", 10, "", 0, 0, 0, "", false, time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local), 8.99}
-	qsub3 := QSub{2, "argo_uuid", "sub3", "topic3", 0, 0, "", "", 0, "", "", 10, "", 0, 0, 0, "", false, time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local), 5.45}
-	qsub4 := QSub{3, "argo_uuid", "sub4", "topic4", 0, 0, "", "endpoint.foo", 1, "autogen", "auth-header-1", 10, "linear", 300, 0, 0, "push-id-1", true, time.Date(0, 0, 0, 0, 0, 0, 0, time.Local), 0}
+	qsub1 := QSub{0, "argo_uuid", "sub1", "topic1", 0, 0, "", "", 0, "", "", 10, "", 0, 0, 0, "", false, time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10, time.Date(2020, 11, 19, 0, 0, 0, 0, time.Local)}
+	qsub2 := QSub{1, "argo_uuid", "sub2", "topic2", 0, 0, "", "", 0, "", "", 10, "", 0, 0, 0, "", false, time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local), 8.99, time.Date(2020, 11, 20, 0, 0, 0, 0, time.Local)}
+	qsub3 := QSub{2, "argo_uuid", "sub3", "topic3", 0, 0, "", "", 0, "", "", 10, "", 0, 0, 0, "", false, time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local), 5.45, time.Date(2020, 11, 21, 0, 0, 0, 0, time.Local)}
+	qsub4 := QSub{3, "argo_uuid", "sub4", "topic4", 0, 0, "", "endpoint.foo", 1, "autogen", "auth-header-1", 10, "linear", 300, 0, 0, "push-id-1", true, time.Date(0, 0, 0, 0, 0, 0, 0, time.Local), 0, time.Date(2020, 11, 22, 0, 0, 0, 0, time.Local)}
 	mk.SubList = append(mk.SubList, qsub1)
 	mk.SubList = append(mk.SubList, qsub2)
 	mk.SubList = append(mk.SubList, qsub3)
@@ -1040,7 +1040,7 @@ func (mk *MockStore) InsertTopic(projectUUID string, name string, schemaUUID str
 }
 
 // InsertSub inserts a new sub object to the store
-func (mk *MockStore) InsertSub(projectUUID string, name string, topic string, offset int64, maxMessages int64, authT string, authH string, ack int, push string, rPolicy string, rPeriod int, vhash string, verified bool) error {
+func (mk *MockStore) InsertSub(projectUUID string, name string, topic string, offset int64, maxMessages int64, authT string, authH string, ack int, push string, rPolicy string, rPeriod int, vhash string, verified bool, createdOn time.Time) error {
 	sub := QSub{
 		ID:                  len(mk.SubList),
 		ProjectUUID:         projectUUID,
@@ -1060,7 +1060,9 @@ func (mk *MockStore) InsertSub(projectUUID string, name string, topic string, of
 		TotalBytes:          0,
 		LatestConsume:       time.Time{},
 		ConsumeRate:         0,
+		CreatedOn:           createdOn,
 	}
+
 	mk.SubList = append(mk.SubList, sub)
 	mk.SubsACL[name] = QAcl{}
 	return nil
