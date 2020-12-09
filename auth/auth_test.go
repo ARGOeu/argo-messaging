@@ -567,12 +567,12 @@ func (suite *AuthTestSuite) TestAuth() {
 	suite.Nil(e1)
 
 	suite.Equal(qUsers2, pu2.Users)
-	suite.Equal(int32(9), pu2.TotalSize)
+	suite.Equal(int32(3), pu2.TotalSize)
 	suite.Equal("NQ==", pu2.NextPageToken)
 	suite.Nil(e2)
 
 	suite.Equal(qUsers3, pu3.Users)
-	suite.Equal(int32(9), pu3.TotalSize)
+	suite.Equal(int32(2), pu3.TotalSize)
 	suite.Equal("Mg==", pu3.NextPageToken)
 	suite.Nil(e3)
 
