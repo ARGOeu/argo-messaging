@@ -509,7 +509,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal(8, qUsers2[0].ID)
 	suite.Equal(7, qUsers2[1].ID)
 	suite.Equal("6", pg2)
-	suite.Equal(int32(9), ts2)
+	suite.Equal(int32(2), ts2)
 
 	suite.Equal(0, len(qUsers3))
 	suite.Equal("", pg3)
@@ -518,7 +518,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal(4, qUsers4[0].ID)
 	suite.Equal(3, qUsers4[1].ID)
 	suite.Equal("2", pg4)
-	suite.Equal(int32(9), ts4)
+	suite.Equal(int32(2), ts4)
 
 	// test update topic latest publish time
 	e1ulp := store2.UpdateTopicLatestPublish("argo_uuid", "topic1", time.Date(2019, 8, 8, 0, 0, 0, 0, time.Local))

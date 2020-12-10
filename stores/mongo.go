@@ -608,10 +608,15 @@ func (mong *MongoStore) PaginatedQueryUsers(pageToken string, pageSize int32, pr
 	db := mong.Session.DB(mong.Database)
 	c := db.C("users")
 
-	// check the total of the users selected by the query not taking into acount pagination
+	// check the total of the users selected by the query not taking into account pagination
 	if size, err = c.Find(query).Count(); err != nil {
-		log.Fatal("STORE", "\t", err.Error())
-
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
 	}
 	totalSize = int32(size)
 
@@ -675,20 +680,7 @@ func (mong *MongoStore) PaginatedQueryUsers(pageToken string, pageSize int32, pr
 		qUsers = qUsers[:len(qUsers)-1]
 	}
 
-	if size, err = c.Count(); err != nil {
-		log.WithFields(
-			log.Fields{
-				"type":            "backend_log",
-				"backend_service": "mongo",
-				"backend_hosts":   mong.Server,
-			},
-		).Fatal(err.Error())
-	}
-
-	totalSize = int32(size)
-
 	return qUsers, totalSize, nextPageToken, err
-
 }
 
 //QuerySubsByTopic returns subscriptions of a specific topic

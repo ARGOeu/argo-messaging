@@ -982,7 +982,7 @@ func (suite *UsersHandlersTestSuite) TestUserListAllStartingPage() {
       }
    ],
    "nextPageToken": "Ng==",
-   "totalSize": 9
+   "totalSize": 2
 }`
 
 	cfgKafka := config.NewAPICfg()
@@ -1324,7 +1324,7 @@ func (suite *UsersHandlersTestSuite) TestUserListAllStartingAtSecond() {
       }
    ],
    "nextPageToken": "NQ==",
-   "totalSize": 9
+   "totalSize": 2
 }`
 
 	cfgKafka := config.NewAPICfg()
@@ -1433,7 +1433,7 @@ func (suite *UsersHandlersTestSuite) TestUserListAllIntermediatePage() {
       }
    ],
    "nextPageToken": "Mg==",
-   "totalSize": 9
+   "totalSize": 2
 }`
 
 	cfgKafka := config.NewAPICfg()

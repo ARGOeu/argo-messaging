@@ -710,11 +710,12 @@ func (mk *MockStore) QueryUsers(projectUUID string, uuid string, name string) ([
 func (mk *MockStore) PaginatedQueryUsers(pageToken string, pageSize int32, projectUUID string) ([]QUser, int32, string, error) {
 
 	var qUsers []QUser
-	var totalSize int32
 	var nextPageToken string
 	var err error
 	var pg int
 	var limit int
+
+	totalSize := int32(0)
 
 	if pageSize == 0 {
 		limit = len(mk.UserList)
@@ -733,8 +734,6 @@ func (mk *MockStore) PaginatedQueryUsers(pageToken string, pageSize int32, proje
 		id2 := mk.UserList[j].ID.(int)
 		return id1 > id2
 	})
-
-	totalSize = int32(len(mk.UserList))
 
 	for _, user := range mk.UserList {
 
@@ -779,8 +778,16 @@ func (mk *MockStore) PaginatedQueryUsers(pageToken string, pageSize int32, proje
 		qUsers = qUsers[:len(qUsers)-1]
 	}
 
-	if projectUUID != "" {
+	if projectUUID == "" {
 		totalSize = int32(len(qUsers))
+	} else {
+		for _, user := range mk.UserList {
+			for _, project := range user.Projects {
+				if projectUUID == project.ProjectUUID {
+					totalSize++
+				}
+			}
+		}
 	}
 
 	return qUsers, totalSize, nextPageToken, err
