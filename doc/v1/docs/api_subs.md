@@ -703,7 +703,7 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 This request returns the min, max and current offset of a subscription
 
 ### Request
-`GET /v1/projects/{project_name}/subscriptions/{subscription_name}:Offsets`
+`GET /v1/projects/{project_name}/subscriptions/{subscription_name}:offsets`
 
 ### Post body:
 ```
