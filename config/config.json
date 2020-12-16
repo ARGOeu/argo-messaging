@@ -15,6 +15,7 @@
   "push_server_host": "localhost",
   "push_server_port": 5555,
   "verify_push_server": true,
-  "push_worker_token": "lol",
-  "log_facilities": []
+  "push_worker_token": "pw-token",
+  "log_facilities": [],
+  "auth_option": "header"
 }

@@ -21,6 +21,27 @@ import (
 	"strings"
 )
 
+// AuthOption defines how the service will handle authentication/authorization
+// KEY, HEADER or BOTH are the available values for where the auth token should reside
+type AuthOption int
+
+const (
+	// the api key can reside in the url parameter 'key'
+	// maps to config value 'key'
+	UrlKey = iota + 1
+	// the api key can reside in the header 'x-api-key'
+	// maps to config value 'header'
+	HeaderKey
+	// the api key can reside in either of the two
+	// maps to config value 'both'
+	URLKeyAndHeaderKey
+)
+
+// String representation of the iota auth option
+func (a AuthOption) String() string {
+	return [...]string{"key", "header", "both"}[a-1]
+}
+
 // APICfg holds kafka configuration
 type APICfg struct {
 	// values
@@ -49,6 +70,9 @@ type APICfg struct {
 	PushWorkerToken string
 	// Logging output(console,file,syslog etc)
 	LogFacilities []string
+	// AuthOption defines how the service will handle authentication/authorization
+	// KEY, HEADER or BOTH are the available values for where the auth token should reside
+	authOption AuthOption
 }
 
 // NewAPICfg creates a new kafka configuration object
@@ -259,6 +283,26 @@ func setLogFacilities(facilities []string) {
 	}
 }
 
+// setAuthOption determines which auth option should be used
+func (cfg *APICfg) setAuthOption(authOpt string) {
+
+	switch strings.ToLower(authOpt) {
+	case "both":
+		cfg.authOption = URLKeyAndHeaderKey
+		break
+	case "header":
+		cfg.authOption = HeaderKey
+		break
+	default:
+		cfg.authOption = UrlKey
+	}
+}
+
+// AuthOption returns the value of the config for auth_option
+func (cfg *APICfg) AuthOption() AuthOption {
+	return cfg.authOption
+}
+
 // LoadTest the configuration
 func (cfg *APICfg) LoadTest() {
 
@@ -292,6 +336,12 @@ func (cfg *APICfg) LoadTest() {
 	setLogFacilities(cfg.LogFacilities)
 
 	// Then load rest of the parameters
+	cfg.setAuthOption(viper.GetString("auth_option"))
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - auth_option: %v", cfg.AuthOption())
 
 	// bind ip
 	cfg.BindIP = viper.GetString("bind_ip")
@@ -494,6 +544,9 @@ func (cfg *APICfg) Load() {
 		pflag.String("log-facilities", "", "logging output(s)")
 		viper.BindPFlag("log_facilities", pflag.Lookup("log-facilities"))
 
+		pflag.String("auth-option", "", "where the auth token should reside")
+		viper.BindPFlag("auth_option", pflag.Lookup("auth-option"))
+
 		configPath = pflag.String("config-dir", "", "directory path to an alternative json config file")
 
 		pflag.Parse()
@@ -531,6 +584,13 @@ func (cfg *APICfg) Load() {
 	).Infof("Parameter Loaded - log_facilities: %v", cfg.LogFacilities)
 
 	// Then load rest of the parameters
+
+	cfg.setAuthOption(viper.GetString("auth_option"))
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - auth_option: %v", cfg.AuthOption())
 
 	// bind ip
 	cfg.BindIP = viper.GetString("bind_ip")
@@ -817,4 +877,12 @@ func (cfg *APICfg) LoadStrJSON(input string) {
 			"type": "service_log",
 		},
 	).Infof("Parameter Loaded - log_facilities: %v", cfg.LogFacilities)
+
+	// auth option
+	cfg.setAuthOption(viper.GetString("auth_option"))
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - auth_option: %v", cfg.AuthOption())
 }

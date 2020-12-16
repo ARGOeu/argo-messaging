@@ -2,6 +2,8 @@
 
 Each user is authenticated by adding the url parameter `?key=T0K3N` in each API request
 
+Users can also authenticate using the header `x-api-key`.
+
 If a user does not provide a valid token the following response is returned:
 ```json
 {
