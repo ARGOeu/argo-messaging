@@ -119,14 +119,15 @@ func WrapLog(hfn http.Handler, name string) http.HandlerFunc {
 }
 
 // WrapAuthenticate handle wrapper to apply authentication
-func WrapAuthenticate(hfn http.Handler) http.HandlerFunc {
+func WrapAuthenticate(hfn http.Handler, extractToken RequestTokenExtractStrategy) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		urlVars := mux.Vars(r)
-		urlValues := r.URL.Query()
+
+		apiKey := extractToken(r)
 
 		// if the url parameter 'key' is empty or absent, end the request with an unauthorized response
-		if urlValues.Get("key") == "" {
+		if apiKey == "" {
 			err := APIErrorUnauthorized()
 			respondErr(w, err)
 			return
@@ -149,7 +150,7 @@ func WrapAuthenticate(hfn http.Handler) http.HandlerFunc {
 		}
 
 		// Check first if service token is used
-		if serviceToken != "" && serviceToken == urlValues.Get("key") {
+		if serviceToken != "" && serviceToken == apiKey {
 			gorillaContext.Set(r, "auth_roles", []string{"service_admin"})
 			gorillaContext.Set(r, "auth_user", "")
 			gorillaContext.Set(r, "auth_user_uuid", "")
@@ -158,7 +159,7 @@ func WrapAuthenticate(hfn http.Handler) http.HandlerFunc {
 			return
 		}
 
-		roles, user := auth.Authenticate(projectUUID, urlValues.Get("key"), refStr)
+		roles, user := auth.Authenticate(projectUUID, apiKey, refStr)
 
 		if len(roles) > 0 {
 			userUUID := auth.GetUUIDByName(user, refStr)
@@ -176,17 +177,16 @@ func WrapAuthenticate(hfn http.Handler) http.HandlerFunc {
 }
 
 // WrapAuthorize handle wrapper to apply authorization
-func WrapAuthorize(hfn http.Handler, routeName string) http.HandlerFunc {
+func WrapAuthorize(hfn http.Handler, routeName string, extractToken RequestTokenExtractStrategy) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-		urlValues := r.URL.Query()
 
 		refStr := gorillaContext.Get(r, "str").(stores.Store)
 		refRoles := gorillaContext.Get(r, "auth_roles").([]string)
 		serviceToken := gorillaContext.Get(r, "auth_service_token").(string)
+		apiKey := extractToken(r)
 
 		// Check first if service token is used
-		if serviceToken != "" && serviceToken == urlValues.Get("key") {
+		if serviceToken != "" && serviceToken == apiKey {
 			hfn.ServeHTTP(w, r)
 			return
 		}
@@ -313,6 +313,48 @@ func respondErr(w http.ResponseWriter, apiErr APIErrorRoot) {
 	// Output API Erorr object to JSON
 	output, _ := json.MarshalIndent(apiErr, "", "   ")
 	w.Write(output)
+}
+
+// A function type that refers to all the functions that can extract an api access token from the request
+type RequestTokenExtractStrategy func(r *http.Request) string
+
+// UrlKeyExtract extracts the api access token from the url parameter key
+func UrlKeyExtract(r *http.Request) string {
+	return r.URL.Query().Get("key")
+}
+
+// HeaderKeyExtract extracts the api access token from the url header x-api-key
+func HeaderKeyExtract(r *http.Request) string {
+	return r.Header.Get("x-api-key")
+}
+
+// HeaderUrlKeyExtract tries to extract the api access token first from the x-api-header
+// and then it falls back to the url parameter
+func HeaderUrlKeyExtract(r *http.Request) string {
+
+	// first try the header x-api-key
+	key := r.Header.Get("x-api-key")
+
+	// if the header is empty, fall back to the url parameter key
+	if key == "" {
+		key = r.URL.Query().Get("key")
+	}
+
+	return key
+}
+
+// GetRequestTokenExtractStrategy determines which api token extraction strategy
+// should take place based on the provided argument
+func GetRequestTokenExtractStrategy(authOpt config.AuthOption) RequestTokenExtractStrategy {
+	switch authOpt {
+	case config.HeaderKey:
+		return HeaderKeyExtract
+	case config.UrlKey:
+		return UrlKeyExtract
+	case config.URLKeyAndHeaderKey:
+		return HeaderUrlKeyExtract
+	}
+	return HeaderUrlKeyExtract
 }
 
 type HealthStatus struct {

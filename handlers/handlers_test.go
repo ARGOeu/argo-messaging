@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 
 	"github.com/ARGOeu/argo-messaging/brokers"
@@ -171,6 +172,44 @@ func (suite *HandlerTestSuite) TestHealthCheckPushWorkerMissing() {
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
+}
+
+func (suite *HandlerTestSuite) TestGetRequestTokenExtractStrategy() {
+
+	// test the key extract strategy
+	keyStrategy := GetRequestTokenExtractStrategy(config.UrlKey)
+	u1, _ := url.Parse("https://host.com/v1/projects?key=tok3n")
+	r1 := &http.Request{
+		URL: u1,
+	}
+	suite.Equal("tok3n", keyStrategy(r1))
+
+	// test the header extract strategy
+	h1 := http.Header{}
+	h1.Add("x-api-key", "tok3n")
+	u2, _ := url.Parse("https://host.com/v1/projects")
+	r2 := &http.Request{
+		URL:    u2,
+		Header: h1,
+	}
+	headerStrategy := GetRequestTokenExtractStrategy(config.HeaderKey)
+	suite.Equal("tok3n", headerStrategy(r2))
+
+	// test the key and header strategy when there is a x-api-key header present
+	h2 := http.Header{}
+	h2.Add("x-api-key", "tok3n-h")
+	u3, _ := url.Parse("https://host.com/v1/projects?key=tok3n-url")
+	r3 := &http.Request{
+		URL:    u3,
+		Header: h2,
+	}
+	bothStrategy := GetRequestTokenExtractStrategy(config.URLKeyAndHeaderKey)
+	suite.Equal("tok3n-h", bothStrategy(r3))
+
+	// test the key and header strategy when there is no a x-api-key header present but there is a key url value
+	r3.Header = http.Header{}
+	bothStrategy2 := GetRequestTokenExtractStrategy(0)
+	suite.Equal("tok3n-url", bothStrategy2(r3))
 }
 
 func TestHandlersTestSuite(t *testing.T) {

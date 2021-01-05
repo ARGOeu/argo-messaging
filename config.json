@@ -16,5 +16,6 @@
   "push_server_port": 5555,
   "verify_push_server": true,
   "push_worker_token": "8c8cbaeba3e1317c18cd5c03f3b1f596c23f922a",
-  "log_facilities": ["console"]
+  "log_facilities": ["console"],
+  "auth_option": "both" 
 }

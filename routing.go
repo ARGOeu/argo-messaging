@@ -38,6 +38,8 @@ func NewRouting(cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *o
 	// reference routes input in API object too keep info centralized
 	ar.Routes = routes
 
+	tokenExtractStrategy := handlers.GetRequestTokenExtractStrategy(cfg.AuthOption())
+
 	// For each route
 	for _, route := range ar.Routes {
 
@@ -49,8 +51,8 @@ func NewRouting(cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *o
 
 		// skip authentication/authorization for the health status and profile api calls
 		if route.Name != "ams:healthStatus" && "users:profile" != route.Name && route.Name != "version:list" {
-			handler = handlers.WrapAuthorize(handler, route.Name)
-			handler = handlers.WrapAuthenticate(handler)
+			handler = handlers.WrapAuthorize(handler, route.Name, tokenExtractStrategy)
+			handler = handlers.WrapAuthenticate(handler, tokenExtractStrategy)
 		}
 
 		handler = handlers.WrapValidate(handler)

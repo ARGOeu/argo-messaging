@@ -31,10 +31,10 @@ func (suite *ConfigTestSuite) SetupTest() {
 		"push_server_host": "localhost",
 		"push_server_port": 5555,
 		"verify_push_server": "true",
-		"log_facilities": ["SYSLOG", "CONSOLE"]
+        "push_worker_token": "pw-token",
+		"log_facilities": ["SYSLOG", "CONSOLE"],
+        "auth_option": "header"
 	}`
-
-	log.SetOutput(ioutil.Discard)
 }
 
 func (suite *ConfigTestSuite) TestLoadConfiguration() {
@@ -49,7 +49,6 @@ func (suite *ConfigTestSuite) TestLoadConfiguration() {
 
 	// test "LOADTEST" param
 	APIcfg2 := NewAPICfg("LOADTEST")
-	log.Infof("\n\n %+v \n\n", APIcfg2)
 	suite.Equal([]string{"localhost"}, APIcfg2.ZooHosts)
 	suite.Equal("", APIcfg2.KafkaZnode)
 	suite.Equal("localhost", APIcfg2.StoreHost)
@@ -64,6 +63,7 @@ func (suite *ConfigTestSuite) TestLoadConfiguration() {
 	suite.True(APIcfg2.PushTlsEnabled)
 	suite.Equal("localhost", APIcfg2.PushServerHost)
 	suite.Equal(5555, APIcfg2.PushServerPort)
+	suite.Equal("pw-token", APIcfg2.PushWorkerToken)
 	suite.True(APIcfg2.VerifyPushServer)
 	suite.Equal(0, len(APIcfg2.LogFacilities))
 }
@@ -85,9 +85,41 @@ func (suite *ConfigTestSuite) TestLoadStringJSON() {
 	suite.Equal("localhost", APIcfg.PushServerHost)
 	suite.Equal(5555, APIcfg.PushServerPort)
 	suite.True(APIcfg.VerifyPushServer)
+	suite.Equal("pw-token", APIcfg.PushWorkerToken)
 	suite.Equal([]string{"SYSLOG", "CONSOLE"}, APIcfg.LogFacilities)
+	suite.Equal(HeaderKey, int(APIcfg.AuthOption()))
+}
+
+func (suite *ConfigTestSuite) TestSetAuthOption() {
+	cfg := APICfg{}
+
+	cfg.setAuthOption("bOth")
+	suite.Equal(URLKeyAndHeaderKey, int(cfg.authOption))
+
+	cfg.setAuthOption("KEY")
+	suite.Equal(UrlKey, int(cfg.authOption))
+
+	cfg.setAuthOption("header")
+	suite.Equal(HeaderKey, int(cfg.authOption))
+
+	cfg.authOption = 0
+	cfg.setAuthOption("")
+	suite.Equal(UrlKey, int(cfg.authOption))
+}
+
+func (suite *ConfigTestSuite) TestAuthOption() {
+
+	a1 := AuthOption(UrlKey)
+	suite.Equal("key", a1.String())
+
+	a2 := AuthOption(HeaderKey)
+	suite.Equal("header", a2.String())
+
+	a3 := AuthOption(URLKeyAndHeaderKey)
+	suite.Equal("both", a3.String())
 }
 
 func TestConfigTestSuite(t *testing.T) {
+	log.SetOutput(ioutil.Discard)
 	suite.Run(t, new(ConfigTestSuite))
 }

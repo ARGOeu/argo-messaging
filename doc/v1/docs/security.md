@@ -9,6 +9,9 @@ The large majority of api calls support the `url parameter`, <b>key</b>.
 
 E.g. `/v1/projects?key=b328c7890f061f87cbd4rff34f36fa2ae20993a5`
 
+<b> The service also supports the use of the x-api-key header
+for the user to provide its key. </b>
+
 - Each request will extract the key from the request parameters
 and will try to find a user associated with it in the respective
 data store.

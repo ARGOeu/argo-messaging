@@ -9,6 +9,15 @@ info:
     url: http://argoeu.github.io/
     email: argo-dev@lists.grnet.gr
 
+securityDefinitions:
+  APIKeyHeader:
+    type: apiKey
+    in: header
+    name: x-api-key
+security:
+  - APIKeyHeader: []
+
+
 host: localhost
 schemes:
   - https

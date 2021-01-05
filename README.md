@@ -65,6 +65,8 @@ resides in two possible locations:
 - `verify_push_server` - (true|false) mutual TLS for the push server
 - `push_worker_token` - token for the active push worker user
 - `log_facilities` - ["syslog", "console"]  
+- `auth_option`: (`key`|`header`|`both`), where should the service look for the access token.
+
 
 #### Build & Run the service
 
