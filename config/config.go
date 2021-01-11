@@ -437,7 +437,7 @@ func (cfg *APICfg) LoadTest() {
 		log.Fields{
 			"type": "service_log",
 		},
-	).Infof("Parameter Loaded - push_enabled: %v", cfg.ServiceToken)
+	).Infof("Parameter Loaded - push_enabled: %v", cfg.PushEnabled)
 
 	// push TLS enabled true or false
 	cfg.PushTlsEnabled = viper.GetBool("push_tls_enabled")
@@ -686,7 +686,7 @@ func (cfg *APICfg) Load() {
 		log.Fields{
 			"type": "service_log",
 		},
-	).Infof("Parameter Loaded - push_enabled: %v", cfg.ServiceToken)
+	).Infof("Parameter Loaded - push_enabled: %v", cfg.PushEnabled)
 
 	// push TLS enabled true or false
 	cfg.PushTlsEnabled = viper.GetBool("push_tls_enabled")
@@ -829,7 +829,7 @@ func (cfg *APICfg) LoadStrJSON(input string) {
 		log.Fields{
 			"type": "service_log",
 		},
-	).Infof("Parameter Loaded - push_enabled: %v", cfg.ServiceToken)
+	).Infof("Parameter Loaded - push_enabled: %v", cfg.PushEnabled)
 
 	// push TLS enabled true or false
 	cfg.PushTlsEnabled = viper.GetBool("push_tls_enabled")
