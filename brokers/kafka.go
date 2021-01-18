@@ -378,8 +378,8 @@ ConsumerLoop:
 					"backend_service": "kafka",
 					"topic":           topic,
 					"message":         msg,
-					"consumed":        string(consumed),
-					"max":             string(max),
+					"consumed":        consumed,
+					"max":             max,
 				},
 			).Debug("Consumed message")
 

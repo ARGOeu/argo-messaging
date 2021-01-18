@@ -19,7 +19,7 @@ specific topics and receive messages.
 
 #### Build Requirements
 
- - Golang 1.14
+ - Golang 1.15
 
 #### Datastore Requirements
   - The service has been tested with mongodb from version `3.2.22` up to `4.2.3`.

@@ -1,7 +1,7 @@
 pipeline {
     agent {
         docker {
-            image 'argo.registry:5000/epel-7-mgo1.14'
+            image 'argo.registry:5000/epel-7-mgo1.15'
             args '-u jenkins:jenkins'
         }
     }
