@@ -280,8 +280,6 @@ func ListVersion(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
 
 	v := version.Model{
-		Release:   version.Release,
-		Commit:    version.Commit,
 		BuildTime: version.BuildTime,
 		GO:        version.GO,
 		Compiler:  version.Compiler,

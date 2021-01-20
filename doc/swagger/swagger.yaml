@@ -2851,10 +2851,6 @@ definitions:
   Version:
     type: object
     properties:
-      release:
-        type: string
-      commit:
-        type: string
       build_time:
         type: string
       golang:

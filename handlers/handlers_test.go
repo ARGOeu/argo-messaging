@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"fmt"
+	"github.com/ARGOeu/argo-messaging/version"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
@@ -210,6 +212,39 @@ func (suite *HandlerTestSuite) TestGetRequestTokenExtractStrategy() {
 	r3.Header = http.Header{}
 	bothStrategy2 := GetRequestTokenExtractStrategy(0)
 	suite.Equal("tok3n-url", bothStrategy2(r3))
+}
+
+func (suite *HandlerTestSuite) TestListVersion() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/version", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+ "build_time": "%v",
+ "golang": "%v",
+ "compiler": "%v",
+ "os": "%v",
+ "architecture": "%v"
+}`
+	expResp = fmt.Sprintf(expResp, version.BuildTime, version.GO, version.Compiler, version.OS, version.Arch)
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	cfgKafka.PushEnabled = true
+	// add a wrong push worker token
+	cfgKafka.PushWorkerToken = "missing"
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/version", WrapMockAuthConfig(ListVersion, cfgKafka, &brk, str, &mgr, pc))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
 }
 
 func TestHandlersTestSuite(t *testing.T) {

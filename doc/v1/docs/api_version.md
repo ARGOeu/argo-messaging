@@ -24,8 +24,6 @@ Json Response
 
 ```json
 {
-    "release": "1.0.5",
-    "commit": "f9f2e8c5f02lbcc94fe76b0d3cfa5d20d9365444",
     "build_time": "2019-11-01T12:51:04Z",
     "golang": "go1.15.6",
     "compiler": "gc",
