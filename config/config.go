@@ -429,7 +429,7 @@ func (cfg *APICfg) LoadTest() {
 		log.Fields{
 			"type": "service_log",
 		},
-	).Infof("Parameter Loaded - service_token: %v", cfg.ServiceToken)
+	).Info("Parameter Loaded - service_token")
 
 	// push enabled true or false
 	cfg.PushEnabled = viper.GetBool("push_enabled")
@@ -477,7 +477,7 @@ func (cfg *APICfg) LoadTest() {
 		log.Fields{
 			"type": "service_log",
 		},
-	).Infof("Parameter Loaded - push_worker_token: %v", cfg.PushWorkerToken)
+	).Info("Parameter Loaded - push_worker_token")
 }
 
 // Load the configuration
@@ -678,7 +678,7 @@ func (cfg *APICfg) Load() {
 		log.Fields{
 			"type": "service_log",
 		},
-	).Infof("Parameter Loaded - service_token: %v", cfg.ServiceToken)
+	).Info("Parameter Loaded - service_token")
 
 	// push enabled true or false
 	cfg.PushEnabled = viper.GetBool("push_enabled")
@@ -726,7 +726,7 @@ func (cfg *APICfg) Load() {
 		log.Fields{
 			"type": "service_log",
 		},
-	).Infof("Parameter Loaded - push_worker_token: %v", cfg.PushWorkerToken)
+	).Info("Parameter Loaded - push_worker_token")
 
 }
 
@@ -821,7 +821,7 @@ func (cfg *APICfg) LoadStrJSON(input string) {
 		log.Fields{
 			"type": "service_log",
 		},
-	).Infof("Parameter Loaded - service_token: %v", cfg.ServiceToken)
+	).Info("Parameter Loaded - service_token:")
 
 	// push enabled true or false
 	cfg.PushEnabled = viper.GetBool("push_enabled")
@@ -869,7 +869,7 @@ func (cfg *APICfg) LoadStrJSON(input string) {
 		log.Fields{
 			"type": "service_log",
 		},
-	).Infof("Parameter Loaded - push_worker_token: %v", cfg.PushWorkerToken)
+	).Info("Parameter Loaded - push_worker_token")
 
 	cfg.LogFacilities = viper.GetStringSlice("log_facilities")
 	log.WithFields(
