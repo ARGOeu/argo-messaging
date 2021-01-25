@@ -9,7 +9,6 @@ License: ASL 2.0
 Buildroot: %{_tmppath}/%{name}-buildroot
 Group: Unspecified
 Source0: %{name}-%{version}.tar.gz
-BuildRequires: golang
 BuildRequires: git
 Requires(pre): /usr/sbin/useradd, /usr/bin/getent
 ExcludeArch: i386
