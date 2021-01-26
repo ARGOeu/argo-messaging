@@ -87,8 +87,11 @@ type QUser struct {
 
 //QProjectRoles include information about projects and roles that user has
 type QProjectRoles struct {
-	ProjectUUID string   `bson:"project_uuid"`
-	Roles       []string `bson:"roles"`
+	ProjectUUID   string   `bson:"project_uuid"`
+	ProjectName   string   `bson:"name"`
+	Roles         []string `bson:"roles"`
+	Topics        []string `bson:"topics"`
+	Subscriptions []string `bson:"subscriptions"`
 }
 
 // QRole holds roles resources relationships

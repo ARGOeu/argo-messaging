@@ -876,13 +876,13 @@ func (mk *MockStore) Initialize() {
 	mk.DailyTopicMsgCount = append(mk.DailyTopicMsgCount, dc1, dc2, dc3, dc4)
 
 	// populate Users
-	qRole := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"consumer", "publisher"}}}
-	qRoleB := []QProjectRoles{QProjectRoles{"argo_uuid2", []string{"consumer", "publisher"}}}
+	qRole := []QProjectRoles{QProjectRoles{"argo_uuid", "", []string{"consumer", "publisher"}, []string{}, []string{}}}
+	qRoleB := []QProjectRoles{QProjectRoles{"argo_uuid2", "", []string{"consumer", "publisher"}, []string{}, []string{}}}
 	qUsr := QUser{0, "uuid0", qRole, "Test", "", "", "", "", "S3CR3T", "Test@test.com", []string{}, created, modified, ""}
 
 	mk.UserList = append(mk.UserList, qUsr)
 
-	qRoleConsumerPub := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"publisher", "consumer"}}}
+	qRoleConsumerPub := []QProjectRoles{QProjectRoles{"argo_uuid", "", []string{"publisher", "consumer"}, []string{}, []string{}}}
 
 	mk.UserList = append(mk.UserList, QUser{1, "uuid1", qRole, "UserA", "FirstA", "LastA", "OrgA", "DescA", "S3CR3T1", "foo-email", []string{}, created, modified, ""})
 	mk.UserList = append(mk.UserList, QUser{2, "uuid2", qRole, "UserB", "", "", "", "", "S3CR3T2", "foo-email", []string{}, created, modified, "uuid1"})

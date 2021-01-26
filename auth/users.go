@@ -407,41 +407,52 @@ func PaginatedFindUsers(pageToken string, pageSize int32, projectUUID string, pr
 		usernameC := ""
 		// if call made by priviledged user (superuser), show service roles, token and user creator info
 		if priviledged {
-			if item.CreatedBy != "" {
-				usr, err := store.QueryUsers("", item.CreatedBy, "")
-				if err == nil && len(usr) > 0 {
-					usernameC = usr[0].Name
-
-				}
-			}
+			//if item.CreatedBy != "" {
+			//	usr, err := store.QueryUsers("", item.CreatedBy, "")
+			//	if err == nil && len(usr) > 0 {
+			//		usernameC = usr[0].Name
+			//
+			//	}
+			//}
+			usernameC = item.CreatedBy
 			token = item.Token
 			serviceRoles = item.ServiceRoles
 		}
 
+		//
 		pRoles := []ProjectRoles{}
 		for _, pItem := range item.Projects {
-			// if user not priviledged (not superuser) and queried projectUUID doesn't
-			// match current role item's project UUID, skip the item
-			if !priviledged && pItem.ProjectUUID != projectUUID {
-				continue
-			}
-			prName := projects.GetNameByUUID(pItem.ProjectUUID, store)
-
-			// Get User topics and subscriptions
-			topicList, _ := store.QueryTopicsByACL(pItem.ProjectUUID, item.UUID)
-			topicNames := []string{}
-			for _, tpItem := range topicList {
-				topicNames = append(topicNames, tpItem.Name)
+			_project := ProjectRoles{
+				Project: pItem.ProjectName,
+				Subs:    append([]string{}, pItem.Subscriptions...),
+				Topics:  append([]string{}, pItem.Topics...),
+				Roles:   append([]string{}, pItem.Roles...),
 			}
 
-			subList, _ := store.QuerySubsByACL(pItem.ProjectUUID, item.UUID)
-			subNames := []string{}
-			for _, sbItem := range subList {
-				subNames = append(subNames, sbItem.Name)
-			}
-			pRoles = append(pRoles, ProjectRoles{Project: prName, Roles: pItem.Roles, Topics: topicNames, Subs: subNames})
+			pRoles = append(pRoles, _project)
 		}
-
+		//	// if user not priviledged (not superuser) and queried projectUUID doesn't
+		//	// match current role item's project UUID, skip the item
+		//	if !priviledged && pItem.ProjectUUID != projectUUID {
+		//		continue
+		//	}
+		//	prName := projects.GetNameByUUID(pItem.ProjectUUID, store)
+		//
+		//	// Get User topics and subscriptions
+		//	topicList, _ := store.QueryTopicsByACL(pItem.ProjectUUID, item.UUID)
+		//	topicNames := []string{}
+		//	for _, tpItem := range topicList {
+		//		topicNames = append(topicNames, tpItem.Name)
+		//	}
+		//
+		//	subList, _ := store.QuerySubsByACL(pItem.ProjectUUID, item.UUID)
+		//	subNames := []string{}
+		//	for _, sbItem := range subList {
+		//		subNames = append(subNames, sbItem.Name)
+		//	}
+		//	pRoles = append(pRoles, ProjectRoles{Project: prName, Roles: pItem.Roles, Topics: topicNames, Subs: subNames})
+		//}
+		//
 		curUser := NewUser(item.UUID, pRoles, item.Name, item.FirstName, item.LastName,
 			item.Organization, item.Description, token, item.Email, serviceRoles,
 			item.CreatedOn.UTC(), item.ModifiedOn.UTC(), usernameC)
