@@ -137,7 +137,7 @@ func (suite *ProjectsHandlersTestSuite) TestProjectUserListOneUnpriv() {
 
 func (suite *ProjectsHandlersTestSuite) TestProjectUserListARGO() {
 
-	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/users", nil)
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/users?details=true", nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -336,9 +336,48 @@ func (suite *ProjectsHandlersTestSuite) TestProjectUserListARGO() {
 
 }
 
+func (suite *ProjectsHandlersTestSuite) TestProjectUserListARGONoUserDetails() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/users?details=false&pageSize=1", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "users": [
+      {
+         "uuid": "same_uuid",
+         "name": "UserSame2",
+         "token": "S3CR3T42",
+         "email": "foo-email",
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "UserA"
+      }
+   ],
+   "nextPageToken": "NQ==",
+   "totalSize": 7
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := oldPush.Manager{}
+	router.HandleFunc("/v1/projects/{project}/users", WrapMockAuthConfig(ProjectListUsers, cfgKafka, &brk, str, &mgr, nil, "service_admin"))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+
+}
+
 func (suite *ProjectsHandlersTestSuite) TestProjectUserListUnprivARGO() {
 
-	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/members", nil)
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/projects/ARGO/members?details=true", nil)
 	if err != nil {
 		log.Fatal(err)
 	}

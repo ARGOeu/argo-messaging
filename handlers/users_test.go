@@ -708,7 +708,7 @@ func (suite *UsersHandlersTestSuite) TestUserListOne() {
 
 func (suite *UsersHandlersTestSuite) TestUserListAll() {
 
-	req, err := http.NewRequest("GET", "http://localhost:8080/v1/users", nil)
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/users?details=true", nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -737,7 +737,6 @@ func (suite *UsersHandlersTestSuite) TestUserListAll() {
       },
       {
          "uuid": "uuid7",
-         "projects": [],
          "name": "push_worker_0",
          "token": "push_token",
          "email": "foo-email",
@@ -941,7 +940,7 @@ func (suite *UsersHandlersTestSuite) TestUserListAll() {
 
 func (suite *UsersHandlersTestSuite) TestUserListAllStartingPage() {
 
-	req, err := http.NewRequest("GET", "http://localhost:8080/v1/users?pageSize=2", nil)
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/users?pageSize=2&details=true", nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -970,7 +969,6 @@ func (suite *UsersHandlersTestSuite) TestUserListAllStartingPage() {
       },
       {
          "uuid": "uuid7",
-         "projects": [],
          "name": "push_worker_0",
          "token": "push_token",
          "email": "foo-email",
@@ -1002,7 +1000,7 @@ func (suite *UsersHandlersTestSuite) TestUserListAllStartingPage() {
 
 func (suite *UsersHandlersTestSuite) TestUserListAllProjectARGO() {
 
-	req, err := http.NewRequest("GET", "http://localhost:8080/v1/users?project=ARGO", nil)
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/users?project=ARGO&details=true", nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -1203,7 +1201,7 @@ func (suite *UsersHandlersTestSuite) TestUserListAllProjectARGO() {
 
 func (suite *UsersHandlersTestSuite) TestUserListAllProjectARGO2() {
 
-	req, err := http.NewRequest("GET", "http://localhost:8080/v1/users?project=ARGO2", nil)
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/users?project=ARGO2&details=true", nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -1282,7 +1280,7 @@ func (suite *UsersHandlersTestSuite) TestUserListAllProjectUNKNOWN() {
 
 func (suite *UsersHandlersTestSuite) TestUserListAllStartingAtSecond() {
 
-	req, err := http.NewRequest("GET", "http://localhost:8080/v1/users?pageSize=2&pageToken=Nw==", nil)
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/users?pageSize=2&pageToken=Nw==&details=true", nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -1291,7 +1289,6 @@ func (suite *UsersHandlersTestSuite) TestUserListAllStartingAtSecond() {
    "users": [
       {
          "uuid": "uuid7",
-         "projects": [],
          "name": "push_worker_0",
          "token": "push_token",
          "email": "foo-email",
@@ -1314,6 +1311,55 @@ func (suite *UsersHandlersTestSuite) TestUserListAllStartingAtSecond() {
                "subscriptions": []
             }
          ],
+         "name": "UserSame2",
+         "token": "S3CR3T42",
+         "email": "foo-email",
+         "service_roles": [],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z",
+         "created_by": "UserA"
+      }
+   ],
+   "nextPageToken": "NQ==",
+   "totalSize": 2
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := oldPush.Manager{}
+	router.HandleFunc("/v1/users", WrapMockAuthConfig(UserListAll, cfgKafka, &brk, str, &mgr, nil, "service_admin"))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+}
+
+func (suite *UsersHandlersTestSuite) TestUserListAllStartingAtSecondNoUserDetails() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/users?pageSize=2&pageToken=Nw==&details=false", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "users": [
+      {
+         "uuid": "uuid7",
+         "name": "push_worker_0",
+         "token": "push_token",
+         "email": "foo-email",
+         "service_roles": [
+            "push_worker"
+         ],
+         "created_on": "2009-11-10T23:00:00Z",
+         "modified_on": "2009-11-10T23:00:00Z"
+      },
+      {
+         "uuid": "same_uuid",
          "name": "UserSame2",
          "token": "S3CR3T42",
          "email": "foo-email",
@@ -1373,7 +1419,7 @@ func (suite *UsersHandlersTestSuite) TestUserListAllEmptyCollection() {
 
 func (suite *UsersHandlersTestSuite) TestUserListAllIntermediatePage() {
 
-	req, err := http.NewRequest("GET", "http://localhost:8080/v1/users?pageToken=NA==&pageSize=2", nil)
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/users?pageToken=NA==&pageSize=2&details=true", nil)
 	if err != nil {
 		log.Fatal(err)
 	}

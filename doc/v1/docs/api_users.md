@@ -3,7 +3,11 @@
 ARGO Messaging Service supports calls for creating and modifing users
 
 ## [GET] Manage Users - List all users
+
 This request lists all available users in the service using pagination
+
+- `details`, if set to `true`, it will return the detailed view of each user,
+containing the projects, subscriptions and topics that the user belongs to.
 
 It is important to note that if there are no results to return the service will return the following:
 
@@ -30,7 +34,7 @@ GET "/v1/users"
 ### Example request
 ```
 curl -X GET -H "Content-Type: application/json"
-  "https://{URL}/v1/users?key=S3CR3T"
+  "https://{URL}/v1/users?key=S3CR3T&details=true"
 ```
 
 ### Responses  
@@ -183,7 +187,7 @@ Success Response
 ### Example request
 ```
 curl -X GET -H "Content-Type: application/json"
-  "https://{URL}/v1/users?key=S3CR3T&pageSize=2"
+  "https://{URL}/v1/users?key=S3CR3T&pageSize=2&details=true"
 ```
 
 ### Responses  
@@ -253,7 +257,7 @@ Success Response
 ### Example request
 ```
 curl -X GET -H "Content-Type: application/json"
-  "https://{URL}/v1/users?key=S3CR3T&pageSize=3&pageToken=some_token2"
+  "https://{URL}/v1/users?key=S3CR3T&pageSize=3&pageToken=some_token2&details=true"
 ```
 
 ### Responses  
@@ -355,7 +359,7 @@ Success Response
 ### Example request
 ```
 curl -X GET -H "Content-Type: application/json"
-  "https://{URL}/v1/users?key=S3CR3T&project=ARGO2"
+  "https://{URL}/v1/users?key=S3CR3T&project=ARGO2&details=true"
 ```
 
 ### Responses  

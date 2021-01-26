@@ -212,10 +212,14 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 
 ### [GET] List all users that are members of a specific project
 
+- `details`, if set to `true`, it will return the detailed view of each user,
+containing the projects, subscriptions and topics that the user belongs to.
+
+
 ### Example request
 ```
 curl -X GET -H "Content-Type: application/json"
-  "https://{URL}/v1/projects/ARGO2/members?key=S3CR3T"
+  "https://{URL}/v1/projects/ARGO2/members?key=S3CR3T&details=true"
 ```
 
 ### Responses  
@@ -253,7 +257,7 @@ Success Response
 }
 ```
 
-### Unpriviledge mode (non service_admin user)
+### The Unprivileged mode (non service_admin user)
 When a user is project_admin instead of service_admin and lists a project's users the results
 returned remove user information such as `token`, `service_roles` and `created_by` For example:
 
