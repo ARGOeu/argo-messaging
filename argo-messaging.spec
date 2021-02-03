@@ -1,4 +1,4 @@
-#debuginfo not supported with Go
+ #debuginfo not supported with Go
 %global debug_package %{nil}
 
 Name: argo-messaging
@@ -30,7 +30,7 @@ export PATH=$PATH:$GOPATH/bin
 cd src/github.com/ARGOeu/argo-messaging/
 export GIT_COMMIT=$(git rev-list -1 HEAD)
 export BUILD_TIME=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
-go install -ldflags "-X github.com/ARGOeu/argo-messaging/version.Commit=$GIT_COMMIT -X github.com/ARGOeu/argo-messaging/version.BuildTime=$BUILD_TIME"
+go install -ldflags "-X github.com/ARGOeu/argo-messaging/version.Commit=$GIT_COMMIT -X github.com/ARGOeu/argo-messaging/version.BuildTime=$BUILD_TIME -linkmode=external"
 
 %install
 %{__rm} -rf %{buildroot}
