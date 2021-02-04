@@ -30,7 +30,7 @@ export PATH=$PATH:$GOPATH/bin
 cd src/github.com/ARGOeu/argo-messaging/
 export GIT_COMMIT=$(git rev-list -1 HEAD)
 export BUILD_TIME=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
-go install -ldflags "-X github.com/ARGOeu/argo-messaging/version.Commit=$GIT_COMMIT -X github.com/ARGOeu/argo-messaging/version.BuildTime=$BUILD_TIME"
+go install -buildmode=pie -ldflags "-X github.com/ARGOeu/argo-messaging/version.Commit=$GIT_COMMIT -X github.com/ARGOeu/argo-messaging/version.BuildTime=$BUILD_TIME"
 
 %install
 %{__rm} -rf %{buildroot}
@@ -62,6 +62,10 @@ go clean
 %attr(0644,root,root) /usr/lib/systemd/system/argo-messaging.service
 
 %changelog
+* Thu Feb 4 2021 Agelos Tsalapatis  <agelos.tsal@gmail.com> 1.0.7-1%{?dist}
+- Add ASLR support for the service binary
+* Fri Jan 22 2021 Agelos Tsalapatis  <agelos.tsal@gmail.com> 1.0.7-1%{?dist}
+- Remove golang dependency
 * Wed Aug 05 2020 Agelos Tsalapatis  <agelos.tsal@gmail.com> 1.0.7-1%{?dist}
 - AMS release 1.0.7
 * Wed Jan 08 2020 Agelos Tsalapatis  <agelos.tsal@gmail.com> 1.0.6-1%{?dist}

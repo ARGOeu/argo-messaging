@@ -27,7 +27,7 @@ pipeline {
                 ln -sf ${WORKSPACE}/${PROJECT_DIR} ${WORKSPACE}/go/src/github.com/ARGOeu/${PROJECT_DIR}
                 rm -rf ${WORKSPACE}/go/src/github.com/ARGOeu/${PROJECT_DIR}/${PROJECT_DIR}
                 cd ${WORKSPACE}/go/src/github.com/ARGOeu/${PROJECT_DIR}
-                go build
+                go build -buildmode=pie
                 """
             }
         }
