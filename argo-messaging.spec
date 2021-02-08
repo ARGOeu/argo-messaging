@@ -30,7 +30,8 @@ export PATH=$PATH:$GOPATH/bin
 cd src/github.com/ARGOeu/argo-messaging/
 export GIT_COMMIT=$(git rev-list -1 HEAD)
 export BUILD_TIME=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
-go install -ldflags "-X github.com/ARGOeu/argo-messaging/version.Commit=$GIT_COMMIT -X github.com/ARGOeu/argo-messaging/version.BuildTime=$BUILD_TIME"
+export CGO_CFLAGS"=-O2 -fstack-protector --param=ssp-buffer-size=4 -D_FORTIFY_SOURCE=2"
+go install -buildmode=pie -ldflags "-s -w -linkmode=external -extldflags '-z relro -z now' -X github.com/ARGOeu/argo-messaging/version.Commit=$GIT_COMMIT -X github.com/ARGOeu/argo-messaging/version.BuildTime=$BUILD_TIME"
 
 %install
 %{__rm} -rf %{buildroot}
