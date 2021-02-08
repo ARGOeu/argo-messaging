@@ -140,7 +140,6 @@ func (suite *RegistrationsHandlersTestSuite) TestAcceptRegisterUser() {
 		uname: "urname",
 		expectedResponse: `{
    "uuid": "{{UUID}}",
-   "projects": [],
    "name": "urname",
    "first_name": "urfname",
    "last_name": "urlname",

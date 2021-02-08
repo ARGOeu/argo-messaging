@@ -835,6 +835,12 @@ func ProjectListUsers(w http.ResponseWriter, r *http.Request) {
 	urlValues := r.URL.Query()
 	pageToken := urlValues.Get("pageToken")
 	strPageSize := urlValues.Get("pageSize")
+	details := urlValues.Get("details")
+	usersDetailedView := false
+
+	if details == "true" {
+		usersDetailedView = true
+	}
 
 	if strPageSize != "" {
 		if pageSize, err = strconv.Atoi(strPageSize); err != nil {
@@ -849,7 +855,7 @@ func ProjectListUsers(w http.ResponseWriter, r *http.Request) {
 	priviledged := auth.IsServiceAdmin(refRoles)
 
 	// Get Results Object - call is always priviledged because this handler is only accessible by service admins
-	if paginatedUsers, err = auth.PaginatedFindUsers(pageToken, int32(pageSize), projectUUID, priviledged, refStr); err != nil {
+	if paginatedUsers, err = auth.PaginatedFindUsers(pageToken, int32(pageSize), projectUUID, priviledged, usersDetailedView, refStr); err != nil {
 		err := APIErrorInvalidData("Invalid page token")
 		respondErr(w, err)
 		return

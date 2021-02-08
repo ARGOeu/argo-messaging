@@ -436,13 +436,19 @@ func UserListAll(w http.ResponseWriter, r *http.Request) {
 	// Grab context references
 	refStr := gorillaContext.Get(r, "str").(stores.Store)
 	refRoles := gorillaContext.Get(r, "auth_roles").([]string)
+	usersDetailedView := false
 
 	// Grab url path variables
 	urlValues := r.URL.Query()
 	pageToken := urlValues.Get("pageToken")
 	strPageSize := urlValues.Get("pageSize")
 	projectName := urlValues.Get("project")
+	details := urlValues.Get("details")
 	projectUUID := ""
+
+	if details == "true" {
+		usersDetailedView = true
+	}
 
 	if projectName != "" {
 		projectUUID = projects.GetUUIDByName(projectName, refStr)
@@ -466,7 +472,7 @@ func UserListAll(w http.ResponseWriter, r *http.Request) {
 	priviledged := auth.IsServiceAdmin(refRoles)
 
 	// Get Results Object - call is always priviledged because this handler is only accessible by service admins
-	if paginatedUsers, err = auth.PaginatedFindUsers(pageToken, int32(pageSize), projectUUID, priviledged, refStr); err != nil {
+	if paginatedUsers, err = auth.PaginatedFindUsers(pageToken, int32(pageSize), projectUUID, priviledged, usersDetailedView, refStr); err != nil {
 		err := APIErrorInvalidData("Invalid page token")
 		respondErr(w, err)
 		return
