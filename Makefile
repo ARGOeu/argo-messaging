@@ -18,7 +18,8 @@ go-build-linux-static:
 	mkdir -p ${GOPATH}/src/github.com/ARGOeu/argo-messaging
 	cp -R . ${GOPATH}/src/github.com/ARGOeu/argo-messaging
 	cd ${GOPATH}/src/github.com/ARGOeu/argo-messaging && \
-	CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o ${APPDIR}/argo-messaging-linux-static . &&\
+    export CGO_CFLAGS"=-O2 -fstack-protector --param=ssp-buffer-size=4 -D_FORTIFY_SOURCE=2"
+	GOOS=linux go build -buildmode=pie -ldflags "-s -w -linkmode=external -extldflags '-z relro -z now'" -a -installsuffix cgo -o ${APPDIR}/argo-messaging-linux-static . &&\
 	chown ${hostUID} ${APPDIR}/argo-messaging-linux-static
 
 go-test:
