@@ -1254,6 +1254,7 @@ func (mong *MongoStore) InsertTopic(projectUUID string, name string, schemaUUID 
 		PublishRate:   0,
 		SchemaUUID:    schemaUUID,
 		CreatedOn:     createdOn,
+		ACL:           []string{},
 	}
 
 	return mong.InsertResource("topics", topic)
@@ -1328,6 +1329,7 @@ func (mong *MongoStore) InsertSub(projectUUID string, name string, topic string,
 		MsgNum:              0,
 		TotalBytes:          0,
 		CreatedOn:           createdOn,
+		ACL:                 []string{},
 	}
 	return mong.InsertResource("subscriptions", sub)
 }
