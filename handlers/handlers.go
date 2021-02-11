@@ -109,7 +109,7 @@ func WrapLog(hfn http.Handler, name string) http.HandlerFunc {
 			log.Fields{
 				"type":            "request_log",
 				"method":          r.Method,
-				"path":            r.RequestURI,
+				"path":            r.URL.Path,
 				"action":          name,
 				"requester":       gorillaContext.Get(r, "auth_user_uuid"),
 				"processing_time": time.Since(start).String(),
