@@ -518,6 +518,7 @@ func (suite *AuthTestSuite) TestAuth() {
 	qUsers1 = append(qUsers1, User{
 		UUID:         "uuid7",
 		Name:         "push_worker_0",
+		Projects:     []ProjectRoles{},
 		FirstName:    "",
 		LastName:     "",
 		Description:  "",
@@ -541,6 +542,7 @@ func (suite *AuthTestSuite) TestAuth() {
 	qUsers2 = append(qUsers2, User{
 		UUID:         "uuid7",
 		Name:         "push_worker_0",
+		Projects:     []ProjectRoles{},
 		FirstName:    "",
 		LastName:     "",
 		Description:  "",
@@ -581,6 +583,7 @@ func (suite *AuthTestSuite) TestAuth() {
 	ndUser = append(ndUser, User{
 		UUID:         "uuid8",
 		Name:         "UserZ",
+		Projects:     []ProjectRoles{},
 		FirstName:    "",
 		LastName:     "",
 		Organization: "",

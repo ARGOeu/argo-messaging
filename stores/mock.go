@@ -707,7 +707,7 @@ func (mk *MockStore) QueryUsers(projectUUID string, uuid string, name string) ([
 }
 
 // PaginatedQueryUsers provides query to the list of users using pagination parameters
-func (mk *MockStore) PaginatedQueryUsers(pageToken string, pageSize int32, projectUUID string) ([]QUser, int32, string, error) {
+func (mk *MockStore) PaginatedQueryUsers(pageToken string, pageSize int32, projectUUID string, detailedView bool, privileged bool) ([]QUser, int32, string, error) {
 
 	var qUsers []QUser
 	var nextPageToken string
@@ -788,6 +788,54 @@ func (mk *MockStore) PaginatedQueryUsers(pageToken string, pageSize int32, proje
 				}
 			}
 		}
+	}
+
+	if detailedView {
+
+		for idx, user := range qUsers {
+
+			// look up the creator's username if privileged access
+			if privileged {
+				if user.CreatedBy != "" {
+					_un, _ := mk.QueryUsers("", user.CreatedBy, "")
+					qUsers[idx].CreatedBy = _un[0].Name
+				}
+			}
+
+			projRoles := []QProjectRoles{}
+
+			for _, item := range user.Projects {
+				_pRole := QProjectRoles{}
+
+				qp, _ := mk.QueryProjects(item.ProjectUUID, "")
+
+				_pRole.ProjectName = qp[0].Name
+				_pRole.ProjectUUID = item.ProjectUUID
+				_pRole.Roles = item.Roles
+
+				// get all topics the user belongs to
+				qTopics, _ := mk.QueryTopicsByACL(item.ProjectUUID, user.UUID)
+				topics := []string{}
+				for _, tn := range qTopics {
+					topics = append(topics, tn.Name)
+				}
+
+				// get all subs the user belongs to
+				qSubs, _ := mk.QuerySubsByACL(item.ProjectUUID, user.UUID)
+				subs := []string{}
+				for _, sn := range qSubs {
+					subs = append(subs, sn.Name)
+				}
+
+				_pRole.Topics = topics
+				_pRole.Subscriptions = subs
+
+				projRoles = append(projRoles, _pRole)
+			}
+
+			qUsers[idx].Projects = projRoles
+		}
+
 	}
 
 	return qUsers, totalSize, nextPageToken, err
@@ -876,13 +924,13 @@ func (mk *MockStore) Initialize() {
 	mk.DailyTopicMsgCount = append(mk.DailyTopicMsgCount, dc1, dc2, dc3, dc4)
 
 	// populate Users
-	qRole := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"consumer", "publisher"}}}
-	qRoleB := []QProjectRoles{QProjectRoles{"argo_uuid2", []string{"consumer", "publisher"}}}
+	qRole := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"consumer", "publisher"}, []string{}, []string{}, ""}}
+	qRoleB := []QProjectRoles{QProjectRoles{"argo_uuid2", []string{"consumer", "publisher"}, []string{}, []string{}, ""}}
 	qUsr := QUser{0, "uuid0", qRole, "Test", "", "", "", "", "S3CR3T", "Test@test.com", []string{}, created, modified, ""}
 
 	mk.UserList = append(mk.UserList, qUsr)
 
-	qRoleConsumerPub := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"publisher", "consumer"}}}
+	qRoleConsumerPub := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"publisher", "consumer"}, []string{}, []string{}, ""}}
 
 	mk.UserList = append(mk.UserList, QUser{1, "uuid1", qRole, "UserA", "FirstA", "LastA", "OrgA", "DescA", "S3CR3T1", "foo-email", []string{}, created, modified, ""})
 	mk.UserList = append(mk.UserList, QUser{2, "uuid2", qRole, "UserB", "", "", "", "", "S3CR3T2", "foo-email", []string{}, created, modified, "uuid1"})
