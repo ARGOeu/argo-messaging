@@ -36,7 +36,7 @@ pipeline {
             steps {
                 sh """
                 cd ${WORKSPACE}/go/src/github.com/ARGOeu/${PROJECT_DIR}
-                /home/checksec.py -b ./argo-messaging
+                /home/jenkins/checksec.py -b ./argo-messaging
                 """
             }
         }
