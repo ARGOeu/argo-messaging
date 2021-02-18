@@ -27,6 +27,7 @@ type QSub struct {
 	LatestConsume       time.Time   `bson:"latest_consume"`
 	ConsumeRate         float64     `bson:"consume_rate"`
 	CreatedOn           time.Time   `bson:"created_on"`
+	ACL                 []string    `bson:"acl"`
 }
 
 // QAcl holds a list of authorized users queried from topic or subscription collections
@@ -108,6 +109,7 @@ type QTopic struct {
 	PublishRate   float64     `bson:"publish_rate"`
 	SchemaUUID    string      `bson:"schema_uuid"`
 	CreatedOn     time.Time   `bson:"created_on"`
+	ACL           []string    `bson:"acl"`
 }
 
 // QDailyTopicMsgCount holds information about the daily number of messages published to a topic
