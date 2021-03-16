@@ -32,6 +32,14 @@ pipeline {
                 """
             }
         }
+        stage('Security Tests') {
+            steps {
+                sh """
+                cd ${WORKSPACE}/go/src/github.com/ARGOeu/${PROJECT_DIR}
+                /home/jenkins/checksec.py -b ./argo-messaging
+                """
+            }
+        }
         stage('Test') {
             steps {
                 echo 'Test & Coverage...'
