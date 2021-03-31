@@ -6,6 +6,7 @@ The ARGO Messaging Service API implements the Google PubSub specification and th
 All methods must be called using HTTPS. Arguments can be passed as GET or POST params, or a mix. The response contains a `200 OK` for a successful request and a JSON object in case of an error. For failure results, the error property will contain a short machine-readable error code. In the case of problematic calls,  during handling user’s request the API responds using a predefined schema (described in chapter Errors), that contains a short machine-readable warning code, an error code and an error description  (or list of them, in the case of multiple errors).
 
 Each user is authenticated by adding the url parameter `?key=T0K3N` in each API request
+Users can also authenticate using the header `x-api-key`.
 
 ## Configuration file: config.json
 

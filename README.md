@@ -1,123 +1,112 @@
-[![Build Status](https://travis-ci.org/ARGOeu/argo-messaging.svg?branch=devel)](https://travis-ci.org/ARGOeu/argo-messaging)
 # ARGO Messaging
 
-> ## :warning: Warning :warning:
-> These installation instructions are meant for running the service for demo purposes. If you want to operate the service for anything else other than a simple demo, please implement a deployment model that meets your requirements.
+## Description
+The ARGO Messaging Service is a Publish/Subscribe Service,
+which implements the Google PubSub protocol. 
+Instead of focusing on a single Messaging API specification 
+for handling the logic of publishing/subscribing 
+to the broker network the API focuses 
+on creating nodes of Publishers and Subscribers as a Service.
+It provides an HTTP API that enables Users/Systems to implement
+message oriented services using the Publish/Subscribe Model over plain HTTP.
+In the Publish/Subscribe paradigm, Publishers are users/systems 
+that can send messages to
+named-channels called Topics. Subscribers are users/systems that
+create Subscriptions to
+specific topics and receive messages.
 
-In order to build, test and run the service, recent versions of the docker-engine (>=1.12) and the docker-compose (>= 1.8.0) are required. Step 1 refers to the docker installation on Ubuntu 16.04.1, please adopt accordingly your Linux distribution or OS.
+## Prerequisites 
 
-## Install docker from dockerproject.org (Ubuntu 16.04.1)
+#### Build Requirements
 
-```shell
-$ sudo apt-key adv --keyserver hkp://pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D
-$ echo "deb https://apt.dockerproject.org/repo ubuntu-xenial main" | sudo tee /etc/apt/sources.list.d/docker.list
-$ sudo apt-get update
-$ sudo apt-cache policy docker-engine
-$ sudo apt-get install linux-image-extra-$(uname -r) linux-image-extra-virtual
-$ sudo apt-get install docker-engine
+ - Golang 1.15
+
+#### Datastore Requirements
+  - The service has been tested with mongodb from version `3.2.22` up to `4.2.3`.
+ 
+#### Broker requirements
+
+  - Kafka 2.2.1
+  - Zookeeper 3.4.5
+  
+#### Push Server
+In order to support push enabled subscriptions AMS relies on an external service
+that handles the actual pushing of messages, while AMS holds the configuration
+for the subscriptions.You can create push enabled subscriptions even
+when the push-server isn't available, they will be picked up automatically
+when the push-server is up and running.
+- [Push server](https://github.com/ARGOeu/ams-push-server)
+
+
+## Configuration
+
+#### Configuration Location
+Configuration for the service takes place inside a `config.json` file, that
+resides in two possible locations:
+
+1) Same folder as the binary
+
+2) `/etc/argo-messaging/config.json`
+
+#### Configuration values
+
+- `port` - port the service will bind to
+- `zookeeper_hosts` - list of zookeeper hosts, e.g. [zoo1:2181,zoo2:2181,zoo3:2181]
+- `store_host` - store host, e.g. 'mongo1:27017,mongo2:27017,mongo3:27017'
+- `store_db` - mongo db database name
+- `certificate` - /path/to/tls/certificate
+- `certificate_key` - /path/to/cert/ley
+- `certificate_authorities_dir` - dir containing CAs
+- `log_level` - DEBUG,INFO,WARNING, ERROR or FATAL
+-  `push_enabled` - (true|false) whether or not the service will support push enabled subscriptions
+- `push_tls_enabled` - (true|false), whether or not the service will communicate over TLS with the push server
+- `push_server_host` - push1.grnet.gr
+- `push_server_port` - 443
+- `verify_push_server` - (true|false) mutual TLS for the push server
+- `push_worker_token` - token for the active push worker user
+- `log_facilities` - ["syslog", "console"]  
+- `auth_option`: (`key`|`header`|`both`), where should the service look for the access token.
+
+
+#### Build & Run the service
+
+In order to build the service, inside the AMS repo issue the command:
+```bash
+go build
+```
+In order to run the service,
+```bash
+./argo-messaging
 ```
 
-We advise you to follow the steps described in docker manual. For Ubuntu:
+## X509 Authentication
+Although AMS doesn't support direct authentication through an x509 certificate,
+you can use the [argo-authentication-service](https://github.com/ARGOeu/argo-api-authn)
+to map an x509 certificate to an AMS `key`.
+The service will also validate the certificate.
+The [ams-library](https://github.com/ARGOeu/argo-ams-library) will effortlessly
+hide this complexity if you decide to use it in order to access AMS.
 
-- Prerequisites : https://docs.docker.com/engine/installation/linux/ubuntulinux/#prerequisites
-- Install : https://docs.docker.com/engine/installation/linux/ubuntulinux/#install
-- Add a docker group [https://docs.docker.com/engine/installation/linux/ubuntulinux/#/create-a-docker-group] .
+## Managing the protocol buffers and gRPC definitions
 
-**Note:** Don't forget to login logout before running the docker as a non root user. This ensures your user is running with the correct permissions.
+In order to modify any `.proto` file you will need the following
 
-## Install docker-compose
+ - Read on how to install the protoc compiler on your platform [here.](https://github.com/protocolbuffers/protobuf)
 
-We are using version of the Compose file format. To install the latest docker-compose, follow the guidelines here: https://github.com/docker/compose/releases
+ -  Install the go plugin. `go get -u github.com/golang/protobuf/protoc-gen-go`
 
-## Clone the argo-messaging repository
+ - install the go gRPC package. `go get -u google.golang.org/grpc`
 
-```shell
-$ git clone https://github.com/ARGOeu/argo-messaging
-```
+ - Inside `push/grpc` compile. `protoc -I proto/ proto/ams.proto --go_out=plugins=grpc:proto`
 
-## Get certificates (skip this step if you already have certificates)
+## Helpful utilities
 
-The ARGO Messaging services requires certificates in order to operates. The easiest way is to get certificates from letsencrypt. You can follow the instructions from the letsencrypt website or use the docker letsencrypt docker image. One caveat of this approach is that the certificate files end up in the ```etc/live``` directory (see below) and will be owned by the root user.
+Inside the [tools](https://github.com/ARGOeu/argo-messaging/tree/master/tools) folder you can find various scripts that can help you
+perform common tasks OR help you get started with interacting with AMS.
 
-```shell
-$ mkdir -p ${HOME}/letsencrypt/{etc,var}
-$ docker run -it --rm -p 443:443 -p 80:80 --name certbot \
-    -v "$HOME/letsencrypt/etc:/etc/letsencrypt" \
-    -v "$HOME/letsencrypt/var:/var/lib/letsencrypt" \
-    quay.io/letsencrypt/letsencrypt:latest certonly
-$ cd argo-messaging
-# Comment: Please change owneship of ${HOME}/letsencrypt to your user
-$ cp ${HOME}/letsencrypt/etc/live/*/fullchain.pem host.crt
-$ sudo cp ${HOME}/letsencrypt/etc/live/*/privkey.pem host.key
-```
-## Edit the default configuration file (config.json)
+There is also a handy python [library]((https://github.com/ARGOeu/argo-ams-library))
+for interacting with AMS.
 
-In the ```argo-messaging``` directory, edit ```config.json```:
-
-```diff
-{
-"bind_ip":"",
-"port":8080,
--  "zookeeper_hosts":["localhost"],
--  "store_host":"localhost",
-+  "zookeeper_hosts":["zookeeper"],
-+  "store_host":"mongo",
-"store_db":"argo_msg",
--  "certificate":"/etc/pki/tls/certs/localhost.crt",
--  "certificate_key":"/etc/pki/tls/private/localhost.key",
-+  "certificate":"./host.crt",
-+  "certificate_key":"./host.key",
-"service_token":"CHANGE-THIS-TO-A-LONG-STRING",
-"push_enabled": false
-}
-```
-
-**Note:** Make sure that you change the service_token to a long string.
-
-## Edit docker-compose.yml
-
-In the ```argo-messaging``` directory, edit ```docker-compose.yml``` and add the public IP address of your host to the ```KAFKA_ADVERTISED_HOST_NAME``` key.
-
-## Run the tests
-
-```shell
-$ docker run --env hostUID=`id -u`:`id -g` --rm -v "$PWD":/usr/src/myapp -w /usr/src/myapp golang:1.7 make go-test
-```
-
-## Build the service
-
-```shell
-$ docker run --env hostUID=`id -u`:`id -g` --rm -v "$PWD":/usr/src/myapp -w /usr/src/myapp golang:1.7 make go-build-linux-static
-```
-
-## Start the service
-
-```shell
-$ docker-compose build
-$ docker-compose up -d
-```
-
-##  Test that the service is running
-
-```shell
-$ curl https://<HOSTNAME>/v1/projects?key=<YOUR_SERVICE_TOKEN>
-```
-
-**Note:** Change ```<HOSTNAME>``` to the hostname of your host and ```<SERVICE_TOKEN>``` to the service token that you have added in ```config.json```. You should get an empty json response:
-
-```shell
-{}
-```
-
-## Stop the service
-
-```shell
-$ docker-compose stop
-```
-
-## Congratulations!
-
-Please visit http://argoeu.github.io/messaging/v1/ to learn how to use the service.
 
 ## Credits
 

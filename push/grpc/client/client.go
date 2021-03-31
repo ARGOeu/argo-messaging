@@ -30,7 +30,7 @@ type GrpcClientStatus struct {
 }
 
 // Result prints the result of an grpc request
-func (st *GrpcClientStatus) Result() string {
+func (st *GrpcClientStatus) Result(details bool) string {
 
 	grpcStatus := status.Convert(st.err)
 
@@ -45,7 +45,11 @@ func (st *GrpcClientStatus) Result() string {
 				"backend_service": "ams-push-server",
 			},
 		).Error(grpcStatus.Message())
-		return "Push server is currently unavailable"
+		if details {
+			return grpcStatus.Message()
+		} else {
+			return "Push server is currently unavailable"
+		}
 	}
 
 	return fmt.Sprintf("Error: %v", grpcStatus.Message())
@@ -115,15 +119,16 @@ func (c *GrpcClient) SubscriptionStatus(ctx context.Context, fullSub string) Cli
 }
 
 // ActivateSubscription is a wrapper over the grpc ActivateSubscription call
-func (c *GrpcClient) ActivateSubscription(ctx context.Context, fullSub, fullTopic, pushEndpoint, retryType string, retryPeriod uint32, maxMessages int64) ClientStatus {
+func (c *GrpcClient) ActivateSubscription(ctx context.Context, fullSub, fullTopic, pushEndpoint, retryType string, retryPeriod uint32, maxMessages int64, authzHeader string) ClientStatus {
 
 	actSubR := &amsPb.ActivateSubscriptionRequest{
 		Subscription: &amsPb.Subscription{
 			FullName:  fullSub,
 			FullTopic: fullTopic,
 			PushConfig: &amsPb.PushConfig{
-				PushEndpoint: pushEndpoint,
-				MaxMessages:  maxMessages,
+				PushEndpoint:        pushEndpoint,
+				MaxMessages:         maxMessages,
+				AuthorizationHeader: authzHeader,
 				RetryPolicy: &amsPb.RetryPolicy{
 					Type:   retryType,
 					Period: retryPeriod,

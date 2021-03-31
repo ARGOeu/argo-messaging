@@ -1,7 +1,7 @@
 pipeline {
     agent {
         docker {
-            image 'argo.registry:5000/epel-7-mgo1.14'
+            image 'argo.registry:5000/epel-7-mgo1.15'
             args '-u jenkins:jenkins'
         }
     }
@@ -27,7 +27,16 @@ pipeline {
                 ln -sf ${WORKSPACE}/${PROJECT_DIR} ${WORKSPACE}/go/src/github.com/ARGOeu/${PROJECT_DIR}
                 rm -rf ${WORKSPACE}/go/src/github.com/ARGOeu/${PROJECT_DIR}/${PROJECT_DIR}
                 cd ${WORKSPACE}/go/src/github.com/ARGOeu/${PROJECT_DIR}
-                go build
+                export CGO_CFLAGS"=-O2 -fstack-protector --param=ssp-buffer-size=4 -D_FORTIFY_SOURCE=2"
+                go build -buildmode=pie -ldflags "-s -w -linkmode=external -extldflags '-z relro -z now'"
+                """
+            }
+        }
+        stage('Security Tests') {
+            steps {
+                sh """
+                cd ${WORKSPACE}/go/src/github.com/ARGOeu/${PROJECT_DIR}
+                /home/jenkins/checksec.py -b ./argo-messaging
                 """
             }
         }
@@ -91,7 +100,6 @@ pipeline {
         success {
             script{
                 if ( env.BRANCH_NAME == 'devel' ) {
-                    build job: '/ARGO-utils/argo-swagger-docs', propagate: false
                     build job: '/ARGO/argodoc/devel', propagate: false
                 } else if ( env.BRANCH_NAME == 'master' ) {
                     build job: '/ARGO/argodoc/master', propagate: false

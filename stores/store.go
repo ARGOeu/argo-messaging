@@ -38,13 +38,13 @@ type Store interface {
 	InsertUser(uuid string, projects []QProjectRoles, name string, firstName string, lastName string, org string, desc string, token string, email string, serviceRoles []string, createdOn time.Time, modifiedOn time.Time, createdBy string) error
 	InsertProject(uuid string, name string, createdOn time.Time, modifiedOn time.Time, createdBy string, description string) error
 	InsertOpMetric(hostname string, cpu float64, mem float64) error
-	InsertTopic(projectUUID string, name string, schemaUUID string) error
+	InsertTopic(projectUUID string, name string, schemaUUID string, createdOn time.Time) error
 	IncrementTopicMsgNum(projectUUID string, name string, num int64) error
 	IncrementDailyTopicMsgCount(projectUUID string, topicName string, num int64, date time.Time) error
 	IncrementTopicBytes(projectUUID string, name string, totalBytes int64) error
 	IncrementSubBytes(projectUUID string, name string, totalBytes int64) error
 	IncrementSubMsgNum(projectUUID string, name string, num int64) error
-	InsertSub(projectUUID string, name string, topic string, offest int64, maxMessages int64, ack int, push string, rPolicy string, rPeriod int, vhash string, verified bool) error
+	InsertSub(projectUUID string, name string, topic string, offest int64, maxMessages int64, authzType string, authzHeader string, ack int, push string, rPolicy string, rPeriod int, vhash string, verified bool, createdOn time.Time) error
 	HasProject(name string) bool
 	HasUsers(projectUUID string, users []string) (bool, []string)
 	QueryOneSub(projectUUID string, name string) (QSub, error)
@@ -56,7 +56,7 @@ type Store interface {
 	UpdateSubOffset(projectUUID string, name string, offset int64)
 	UpdateSubPull(projectUUID string, name string, offset int64, ts string) error
 	UpdateSubOffsetAck(projectUUID string, name string, offset int64, ts string) error
-	ModSubPush(projectUUID string, name string, push string, maxMessages int64, rPolicy string, rPeriod int, vhash string, verified bool) error
+	ModSubPush(projectUUID string, name string, push string, authzType string, authzValue string, maxMessages int64, rPolicy string, rPeriod int, vhash string, verified bool) error
 	QueryACL(projectUUID string, resource string, name string) (QAcl, error)
 	ExistsInACL(projectUUID string, resource string, resourceName string, userUUID string) error
 	ModACL(projectUUID string, resource string, name string, acl []string) error
@@ -68,6 +68,9 @@ type Store interface {
 	QuerySchemas(projectUUID, schemaUUID, name string) ([]QSchema, error)
 	UpdateSchema(schemaUUID, name, schemaType, rawSchemaString string) error
 	DeleteSchema(schemaUUID string) error
+	UsersCount(startDate, endDate time.Time) (int, error)
+	TopicsCount(startDate, endDate time.Time) (int, error)
+	SubscriptionsCount(startDate, endDate time.Time) (int, error)
 	Clone() Store
 	Close()
 }

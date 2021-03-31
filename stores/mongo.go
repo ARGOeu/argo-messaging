@@ -78,6 +78,49 @@ func (mong *MongoStore) Initialize() {
 	}
 }
 
+// SubscriptionsCount returns the amount of subscriptions created in the given time period
+func (mong *MongoStore) SubscriptionsCount(startDate, endDate time.Time) (int, error) {
+	return mong.getDocCountForCollection(startDate, endDate, "subscriptions")
+}
+
+// TopicsCount returns the amount of topics created in the given time period
+func (mong *MongoStore) TopicsCount(startDate, endDate time.Time) (int, error) {
+	return mong.getDocCountForCollection(startDate, endDate, "topics")
+}
+
+// UserCount returns the amount of users created in the given time period
+func (mong *MongoStore) UsersCount(startDate, endDate time.Time) (int, error) {
+	return mong.getDocCountForCollection(startDate, endDate, "users")
+}
+
+// getDocCountForCollection returns the document count for a collection in a given time period
+// collection should support field created_on
+func (mong *MongoStore) getDocCountForCollection(startDate, endDate time.Time, col string) (int, error) {
+
+	query := bson.M{
+		"created_on": bson.M{
+			"$gte": startDate,
+			"$lte": endDate,
+		},
+	}
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C(col)
+
+	count, err := c.Find(query).Count()
+	if err != nil {
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
+	}
+
+	return count, nil
+}
+
 // QueryProjects queries the database for a specific project or a list of all projects
 func (mong *MongoStore) QueryProjects(uuid string, name string) ([]QProject, error) {
 
@@ -565,10 +608,15 @@ func (mong *MongoStore) PaginatedQueryUsers(pageToken string, pageSize int32, pr
 	db := mong.Session.DB(mong.Database)
 	c := db.C("users")
 
-	// check the total of the users selected by the query not taking into acount pagination
+	// check the total of the users selected by the query not taking into account pagination
 	if size, err = c.Find(query).Count(); err != nil {
-		log.Fatal("STORE", "\t", err.Error())
-
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
 	}
 	totalSize = int32(size)
 
@@ -632,20 +680,7 @@ func (mong *MongoStore) PaginatedQueryUsers(pageToken string, pageSize int32, pr
 		qUsers = qUsers[:len(qUsers)-1]
 	}
 
-	if size, err = c.Count(); err != nil {
-		log.WithFields(
-			log.Fields{
-				"type":            "backend_log",
-				"backend_service": "mongo",
-				"backend_hosts":   mong.Server,
-			},
-		).Fatal(err.Error())
-	}
-
-	totalSize = int32(size)
-
 	return qUsers, totalSize, nextPageToken, err
-
 }
 
 //QuerySubsByTopic returns subscriptions of a specific topic
@@ -1208,7 +1243,7 @@ func (mong *MongoStore) HasProject(name string) bool {
 }
 
 // InsertTopic inserts a topic to the store
-func (mong *MongoStore) InsertTopic(projectUUID string, name string, schemaUUID string) error {
+func (mong *MongoStore) InsertTopic(projectUUID string, name string, schemaUUID string, createdOn time.Time) error {
 
 	topic := QTopic{
 		ProjectUUID:   projectUUID,
@@ -1218,6 +1253,8 @@ func (mong *MongoStore) InsertTopic(projectUUID string, name string, schemaUUID 
 		LatestPublish: time.Time{},
 		PublishRate:   0,
 		SchemaUUID:    schemaUUID,
+		CreatedOn:     createdOn,
+		ACL:           []string{},
 	}
 
 	return mong.InsertResource("topics", topic)
@@ -1272,23 +1309,27 @@ func (mong *MongoStore) InsertProject(uuid string, name string, createdOn time.T
 }
 
 // InsertSub inserts a subscription to the store
-func (mong *MongoStore) InsertSub(projectUUID string, name string, topic string, offset int64, maxMessages int64, ack int, push string, rPolicy string, rPeriod int, vhash string, verified bool) error {
+func (mong *MongoStore) InsertSub(projectUUID string, name string, topic string, offset int64, maxMessages int64, authzType string, authzHeader string, ack int, push string, rPolicy string, rPeriod int, vhash string, verified bool, createdOn time.Time) error {
 	sub := QSub{
-		ProjectUUID:      projectUUID,
-		Name:             name,
-		Topic:            topic,
-		Offset:           offset,
-		NextOffset:       0,
-		PendingAck:       "",
-		Ack:              ack,
-		MaxMessages:      maxMessages,
-		PushEndpoint:     push,
-		RetPolicy:        rPolicy,
-		RetPeriod:        rPeriod,
-		VerificationHash: vhash,
-		Verified:         verified,
-		MsgNum:           0,
-		TotalBytes:       0,
+		ProjectUUID:         projectUUID,
+		Name:                name,
+		Topic:               topic,
+		Offset:              offset,
+		NextOffset:          0,
+		PendingAck:          "",
+		Ack:                 ack,
+		MaxMessages:         maxMessages,
+		AuthorizationType:   authzType,
+		AuthorizationHeader: authzHeader,
+		PushEndpoint:        push,
+		RetPolicy:           rPolicy,
+		RetPeriod:           rPeriod,
+		VerificationHash:    vhash,
+		Verified:            verified,
+		MsgNum:              0,
+		TotalBytes:          0,
+		CreatedOn:           createdOn,
+		ACL:                 []string{},
 	}
 	return mong.InsertResource("subscriptions", sub)
 }
@@ -1320,6 +1361,9 @@ func (mong *MongoStore) QueryTotalMessagesPerProject(projectUUIDs []string, star
 	days := 1
 	if !endDate.Equal(startDate) {
 		days = int(endDate.Sub(startDate).Hours() / 24)
+		// add an extra day to compensate for the fact that we need the starting day included as well
+		// e.g. Aug 1 to Aug 31 should be calculated as 31 days and not as 30
+		days += 1
 	}
 
 	condQuery := []bson.M{
@@ -1381,8 +1425,6 @@ func (mong *MongoStore) QueryTotalMessagesPerProject(projectUUIDs []string, star
 			},
 		).Fatal(err.Error())
 	}
-
-	fmt.Printf("%+v\n", qdp)
 
 	return qdp, err
 }
@@ -1563,7 +1605,7 @@ func (mong *MongoStore) ModAck(projectUUID string, name string, ack int) error {
 }
 
 // ModSubPush modifies the push configuration
-func (mong *MongoStore) ModSubPush(projectUUID string, name string, push string, maxMessages int64, rPolicy string, rPeriod int, vhash string, verified bool) error {
+func (mong *MongoStore) ModSubPush(projectUUID string, name string, push string, authzType string, authzValue string, maxMessages int64, rPolicy string, rPeriod int, vhash string, verified bool) error {
 	db := mong.Session.DB(mong.Database)
 	c := db.C("subscriptions")
 
@@ -1572,12 +1614,14 @@ func (mong *MongoStore) ModSubPush(projectUUID string, name string, push string,
 		"name":         name,
 	},
 		bson.M{"$set": bson.M{
-			"push_endpoint":     push,
-			"max_messages":      maxMessages,
-			"retry_policy":      rPolicy,
-			"retry_period":      rPeriod,
-			"verification_hash": vhash,
-			"verified":          verified,
+			"push_endpoint":        push,
+			"authorization_type":   authzType,
+			"authorization_header": authzValue,
+			"max_messages":         maxMessages,
+			"retry_policy":         rPolicy,
+			"retry_period":         rPeriod,
+			"verification_hash":    vhash,
+			"verified":             verified,
 		},
 		})
 	return err

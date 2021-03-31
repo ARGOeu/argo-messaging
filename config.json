@@ -11,10 +11,11 @@
   "service_token":"b328c3861f061f87cbd34cf34f36ba2ae20883a5",
   "log_level":"INFO",
   "push_enabled":true,
-  "push_tls_enabled": true,
+  "push_tls_enabled": false,
   "push_server_host": "localhost",
   "push_server_port": 5555,
   "verify_push_server": true,
-  "push_worker_token": "18492e78a1e95be564c00ba4537c4171ec628f98",
-  "log_facilities": ["console"]
+  "push_worker_token": "8c8cbaeba3e1317c18cd5c03f3b1f596c23f922a",
+  "log_facilities": ["console"],
+  "auth_option": "both" 
 }

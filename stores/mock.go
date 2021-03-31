@@ -25,6 +25,44 @@ type MockStore struct {
 	OpMetrics          map[string]QopMetric
 }
 
+func (mk *MockStore) TopicsCount(startDate, endDate time.Time) (int, error) {
+
+	counter := 0
+
+	for _, sub := range mk.SubList {
+		if sub.CreatedOn.After(startDate) && sub.CreatedOn.Before(endDate) {
+			counter++
+		}
+	}
+
+	return counter, nil
+}
+
+func (mk *MockStore) SubscriptionsCount(startDate, endDate time.Time) (int, error) {
+
+	counter := 0
+	for _, t := range mk.TopicList {
+		if t.CreatedOn.After(startDate) && t.CreatedOn.Before(endDate) {
+			counter++
+		}
+	}
+
+	return counter, nil
+}
+
+func (mk *MockStore) UsersCount(startDate, endDate time.Time) (int, error) {
+
+	counter := 0
+
+	for _, u := range mk.UserList {
+		if u.CreatedOn.After(startDate) && u.CreatedOn.Before(endDate) {
+			counter++
+		}
+	}
+
+	return counter, nil
+}
+
 // QueryACL Topic/Subscription ACL
 func (mk *MockStore) QueryACL(projectUUID string, resource string, name string) (QAcl, error) {
 	if resource == "topics" {
@@ -549,10 +587,12 @@ func (mk *MockStore) ModAck(projectUUID string, name string, ack int) error {
 }
 
 // ModSubPush modifies the subscription push configuration
-func (mk *MockStore) ModSubPush(projectUUID string, name string, push string, maxMessages int64, rPolicy string, rPeriod int, vhash string, verified bool) error {
+func (mk *MockStore) ModSubPush(projectUUID string, name string, push string, authzType string, authzValue string, maxMessages int64, rPolicy string, rPeriod int, vhash string, verified bool) error {
 	for i, item := range mk.SubList {
 		if item.ProjectUUID == projectUUID && item.Name == name {
 			mk.SubList[i].PushEndpoint = push
+			mk.SubList[i].AuthorizationType = authzType
+			mk.SubList[i].AuthorizationHeader = authzValue
 			mk.SubList[i].MaxMessages = maxMessages
 			mk.SubList[i].RetPolicy = rPolicy
 			mk.SubList[i].RetPeriod = rPeriod
@@ -670,11 +710,12 @@ func (mk *MockStore) QueryUsers(projectUUID string, uuid string, name string) ([
 func (mk *MockStore) PaginatedQueryUsers(pageToken string, pageSize int32, projectUUID string) ([]QUser, int32, string, error) {
 
 	var qUsers []QUser
-	var totalSize int32
 	var nextPageToken string
 	var err error
 	var pg int
 	var limit int
+
+	totalSize := int32(0)
 
 	if pageSize == 0 {
 		limit = len(mk.UserList)
@@ -693,8 +734,6 @@ func (mk *MockStore) PaginatedQueryUsers(pageToken string, pageSize int32, proje
 		id2 := mk.UserList[j].ID.(int)
 		return id1 > id2
 	})
-
-	totalSize = int32(len(mk.UserList))
 
 	for _, user := range mk.UserList {
 
@@ -739,8 +778,16 @@ func (mk *MockStore) PaginatedQueryUsers(pageToken string, pageSize int32, proje
 		qUsers = qUsers[:len(qUsers)-1]
 	}
 
-	if projectUUID != "" {
+	if projectUUID == "" {
 		totalSize = int32(len(qUsers))
+	} else {
+		for _, user := range mk.UserList {
+			for _, project := range user.Projects {
+				if projectUUID == project.ProjectUUID {
+					totalSize++
+				}
+			}
+		}
 	}
 
 	return qUsers, totalSize, nextPageToken, err
@@ -765,20 +812,20 @@ func (mk *MockStore) Initialize() {
 	mk.OpMetrics = make(map[string]QopMetric)
 
 	// populate topics
-	qtop4 := QTopic{3, "argo_uuid", "topic4", 0, 0, time.Date(0, 0, 0, 0, 0, 0, 0, time.Local), 0, ""}
-	qtop3 := QTopic{2, "argo_uuid", "topic3", 0, 0, time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local), 8.99, "schema_uuid_3"}
-	qtop2 := QTopic{1, "argo_uuid", "topic2", 0, 0, time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local), 5.45, "schema_uuid_1"}
-	qtop1 := QTopic{0, "argo_uuid", "topic1", 0, 0, time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10, ""}
+	qtop4 := QTopic{3, "argo_uuid", "topic4", 0, 0, time.Date(0, 0, 0, 0, 0, 0, 0, time.Local), 0, "", time.Date(2020, 11, 19, 0, 0, 0, 0, time.Local), []string{}}
+	qtop3 := QTopic{2, "argo_uuid", "topic3", 0, 0, time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local), 8.99, "schema_uuid_3", time.Date(2020, 11, 20, 0, 0, 0, 0, time.Local), []string{}}
+	qtop2 := QTopic{1, "argo_uuid", "topic2", 0, 0, time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local), 5.45, "schema_uuid_1", time.Date(2020, 11, 21, 0, 0, 0, 0, time.Local), []string{}}
+	qtop1 := QTopic{0, "argo_uuid", "topic1", 0, 0, time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10, "", time.Date(2020, 11, 22, 0, 0, 0, 0, time.Local), []string{}}
 	mk.TopicList = append(mk.TopicList, qtop1)
 	mk.TopicList = append(mk.TopicList, qtop2)
 	mk.TopicList = append(mk.TopicList, qtop3)
 	mk.TopicList = append(mk.TopicList, qtop4)
 
 	// populate Subscriptions
-	qsub1 := QSub{0, "argo_uuid", "sub1", "topic1", 0, 0, "", "", 0, 10, "", 0, 0, 0, "", false, time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10}
-	qsub2 := QSub{1, "argo_uuid", "sub2", "topic2", 0, 0, "", "", 0, 10, "", 0, 0, 0, "", false, time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local), 8.99}
-	qsub3 := QSub{2, "argo_uuid", "sub3", "topic3", 0, 0, "", "", 0, 10, "", 0, 0, 0, "", false, time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local), 5.45}
-	qsub4 := QSub{3, "argo_uuid", "sub4", "topic4", 0, 0, "", "endpoint.foo", 1, 10, "linear", 300, 0, 0, "push-id-1", true, time.Date(0, 0, 0, 0, 0, 0, 0, time.Local), 0}
+	qsub1 := QSub{0, "argo_uuid", "sub1", "topic1", 0, 0, "", "", 0, "", "", 10, "", 0, 0, 0, "", false, time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10, time.Date(2020, 11, 19, 0, 0, 0, 0, time.Local), []string{}}
+	qsub2 := QSub{1, "argo_uuid", "sub2", "topic2", 0, 0, "", "", 0, "", "", 10, "", 0, 0, 0, "", false, time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local), 8.99, time.Date(2020, 11, 20, 0, 0, 0, 0, time.Local), []string{}}
+	qsub3 := QSub{2, "argo_uuid", "sub3", "topic3", 0, 0, "", "", 0, "", "", 10, "", 0, 0, 0, "", false, time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local), 5.45, time.Date(2020, 11, 21, 0, 0, 0, 0, time.Local), []string{}}
+	qsub4 := QSub{3, "argo_uuid", "sub4", "topic4", 0, 0, "", "endpoint.foo", 1, "autogen", "auth-header-1", 10, "linear", 300, 0, 0, "push-id-1", true, time.Date(0, 0, 0, 0, 0, 0, 0, time.Local), 0, time.Date(2020, 11, 22, 0, 0, 0, 0, time.Local), []string{}}
 	mk.SubList = append(mk.SubList, qsub1)
 	mk.SubList = append(mk.SubList, qsub2)
 	mk.SubList = append(mk.SubList, qsub3)
@@ -904,6 +951,9 @@ func (mk *MockStore) QueryTotalMessagesPerProject(projectUUIDs []string, startDa
 	days := int64(1)
 	if !endDate.Equal(startDate) {
 		days = int64(endDate.Sub(startDate).Hours() / 24)
+		// add an extra day to compensate for the fact that we need the starting day included as well
+		// e.g. Aug 1 to Aug 31 should be calculated as 31 days and not as 30
+		days += 1
 	}
 
 	if len(projectUUIDs) == 0 {
@@ -1018,7 +1068,7 @@ func (mk *MockStore) HasProject(name string) bool {
 }
 
 // InsertTopic inserts a new topic object to the store
-func (mk *MockStore) InsertTopic(projectUUID string, name string, schemaUUID string) error {
+func (mk *MockStore) InsertTopic(projectUUID string, name string, schemaUUID string, createdOn time.Time) error {
 	topic := QTopic{
 		ID:            len(mk.TopicList),
 		ProjectUUID:   projectUUID,
@@ -1028,31 +1078,38 @@ func (mk *MockStore) InsertTopic(projectUUID string, name string, schemaUUID str
 		LatestPublish: time.Time{},
 		PublishRate:   0,
 		SchemaUUID:    schemaUUID,
+		CreatedOn:     createdOn,
+		ACL:           []string{},
 	}
 	mk.TopicList = append(mk.TopicList, topic)
 	return nil
 }
 
 // InsertSub inserts a new sub object to the store
-func (mk *MockStore) InsertSub(projectUUID string, name string, topic string, offset int64, maxMessages int64, ack int, push string, rPolicy string, rPeriod int, vhash string, verified bool) error {
+func (mk *MockStore) InsertSub(projectUUID string, name string, topic string, offset int64, maxMessages int64, authT string, authH string, ack int, push string, rPolicy string, rPeriod int, vhash string, verified bool, createdOn time.Time) error {
 	sub := QSub{
-		ID:               len(mk.SubList),
-		ProjectUUID:      projectUUID,
-		Name:             name,
-		Topic:            topic,
-		Offset:           offset,
-		Ack:              ack,
-		MaxMessages:      maxMessages,
-		PushEndpoint:     push,
-		RetPolicy:        rPolicy,
-		RetPeriod:        rPeriod,
-		VerificationHash: vhash,
-		Verified:         verified,
-		MsgNum:           0,
-		TotalBytes:       0,
-		LatestConsume:    time.Time{},
-		ConsumeRate:      0,
+		ID:                  len(mk.SubList),
+		ProjectUUID:         projectUUID,
+		Name:                name,
+		Topic:               topic,
+		Offset:              offset,
+		Ack:                 ack,
+		MaxMessages:         maxMessages,
+		AuthorizationType:   authT,
+		AuthorizationHeader: authH,
+		PushEndpoint:        push,
+		RetPolicy:           rPolicy,
+		RetPeriod:           rPeriod,
+		VerificationHash:    vhash,
+		Verified:            verified,
+		MsgNum:              0,
+		TotalBytes:          0,
+		LatestConsume:       time.Time{},
+		ConsumeRate:         0,
+		CreatedOn:           createdOn,
+		ACL:                 []string{},
 	}
+
 	mk.SubList = append(mk.SubList, sub)
 	mk.SubsACL[name] = QAcl{}
 	return nil

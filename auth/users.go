@@ -2,7 +2,7 @@ package auth
 
 import (
 	"crypto/rand"
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -24,7 +24,7 @@ const (
 // User is the struct that holds user information
 type User struct {
 	UUID         string         `json:"uuid"`
-	Projects     []ProjectRoles `json:"projects"`
+	Projects     []ProjectRoles `json:"projects,omitempty"`
 	Name         string         `json:"name"`
 	FirstName    string         `json:"first_name,omitempty"`
 	LastName     string         `json:"last_name,omitempty"`
@@ -379,7 +379,7 @@ func FindUsers(projectUUID string, uuid string, name string, priviledged bool, s
 }
 
 // PaginatedFindUsers returns a page of users
-func PaginatedFindUsers(pageToken string, pageSize int32, projectUUID string, priviledged bool, store stores.Store) (PaginatedUsers, error) {
+func PaginatedFindUsers(pageToken string, pageSize int32, projectUUID string, privileged, detailedView bool, store stores.Store) (PaginatedUsers, error) {
 
 	var totalSize int32
 	var nextPageToken string
@@ -406,7 +406,7 @@ func PaginatedFindUsers(pageToken string, pageSize int32, projectUUID string, pr
 		token := ""
 		usernameC := ""
 		// if call made by priviledged user (superuser), show service roles, token and user creator info
-		if priviledged {
+		if privileged {
 			if item.CreatedBy != "" {
 				usr, err := store.QueryUsers("", item.CreatedBy, "")
 				if err == nil && len(usr) > 0 {
@@ -418,28 +418,32 @@ func PaginatedFindUsers(pageToken string, pageSize int32, projectUUID string, pr
 			serviceRoles = item.ServiceRoles
 		}
 
-		pRoles := []ProjectRoles{}
-		for _, pItem := range item.Projects {
-			// if user not priviledged (not superuser) and queried projectUUID doesn't
-			// match current role item's project UUID, skip the item
-			if !priviledged && pItem.ProjectUUID != projectUUID {
-				continue
-			}
-			prName := projects.GetNameByUUID(pItem.ProjectUUID, store)
+		var pRoles []ProjectRoles
 
-			// Get User topics and subscriptions
-			topicList, _ := store.QueryTopicsByACL(pItem.ProjectUUID, item.UUID)
-			topicNames := []string{}
-			for _, tpItem := range topicList {
-				topicNames = append(topicNames, tpItem.Name)
-			}
+		if detailedView {
 
-			subList, _ := store.QuerySubsByACL(pItem.ProjectUUID, item.UUID)
-			subNames := []string{}
-			for _, sbItem := range subList {
-				subNames = append(subNames, sbItem.Name)
+			for _, pItem := range item.Projects {
+				// if user not priviledged (not superuser) and queried projectUUID doesn't
+				// match current role item's project UUID, skip the item
+				if !privileged && pItem.ProjectUUID != projectUUID {
+					continue
+				}
+				prName := projects.GetNameByUUID(pItem.ProjectUUID, store)
+
+				// Get User topics and subscriptions
+				topicList, _ := store.QueryTopicsByACL(pItem.ProjectUUID, item.UUID)
+				topicNames := []string{}
+				for _, tpItem := range topicList {
+					topicNames = append(topicNames, tpItem.Name)
+				}
+
+				subList, _ := store.QuerySubsByACL(pItem.ProjectUUID, item.UUID)
+				subNames := []string{}
+				for _, sbItem := range subList {
+					subNames = append(subNames, sbItem.Name)
+				}
+				pRoles = append(pRoles, ProjectRoles{Project: prName, Roles: pItem.Roles, Topics: topicNames, Subs: subNames})
 			}
-			pRoles = append(pRoles, ProjectRoles{Project: prName, Roles: pItem.Roles, Topics: topicNames, Subs: subNames})
 		}
 
 		curUser := NewUser(item.UUID, pRoles, item.Name, item.FirstName, item.LastName,
@@ -458,9 +462,7 @@ func PaginatedFindUsers(pageToken string, pageSize int32, projectUUID string, pr
 
 // Authenticate based on token
 func Authenticate(projectUUID string, token string, store stores.Store) ([]string, string) {
-	roles, user := store.GetUserRoles(projectUUID, token)
-
-	return roles, user
+	return store.GetUserRoles(projectUUID, token)
 }
 
 // ExistsWithName returns true if a user with name exists
@@ -742,7 +744,7 @@ func GenToken() (string, error) {
 	if _, err := rand.Read(tokenBytes); err != nil {
 		return "", err
 	}
-	sha1Bytes := sha1.Sum(tokenBytes)
+	sha1Bytes := sha256.Sum256(tokenBytes)
 	return hex.EncodeToString(sha1Bytes[:]), nil
 }
 
@@ -794,6 +796,17 @@ func IsProjectAdmin(roles []string) bool {
 func IsServiceAdmin(roles []string) bool {
 	for _, role := range roles {
 		if role == "service_admin" {
+			return true
+		}
+	}
+
+	return false
+}
+
+// IsAdminViewer checks if the user is an admon viewer
+func IsAdminViewer(roles []string) bool {
+	for _, role := range roles {
+		if role == "admin_viewer" {
 			return true
 		}
 	}

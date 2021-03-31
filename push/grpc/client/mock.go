@@ -26,7 +26,7 @@ func (*MockClient) Target() string {
 
 func (*MockClient) Dial() error { return nil }
 
-func (*MockClient) ActivateSubscription(ctx context.Context, fullSub, fullTopic, pushEndpoint, retryType string, retryPeriod uint32, maxMessages int64) ClientStatus {
+func (*MockClient) ActivateSubscription(ctx context.Context, fullSub, fullTopic, pushEndpoint, retryType string, retryPeriod uint32, maxMessages int64, authzHeader string) ClientStatus {
 
 	switch fullSub {
 	case "/projects/ARGO/subscriptions/subNew":
@@ -77,6 +77,6 @@ type MockClientStatus struct {
 	Status string
 }
 
-func (m *MockClientStatus) Result() string {
+func (m *MockClientStatus) Result(details bool) string {
 	return m.Status
 }

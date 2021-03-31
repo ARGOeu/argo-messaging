@@ -62,49 +62,16 @@ Success Response
 ### Errors
 Please refer to section [Errors](api_errors.md) to see all possible Errors
 
-## [GET] Get Health status
-
-### Request
-```
-GET "/v1/status"
-```
-
-### Example request
-
-```
-curl -H "Content-Type: application/json"
- "https://{URL}/v1/status"
-```
-
-### Responses
-If successful, the response returns the health status of the service
-
-Success Response
-`200 OK`
-
-```json
-{
-  "status": "ok",
-  "push_servers": [
-    {
-      "endpoint": "localhost:5555",
-      "status": "Success: SERVING"
-    }
-  ]
-}
-```
-
-### Errors
-Please refer to section [Errors](api_errors.md) to see all possible Errors
-
-## [GET] Get Daily Message Average
+## [GET] Get VA Metrics
 
 This request returns the total amount of messages per project for the given time window.The number of messages
 is calculated using the `daily message count` for each one of the project's topics.
+It also returns the amount of created `users`, `topics` and `subscriptions`
+within the given time window.
 
 ### Request
 ```
-GET "/v1/metrics/daily-message-average"
+GET "/v1/metrics/va_metrics"
 
 ```
 ### URL parameters
@@ -116,24 +83,26 @@ GET "/v1/metrics/daily-message-average"
 
 ```
 curl -H "Content-Type: application/json"
- "https://{URL}/v1/metrics/daily-message-average"
+ "https://{URL}/v1/metrics/va_metrics"
 ```
 
 ### Example request with URL parameters
 
 ```
 curl -H "Content-Type: application/json"
- "https://{URL}/v1/metrics/daily-message-average?start_date=2019-03-01&end_date=2019-07-24&projects=ARGO,ARGO-2"
+ "https://{URL}/v1/metrics/va_metrics?start_date=2019-03-01&end_date=2019-07-24&projects=ARGO,ARGO-2"
 ```
 
 ### Responses
-If successful, the response returns the total amount of messages per project for the given time window
+If successful, the response returns the total amount of messages per project,
+users,topics and subscriptions for the given time window
 
 Success Response
 `200 OK`
 
 ```json
 {
+  "projects_metrics": {
     "projects": [
         {
             "project": "ARGO-2",
@@ -148,6 +117,10 @@ Success Response
     ],
     "total_message_count": 25677,
     "average_daily_messages": 122
+  },
+  "users_count": 44,
+  "topics_count": 33,
+  "subscriptions_counter": 100 
 }
 ```
 ### Errors

@@ -3,13 +3,12 @@
 
 Name: argo-messaging
 Summary: ARGO Messaging API for broker network
-Version: 1.0.7
+Version: 1.0.8
 Release: 1%{?dist}
 License: ASL 2.0
 Buildroot: %{_tmppath}/%{name}-buildroot
 Group: Unspecified
 Source0: %{name}-%{version}.tar.gz
-BuildRequires: golang
 BuildRequires: git
 Requires(pre): /usr/sbin/useradd, /usr/bin/getent
 ExcludeArch: i386
@@ -31,7 +30,8 @@ export PATH=$PATH:$GOPATH/bin
 cd src/github.com/ARGOeu/argo-messaging/
 export GIT_COMMIT=$(git rev-list -1 HEAD)
 export BUILD_TIME=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
-go install -ldflags "-X github.com/ARGOeu/argo-messaging/version.Commit=$GIT_COMMIT -X github.com/ARGOeu/argo-messaging/version.BuildTime=$BUILD_TIME"
+export CGO_CFLAGS"=-O2 -fstack-protector --param=ssp-buffer-size=4 -D_FORTIFY_SOURCE=2"
+go install -buildmode=pie -ldflags "-s -w -linkmode=external -extldflags '-z relro -z now' -X github.com/ARGOeu/argo-messaging/version.Commit=$GIT_COMMIT -X github.com/ARGOeu/argo-messaging/version.BuildTime=$BUILD_TIME"
 
 %install
 %{__rm} -rf %{buildroot}
@@ -63,6 +63,8 @@ go clean
 %attr(0644,root,root) /usr/lib/systemd/system/argo-messaging.service
 
 %changelog
+* Wed Mar 31 2021 Agelos Tsalapatis  <agelos.tsal@gmail.com> 1.0.8-1%{?dist}
+- AMS release 1.0.8
 * Wed Aug 05 2020 Agelos Tsalapatis  <agelos.tsal@gmail.com> 1.0.7-1%{?dist}
 - AMS release 1.0.7
 * Wed Jan 08 2020 Agelos Tsalapatis  <agelos.tsal@gmail.com> 1.0.6-1%{?dist}

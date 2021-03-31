@@ -6,24 +6,28 @@ import (
 
 // QSub are the results of the Qsub query
 type QSub struct {
-	ID               interface{} `bson:"_id,omitempty"`
-	ProjectUUID      string      `bson:"project_uuid"`
-	Name             string      `bson:"name"`
-	Topic            string      `bson:"topic"`
-	Offset           int64       `bson:"offset"`
-	NextOffset       int64       `bson:"next_offset"`
-	PendingAck       string      `bson:"pending_ack"`
-	PushEndpoint     string      `bson:"push_endpoint"`
-	MaxMessages      int64       `bson:"max_messages"`
-	Ack              int         `bson:"ack"`
-	RetPolicy        string      `bson:"retry_policy"`
-	RetPeriod        int         `bson:"retry_period"`
-	MsgNum           int64       `bson:"msg_num"`
-	TotalBytes       int64       `bson:"total_bytes"`
-	VerificationHash string      `bson:"verification_hash"`
-	Verified         bool        `bson:"verified"`
-	LatestConsume    time.Time   `bson:"latest_consume"`
-	ConsumeRate      float64     `bson:"consume_rate"`
+	ID                  interface{} `bson:"_id,omitempty"`
+	ProjectUUID         string      `bson:"project_uuid"`
+	Name                string      `bson:"name"`
+	Topic               string      `bson:"topic"`
+	Offset              int64       `bson:"offset"`
+	NextOffset          int64       `bson:"next_offset"`
+	PendingAck          string      `bson:"pending_ack"`
+	PushEndpoint        string      `bson:"push_endpoint"`
+	MaxMessages         int64       `bson:"max_messages"`
+	AuthorizationType   string      `bson:"authorization_type"`
+	AuthorizationHeader string      `bson:"authorization_header"`
+	Ack                 int         `bson:"ack"`
+	RetPolicy           string      `bson:"retry_policy"`
+	RetPeriod           int         `bson:"retry_period"`
+	MsgNum              int64       `bson:"msg_num"`
+	TotalBytes          int64       `bson:"total_bytes"`
+	VerificationHash    string      `bson:"verification_hash"`
+	Verified            bool        `bson:"verified"`
+	LatestConsume       time.Time   `bson:"latest_consume"`
+	ConsumeRate         float64     `bson:"consume_rate"`
+	CreatedOn           time.Time   `bson:"created_on"`
+	ACL                 []string    `bson:"acl"`
 }
 
 // QAcl holds a list of authorized users queried from topic or subscription collections
@@ -104,6 +108,8 @@ type QTopic struct {
 	LatestPublish time.Time   `bson:"latest_publish"`
 	PublishRate   float64     `bson:"publish_rate"`
 	SchemaUUID    string      `bson:"schema_uuid"`
+	CreatedOn     time.Time   `bson:"created_on"`
+	ACL           []string    `bson:"acl"`
 }
 
 // QDailyTopicMsgCount holds information about the daily number of messages published to a topic

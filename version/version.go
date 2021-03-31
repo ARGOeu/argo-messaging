@@ -8,7 +8,7 @@ import (
 
 var (
 	// Release version of the service. Bump it up during new version release
-	Release = "1.0.7"
+	Release = "1.0.8"
 	// Commit hash provided during build
 	Commit = "Unknown"
 	// BuildTime provided during build
@@ -42,8 +42,6 @@ func LogInfo() {
 
 // Model struct holds version information about the binary build
 type Model struct {
-	Release   string `xml:"release" json:"release"`
-	Commit    string `xml:"commit" json:"commit"`
 	BuildTime string `xml:"build_time" json:"build_time"`
 	GO        string `xml:"golang" json:"golang"`
 	Compiler  string `xml:"compiler" json:"compiler"`

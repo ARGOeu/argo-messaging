@@ -137,6 +137,7 @@ func (suite *SubTestSuite) TestGetSubByName() {
 	expSub := New("argo_uuid", "ARGO", "sub1", "topic1")
 	expSub.PushCfg.RetPol.PolicyType = ""
 	expSub.PushCfg.RetPol.Period = 0
+	expSub.CreatedOn = "2020-11-19T00:00:00Z"
 	expSub.LatestConsume = time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local)
 	expSub.ConsumeRate = 10
 	suite.Equal(expSub, result.Subscriptions[0])
@@ -177,28 +178,34 @@ func (suite *SubTestSuite) TestGetSubsByProject() {
 	expSub1.PushCfg.MaxMessages = 0
 	expSub1.LatestConsume = time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local)
 	expSub1.ConsumeRate = 10
+	expSub1.CreatedOn = "2020-11-19T00:00:00Z"
 	expSub2 := New("argo_uuid", "ARGO", "sub2", "topic2")
 	expSub2.PushCfg.RetPol.PolicyType = ""
 	expSub2.PushCfg.RetPol.Period = 0
 	expSub2.PushCfg.MaxMessages = 0
 	expSub2.LatestConsume = time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local)
 	expSub2.ConsumeRate = 8.99
+	expSub2.CreatedOn = "2020-11-20T00:00:00Z"
 	expSub3 := New("argo_uuid", "ARGO", "sub3", "topic3")
 	expSub3.PushCfg.RetPol.PolicyType = ""
 	expSub3.PushCfg.RetPol.Period = 0
 	expSub3.PushCfg.MaxMessages = 0
 	expSub3.LatestConsume = time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local)
 	expSub3.ConsumeRate = 5.45
+	expSub3.CreatedOn = "2020-11-21T00:00:00Z"
 	expSub4 := New("argo_uuid", "ARGO", "sub4", "topic4")
 	expSub4.PushCfg.RetPol.PolicyType = "linear"
 	expSub4.PushCfg.RetPol.Period = 300
+	expSub4.CreatedOn = "2020-11-22T00:00:00Z"
 	rp := RetryPolicy{"linear", 300}
+	authCFG := AuthorizationHeader{"autogen", "auth-header-1"}
 	expSub4.PushCfg = PushConfig{
-		Pend:             "endpoint.foo",
-		RetPol:           rp,
-		VerificationHash: "push-id-1",
-		Verified:         true,
-		MaxMessages:      1,
+		Pend:                "endpoint.foo",
+		AuthorizationHeader: authCFG,
+		RetPol:              rp,
+		VerificationHash:    "push-id-1",
+		Verified:            true,
+		MaxMessages:         1,
 	}
 	expSub4.LatestConsume = time.Date(0, 0, 0, 0, 0, 0, 0, time.Local)
 	expSub4.ConsumeRate = 0
@@ -274,28 +281,34 @@ func (suite *SubTestSuite) TestLoadFromCfg() {
 	expSub1.PushCfg.MaxMessages = 0
 	expSub1.LatestConsume = time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local)
 	expSub1.ConsumeRate = 10
+	expSub1.CreatedOn = "2020-11-19T00:00:00Z"
 	expSub2 := New("argo_uuid", "ARGO", "sub2", "topic2")
 	expSub2.PushCfg.RetPol.PolicyType = ""
 	expSub2.PushCfg.RetPol.Period = 0
 	expSub2.PushCfg.MaxMessages = 0
 	expSub2.LatestConsume = time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local)
 	expSub2.ConsumeRate = 8.99
+	expSub2.CreatedOn = "2020-11-20T00:00:00Z"
 	expSub3 := New("argo_uuid", "ARGO", "sub3", "topic3")
 	expSub3.PushCfg.RetPol.PolicyType = ""
 	expSub3.PushCfg.RetPol.Period = 0
 	expSub3.PushCfg.MaxMessages = 0
 	expSub3.LatestConsume = time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local)
 	expSub3.ConsumeRate = 5.45
+	expSub3.CreatedOn = "2020-11-21T00:00:00Z"
 	expSub4 := New("argo_uuid", "ARGO", "sub4", "topic4")
 	expSub4.PushCfg.RetPol.PolicyType = "linear"
 	expSub4.PushCfg.RetPol.Period = 300
+	authCFG := AuthorizationHeader{"autogen", "auth-header-1"}
+	expSub4.CreatedOn = "2020-11-22T00:00:00Z"
 	rp := RetryPolicy{"linear", 300}
 	expSub4.PushCfg = PushConfig{
-		Pend:             "endpoint.foo",
-		RetPol:           rp,
-		VerificationHash: "push-id-1",
-		Verified:         true,
-		MaxMessages:      1,
+		Pend:                "endpoint.foo",
+		AuthorizationHeader: authCFG,
+		RetPol:              rp,
+		VerificationHash:    "push-id-1",
+		Verified:            true,
+		MaxMessages:         1,
 	}
 	expSub4.LatestConsume = time.Date(0, 0, 0, 0, 0, 0, 0, time.Local)
 	expSub4.ConsumeRate = 0
@@ -306,6 +319,12 @@ func (suite *SubTestSuite) TestLoadFromCfg() {
 	expSubs = append(expSubs, expSub1)
 	suite.Equal(expSubs, results.Subscriptions)
 
+}
+
+func (suite *SubTestSuite) TestIsAuthzTypeSupported() {
+	suite.True(IsAuthorizationHeaderTypeSupported("autogen"))
+	suite.True(IsAuthorizationHeaderTypeSupported("disabled"))
+	suite.False(IsRetryPolicySupported("unknown"))
 }
 
 func (suite *SubTestSuite) TestIsRetPolSupported() {
@@ -335,12 +354,13 @@ func (suite *SubTestSuite) TestCreateSubStore() {
 
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
 
-	sub, err := CreateSub("argo_uuid", "sub1", "topic1", "", 0, 0, 0, "linear", 300, "", true, store)
+	sub, err := CreateSub("argo_uuid", "sub1", "topic1", "", 0, 0, "", "", 0, "linear", 300, "", true, time.Date(2019, 7, 7, 0, 0, 0, 0, time.Local), store)
 	suite.Equal(Subscription{}, sub)
 	suite.Equal("exists", err.Error())
 
-	sub2, err2 := CreateSub("argo_uuid", "subNew", "topicNew", "", 0, 0, 0, "linear", 300, "", true, store)
+	sub2, err2 := CreateSub("argo_uuid", "subNew", "topicNew", "", 0, 0, "", "", 0, "linear", 300, "", true, time.Date(2019, 7, 7, 0, 0, 0, 0, time.Local), store)
 	expSub := New("argo_uuid", "ARGO", "subNew", "topicNew")
+	expSub.CreatedOn = "2019-07-07T00:00:00Z"
 	suite.Equal(expSub, sub2)
 	suite.Equal(nil, err2)
 
@@ -374,7 +394,7 @@ func (suite *SubTestSuite) TestModSubPush() {
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
 
 	// modify push config
-	err1 := ModSubPush("argo_uuid", "sub1", "example.com", 2, "linear", 400, "hash-1", true, store)
+	err1 := ModSubPush("argo_uuid", "sub1", "example.com", "autogen", "auth-h", 2, "linear", 400, "hash-1", true, store)
 
 	suite.Nil(err1)
 
@@ -387,7 +407,7 @@ func (suite *SubTestSuite) TestModSubPush() {
 	suite.True(sub1.Verified)
 
 	// test error case
-	err2 := ModSubPush("argo_uuid", "unknown", "", 0, "", 0, "", false, store)
+	err2 := ModSubPush("argo_uuid", "unknown", "", "", "", 0, "", 0, "", false, store)
 	suite.Equal("not found", err2.Error())
 }
 
@@ -508,11 +528,13 @@ func (suite *SubTestSuite) TestExportJson() {
    "pushConfig": {
       "pushEndpoint": "",
       "maxMessages": 0,
+      "authorization_header": {},
       "retryPolicy": {},
       "verification_hash": "",
       "verified": false
    },
-   "ackDeadlineSeconds": 10
+   "ackDeadlineSeconds": 10,
+   "created_on": "2020-11-19T00:00:00Z"
 }`
 	suite.Equal(expJSON, outJSON)
 
@@ -524,6 +546,10 @@ func (suite *SubTestSuite) TestExportJson() {
          "pushConfig": {
             "pushEndpoint": "endpoint.foo",
             "maxMessages": 1,
+            "authorization_header": {
+               "type": "autogen",
+               "value": "auth-header-1"
+            },
             "retryPolicy": {
                "type": "linear",
                "period": 300
@@ -531,7 +557,8 @@ func (suite *SubTestSuite) TestExportJson() {
             "verification_hash": "push-id-1",
             "verified": true
          },
-         "ackDeadlineSeconds": 10
+         "ackDeadlineSeconds": 10,
+         "created_on": "2020-11-22T00:00:00Z"
       },
       {
          "name": "/projects/ARGO/subscriptions/sub3",
@@ -539,11 +566,13 @@ func (suite *SubTestSuite) TestExportJson() {
          "pushConfig": {
             "pushEndpoint": "",
             "maxMessages": 0,
+            "authorization_header": {},
             "retryPolicy": {},
             "verification_hash": "",
             "verified": false
          },
-         "ackDeadlineSeconds": 10
+         "ackDeadlineSeconds": 10,
+         "created_on": "2020-11-21T00:00:00Z"
       },
       {
          "name": "/projects/ARGO/subscriptions/sub2",
@@ -551,11 +580,13 @@ func (suite *SubTestSuite) TestExportJson() {
          "pushConfig": {
             "pushEndpoint": "",
             "maxMessages": 0,
+            "authorization_header": {},
             "retryPolicy": {},
             "verification_hash": "",
             "verified": false
          },
-         "ackDeadlineSeconds": 10
+         "ackDeadlineSeconds": 10,
+         "created_on": "2020-11-20T00:00:00Z"
       },
       {
          "name": "/projects/ARGO/subscriptions/sub1",
@@ -563,11 +594,13 @@ func (suite *SubTestSuite) TestExportJson() {
          "pushConfig": {
             "pushEndpoint": "",
             "maxMessages": 0,
+            "authorization_header": {},
             "retryPolicy": {},
             "verification_hash": "",
             "verified": false
          },
-         "ackDeadlineSeconds": 10
+         "ackDeadlineSeconds": 10,
+         "created_on": "2020-11-19T00:00:00Z"
       }
    ],
    "nextPageToken": "",

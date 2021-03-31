@@ -20,6 +20,7 @@ type Topic struct {
 	LatestPublish time.Time `json:"-"`
 	PublishRate   float64   `json:"-"`
 	Schema        string    `json:"schema,omitempty"`
+	CreatedOn     string    `json:"created_on"`
 }
 
 type TopicMetrics struct {
@@ -110,6 +111,7 @@ func Find(projectUUID, userUUID, name, pageToken string, pageSize int32, store s
 		curTop := New(item.ProjectUUID, projectName, item.Name)
 		curTop.LatestPublish = item.LatestPublish
 		curTop.PublishRate = item.PublishRate
+		curTop.CreatedOn = item.CreatedOn.Format("2006-01-02T15:04:05Z")
 
 		if item.SchemaUUID != "" {
 			sl, err := schemas.Find(projectUUID, item.SchemaUUID, "", store)
@@ -159,13 +161,13 @@ func (tl *PaginatedTopics) ExportJSON() (string, error) {
 }
 
 // CreateTopic creates a new topic
-func CreateTopic(projectUUID string, name string, schemaUUID string, store stores.Store) (Topic, error) {
+func CreateTopic(projectUUID string, name string, schemaUUID string, createdOn time.Time, store stores.Store) (Topic, error) {
 
 	if HasTopic(projectUUID, name, store) {
 		return Topic{}, errors.New("exists")
 	}
 
-	err := store.InsertTopic(projectUUID, name, schemaUUID)
+	err := store.InsertTopic(projectUUID, name, schemaUUID, createdOn)
 	if err != nil {
 		return Topic{}, errors.New("backend error")
 	}
