@@ -347,13 +347,13 @@ func (suite *ProjectsHandlersTestSuite) TestProjectUserListARGONoUserDetails() {
    "users": [
       {
          "uuid": "same_uuid",
+         "projects": [],
          "name": "UserSame2",
          "token": "S3CR3T42",
          "email": "foo-email",
          "service_roles": [],
          "created_on": "2009-11-10T23:00:00Z",
-         "modified_on": "2009-11-10T23:00:00Z",
-         "created_by": "UserA"
+         "modified_on": "2009-11-10T23:00:00Z"
       }
    ],
    "nextPageToken": "NQ==",

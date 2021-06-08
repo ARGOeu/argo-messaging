@@ -437,8 +437,8 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal(errors.New("not found"), err)
 
 	// Test Insert User
-	qRoleAdmin1 := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"admin"}}}
-	qRoles := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"admin"}}, QProjectRoles{"argo_uuid2", []string{"admin", "viewer"}}}
+	qRoleAdmin1 := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"admin"}, []string{}, []string{}, ""}}
+	qRoles := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"admin"}, []string{}, []string{}, ""}, QProjectRoles{"argo_uuid2", []string{"admin", "viewer"}, []string{}, []string{}, ""}}
 	expUsr10 := QUser{UUID: "user_uuid10", Projects: qRoleAdmin1, Name: "newUser1", FirstName: "fname", LastName: "lname", Organization: "org1", Description: "desc1", Token: "A3B94A94V3A", Email: "fake@email.com", ServiceRoles: []string{}, CreatedOn: created, ModifiedOn: modified, CreatedBy: "uuid1"}
 	expUsr11 := QUser{UUID: "user_uuid11", Projects: qRoles, Name: "newUser2", Token: "BX312Z34NLQ", Email: "fake@email.com", ServiceRoles: []string{}, CreatedOn: created, ModifiedOn: modified, CreatedBy: "uuid1"}
 	store.InsertUser("user_uuid10", qRoleAdmin1, "newUser1", "fname", "lname", "org1", "desc1", "A3B94A94V3A", "fake@email.com", []string{}, created, modified, "uuid1")
@@ -468,8 +468,10 @@ func (suite *StoreTestSuite) TestMockStore() {
 	usr, _ := store.QueryUsers("", "uuid1", "")
 	suite.Equal([]QProjectRoles{
 		{
-			ProjectUUID: "argo_uuid",
-			Roles:       []string{"consumer", "publisher"},
+			ProjectUUID:   "argo_uuid",
+			Roles:         []string{"consumer", "publisher"},
+			Topics:        []string{},
+			Subscriptions: []string{},
 		},
 		{
 			ProjectUUID: "p1_uuid",
@@ -490,18 +492,55 @@ func (suite *StoreTestSuite) TestMockStore() {
 	store2 := NewMockStore("", "")
 
 	// return all users in one page
-	qUsers1, ts1, pg1, _ := store2.PaginatedQueryUsers("", 0, "")
+	qUsers1, ts1, pg1, _ := store2.PaginatedQueryUsers("", 0, "", false, true)
 
 	// return a page with the first 2
-	qUsers2, ts2, pg2, _ := store2.PaginatedQueryUsers("", 2, "")
+	qUsers2, ts2, pg2, _ := store2.PaginatedQueryUsers("", 2, "", false, true)
+
+	// return a page with the first user with details and privilege
+	qUsers2D, ts2D, pg2D, _ := store2.PaginatedQueryUsers("4", 1, "", true, true)
+	// return a page with the first user with details and without privilege
+	qUsers2DNp, ts2DNp, pg2DNp, _ := store2.PaginatedQueryUsers("4", 1, "", true, false)
+	cd := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
+	md := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
+	u1Detailed := QUser{
+		ID:   4,
+		UUID: "uuid4",
+		Projects: []QProjectRoles{
+			{
+				ProjectUUID:   "argo_uuid",
+				Roles:         []string{"publisher", "consumer"},
+				Topics:        []string{"topic2"},
+				Subscriptions: []string{"sub3", "sub4"},
+				ProjectName:   "ARGO",
+			},
+		},
+		Name:         "UserZ",
+		Token:        "S3CR3T4",
+		Email:        "foo-email",
+		ServiceRoles: []string{},
+		CreatedOn:    cd,
+		ModifiedOn:   md,
+		CreatedBy:    "UserA",
+	}
+
+	suite.Equal(u1Detailed, qUsers2D[0])
+	suite.Equal("3", pg2D)
+	suite.Equal(int32(1), ts2D)
+
+	// the expected use object should not have the username of the creator when accessed with unprivileged
+	u1Detailed.CreatedBy = "uuid1"
+	suite.Equal(u1Detailed, qUsers2DNp[0])
+	suite.Equal("3", pg2DNp)
+	suite.Equal(int32(1), ts2DNp)
 
 	// empty store
 	store3 := NewMockStore("", "")
 	store3.UserList = []QUser{}
-	qUsers3, ts3, pg3, _ := store3.PaginatedQueryUsers("", 0, "")
+	qUsers3, ts3, pg3, _ := store3.PaginatedQueryUsers("", 0, "", false, true)
 
 	// use page token "5" to grab another 2 results
-	qUsers4, ts4, pg4, _ := store2.PaginatedQueryUsers("4", 2, "")
+	qUsers4, ts4, pg4, _ := store2.PaginatedQueryUsers("4", 2, "", false, true)
 
 	suite.Equal(store2.UserList, qUsers1)
 	suite.Equal("", pg1)

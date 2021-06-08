@@ -737,6 +737,7 @@ func (suite *UsersHandlersTestSuite) TestUserListAll() {
       },
       {
          "uuid": "uuid7",
+         "projects": [],
          "name": "push_worker_0",
          "token": "push_token",
          "email": "foo-email",
@@ -969,6 +970,7 @@ func (suite *UsersHandlersTestSuite) TestUserListAllStartingPage() {
       },
       {
          "uuid": "uuid7",
+         "projects": [],
          "name": "push_worker_0",
          "token": "push_token",
          "email": "foo-email",
@@ -1289,6 +1291,7 @@ func (suite *UsersHandlersTestSuite) TestUserListAllStartingAtSecond() {
    "users": [
       {
          "uuid": "uuid7",
+         "projects": [],
          "name": "push_worker_0",
          "token": "push_token",
          "email": "foo-email",
@@ -1349,6 +1352,7 @@ func (suite *UsersHandlersTestSuite) TestUserListAllStartingAtSecondNoUserDetail
    "users": [
       {
          "uuid": "uuid7",
+         "projects": [],
          "name": "push_worker_0",
          "token": "push_token",
          "email": "foo-email",
@@ -1360,13 +1364,13 @@ func (suite *UsersHandlersTestSuite) TestUserListAllStartingAtSecondNoUserDetail
       },
       {
          "uuid": "same_uuid",
+         "projects": [],
          "name": "UserSame2",
          "token": "S3CR3T42",
          "email": "foo-email",
          "service_roles": [],
          "created_on": "2009-11-10T23:00:00Z",
-         "modified_on": "2009-11-10T23:00:00Z",
-         "created_by": "UserA"
+         "modified_on": "2009-11-10T23:00:00Z"
       }
    ],
    "nextPageToken": "NQ==",

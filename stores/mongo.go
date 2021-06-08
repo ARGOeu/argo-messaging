@@ -66,6 +66,7 @@ func (mong *MongoStore) Initialize() {
 		} else {
 			// If connection succesfull continue
 			mong.Session = session
+			mong.Session.SetSocketTimeout(3 * time.Minute)
 			log.WithFields(
 				log.Fields{
 					"type":            "backend_log",
@@ -575,7 +576,436 @@ func (mong *MongoStore) QueryUsers(projectUUID string, uuid string, name string)
 }
 
 // PaginatedQueryUsers returns a page of users
-func (mong *MongoStore) PaginatedQueryUsers(pageToken string, pageSize int32, projectUUID string) ([]QUser, int32, string, error) {
+func (mong *MongoStore) PaginatedQueryUsers(pageToken string, pageSize int32, projectUUID string, detailedView bool, privileged bool) ([]QUser, int32, string, error) {
+
+	var qUsers []QUser
+	var totalSize int32
+	var nextPageToken string
+	var err error
+
+	if detailedView {
+		qUsers, totalSize, nextPageToken, err = mong.paginatedQueryUsersDetails(pageToken, pageSize, projectUUID, privileged)
+
+	} else {
+		qUsers, totalSize, nextPageToken, err = mong.paginatedQueryUsers(pageToken, pageSize, projectUUID)
+	}
+
+	return qUsers, totalSize, nextPageToken, err
+}
+
+// paginatedQueryUsersDetails returns a page of users with all their extra info regarding which projects,subs.topics they belong to
+// and which user created them
+func (mong *MongoStore) paginatedQueryUsersDetails(pageToken string, pageSize int32, projectUUID string, privileged bool) ([]QUser, int32, string, error) {
+	var qUsers []QUser
+	var totalSize int32
+	var limit int32
+	var size int
+	var nextPageToken string
+	var err error
+	var projectQuery bson.M
+
+	// if the page size is other than zero(where zero means, no limit), try to grab one more document to check if there
+	// will be a next page after the current one
+	if pageSize > 0 {
+		limit = pageSize + 1
+	}
+
+	// if projectUUID is empty string return all users, if projectUUID has a non empty value
+	// query users that belong to that project
+	if projectUUID != "" {
+		projectQuery = bson.M{
+			"projects": bson.M{
+				"$elemMatch": bson.M{
+					"project_uuid": projectUUID,
+				},
+			},
+		}
+	}
+
+	// select db collection
+	db := mong.Session.DB(mong.Database)
+	c := db.C("users")
+
+	// check the total of the users selected by the query not taking into account pagination
+	if size, err = c.Find(projectQuery).Count(); err != nil {
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
+	}
+	totalSize = int32(size)
+
+	//// now take into account if pagination is enabled and change the query accordingly
+	//// first check if an pageToken is provided and whether or not is a valid bson ID
+	var ok bool
+	var bsonID = bson.ObjectId("")
+	if pageToken != "" {
+		if ok = bson.IsObjectIdHex(pageToken); !ok {
+			err := fmt.Errorf("Page token %v is not a valid bson ObjectId", pageToken)
+			log.WithFields(
+				log.Fields{
+					"type":            "backend_log",
+					"backend_service": "mongo",
+					"page_token":      pageToken,
+				},
+			).Error("Page token is not a valid bson ObjectId")
+			return qUsers, totalSize, nextPageToken, err
+		}
+		bsonID = bson.ObjectIdHex(pageToken)
+	}
+
+	aggrUserDetailsQuery := []bson.M{
+
+		// create a unique pair for every user and each one of its projects
+		// even if a user doesn't belong to any projects, keep him in the grand total result
+		{
+			"$unwind": bson.M{
+				"path":                       "$projects",
+				"preserveNullAndEmptyArrays": true,
+			},
+		},
+
+		// for each project uuid look up the additional project details
+		//from the projects collection
+		{
+			"$lookup": bson.M{
+				"from":         "projects",
+				"localField":   "projects.project_uuid",
+				"foreignField": "uuid",
+				"as":           "project_info",
+			},
+		},
+
+		// project_uuid can only map to 1 item
+		// we can unwind the project_info array since it will always contain 1 item
+		{
+			"$unwind": bson.M{
+				"path":                       "$project_info",
+				"preserveNullAndEmptyArrays": true,
+			},
+		},
+
+		// for each user/project load the respective topics that the user belongs to their acl
+		{
+			"$lookup": bson.M{
+				"from": "topics",
+				"let": bson.M{
+					"q_user_uuid": "$uuid",
+					"q_proj_uuid": "$project_info.uuid",
+				},
+				"pipeline": []bson.M{
+					{
+						"$match": bson.M{
+							"$expr": bson.M{
+								"$and": []bson.M{
+									{
+										"$in": []string{"$$q_user_uuid", "$acl"},
+									},
+									{
+										"$eq": []string{"$$q_proj_uuid", "$project_uuid"},
+									},
+								},
+							},
+						},
+					},
+				},
+				"as": "topic_info",
+			},
+		},
+
+		// for each user/project load the respective subscriptions that the user belongs to their acl
+		{
+			"$lookup": bson.M{
+				"from": "subscriptions",
+				"let": bson.M{
+					"q_user_uuid": "$uuid",
+					"q_proj_uuid": "$project_info.uuid",
+				},
+				"pipeline": []bson.M{
+					{
+						"$match": bson.M{
+							"$expr": bson.M{
+								"$and": []bson.M{
+									{
+										"$in": []string{"$$q_user_uuid", "$acl"},
+									},
+									{
+										"$eq": []string{"$$q_proj_uuid", "$project_uuid"},
+									},
+								},
+							},
+						},
+					},
+				},
+				"as": "sub_info",
+			},
+		},
+
+		// unwind the topics array in order to group and project the wanted view
+		// of an array of just topic names, e.g. ["t1", "t2", "t3"]
+		{
+			"$unwind": bson.M{
+				"path":                       "$topic_info",
+				"preserveNullAndEmptyArrays": true,
+			},
+		},
+
+		// unwind the subs array in order to group and project the wanted view
+		// of an array of just sub names, e.g. ["s1", "s2", "s3"]
+		{
+			"$unwind": bson.M{
+				"path":                       "$sub_info",
+				"preserveNullAndEmptyArrays": true,
+			},
+		},
+
+		{
+			"$group": bson.M{
+				"_id": bson.M{
+					"_id":          "$_id",
+					"project_uuid": "$project_info.uuid",
+				},
+				"topics": bson.M{
+					"$addToSet": "$topic_info.name",
+				},
+				"subscriptions": bson.M{
+					"$addToSet": "$sub_info.name",
+				},
+				"name": bson.M{
+					"$first": "$name",
+				},
+				"uuid": bson.M{
+					"$first": "$uuid",
+				},
+				"email": bson.M{
+					"$first": "$email",
+				},
+				"token": bson.M{
+					"$first": "$token",
+				},
+				"first_name": bson.M{
+					"$first": "$first_name",
+				},
+				"last_name": bson.M{
+					"$first": "$last_name",
+				},
+				"organization": bson.M{
+					"$first": "$organization",
+				},
+				"description": bson.M{
+					"$first": "$description",
+				},
+				"service_roles": bson.M{
+					"$first": "$service_roles",
+				},
+				"project_info": bson.M{
+					"$first": "$project_info",
+				},
+				"projects": bson.M{
+					"$first": "$projects",
+				},
+				"created_on": bson.M{
+					"$first": "$created_on",
+				},
+				"modified_on": bson.M{
+					"$first": "$modified_on",
+				},
+				"created_by": bson.M{
+					"$first": "$created_by",
+				},
+				"creator_info": bson.M{
+					"$first": "$creator_info",
+				},
+			},
+		},
+
+		{
+			"$project": bson.M{
+				"_id":  "$_id._id",
+				"uuid": 1,
+				"project_info": bson.M{
+					"name":          "$project_info.name",
+					"roles":         "$projects.roles",
+					"topics":        "$topics",
+					"subscriptions": "$subscriptions",
+				},
+				"name":          1,
+				"token":         1,
+				"email":         1,
+				"first_name":    1,
+				"last_name":     1,
+				"organization":  1,
+				"description":   1,
+				"service_roles": 1,
+				"created_on":    1,
+				"modified_on":   1,
+				"created_by":    "$creator_info.name",
+			},
+		},
+
+		// group by user id and push all projects into a single array
+		{
+			"$group": bson.M{
+				"_id": "$_id",
+				"root": bson.M{
+					"$mergeObjects": "$$ROOT",
+				},
+				"projects": bson.M{
+					"$push": "$project_info",
+				},
+			},
+		},
+		{
+			"$replaceRoot": bson.M{
+				"newRoot": bson.M{
+					"$mergeObjects": []string{"$root", "$$ROOT"},
+				},
+			},
+		},
+		// remove the placeholder fields of root and project info
+		{
+			"$project": bson.M{
+				"root":         0,
+				"project_info": 0,
+				"creator_info": 0,
+			},
+		},
+	}
+
+	query := []bson.M{}
+
+	// query for users under a specific project only
+	if projectUUID != "" && pageToken == "" {
+		projectMatchStage := bson.M{
+			"$match": bson.M{
+				"projects": bson.M{
+					"$elemMatch": bson.M{
+						"project_uuid": projectUUID,
+					},
+				},
+			},
+		}
+
+		query = append(query, projectMatchStage)
+	}
+
+	// enabled pagination
+	if pageToken != "" && projectUUID == "" {
+		paginationMatchStage := bson.M{
+			"$match": bson.M{
+				"_id": bson.M{
+					"$lte": bsonID,
+				},
+			},
+		}
+		query = append(query, paginationMatchStage)
+	}
+
+	// enabled pagination for specific users under a project
+	if pageToken != "" && projectUUID != "" {
+		paginationWithProjectMatchStage := bson.M{
+			"$match": bson.M{
+				"$and": []bson.M{
+					{
+						"projects": bson.M{
+							"$elemMatch": bson.M{
+								"project_uuid": projectUUID,
+							},
+						},
+					},
+					{
+						"_id": bson.M{
+							"$lte": bsonID,
+						},
+					},
+				},
+			},
+		}
+		query = append(query, paginationWithProjectMatchStage)
+	}
+
+	if privileged {
+
+		// look up the creator user's username
+		creatorInfoLookUpStage := bson.M{
+			"$lookup": bson.M{
+				"from":         "users",
+				"localField":   "created_by",
+				"foreignField": "uuid",
+				"as":           "creator_info",
+			},
+		}
+
+		// we can unwind the creator_info array since it will always contain 1 item
+		creatorInfoUnwind := bson.M{
+			"$unwind": bson.M{
+				"path":                       "$creator_info",
+				"preserveNullAndEmptyArrays": true,
+			},
+		}
+
+		query = append(query, creatorInfoLookUpStage, creatorInfoUnwind)
+	}
+
+	aggrSortStage := bson.M{
+		"$sort": bson.M{
+			"_id": -1,
+		},
+	}
+
+	// if there is are no matching stages involved in the query from either the projectUUID
+	// or the pageToken parameter, $sort and $limit should precede the $lookup stages
+	// in order to only fetch the extra details for the provided limit size
+	if projectUUID == "" && pageToken == "" {
+		query = append(query, aggrSortStage)
+		if pageSize > 0 {
+			aggrLimitStage := bson.M{
+				"$limit": limit,
+			}
+			query = append(query, aggrLimitStage)
+		}
+		query = append(query, aggrUserDetailsQuery...)
+		// else the details query should precede the $sort and $limit
+	} else {
+		query = append(query, aggrUserDetailsQuery...)
+		query = append(query, aggrSortStage)
+		if pageSize > 0 {
+			aggrLimitStage := bson.M{
+				"$limit": limit,
+			}
+			query = append(query, aggrLimitStage)
+		}
+	}
+
+	err = c.Pipe(query).All(&qUsers)
+
+	if err != nil {
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
+	}
+
+	// if the amount of users that were found was equal to the limit, its a sign that there are users to populate the next page
+	// so pick the last element's pageToken to use as the starting point for the next page
+	// and eliminate the extra element from the current response
+	if pageSize > 0 && len(qUsers) > 0 && len(qUsers) == int(limit) {
+
+		nextPageToken = qUsers[limit-1].ID.(bson.ObjectId).Hex()
+		qUsers = qUsers[:len(qUsers)-1]
+	}
+
+	return qUsers, totalSize, nextPageToken, err
+}
+
+// paginatedQueryUsers returns a page of users with just their basic info
+func (mong *MongoStore) paginatedQueryUsers(pageToken string, pageSize int32, projectUUID string) ([]QUser, int32, string, error) {
 
 	var qUsers []QUser
 	var totalSize int32

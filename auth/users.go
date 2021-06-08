@@ -24,7 +24,7 @@ const (
 // User is the struct that holds user information
 type User struct {
 	UUID         string         `json:"uuid"`
-	Projects     []ProjectRoles `json:"projects,omitempty"`
+	Projects     []ProjectRoles `json:"projects"`
 	Name         string         `json:"name"`
 	FirstName    string         `json:"first_name,omitempty"`
 	LastName     string         `json:"last_name,omitempty"`
@@ -393,62 +393,59 @@ func PaginatedFindUsers(pageToken string, pageSize int32, projectUUID string, pr
 		return PaginatedUsers{}, err
 	}
 
-	result := PaginatedUsers{Users: []User{}}
+	result := PaginatedUsers{
+		Users: []User{},
+	}
 
-	if users, totalSize, nextPageToken, err = store.PaginatedQueryUsers(string(pageTokenBytes), pageSize, projectUUID); err != nil {
+	if users, totalSize, nextPageToken, err = store.PaginatedQueryUsers(string(pageTokenBytes), pageSize, projectUUID, detailedView, privileged); err != nil {
 		return result, err
 	}
 
 	for _, item := range users {
 
-		// Get Username from user uuid
+		pRoles := []ProjectRoles{}
 		serviceRoles := []string{}
 		token := ""
-		usernameC := ""
-		// if call made by priviledged user (superuser), show service roles, token and user creator info
-		if privileged {
-			if item.CreatedBy != "" {
-				usr, err := store.QueryUsers("", item.CreatedBy, "")
-				if err == nil && len(usr) > 0 {
-					usernameC = usr[0].Name
-
-				}
-			}
-			token = item.Token
-			serviceRoles = item.ServiceRoles
-		}
-
-		var pRoles []ProjectRoles
+		createdBy := ""
 
 		if detailedView {
+			if privileged {
+				createdBy = item.CreatedBy
+			}
 
 			for _, pItem := range item.Projects {
-				// if user not priviledged (not superuser) and queried projectUUID doesn't
+
+				// skip initialized but empty array
+				if pItem.ProjectName == "" {
+					continue
+				}
+
+				// if user not privileged (not superuser) and queried projectUUID doesn't
 				// match current role item's project UUID, skip the item
 				if !privileged && pItem.ProjectUUID != projectUUID {
 					continue
 				}
-				prName := projects.GetNameByUUID(pItem.ProjectUUID, store)
 
-				// Get User topics and subscriptions
-				topicList, _ := store.QueryTopicsByACL(pItem.ProjectUUID, item.UUID)
-				topicNames := []string{}
-				for _, tpItem := range topicList {
-					topicNames = append(topicNames, tpItem.Name)
+				_projectRoles := ProjectRoles{
+					Project: pItem.ProjectName,
+					Subs:    append([]string{}, pItem.Subscriptions...),
+					Topics:  append([]string{}, pItem.Topics...),
+					Roles:   append([]string{}, pItem.Roles...),
 				}
 
-				subList, _ := store.QuerySubsByACL(pItem.ProjectUUID, item.UUID)
-				subNames := []string{}
-				for _, sbItem := range subList {
-					subNames = append(subNames, sbItem.Name)
-				}
-				pRoles = append(pRoles, ProjectRoles{Project: prName, Roles: pItem.Roles, Topics: topicNames, Subs: subNames})
+				pRoles = append(pRoles, _projectRoles)
 			}
+		}
+
+		// if call made by privileged user (superuser), show service roles, token and user creator info
+		if privileged {
+			token = item.Token
+			serviceRoles = item.ServiceRoles
 		}
 
 		curUser := NewUser(item.UUID, pRoles, item.Name, item.FirstName, item.LastName,
 			item.Organization, item.Description, token, item.Email, serviceRoles,
-			item.CreatedOn.UTC(), item.ModifiedOn.UTC(), usernameC)
+			item.CreatedOn.UTC(), item.ModifiedOn.UTC(), createdBy)
 
 		result.Users = append(result.Users, curUser)
 	}
