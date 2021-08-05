@@ -30,6 +30,10 @@ module.exports = {
     },
     footer: {
       style: 'dark',
+      logo: {
+        alt: 'GRNET',
+        src: 'img/grnet-logo.png',
+        href: 'http://www.grnet.gr/',
       links: [
         {
           title: 'Docs',
@@ -59,7 +63,7 @@ module.exports = {
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} GRNET`,
+      copyright: `Copyright © ${new Date().getFullYear()} <a href="http://www.grnet.gr/"> GRNET </a>`,
     },
   },
   presets: [
@@ -68,7 +72,6 @@ module.exports = {
       {
         docs: {
           // It is recommended to set document id as docs home page (`docs/` path).
-          homePageId: 'overview',
           sidebarPath: require.resolve('./sidebars.js'),
         },
         theme: {
