@@ -1,7 +1,6 @@
 ---
 id: overview
 title: Overview & Introduction
-slug: /
 ---
 
 The Messaging Services is implemented as a Publish/Subscribe Service. Instead of focusing on a single Messaging API specification for handling the logic of publishing/subscribing to the broker network the API focuses on creating nodes of Publishers and Subscribers as a Service.
