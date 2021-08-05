@@ -34,6 +34,7 @@ module.exports = {
         alt: 'GRNET',
         src: 'img/grnet-logo.png',
         href: 'http://www.grnet.gr/',
+      },
       links: [
         {
           title: 'Docs',
