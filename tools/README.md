@@ -1,6 +1,34 @@
 AMS data tools
 ========================
 
+
+remove_orphan_kafka_topics
+------------------
+
+Remove orphan kafka topics is script that clears kafka from all orphan
+topics.Orphan topics are topics that do not exist in AMS; they have been
+left over on the kafka brokers.The script will check the existence of each
+kafka topic in the AMS data store.In case a topic isn't present in the AMS
+data store, the script will remove it from the broker.
+
+
+Requirements
+------------
+
+- kafka-python
+- pymongo
+
+How to run remove_orphan_kafka_topics
+-----------------------------
+`./remove_orphan_kafka_topics.py 
+--broker-list kafka1.host:9092,kafka2.host:9092,kafka3.host:9092
+ --mongo-list mongo1:27017,mongo2:27017,mongo3:27017 --dry`
+ 
+ - `--broker-list` is a comma separated list of brokers, host1:port1,host1:port2,host3:port3
+ - `--mongo-list` is a comma separated list of mongo rs nodes, mongo1:27017,mongo2:27017,mongo3:27017
+ - `--dry` if you want to observe the topics that will be deleted
+ but not actually delete them.Omit for full deletion.
+ 
 stream_producer
 ----------------
 Stream producer is a script that allows you to connect to an AMS endpoint and publish messages of configurable size indefinitely.
