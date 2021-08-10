@@ -20,15 +20,15 @@ Requirements
 
 How to run remove_orphan_kafka_topics
 -----------------------------
-`./remove_orphan_kafka_topics.py 
+`./remove_orphan_kafka_topics.py
 --broker-list kafka1.host:9092,kafka2.host:9092,kafka3.host:9092
  --mongo-list mongo1:27017,mongo2:27017,mongo3:27017 --dry`
- 
+
  - `--broker-list` is a comma separated list of brokers, host1:port1,host1:port2,host3:port3
  - `--mongo-list` is a comma separated list of mongo rs nodes, mongo1:27017,mongo2:27017,mongo3:27017
  - `--dry` if you want to observe the topics that will be deleted
  but not actually delete them.Omit for full deletion.
- 
+
 stream_producer
 ----------------
 Stream producer is a script that allows you to connect to an AMS endpoint and publish messages of configurable size indefinitely.
@@ -111,7 +111,7 @@ How to run consumer
 ams_kafka_export
 ----------------
 
-This command line tool can be used to export/import data from AMS kafka topics into text files and move them to another AMS kafka cluster. 
+This command line tool can be used to export/import data from AMS kafka topics into text files and move them to another AMS kafka cluster.
 
 Requirements
 ------------
@@ -130,7 +130,7 @@ $ `./ams-migrate.py --mongo "localhost:27017" --brokers "localhost:9092" --timeo
 or
 $ `./ams-migrate.py export` filled with default values targeting localhost
 
-where `--mongo` follow the hostname:port of mongodb 
+where `--mongo` follow the hostname:port of mongodb
 where `--brokers` follow with a comma-separated list of host:port of kafka instances
 where `--timeout` specify a consume wait timeout in milliseconds
 where `--data` specify a folder to export data
