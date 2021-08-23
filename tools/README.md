@@ -21,7 +21,7 @@ Requirements
 How to run reassign_partitions
 ------------------------------
 ```
-./reassign_partitions.py --zoo-list localhost:2181 --broker-remove 0 --broker-add 3 
+./reassign_partitions.py --zoo-list localhost:2181 --broker-remove 0 --broker-add 3
 --kafka-bin-dir /usr/lib/kafka/bin --replication-factor 2
 --rollback-file rollback.json --reassignment-file reassign.json --execute
 ```
@@ -40,7 +40,7 @@ for kafka-reassign-partitions.sh.
 
 
 remove_orphan_kafka_topics
-------------------
+-------------------------
 
 Remove orphan kafka topics is script that clears kafka from all orphan
 topics.Orphan topics are topics that do not exist in AMS; they have been

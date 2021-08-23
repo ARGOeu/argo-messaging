@@ -107,20 +107,26 @@ Success Response
         {
             "project": "ARGO-2",
             "message_count": 8,
-            "average_daily_messages": 2
+            "average_daily_messages": 2,
+            "users_count": 40,
+            "topics_count": 30,
+            "subscriptions_count": 100 
         },
         {
             "project": "ARGO",
             "message_count": 25669,
-            "average_daily_messages": 120
+            "average_daily_messages": 120,
+            "users_count": 4,
+            "topics_count": 3,
+            "subscriptions_count": 0 
         }
     ],
     "total_message_count": 25677,
     "average_daily_messages": 122
   },
-  "users_count": 44,
-  "topics_count": 33,
-  "subscriptions_counter": 100 
+  "total_users_count": 44,
+  "total_topics_count": 33,
+  "total_subscriptions_count": 100 
 }
 ```
 ### Errors

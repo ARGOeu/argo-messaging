@@ -79,36 +79,72 @@ func (mong *MongoStore) Initialize() {
 }
 
 // SubscriptionsCount returns the amount of subscriptions created in the given time period
-func (mong *MongoStore) SubscriptionsCount(startDate, endDate time.Time) (int, error) {
-	return mong.getDocCountForCollection(startDate, endDate, "subscriptions")
+func (mong *MongoStore) SubscriptionsCount(startDate, endDate time.Time, projectUUIDs []string) (map[string]int64, error) {
+	return mong.getDocCountForCollection(startDate, endDate, "subscriptions", projectUUIDs)
 }
 
 // TopicsCount returns the amount of topics created in the given time period
-func (mong *MongoStore) TopicsCount(startDate, endDate time.Time) (int, error) {
-	return mong.getDocCountForCollection(startDate, endDate, "topics")
+func (mong *MongoStore) TopicsCount(startDate, endDate time.Time, projectUUIDs []string) (map[string]int64, error) {
+	return mong.getDocCountForCollection(startDate, endDate, "topics", projectUUIDs)
 }
 
 // UserCount returns the amount of users created in the given time period
-func (mong *MongoStore) UsersCount(startDate, endDate time.Time) (int, error) {
-	return mong.getDocCountForCollection(startDate, endDate, "users")
-}
+func (mong *MongoStore) UsersCount(startDate, endDate time.Time, projectUUIDs []string) (map[string]int64, error) {
+	var resourceCounts []QProjectResourceCount
 
-// getDocCountForCollection returns the document count for a collection in a given time period
-// collection should support field created_on
-func (mong *MongoStore) getDocCountForCollection(startDate, endDate time.Time, col string) (int, error) {
-
-	query := bson.M{
-		"created_on": bson.M{
-			"$gte": startDate,
-			"$lte": endDate,
+	condQuery := []bson.M{
+		{
+			"created_on": bson.M{
+				"$gte": startDate,
+			},
+		},
+		{
+			"created_on": bson.M{
+				"$lte": endDate,
+			},
 		},
 	}
 
-	db := mong.Session.DB(mong.Database)
-	c := db.C(col)
+	if len(projectUUIDs) > 0 {
+		condQuery = append(condQuery, bson.M{
+			"project_uuid": bson.M{
+				"$in": projectUUIDs,
+			},
+		},
+		)
+	}
 
-	count, err := c.Find(query).Count()
-	if err != nil {
+	query := []bson.M{
+		{
+			"$unwind": "$projects",
+		},
+		{
+			"$match": bson.M{
+				"$and": condQuery,
+			},
+		},
+		{
+			"$group": bson.M{
+				"_id": bson.M{
+					"project_uuid": "$projects.project_uuid",
+				},
+				"resource_count": bson.M{
+					"$sum": 1,
+				},
+			},
+		},
+		{
+			"$project": bson.M{
+				"_id":            0,
+				"project_uuid":   "$_id.project_uuid",
+				"resource_count": 1,
+			},
+		},
+	}
+
+	c := mong.Session.DB(mong.Database).C("users")
+
+	if err := c.Pipe(query).All(&resourceCounts); err != nil {
 		log.WithFields(
 			log.Fields{
 				"type":            "backend_log",
@@ -118,7 +154,87 @@ func (mong *MongoStore) getDocCountForCollection(startDate, endDate time.Time, c
 		).Fatal(err.Error())
 	}
 
-	return count, nil
+	res := map[string]int64{}
+
+	for _, t := range resourceCounts {
+		res[t.ProjectUUID] = t.Count
+	}
+
+	return res, nil
+}
+
+// getDocCountForCollection returns the document count for a collection in a given time period
+// collection should support field created_on
+func (mong *MongoStore) getDocCountForCollection(startDate, endDate time.Time, col string, projectUUIDs []string) (map[string]int64, error) {
+
+	var resourceCounts []QProjectResourceCount
+
+	condQuery := []bson.M{
+		{
+			"created_on": bson.M{
+				"$gte": startDate,
+			},
+		},
+		{
+			"created_on": bson.M{
+				"$lte": endDate,
+			},
+		},
+	}
+
+	if len(projectUUIDs) > 0 {
+		condQuery = append(condQuery, bson.M{
+			"project_uuid": bson.M{
+				"$in": projectUUIDs,
+			},
+		},
+		)
+	}
+
+	query := []bson.M{
+		{
+			"$match": bson.M{
+				"$and": condQuery,
+			},
+		},
+		{
+			"$group": bson.M{
+				"_id": bson.M{
+					"project_uuid": "$project_uuid",
+				},
+				"resource_count": bson.M{
+					"$sum": 1,
+				},
+			},
+		},
+		{
+			"$project": bson.M{
+				"_id":            0,
+				"project_uuid":   "$_id.project_uuid",
+				"resource_count": 1,
+			},
+		},
+	}
+
+	c := mong.Session.DB(mong.Database).C(col)
+
+	if err := c.Pipe(query).All(&resourceCounts); err != nil {
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
+	}
+
+	res := map[string]int64{}
+
+	for _, t := range resourceCounts {
+		res[t.ProjectUUID] = t.Count
+	}
+
+	return res, nil
 }
 
 // QueryProjects queries the database for a specific project or a list of all projects

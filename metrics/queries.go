@@ -115,44 +115,29 @@ func GetVAReport(projects []string, startDate time.Time, endDate time.Time, str 
 
 	vaReport := VAReport{}
 
-	tpm, err := GetProjectsMessageCount(projects, startDate, endDate, str)
-	if err != nil {
-		return vaReport, err
-	}
-
 	// for the counters we need to include the ones created up to the end of the end date
 	// if some gives 2020-15-01 we need to get all counters up to 2020-15-01T23:59:59
 	endDate = time.Date(endDate.Year(), endDate.Month(), endDate.Day(), 23, 59, 59, 0, endDate.Location())
-	uc, err := str.UsersCount(startDate, endDate)
+
+	tpm, err := GenerateVAReport(projects, startDate, endDate, str)
 	if err != nil {
 		return vaReport, err
 	}
 
-	tc, err := str.TopicsCount(startDate, endDate)
-	if err != nil {
-		return vaReport, err
-	}
-
-	sc, err := str.SubscriptionsCount(startDate, endDate)
-	if err != nil {
-		return vaReport, err
-	}
-
-	vaReport.ProjectsMetrics = tpm
-	vaReport.UsersCount = uc
-	vaReport.TopicsCount = tc
-	vaReport.SubscriptionsCount = sc
-
-	return vaReport, nil
+	return tpm, nil
 }
 
-// GetProjectsMessageCount returns the total amount of messages per project for the given time window
-func GetProjectsMessageCount(projects []string, startDate time.Time, endDate time.Time, str stores.Store) (TotalProjectsMessageCount, error) {
+// GenerateVAReport returns per project metrics regarding users,topics subscriptions for the given time period
+// It also includes various totals that derive from the each individual's project metrics.
+// The generated result is called a VA Report
+func GenerateVAReport(projects []string, startDate time.Time, endDate time.Time, str stores.Store) (VAReport, error) {
 
 	tpj := TotalProjectsMessageCount{
-		Projects:   []ProjectMessageCount{},
+		Projects:   []ProjectMetrics{},
 		TotalCount: 0,
 	}
+
+	vaReport := VAReport{}
 
 	var qtpj []stores.QProjectMessageCount
 	var err error
@@ -167,7 +152,7 @@ func GetProjectsMessageCount(projects []string, startDate time.Time, endDate tim
 	for _, prj := range projects {
 		projectUUID := amsProjects.GetUUIDByName(prj, str)
 		if projectUUID == "" {
-			return TotalProjectsMessageCount{}, fmt.Errorf("Project %v", prj)
+			return VAReport{}, fmt.Errorf("Project %v", prj)
 		}
 		projectUUIDs = append(projectUUIDs, projectUUID)
 		projectsUUIDNames[projectUUID] = prj
@@ -175,10 +160,29 @@ func GetProjectsMessageCount(projects []string, startDate time.Time, endDate tim
 
 	qtpj, err = str.QueryTotalMessagesPerProject(projectUUIDs, startDate, endDate)
 	if err != nil {
-		return TotalProjectsMessageCount{}, err
+		return VAReport{}, err
+	}
+
+	topicsCount, err := str.TopicsCount(startDate, endDate, projectUUIDs)
+	if err != nil {
+		return VAReport{}, err
+	}
+
+	subCount, err := str.SubscriptionsCount(startDate, endDate, projectUUIDs)
+	if err != nil {
+		return VAReport{}, err
+	}
+
+	userCount, err := str.UsersCount(startDate, endDate, projectUUIDs)
+	if err != nil {
+		return VAReport{}, err
 	}
 
 	for _, prj := range qtpj {
+
+		topicCount := topicsCount[prj.ProjectUUID]
+		subCount := subCount[prj.ProjectUUID]
+		userCount := userCount[prj.ProjectUUID]
 
 		projectName := ""
 
@@ -197,12 +201,27 @@ func GetProjectsMessageCount(projects []string, startDate time.Time, endDate tim
 			AverageDailyMessages: avg,
 		}
 
-		tpj.Projects = append(tpj.Projects, pc)
+		projectMetrics := ProjectMetrics{
+			pc,
+			topicCount,
+			subCount,
+			userCount,
+		}
+
+		tpj.Projects = append(tpj.Projects, projectMetrics)
 
 		tpj.TotalCount += prj.NumberOfMessages
 
 		tpj.AverageDailyMessages += avg
+
+		vaReport.TopicsCount += topicCount
+
+		vaReport.SubscriptionsCount += subCount
+
+		vaReport.UsersCount += userCount
 	}
 
-	return tpj, nil
+	vaReport.ProjectsMetrics = tpj
+
+	return vaReport, nil
 }
