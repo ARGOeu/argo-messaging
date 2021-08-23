@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"github.com/ARGOeu/argo-messaging/auth"
+	"github.com/ARGOeu/argo-messaging/config"
 	"github.com/ARGOeu/argo-messaging/projects"
 	"github.com/ARGOeu/argo-messaging/stores"
 	gorillaContext "github.com/gorilla/context"
@@ -26,17 +27,18 @@ func UserProfile(w http.ResponseWriter, r *http.Request) {
 
 	// Grab context references
 	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	authOption := gorillaContext.Get(r, "authOption").(config.AuthOption)
 
-	urlValues := r.URL.Query()
+	tokenExtractStrategy := GetRequestTokenExtractStrategy(authOption)
+	token := tokenExtractStrategy(r)
 
-	// if the url parameter 'key' is empty or absent, end the request with an unauthorized response
-	if urlValues.Get("key") == "" {
+	if token == "" {
 		err := APIErrorUnauthorized()
 		respondErr(w, err)
 		return
 	}
 
-	result, err := auth.GetUserByToken(urlValues.Get("key"), refStr)
+	result, err := auth.GetUserByToken(token, refStr)
 
 	if err != nil {
 		if err.Error() == "not found" {
