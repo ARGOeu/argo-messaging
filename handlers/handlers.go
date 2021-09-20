@@ -307,10 +307,14 @@ func respondOK(w http.ResponseWriter, output []byte) {
 
 // respondErr is used to finalize response writer with proper error codes and error output
 func respondErr(w http.ResponseWriter, apiErr APIErrorRoot) {
-	log.Error(apiErr.Body.Code, "\t", apiErr.Body.Message)
-	// set the response code
+	log.WithFields(
+		log.Fields{
+			"type":        "service_log",
+			"status_code": apiErr.Body.Code,
+		},
+	).Info(apiErr.Body.Message)
+	
 	w.WriteHeader(apiErr.Body.Code)
-	// Output API Erorr object to JSON
 	output, _ := json.MarshalIndent(apiErr, "", "   ")
 	w.Write(output)
 }

@@ -66,7 +66,12 @@ func NewRouting(cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *o
 			Handler(gorillaContext.ClearHandler(handler))
 	}
 
-	log.Info("API", "\t", "API Router initialized! Ready to start listening...")
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Info("API Router initialized! Ready to start listening...")
+
 	// Return reference to API object
 	return &ar
 }

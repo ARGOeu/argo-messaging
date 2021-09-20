@@ -1588,6 +1588,8 @@ func (mong *MongoStore) QueryDailyProjectMsgCount(projectUUID string) ([]QDailyP
 		},
 	}
 
+	fmt.Println(query)
+	fmt.Println("2")
 	if err = c.Pipe(query).All(&qdp); err != nil {
 		log.WithFields(
 			log.Fields{
