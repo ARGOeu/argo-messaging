@@ -133,6 +133,11 @@ type QProjectMessageCount struct {
 	AverageDailyMessages float64 `bson:"avg_daily_msg"`
 }
 
+type QProjectResourceCount struct {
+	ProjectUUID string `bson:"project_uuid"`
+	Count       int64  `bson:"resource_count"`
+}
+
 // QSchema is the query model representing a schema
 type QSchema struct {
 	ProjectUUID string `bson:"project_uuid"`

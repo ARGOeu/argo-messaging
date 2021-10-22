@@ -25,42 +25,86 @@ type MockStore struct {
 	OpMetrics          map[string]QopMetric
 }
 
-func (mk *MockStore) TopicsCount(startDate, endDate time.Time) (int, error) {
+func (mk *MockStore) TopicsCount(startDate, endDate time.Time, projectUUIDs []string) (map[string]int64, error) {
 
-	counter := 0
+	res := map[string]int64{}
 
-	for _, sub := range mk.SubList {
-		if sub.CreatedOn.After(startDate) && sub.CreatedOn.Before(endDate) {
-			counter++
+	if len(projectUUIDs) == 0 {
+		for _, tp := range mk.TopicList {
+			if tp.CreatedOn.After(startDate) && tp.CreatedOn.Before(endDate) {
+				res[tp.ProjectUUID] += 1
+			}
+		}
+	} else {
+		for _, tp := range mk.TopicList {
+			if tp.CreatedOn.After(startDate) && tp.CreatedOn.Before(endDate) {
+				for _, puuid := range projectUUIDs {
+					if tp.ProjectUUID == puuid {
+						res[tp.ProjectUUID] += 1
+					}
+				}
+
+			}
 		}
 	}
 
-	return counter, nil
+	return res, nil
 }
 
-func (mk *MockStore) SubscriptionsCount(startDate, endDate time.Time) (int, error) {
+func (mk *MockStore) SubscriptionsCount(startDate, endDate time.Time, projectUUIDs []string) (map[string]int64, error) {
 
-	counter := 0
-	for _, t := range mk.TopicList {
-		if t.CreatedOn.After(startDate) && t.CreatedOn.Before(endDate) {
-			counter++
+	res := map[string]int64{}
+
+	if len(projectUUIDs) == 0 {
+		for _, sub := range mk.SubList {
+			if sub.CreatedOn.After(startDate) && sub.CreatedOn.Before(endDate) {
+				res[sub.ProjectUUID] += 1
+			}
+		}
+	} else {
+		for _, sub := range mk.SubList {
+			if sub.CreatedOn.After(startDate) && sub.CreatedOn.Before(endDate) {
+				for _, puuid := range projectUUIDs {
+					if sub.ProjectUUID == puuid {
+						res[sub.ProjectUUID] += 1
+					}
+				}
+
+			}
 		}
 	}
 
-	return counter, nil
+	return res, nil
 }
 
-func (mk *MockStore) UsersCount(startDate, endDate time.Time) (int, error) {
+func (mk *MockStore) UsersCount(startDate, endDate time.Time, projectUUIDs []string) (map[string]int64, error) {
 
-	counter := 0
+	res := map[string]int64{}
 
-	for _, u := range mk.UserList {
-		if u.CreatedOn.After(startDate) && u.CreatedOn.Before(endDate) {
-			counter++
+	if len(projectUUIDs) == 0 {
+		for _, user := range mk.UserList {
+			if user.CreatedOn.After(startDate) && user.CreatedOn.Before(endDate) {
+				for _, proj := range user.Projects {
+					res[proj.ProjectUUID] += 1
+				}
+			}
+		}
+	} else {
+		for _, user := range mk.UserList {
+			if user.CreatedOn.After(startDate) && user.CreatedOn.Before(endDate) {
+				for _, puuid := range projectUUIDs {
+					for _, proj := range user.Projects {
+						if puuid == proj.ProjectUUID {
+							res[proj.ProjectUUID] += 1
+						}
+					}
+				}
+
+			}
 		}
 	}
 
-	return counter, nil
+	return res, nil
 }
 
 // QueryACL Topic/Subscription ACL

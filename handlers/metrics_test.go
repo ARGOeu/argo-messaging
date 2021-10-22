@@ -51,15 +51,18 @@ func (suite *MetricsHandlersTestSuite) TestProjectMessageCount() {
    {
     "project": "ARGO",
     "message_count": 30,
-    "average_daily_messages": 7
+    "average_daily_messages": 7,
+    "topics_count": 0,
+    "subscriptions_count": 0,
+    "users_count": 0
    }
   ],
   "total_message_count": 30,
   "average_daily_messages": 7
  },
- "users_count": 0,
- "topics_count": 0,
- "subscriptions_count": 0
+ "total_users_count": 0,
+ "total_topics_count": 0,
+ "total_subscriptions_count": 0
 }`
 
 	cfgKafka := config.NewAPICfg()
@@ -88,15 +91,18 @@ func (suite *MetricsHandlersTestSuite) TestVaReportFull() {
    {
     "project": "ARGO",
     "message_count": 140,
-    "average_daily_messages": 0
+    "average_daily_messages": 0,
+    "topics_count": 4,
+    "subscriptions_count": 4,
+    "users_count": 7
    }
   ],
   "total_message_count": 140,
   "average_daily_messages": 0
  },
- "users_count": 9,
- "topics_count": 4,
- "subscriptions_count": 4
+ "total_users_count": 7,
+ "total_topics_count": 4,
+ "total_subscriptions_count": 4
 }`
 
 	cfgKafka := config.NewAPICfg()

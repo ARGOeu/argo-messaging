@@ -355,26 +355,39 @@ func (suite *MetricsTestSuite) TestGetProjectsMessageCount() {
 	store.Initialize()
 
 	// test total message count per project
+	p := ProjectMessageCount{
+		Project:              "ARGO",
+		MessageCount:         60,
+		AverageDailyMessages: 15,
+	}
+
+	pm := ProjectMetrics{
+		ProjectMessageCount: p,
+		TopicsCount:         0,
+		SubsCount:           0,
+		UsersCount:          0,
+	}
 	expectedTmpc := TotalProjectsMessageCount{
-		Projects: []ProjectMessageCount{
-			{
-				Project:              "ARGO",
-				MessageCount:         60,
-				AverageDailyMessages: 15,
-			},
-		},
+		Projects:             []ProjectMetrics{pm},
 		TotalCount:           60,
 		AverageDailyMessages: 15,
 	}
 
-	tmpc, tmpcerr := GetProjectsMessageCount(
+	tmpc, tmpcerr := GenerateVAReport(
 		[]string{"ARGO"},
 		time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC),
 		time.Date(2018, 10, 4, 0, 0, 0, 0, time.UTC),
 		store,
 	)
 
-	suite.Equal(expectedTmpc, tmpc)
+	expectedVA := VAReport{
+		ProjectsMetrics:    expectedTmpc,
+		UsersCount:         0,
+		TopicsCount:        0,
+		SubscriptionsCount: 0,
+	}
+
+	suite.Equal(expectedVA, tmpc)
 	suite.Nil(tmpcerr)
 }
 
@@ -384,14 +397,20 @@ func (suite *MetricsTestSuite) TestGetVAReport() {
 	store.Initialize()
 
 	// test total message count per project
+	p := ProjectMessageCount{
+		Project:              "ARGO",
+		MessageCount:         280,
+		AverageDailyMessages: 0,
+	}
+
+	pm := ProjectMetrics{
+		ProjectMessageCount: p,
+		TopicsCount:         8,
+		SubsCount:           8,
+		UsersCount:          14,
+	}
 	expectedTmpc := TotalProjectsMessageCount{
-		Projects: []ProjectMessageCount{
-			{
-				Project:              "ARGO",
-				MessageCount:         280,
-				AverageDailyMessages: 0,
-			},
-		},
+		Projects:             []ProjectMetrics{pm},
 		TotalCount:           280,
 		AverageDailyMessages: 0,
 	}
@@ -405,7 +424,7 @@ func (suite *MetricsTestSuite) TestGetVAReport() {
 
 	expectedVA := VAReport{
 		ProjectsMetrics:    expectedTmpc,
-		UsersCount:         18,
+		UsersCount:         14,
 		TopicsCount:        8,
 		SubscriptionsCount: 8,
 	}

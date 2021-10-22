@@ -79,7 +79,7 @@ func VaMetrics(w http.ResponseWriter, r *http.Request) {
 		startDate = time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
 	}
 
-	// if no end date was provided, set it to to today
+	// if no end date was provided, set it to today
 	if r.URL.Query().Get("end_date") != "" {
 		endDate, err = time.Parse("2006-01-02", r.URL.Query().Get("end_date"))
 		if err != nil {
