@@ -38,7 +38,6 @@ and can be used to rollback if needed
 for kafka-reassign-partitions.sh.
 - `--execute`: Execute the kafka-reassign-partitions.sh script.
 
-
 remove_orphan_kafka_topics
 -------------------------
 
