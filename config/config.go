@@ -195,14 +195,22 @@ func (cfg *APICfg) GetZooList() ([]string, error) {
 // LoadCAs builds the CA chain using pem files from the specified directory in the cfg
 func (cfg *APICfg) LoadCAs() (roots *x509.CertPool) {
 
-	log.Info("Building the root CA chain...")
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Info("building the root CA chain...")
 
 	pattern := "*.pem"
 	roots = x509.NewCertPool()
 
 	err := filepath.Walk(cfg.CertificateAuthoritiesDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			log.Errorf("Prevent panic by handling failure accessing a path %q: %v\n", cfg.CertificateAuthoritiesDir, err)
+			log.WithFields(
+				log.Fields{
+					"type": "service_log",
+				},
+			).Errorf("Prevent panic by handling failure accessing a path %q: %v", cfg.CertificateAuthoritiesDir, err)
 			return err
 		}
 
@@ -224,8 +232,11 @@ func (cfg *APICfg) LoadCAs() (roots *x509.CertPool) {
 		log.Errorf("error walking the path %q: %v\n", cfg.CertificateAuthoritiesDir, err)
 	}
 
-	log.Info("All certificates parsed successfully.")
-
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Info("All certificates parsed successfully")
 	return roots
 }
 

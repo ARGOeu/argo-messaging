@@ -92,7 +92,11 @@ func Find(projectUUID, userUUID, name, pageToken string, pageSize int32, store s
 
 	// decode the base64 pageToken
 	if pageTokenBytes, err = base64.StdEncoding.DecodeString(pageToken); err != nil {
-		log.Errorf("Page token %v produced an error while being decoded to base64: %v", pageToken, err.Error())
+		log.WithFields(
+			log.Fields{
+				"type": "service_log",
+			},
+		).Errorf("Page token %v produced an error while being decoded to base64: %v", pageToken, err.Error())
 		return result, err
 	}
 
