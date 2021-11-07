@@ -2219,6 +2219,8 @@ paths:
     get:
       summary: "List API Version information"
       description: "List api version information such as release version, commit hash etc"
+      parameters:
+        - $ref: '#/parameters/ApiKey'
       tags:
         - Version
       produces:
@@ -2875,4 +2877,6 @@ definitions:
       os:
         type: string
       architecture:
+        type: string
+      release:
         type: string

@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
@@ -36,7 +37,8 @@ func (suite *HandlerTestSuite) SetupTest() {
 	"certificate_key":"/etc/pki/tls/private/localhost.key",
 	"per_resource_auth":"true",
 	"push_enabled": "true",
-	"push_worker_token": "push_token"
+	"push_worker_token": "push_token",
+	"auth_option": "both"
 	}`
 }
 
@@ -217,6 +219,7 @@ func (suite *HandlerTestSuite) TestGetRequestTokenExtractStrategy() {
 func (suite *HandlerTestSuite) TestListVersion() {
 
 	req, err := http.NewRequest("GET", "http://localhost:8080/v1/version", nil)
+	req.Header.Add("x-api-key", "st")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -226,9 +229,10 @@ func (suite *HandlerTestSuite) TestListVersion() {
  "golang": "%v",
  "compiler": "%v",
  "os": "%v",
- "architecture": "%v"
+ "architecture": "%v",
+ "release": "%v"
 }`
-	expResp = fmt.Sprintf(expResp, version.BuildTime, version.GO, version.Compiler, version.OS, version.Arch)
+	expResp = fmt.Sprintf(expResp, version.BuildTime, version.GO, version.Compiler, version.OS, version.Arch, version.Release)
 
 	cfgKafka := config.NewAPICfg()
 	cfgKafka.LoadStrJSON(suite.cfgStr)
@@ -237,6 +241,8 @@ func (suite *HandlerTestSuite) TestListVersion() {
 	cfgKafka.PushWorkerToken = "missing"
 	brk := brokers.MockBroker{}
 	str := stores.NewMockStore("whatever", "argo_mgs")
+	str.UserList = append(str.UserList, stores.QUser{8, "uuid8", nil, "UserZ", "", "", "", "", "st", "foo-email", []string{"service_admin"}, time.Now(), time.Now(), ""})
+
 	router := mux.NewRouter().StrictSlash(true)
 	mgr := oldPush.Manager{}
 	pc := new(push.MockClient)

@@ -228,7 +228,12 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 	// check for the right roles when accessing the details part of the api call
 	if r.URL.Query().Get("details") == "true" {
 
-		user, _ := auth.GetUserByToken(r.URL.Query().Get("key"), refStr)
+		authOption := gorillaContext.Get(r, "authOption").(config.AuthOption)
+
+		tokenExtractStrategy := GetRequestTokenExtractStrategy(authOption)
+		token := tokenExtractStrategy(r)
+
+		user, _ := auth.GetUserByToken(token, refStr)
 
 		// if the user has a name, the token is valid
 		if user.Name == "" {
@@ -289,6 +294,26 @@ func ListVersion(w http.ResponseWriter, r *http.Request) {
 		Arch:      version.Arch,
 	}
 
+	authOption := gorillaContext.Get(r, "authOption").(config.AuthOption)
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+
+	tokenExtractStrategy := GetRequestTokenExtractStrategy(authOption)
+	token := tokenExtractStrategy(r)
+
+	if token != "" {
+		user, _ := auth.GetUserByToken(token, refStr)
+
+		// set uuid for logging
+		gorillaContext.Set(r, "auth_user_uuid", user.UUID)
+
+		// if the user has a name, the token is valid
+		if user.Name != "" {
+			if auth.IsAdminViewer(user.ServiceRoles) || auth.IsServiceAdmin(user.ServiceRoles) {
+				v.Release = version.Release
+			}
+		}
+	}
+
 	output, err := json.MarshalIndent(v, "", " ")
 	if err != nil {
 		err := APIErrGenericInternal(err.Error())
@@ -313,7 +338,7 @@ func respondErr(w http.ResponseWriter, apiErr APIErrorRoot) {
 			"status_code": apiErr.Body.Code,
 		},
 	).Info(apiErr.Body.Message)
-	
+
 	w.WriteHeader(apiErr.Body.Code)
 	output, _ := json.MarshalIndent(apiErr, "", "   ")
 	w.Write(output)
