@@ -47,4 +47,5 @@ type Model struct {
 	Compiler  string `xml:"compiler" json:"compiler"`
 	OS        string `xml:"os" json:"os"`
 	Arch      string `xml:"architecture" json:"architecture"`
+	Release   string `xml:"release,omitempty" json:"release,omitempty"`
 }
