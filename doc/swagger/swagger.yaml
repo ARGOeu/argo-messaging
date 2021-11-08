@@ -2456,27 +2456,27 @@ definitions:
     properties:
       projects_metrics:
         type: object
-        $ref: '#/definitions/TotalProjectMessageCount'
-      users_count:
+        $ref: '#/definitions/TotalProjectMetrics'
+      total_users_count:
         type: integer
-      topics_count:
+      total_topics_count:
         type: integer
-      subscriptions_count:
+      total_subscriptions_count:
         type: integer
 
-  TotalProjectMessageCount:
+  TotalProjectMetrics:
     type: object
     properties:
       projects:
         type: array
         items:
-          $ref: '#/definitions/ProjectMessageCount'
+          $ref: '#/definitions/ProjectMetrics'
       total_message_count:
         type: integer
       average_daily_messages:
         type: integer
 
-  ProjectMessageCount:
+  ProjectMetrics:
     type: object
     properties:
       project:
@@ -2484,6 +2484,12 @@ definitions:
       message_count:
         type: integer
       average_daily_messages:
+        type: integer
+      topics_count:
+        type: integer
+      subscriptions_count:
+        type: integer
+      users_count:
         type: integer
 
   Metrics:

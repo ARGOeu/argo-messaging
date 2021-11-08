@@ -37,7 +37,7 @@ func (suite *UsersHandlersTestSuite) SetupTest() {
 	}`
 }
 
-func (suite *UsersHandlersTestSuite) TestUserProfile() {
+func (suite *UsersHandlersTestSuite) TestUserProfileUrlKey() {
 
 	req, err := http.NewRequest("GET", "http://localhost:8080/v1/users/profile?key=S3CR3T1", nil)
 	if err != nil {
@@ -78,6 +78,64 @@ func (suite *UsersHandlersTestSuite) TestUserProfile() {
 
 	cfgKafka := config.NewAPICfg()
 	cfgKafka.LoadStrJSON(suite.cfgStr)
+
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := oldPush.Manager{}
+	router.HandleFunc("/v1/users/profile", WrapMockAuthConfig(UserProfile, cfgKafka, &brk, str, &mgr, nil))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+}
+
+func (suite *UsersHandlersTestSuite) TestUserProfileHeaderKey() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/users/profile", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	req.Header.Add("x-api-key", "S3CR3T1")
+
+	expResp := `{
+   "uuid": "uuid1",
+   "projects": [
+      {
+         "project": "ARGO",
+         "roles": [
+            "consumer",
+            "publisher"
+         ],
+         "topics": [
+            "topic1",
+            "topic2"
+         ],
+         "subscriptions": [
+            "sub1",
+            "sub2",
+            "sub3"
+         ]
+      }
+   ],
+   "name": "UserA",
+   "first_name": "FirstA",
+   "last_name": "LastA",
+   "organization": "OrgA",
+   "description": "DescA",
+   "token": "S3CR3T1",
+   "email": "foo-email",
+   "service_roles": [],
+   "created_on": "2009-11-10T23:00:00Z",
+   "modified_on": "2009-11-10T23:00:00Z"
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgStr := `{
+	"auth_option":"header"
+	}`
+	cfgKafka.LoadStrJSON(cfgStr)
 
 	brk := brokers.MockBroker{}
 	str := stores.NewMockStore("whatever", "argo_mgs")

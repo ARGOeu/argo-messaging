@@ -59,17 +59,24 @@ type ProjectMessageCount struct {
 	AverageDailyMessages float64 `json:"average_daily_messages"`
 }
 
+type ProjectMetrics struct {
+	ProjectMessageCount
+	TopicsCount int64 `json:"topics_count"`
+	SubsCount   int64 `json:"subscriptions_count"`
+	UsersCount  int64 `json:"users_count"`
+}
+
 type TotalProjectsMessageCount struct {
-	Projects             []ProjectMessageCount `json:"projects"`
-	TotalCount           int64                 `json:"total_message_count"`
-	AverageDailyMessages float64               `json:"average_daily_messages"`
+	Projects             []ProjectMetrics `json:"projects"`
+	TotalCount           int64            `json:"total_message_count"`
+	AverageDailyMessages float64          `json:"average_daily_messages"`
 }
 
 type VAReport struct {
 	ProjectsMetrics    TotalProjectsMessageCount `json:"projects_metrics"`
-	UsersCount         int                       `json:"users_count"`
-	TopicsCount        int                       `json:"topics_count"`
-	SubscriptionsCount int                       `json:"subscriptions_count"`
+	UsersCount         int64                     `json:"total_users_count"`
+	TopicsCount        int64                     `json:"total_topics_count"`
+	SubscriptionsCount int64                     `json:"total_subscriptions_count"`
 }
 
 type Timepoint struct {

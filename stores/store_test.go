@@ -638,13 +638,13 @@ func (suite *StoreTestSuite) TestMockStore() {
 
 	sdate := time.Date(2008, 11, 19, 8, 0, 0, 0, time.Local)
 	edate := time.Date(2020, 11, 21, 6, 0, 0, 0, time.Local)
-	tc, _ := store3.TopicsCount(sdate, edate)
-	sc, _ := store3.SubscriptionsCount(sdate, edate)
-	uc, _ := store2.UsersCount(sdate, edate)
+	tc, _ := store3.TopicsCount(sdate, edate, []string{})
+	sc, _ := store3.SubscriptionsCount(sdate, edate, []string{})
+	uc, _ := store2.UsersCount(sdate, edate, []string{})
 
-	suite.Equal(3, tc)
-	suite.Equal(3, sc)
-	suite.Equal(9, uc)
+	suite.Equal(map[string]int64{"argo_uuid": 3}, tc)
+	suite.Equal(map[string]int64{"argo_uuid": 3}, sc)
+	suite.Equal(map[string]int64{"argo_uuid": 7, "argo_uuid2": 1}, uc)
 }
 
 func TestStoresTestSuite(t *testing.T) {

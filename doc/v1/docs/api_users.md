@@ -528,6 +528,9 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 This request lists information about a specific user 
 based on the authentication key provided as a url parameter
 
+Authentication key can also take place in the
+`x-api-key` header.
+
 ### Request
 ```
 GET "/v1/users/profile"

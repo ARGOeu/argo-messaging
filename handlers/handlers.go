@@ -67,6 +67,7 @@ func WrapMockAuthConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Br
 		gorillaContext.Set(r, "str", nStr)
 		gorillaContext.Set(r, "mgr", mgr)
 		gorillaContext.Set(r, "apsc", c)
+		gorillaContext.Set(r, "authOption", cfg.AuthOption())
 		gorillaContext.Set(r, "auth_resource", cfg.ResAuth)
 		gorillaContext.Set(r, "auth_user", "UserA")
 		gorillaContext.Set(r, "auth_user_uuid", "uuid1")
@@ -88,6 +89,7 @@ func WrapConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Broker, st
 		gorillaContext.Set(r, "str", nStr)
 		gorillaContext.Set(r, "mgr", mgr)
 		gorillaContext.Set(r, "apsc", c)
+		gorillaContext.Set(r, "authOption", cfg.AuthOption())
 		gorillaContext.Set(r, "auth_resource", cfg.ResAuth)
 		gorillaContext.Set(r, "auth_service_token", cfg.ServiceToken)
 		gorillaContext.Set(r, "push_worker_token", cfg.PushWorkerToken)
@@ -305,10 +307,14 @@ func respondOK(w http.ResponseWriter, output []byte) {
 
 // respondErr is used to finalize response writer with proper error codes and error output
 func respondErr(w http.ResponseWriter, apiErr APIErrorRoot) {
-	log.Error(apiErr.Body.Code, "\t", apiErr.Body.Message)
-	// set the response code
+	log.WithFields(
+		log.Fields{
+			"type":        "service_log",
+			"status_code": apiErr.Body.Code,
+		},
+	).Info(apiErr.Body.Message)
+	
 	w.WriteHeader(apiErr.Body.Code)
-	// Output API Erorr object to JSON
 	output, _ := json.MarshalIndent(apiErr, "", "   ")
 	w.Write(output)
 }

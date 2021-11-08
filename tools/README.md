@@ -1,6 +1,70 @@
 AMS data tools
 ========================
 
+reassign_partitions
+-------------------
+
+The reassign_partitions.py script is used in order to move partitions from
+one broker to another one.The script is to be used when decommissioning an old broker
+and adding a new one.The partitions which the old broker is leader/follower to,
+should be now moved and handled by the new broker.The script generates
+the required configuration that is needed for `kafka's reassign partition tool`
+and executes it as well.The script uses zookeeper in order to find the needed
+topics metadata about leader/follower/partitions.Finally the script will also
+honor the replication factor provided reducing any ISR that is greater
+
+Requirements
+------------
+
+- kazoo
+
+How to run reassign_partitions
+------------------------------
+```
+./reassign_partitions.py --zoo-list localhost:2181 --broker-remove 0 --broker-add 3
+--kafka-bin-dir /usr/lib/kafka/bin --replication-factor 2
+--rollback-file rollback.json --reassignment-file reassign.json --execute
+```
+
+- `--zoo-list`: Comma separated list of zoo hosts, zoo1:2181,zoo2:2181,zoo3:2181
+- `--broker-remove`: The id of the broker that is being decommissioned
+- `--broker-add`: The id of the broker that is being added to the cluster
+- `--kafka-bin-dir`: Directory containing the kafka-reassign-partitions.sh
+script, most commonly found in the installation directory of kafka
+- `--replication-factor`: The number of ISR each topic partition should have including the leader
+- `--rollback-file`: Output file that will contain the current cluster state
+and can be used to rollback if needed
+- `--reassignment-file`: Output file that will contain the configuration needed
+for kafka-reassign-partitions.sh.
+- `--execute`: Execute the kafka-reassign-partitions.sh script.
+
+remove_orphan_kafka_topics
+-------------------------
+
+Remove orphan kafka topics is script that clears kafka from all orphan
+topics.Orphan topics are topics that do not exist in AMS; they have been
+left over on the kafka brokers.The script will check the existence of each
+kafka topic in the AMS data store.In case a topic isn't present in the AMS
+data store, the script will remove it from the broker.
+
+
+Requirements
+------------
+
+- kafka-python
+- pymongo
+
+How to run remove_orphan_kafka_topics
+-----------------------------
+`./remove_orphan_kafka_topics.py
+--broker-list kafka1.host:9092,kafka2.host:9092,kafka3.host:9092
+ --mongo-list mongo1:27017,mongo2:27017,mongo3:27017 --dry`
+
+ - `--broker-list` is a comma separated list of brokers, host1:port1,host1:port2,host3:port3
+ - `--mongo-list` is a comma separated list of mongo rs nodes, mongo1:27017,mongo2:27017,mongo3:27017
+ - `--dry` if you want to observe the topics that will be deleted
+ but not actually delete them.Omit for full deletion.
+
 stream_producer
 ----------------
 Stream producer is a script that allows you to connect to an AMS endpoint and publish messages of configurable size indefinitely.
@@ -83,7 +147,7 @@ How to run consumer
 ams_kafka_export
 ----------------
 
-This command line tool can be used to export/import data from AMS kafka topics into text files and move them to another AMS kafka cluster. 
+This command line tool can be used to export/import data from AMS kafka topics into text files and move them to another AMS kafka cluster.
 
 Requirements
 ------------
@@ -102,7 +166,7 @@ $ `./ams-migrate.py --mongo "localhost:27017" --brokers "localhost:9092" --timeo
 or
 $ `./ams-migrate.py export` filled with default values targeting localhost
 
-where `--mongo` follow the hostname:port of mongodb 
+where `--mongo` follow the hostname:port of mongodb
 where `--brokers` follow with a comma-separated list of host:port of kafka instances
 where `--timeout` specify a consume wait timeout in milliseconds
 where `--data` specify a folder to export data
