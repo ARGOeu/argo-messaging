@@ -6,12 +6,21 @@ slug: /
 
 The ARGO Messaging Service (AMS)  is a Publish/Subscribe Service, which implements the Google PubSub protocol. Instead of focusing on a single Messaging API specification for handling the logic of publishing/subscribing to the broker network the API focuses on creating nodes of Publishers and Subscribers as a Service. It provides an HTTP API that enables Users/Systems to implement message oriented service using the Publish/Subscribe Model over plain HTTP.
 
+The ARGO Messaging Service is a real-time messaging service that allows the user to send and receive messages between independent applications. It is implemented as a Publish/Subscribe Service. Instead of focusing on a single Messaging service specification for handling the logic of publishing/subscribing to the broker network the service focuses on creating nodes of Publishers and Subscribers as a Service. In the Publish/Subscribe paradigm, Publishers are users/systems that can send messages to named-channels called Topics. Subscribers are users/systems that create Subscriptions to specific topics and receive messages. 
+
+
 ## Features 
  - **Ease of use**: It supports an HTTP API and a python library so as to easily integrate with the AMS. 
  - **Push Delivery**: ΑΜS instantly pushes asynchronous event notifications when messages are published to the message topic. Subscribers are notified when a message is available.
  - **Replay messages**: replay messages that have been acknowledged by seeking to a timestamp. 
  - **Schema Support**: on demand mechanism that enables a)  the definition of the expected payload schema, b)  the definition of the expected set of attributes and values and c) the validation for each message if the requirements are met and immediately notify client
  - **Replicate messages on multiple topics**: Republisher script that consumes and publishes messages for specific topics (ex. SITES) 
+
+The AMS supports **“Schema Validation per topic”**. It allows the user to define a schema for each topic and validate messages as they are published. It can protect topics from garbage, incomplete messages especially when a topic has multiple remote publishers to ensure data integrity on the client side. 
+
+The “Replay messages” feature is an offset manipulation mechanism that allows the client on demand to replay or skip messages. When creating a subscription (or editing an existing one), there is an internal option to retain acknowledged messages (by default up to 7 days, or more on request).  To replay and reprocess these messages (ex. testing, error in manipulation etc) , the client has the ability to go back and use the same messages just by seeking a previous timestamp. If  the user needs to skip messages,  he just has to  seek an offset in the future. 
+
+The implementation for the “push server” is one of the features used.  The push server(s) are an optional set of worker-machines - deployed on demand - that are needed when the AMS wants to support push enabled subscriptions. The latest implementation provides a gRPC interface in order to communicate with AMS api.  A new security approach was also introduced to enable a secure handshake. 
 
 
 ## Architectural aspect
