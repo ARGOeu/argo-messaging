@@ -9,12 +9,13 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
-	"github.com/ARGOeu/argo-messaging/projects"
-	"github.com/ARGOeu/argo-messaging/stores"
-	log "github.com/sirupsen/logrus"
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/ARGOeu/argo-messaging/projects"
+	"github.com/ARGOeu/argo-messaging/stores"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -355,7 +356,7 @@ func Find(projectUUID, userUUID, name, pageToken string, pageSize int32, store s
 		curSub.Offset = item.Offset
 		curSub.NextOffset = item.NextOffset
 		curSub.Ack = item.Ack
-		curSub.CreatedOn = item.CreatedOn.Format("2006-01-02T15:04:05Z")
+		curSub.CreatedOn = item.CreatedOn.UTC().Format("2006-01-02T15:04:05Z")
 		if item.PushEndpoint != "" {
 			rp := RetryPolicy{
 				PolicyType: item.RetPolicy,

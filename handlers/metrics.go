@@ -3,6 +3,10 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/ARGOeu/argo-messaging/auth"
 	"github.com/ARGOeu/argo-messaging/metrics"
 	"github.com/ARGOeu/argo-messaging/stores"
@@ -10,9 +14,6 @@ import (
 	"github.com/ARGOeu/argo-messaging/topics"
 	gorillaContext "github.com/gorilla/context"
 	"github.com/gorilla/mux"
-	"net/http"
-	"strings"
-	"time"
 )
 
 // OpMetrics (GET) all operational metrics
@@ -301,7 +302,7 @@ func TopicMetrics(w http.ResponseWriter, r *http.Request) {
 	m2 := metrics.NewTopicMsgs(urlTopic, numMsg, metrics.GetTimeNowZulu())
 	m3 := metrics.NewTopicBytes(urlTopic, numBytes, metrics.GetTimeNowZulu())
 	m4 := metrics.NewDailyTopicMsgCount(urlTopic, timePoints)
-	m5 := metrics.NewTopicRate(urlTopic, resultsMsg.PublishRate, resultsMsg.LatestPublish.Format("2006-01-02T15:04:05Z"))
+	m5 := metrics.NewTopicRate(urlTopic, resultsMsg.PublishRate, resultsMsg.LatestPublish.UTC().Format("2006-01-02T15:04:05Z"))
 
 	res.Metrics = append(res.Metrics, m2, m3, m4, m5)
 
@@ -373,7 +374,7 @@ func SubMetrics(w http.ResponseWriter, r *http.Request) {
 	m1 := metrics.NewSubMsgs(urlSub, numMsg, metrics.GetTimeNowZulu())
 	res := metrics.NewMetricList(m1)
 	m2 := metrics.NewSubBytes(urlSub, numBytes, metrics.GetTimeNowZulu())
-	m3 := metrics.NewSubRate(urlSub, resultMsg.ConsumeRate, resultMsg.LatestConsume.Format("2006-01-02T15:04:05Z"))
+	m3 := metrics.NewSubRate(urlSub, resultMsg.ConsumeRate, resultMsg.LatestConsume.UTC().Format("2006-01-02T15:04:05Z"))
 
 	res.Metrics = append(res.Metrics, m2, m3)
 
