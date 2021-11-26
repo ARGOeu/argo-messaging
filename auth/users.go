@@ -224,7 +224,7 @@ func FindUserRegistrations(status, activationToken, name, email, org string, str
 }
 
 func UpdateUserRegistration(regUUID, status, modifiedBy string, modifiedAt time.Time, refStr stores.Store) error {
-	return refStr.UpdateRegistration(regUUID, status, modifiedBy, modifiedAt.Format("2006-01-02T15:04:05Z"))
+	return refStr.UpdateRegistration(regUUID, status, modifiedBy, modifiedAt.UTC().Format("2006-01-02T15:04:05Z"))
 }
 
 // NewUser accepts parameters and creates a new user

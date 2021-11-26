@@ -856,20 +856,20 @@ func (mk *MockStore) Initialize() {
 	mk.OpMetrics = make(map[string]QopMetric)
 
 	// populate topics
-	qtop4 := QTopic{3, "argo_uuid", "topic4", 0, 0, time.Date(0, 0, 0, 0, 0, 0, 0, time.Local), 0, "", time.Date(2020, 11, 19, 0, 0, 0, 0, time.Local), []string{}}
-	qtop3 := QTopic{2, "argo_uuid", "topic3", 0, 0, time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local), 8.99, "schema_uuid_3", time.Date(2020, 11, 20, 0, 0, 0, 0, time.Local), []string{}}
-	qtop2 := QTopic{1, "argo_uuid", "topic2", 0, 0, time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local), 5.45, "schema_uuid_1", time.Date(2020, 11, 21, 0, 0, 0, 0, time.Local), []string{}}
-	qtop1 := QTopic{0, "argo_uuid", "topic1", 0, 0, time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10, "", time.Date(2020, 11, 22, 0, 0, 0, 0, time.Local), []string{}}
+	qtop4 := QTopic{3, "argo_uuid", "topic4", 0, 0, time.Date(0, 0, 0, 0, 0, 0, 0, time.UTC), 0, "", time.Date(2020, 11, 19, 0, 0, 0, 0, time.UTC), []string{}}
+	qtop3 := QTopic{2, "argo_uuid", "topic3", 0, 0, time.Date(2019, 5, 7, 0, 0, 0, 0, time.UTC), 8.99, "schema_uuid_3", time.Date(2020, 11, 20, 0, 0, 0, 0, time.UTC), []string{}}
+	qtop2 := QTopic{1, "argo_uuid", "topic2", 0, 0, time.Date(2019, 5, 8, 0, 0, 0, 0, time.UTC), 5.45, "schema_uuid_1", time.Date(2020, 11, 21, 0, 0, 0, 0, time.UTC), []string{}}
+	qtop1 := QTopic{0, "argo_uuid", "topic1", 0, 0, time.Date(2019, 5, 6, 0, 0, 0, 0, time.UTC), 10, "", time.Date(2020, 11, 22, 0, 0, 0, 0, time.UTC), []string{}}
 	mk.TopicList = append(mk.TopicList, qtop1)
 	mk.TopicList = append(mk.TopicList, qtop2)
 	mk.TopicList = append(mk.TopicList, qtop3)
 	mk.TopicList = append(mk.TopicList, qtop4)
 
 	// populate Subscriptions
-	qsub1 := QSub{0, "argo_uuid", "sub1", "topic1", 0, 0, "", "", 0, "", "", 10, "", 0, 0, 0, "", false, time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local), 10, time.Date(2020, 11, 19, 0, 0, 0, 0, time.Local), []string{}}
-	qsub2 := QSub{1, "argo_uuid", "sub2", "topic2", 0, 0, "", "", 0, "", "", 10, "", 0, 0, 0, "", false, time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local), 8.99, time.Date(2020, 11, 20, 0, 0, 0, 0, time.Local), []string{}}
-	qsub3 := QSub{2, "argo_uuid", "sub3", "topic3", 0, 0, "", "", 0, "", "", 10, "", 0, 0, 0, "", false, time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local), 5.45, time.Date(2020, 11, 21, 0, 0, 0, 0, time.Local), []string{}}
-	qsub4 := QSub{3, "argo_uuid", "sub4", "topic4", 0, 0, "", "endpoint.foo", 1, "autogen", "auth-header-1", 10, "linear", 300, 0, 0, "push-id-1", true, time.Date(0, 0, 0, 0, 0, 0, 0, time.Local), 0, time.Date(2020, 11, 22, 0, 0, 0, 0, time.Local), []string{}}
+	qsub1 := QSub{0, "argo_uuid", "sub1", "topic1", 0, 0, "", "", 0, "", "", 10, "", 0, 0, 0, "", false, time.Date(2019, 5, 6, 0, 0, 0, 0, time.UTC), 10, time.Date(2020, 11, 19, 0, 0, 0, 0, time.UTC), []string{}}
+	qsub2 := QSub{1, "argo_uuid", "sub2", "topic2", 0, 0, "", "", 0, "", "", 10, "", 0, 0, 0, "", false, time.Date(2019, 5, 7, 0, 0, 0, 0, time.UTC), 8.99, time.Date(2020, 11, 20, 0, 0, 0, 0, time.UTC), []string{}}
+	qsub3 := QSub{2, "argo_uuid", "sub3", "topic3", 0, 0, "", "", 0, "", "", 10, "", 0, 0, 0, "", false, time.Date(2019, 5, 8, 0, 0, 0, 0, time.UTC), 5.45, time.Date(2020, 11, 21, 0, 0, 0, 0, time.UTC), []string{}}
+	qsub4 := QSub{3, "argo_uuid", "sub4", "topic4", 0, 0, "", "endpoint.foo", 1, "autogen", "auth-header-1", 10, "linear", 300, 0, 0, "push-id-1", true, time.Date(0, 0, 0, 0, 0, 0, 0, time.UTC), 0, time.Date(2020, 11, 22, 0, 0, 0, 0, time.UTC), []string{}}
 	mk.SubList = append(mk.SubList, qsub1)
 	mk.SubList = append(mk.SubList, qsub2)
 	mk.SubList = append(mk.SubList, qsub3)
