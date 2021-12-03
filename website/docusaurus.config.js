@@ -12,7 +12,7 @@ module.exports = {
       title: 'ARGO Messaging Service',
       logo: {
         alt: 'argo-messaging logo',
-        src: 'img/ams.png',
+        src: 'img/ams-logo.svg',
       },
       items: [
         {
