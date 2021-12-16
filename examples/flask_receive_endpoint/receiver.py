@@ -2,8 +2,11 @@
 
 # Example of a remote endpoint used to receive push messages
 # The endpoint is a simple flask app that by default listens to port 5000
-# It receives push messages that are delivered with http POST to `host.remote.node:5000/receive_here`
+# It receives push messages that are delivered with http POST to `host:port/receive_here`
 # It dumps the message properties and the decoded payload to a local file `./flask_receiver.log`
+#
+# It allows for user to view the received messages since the endpoint started by visiting `host:port/messages`
+# page in the browser. The page auto-refreshes automatically every 3 seconds
 #
 # To run the example endpoint issue:
 #  $ export FLASK_APP=receiver.py
@@ -12,19 +15,31 @@
 # If you want the endpoint to support https issue:
 #  $ ./receiver.py --cert /path/to/cert --key /path/to/cert/key
 #
-# You can also specify the bind port with the -port argument, default is 5000
+# You can specify the hostname to listen on with the -host argument, default is 127.0.0.0 
+# You can also specify the bind port with the -port argument, default is 5000.
 # Lastly, you can also specify which message format the endpoint should expect
-# --single or --multiple
+# --single or --multiple.
+#
+# The --authorization-header parameter allows to define an expected authorization has supplied 
+# from the ams push server in an authorization header. This is used to validate that you are indeed
+# receiving requests from the designated ams push server
+#
+# The --verification-hash parameter allows to supply a verification hash to the endpoint in order 
+# to be verified by the AMS (see ams documentation for verification of remote endpoint in push configruations)
 
+from re import A
 from flask import Flask
 from flask import request
 from flask import Response
+from datetime import datetime
+import base64
 import argparse
 import json
 from logging.config import dictConfig
 import ssl
 import flask_cors
 from flask.logging import default_handler
+from string import Template
 
 dictConfig({
     'version': 1,
@@ -55,12 +70,23 @@ VERIFICATION_HASH = ""
 
 MESSAGE_FORMAT = ""
 
+RECEIVED_MSGS=[]
+
 AUTHZ_HEADER = ""
+START_TIME = datetime.utcnow().isoformat()
 
 app = Flask(__name__)
 
+
 app.logger.removeHandler(default_handler)
 
+# decode a received msg payload and create a 3-tuple with msgid, publishtime and text payload
+def msg_to_tuple(msg):
+    msg_decoded = base64.b64decode(msg.get("data")).decode('utf-8')
+    pub_time = msg.get("publishTime")
+    msg_ID = msg.get("messageId")
+    return (msg_ID, pub_time, msg_decoded)
+    
 
 @app.route('/receive_here', methods=['POST'])
 def receive_msg():
@@ -71,7 +97,7 @@ def receive_msg():
         if request.headers.get("Authorization") != AUTHZ_HEADER:
             return "UNAUTHORIZED", 401
         
-    if MESSAGE_FORMAT is "single":
+    if MESSAGE_FORMAT == "single":
 
         try:
             data = json.loads(request.get_data())
@@ -94,7 +120,10 @@ def receive_msg():
             if "data" not in msg:
                 raise KeyError("data field missing from request message: {}".format(msg_json))
 
+            RECEIVED_MSGS.append(msg_to_tuple(msg))
+            
             app.logger.info(data)
+            
 
             return 'Message received', 201
 
@@ -102,7 +131,7 @@ def receive_msg():
             app.logger.error(e.message)
             return e.message, 400
 
-    elif MESSAGE_FORMAT is "multi":
+    elif MESSAGE_FORMAT == "multi":
 
         try:
             data = json.loads(request.get_data())
@@ -131,7 +160,9 @@ def receive_msg():
 
                 if "data" not in msg:
                     raise KeyError("data field missing from request message: {}".format(msg_json))
-
+                    
+                RECEIVED_MSGS.append(msg_to_tuple(msg))
+            
             app.logger.info(data)
 
             return 'Messages received', 201
@@ -139,6 +170,18 @@ def receive_msg():
         except Exception as e:
             app.logger.error(e.message)
             return e.message, 400
+
+
+@app.route('/messages', methods=['GET'])
+def view_msg():
+    p = Template('<p>Received messages <em>(since $tm)</em>:</p>').substitute(tm=START_TIME)
+    meta = '<meta http-equiv="refresh" content="3" />'
+    ul = ''
+    for msg in RECEIVED_MSGS:
+       li = Template('<li><p>$id - <sub>$pub</sub></br>$msg</p></li>').substitute(id=msg[0],pub=msg[1],msg=msg[2])
+       ul = ul + li
+    html = Template('<html><head><title>Received Messages</title> $meta</head><body>$par<ul>$ul</ul></body></html>').substitute(par=p,meta=meta,ul=ul)
+    return Response(response=html, status=200, content_type="text/html")
 
 
 @app.route('/ams_verification_hash', methods=['GET'])
@@ -149,6 +192,10 @@ def return_verification_hash():
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Simple flask endpoint for push subscriptions")
+
+    parser.add_argument(
+        "-host", "--host", metavar="STRING", help="Hostname to listen to",
+        default="127.0.0.1", dest="host")
 
     parser.add_argument(
         "-cert", "--cert", metavar="STRING", help="Certificate location",
@@ -195,5 +242,5 @@ if __name__ == "__main__":
     if args.multi_message:
         MESSAGE_FORMAT = "multi"
 
-    app.run(host='0.0.0.0', port=args.port, ssl_context=context, threaded=True, debug=True)
+    app.run(host=args.host, port=args.port, ssl_context=context, threaded=True, debug=True)
 
