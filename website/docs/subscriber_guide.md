@@ -1,5 +1,5 @@
 ---
-id: publisher
+id: subscriber_guide
 title: Subscriber Guide
 ---
 
