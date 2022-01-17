@@ -1,0 +1,22 @@
+---
+id: subscriber-pull_guide
+title: Receiving messages using Pull 
+---
+
+Subscribers can read messages from named-channels called Subscriptions.  Each subscription can belong to a single topic. A topic though can have multiple subscriptions. 
+If you are a subscriber and you want to receive messages published to a topic, the idea is that you should create a subscription to that topic. 
+The subscription is the connection of the topic to a specific application, and its fuction is to receive and process messages published to the topic. 
+Only messages published to the topic after the subscription is created are available to subscriber applications. 
+
+AMS supports both push and pull message delivery. In push delivery, the Messaging Service initiates requests to your subscriber application to deliver messages. 
+In pull delivery, your subscription application initiates requests to the Pub/Sub server to retrieve messages.
+
+**Pull subscriptions**
+Pull subscriptions can be configured to require that message deliveries are acknowledged by the Subscribers. If an acknowledgement is made, subscription can resume progressing and send the next available messages. If no acknowledgement is made subscription pauses progressing and re-sends the same messages. In a pull subscription, the subscribing application explicitly calls the API pull method, which requests delivery of a message in the subscription queue. The Pub/Sub server responds with the message (or an error if the queue is empty), and an ack ID. The subscriber then explicitly calls the acknowledge method, using the returned ack ID, to acknowledge receipt.
+
+## Before you start
+
+In order to get an account on the ARGO Messaging Service, submit a request through the [ARGO Messaging Service account form](https://docs.google.com/forms/d/e/1FAIpQLScfMCYPkUqUa5lT046RK1yCR4yn6M96WbgD5DMlNJ-zRFHSRA/viewform)
+
+Upon account approval, you will receive information via e-mail about your new project along with an API token.
+
