@@ -1,6 +1,6 @@
 ---
 id: replaying_guide
-title: Receiving messages using Push
+title: Replaying Messages
 ---
 
 Subscriptions’ messages can still be accessed despite the fact that a Subscriber might have acknowledged them.
