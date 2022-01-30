@@ -97,6 +97,61 @@ func (suite *TopicsHandlersTestSuite) TestTopicCreate() {
 
 }
 
+func (suite *TopicsHandlersTestSuite) TestTopicAttachSchema() {
+
+	body := `{
+   "schema": "projects/ARGO/schemas/schema-1"
+}`
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/projects/ARGO/topics/topic1:attachSchema",
+		strings.NewReader(body))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := oldPush.Manager{}
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:attachSchema", WrapMockAuthConfig(TopicAttachSchema, cfgKafka, &brk, str, &mgr, nil))
+	router.ServeHTTP(w, req)
+	tp, _, _, _ := str.QueryTopics("argo_uuid", "", "topic1", "", 1)
+	suite.Equal(200, w.Code)
+	suite.Equal("", w.Body.String())
+	suite.Equal("schema_uuid_1", tp[0].SchemaUUID)
+}
+
+func (suite *TopicsHandlersTestSuite) TestTopicDetachSchema() {
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/projects/ARGO/topics/topic5:detachSchema",
+		nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	str.TopicList = append(str.TopicList, stores.QTopic{
+		SchemaUUID:  "schema_uuid_1",
+		ProjectUUID: "argo_uuid",
+		Name:        "topic5",
+	})
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := oldPush.Manager{}
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:detachSchema", WrapMockAuthConfig(TopicDetachSchema, cfgKafka, &brk, str, &mgr, nil))
+	router.ServeHTTP(w, req)
+	tp, _, _, _ := str.QueryTopics("argo_uuid", "", "topic5", "", 1)
+	suite.Equal(200, w.Code)
+	suite.Equal("", w.Body.String())
+	suite.Equal("", tp[0].SchemaUUID)
+}
+
 func (suite *TopicsHandlersTestSuite) TestTopicCreateExists() {
 
 	req, err := http.NewRequest("PUT", "http://localhost:8080/v1/projects/ARGO/topics/topic1", nil)

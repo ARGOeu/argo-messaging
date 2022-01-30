@@ -2023,6 +2023,7 @@ paths:
         500:
           $ref: "#/responses/500"
 
+
     delete:
       summary: Delete an existing topic in a project
       description: |
@@ -2058,6 +2059,82 @@ paths:
           $ref: "#/responses/404"
         409:
           $ref: "#/responses/409"
+        500:
+          $ref: "#/responses/500"
+
+  /projects/{PROJECT}/topics/{TOPIC}:attachSchema:
+    post:
+      summary: Link the given schema to the topic
+      description: |
+        Links the given schema to the topic
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: TOPIC
+          in: path
+          description: Name of the topic
+          required: true
+          type: string
+        - name: Schema
+          in: body
+          description: The name of the schema to be linked with the topic.All published messages will be validated against the linked schema.
+          required: false
+          schema:
+            type: object
+            properties:
+              schema:
+                type: string
+      tags:
+        - Topics
+      responses:
+        200:
+          description: Empty response
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
+
+
+  /projects/{PROJECT}/topics/{TOPIC}:detachSchema:
+    post:
+      summary: Unlink the given schema from the topic
+      description: |
+        Uninks the given schema from the topic
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: TOPIC
+          in: path
+          description: Name of the topic
+          required: true
+          type: string
+      tags:
+        - Topics
+      responses:
+        200:
+          description: Empty response
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
         500:
           $ref: "#/responses/500"
 

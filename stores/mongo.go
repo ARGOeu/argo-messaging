@@ -1376,6 +1376,25 @@ func (mong *MongoStore) InsertTopic(projectUUID string, name string, schemaUUID 
 	return mong.InsertResource("topics", topic)
 }
 
+// LinkTopicSchema links the topic with a schema
+func (mong *MongoStore) LinkTopicSchema(projectUUID, name, schemaUUID string) error {
+
+	db := mong.Session.DB(mong.Database)
+	c := db.C("topics")
+
+	err := c.Update(bson.M{"project_uuid": projectUUID, "name": name}, bson.M{"$set": bson.M{"schema_uuid": schemaUUID}})
+	if err != nil {
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"backend_service": "mongo",
+				"backend_hosts":   mong.Server,
+			},
+		).Fatal(err.Error())
+	}
+	return nil
+}
+
 // InsertOpMetric inserts an operational metric
 func (mong *MongoStore) InsertOpMetric(hostname string, cpu float64, mem float64) error {
 	opMetric := QopMetric{Hostname: hostname, CPU: cpu, MEM: mem}
@@ -1532,8 +1551,6 @@ func (mong *MongoStore) QueryTotalMessagesPerProject(projectUUIDs []string, star
 		},
 	}
 
-	fmt.Println(query)
-	fmt.Println("2")
 	if err = c.Pipe(query).All(&qdp); err != nil {
 		log.WithFields(
 			log.Fields{
@@ -1690,7 +1707,7 @@ func (mong *MongoStore) AppendToACL(projectUUID string, resource string, name st
 	return err
 }
 
-// RemoveFromACL remves users for a given ACL
+// RemoveFromACL removes users for a given ACL
 func (mong *MongoStore) RemoveFromACL(projectUUID string, resource string, name string, acl []string) error {
 
 	db := mong.Session.DB(mong.Database)
@@ -1761,7 +1778,7 @@ func (mong *MongoStore) InsertResource(col string, res interface{}) error {
 	return err
 }
 
-// RemoveAll removes all  occurences matched with a resource from the store
+// RemoveAll removes all occurrences matched with a resource from the store
 func (mong *MongoStore) RemoveAll(col string, res interface{}) error {
 	db := mong.Session.DB(mong.Database)
 	c := db.C(col)

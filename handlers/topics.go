@@ -222,6 +222,145 @@ func TopicCreate(w http.ResponseWriter, r *http.Request) {
 	respondOK(w, output)
 }
 
+// TopicAttachSchema (POST) attaches an already created schema to the given topic
+func TopicAttachSchema(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
+
+	postBody := map[string]string{}
+	schemaUUID := ""
+
+	results, err := topics.Find(projectUUID, "", urlVars["topic"], "", 0, refStr)
+
+	if err != nil {
+		err := APIErrGenericBackend()
+		respondErr(w, err)
+		return
+	}
+
+	// If not found
+	if results.Empty() {
+		err := APIErrorNotFound("Topic")
+		respondErr(w, err)
+		return
+	}
+
+	// check if there's a request body provided before trying to decode
+	if r.Body != nil {
+
+		b, err := ioutil.ReadAll(r.Body)
+
+		if err != nil {
+			err := APIErrorInvalidRequestBody()
+			respondErr(w, err)
+			return
+		}
+		defer r.Body.Close()
+
+		if len(b) > 0 {
+			err = json.Unmarshal(b, &postBody)
+			if err != nil {
+				err := APIErrorInvalidRequestBody()
+				respondErr(w, err)
+				return
+			}
+
+			schemaRef := postBody["schema"]
+
+			// if there was a schema name provided, check its existence
+			if schemaRef != "" {
+				_, schemaName, err := schemas.ExtractSchema(schemaRef)
+				if err != nil {
+					err := APIErrorInvalidData(err.Error())
+					respondErr(w, err)
+					return
+				}
+				sl, err := schemas.Find(projectUUID, "", schemaName, refStr)
+				if err != nil {
+					err := APIErrGenericInternal(err.Error())
+					respondErr(w, err)
+					return
+				}
+
+				if sl.Empty() {
+					err := APIErrorNotFound("Schema")
+					respondErr(w, err)
+					return
+				}
+
+				schemaUUID = sl.Schemas[0].UUID
+			}
+		}
+	}
+
+	err = topics.AttachSchemaToTopic(projectUUID, urlVars["topic"], schemaUUID, refStr)
+	if err != nil {
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+	}
+
+	// Write response
+	output = []byte("")
+	respondOK(w, output)
+}
+
+// TopicDetachSchema (POST) removes the schema from the given topic
+func TopicDetachSchema(w http.ResponseWriter, r *http.Request) {
+
+	// Init output
+	output := []byte("")
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
+
+	results, err := topics.Find(projectUUID, "", urlVars["topic"], "", 0, refStr)
+
+	if err != nil {
+		err := APIErrGenericBackend()
+		respondErr(w, err)
+		return
+	}
+
+	// If not found
+	if results.Empty() {
+		err := APIErrorNotFound("Topic")
+		respondErr(w, err)
+		return
+	}
+
+	err = topics.DetachSchemaFromTopic(projectUUID, urlVars["topic"], refStr)
+	if err != nil {
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+	}
+
+	// Write response
+	output = []byte("")
+	respondOK(w, output)
+}
+
 // TopicListOne (GET) one topic
 func TopicListOne(w http.ResponseWriter, r *http.Request) {
 

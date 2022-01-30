@@ -292,6 +292,71 @@ Success Response `200 OK`
 Please refer to section [Errors](api_errors.md) to see all possible Errors
 
 
+## [POST] Attach a schema to a topic
+Attach one of the project's schemas to the given topic.
+
+### Request
+```json
+POST "/v1/projects/{project_name}/topics/{topic_name}:attachSchema"
+```
+
+### Where
+- Project_name: Name of the project
+- topic_name: Name of the topic
+
+### Post data
+```json
+{
+  "schema": "projects/{project_name}/schemas/{schema_name}"
+}
+```
+
+### Example request
+
+```json
+curl -X POST -H "Content-Type: application/json"  
+-d { POSTDATA } "https://{URL}/v1/projects/BRAND_NEW/topics/monitoring:attachSchema?key=S3CR3T"
+```
+
+### Responses  
+
+```
+If successful, empty response. 
+```
+
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors
+
+
+## [POST] Detach a schema to a topic
+Detach the topic's current assigned schema.
+If the topic has no assigned schema, nothing happens.
+
+### Request
+```json
+POST "/v1/projects/{project_name}/topics/{topic_name}:detachSchema"
+```
+
+### Where
+- Project_name: Name of the project
+- topic_name: Name of the topic
+
+### Example request
+
+```json
+curl -X POST -H "Content-Type: application/json"  
+"https://{URL}/v1/projects/BRAND_NEW/topics/monitoring:detachSchema?key=S3CR3T"
+```
+
+### Responses  
+
+```
+If successful, empty response. 
+```
+
+### Errors
+Please refer to section [Errors](api_errors.md) to see all possible Errors
+
 ## [GET] List ACL of a given topic
 The following request returns a list of authorized users (publishers) of a given topic.
 

@@ -132,6 +132,8 @@ var defaultRoutes = []APIRoute{
 	{"topics:delete", "DELETE", "/projects/{project}/topics/{topic}", handlers.TopicDelete},
 	{"topics:publish", "POST", "/projects/{project}/topics/{topic}:publish", handlers.TopicPublish},
 	{"topics:modifyAcl", "POST", "/projects/{project}/topics/{topic}:modifyAcl", handlers.TopicModACL},
+	{"topics:attachSchema", "POST", "/projects/{project}/topics/{topic}:attachSchema", handlers.TopicAttachSchema},
+	{"topics:detachSchema", "POST", "/projects/{project}/topics/{topic}:detachSchema", handlers.TopicDetachSchema},
 	{"schemas:validateMessage", "POST", "/projects/{project}/schemas/{schema}:validate", handlers.SchemaValidateMessage},
 	{"schemas:create", "POST", "/projects/{project}/schemas/{schema}", handlers.SchemaCreate},
 	{"schemas:show", "GET", "/projects/{project}/schemas/{schema}", handlers.SchemaListOne},
