@@ -1129,6 +1129,16 @@ func (mk *MockStore) InsertTopic(projectUUID string, name string, schemaUUID str
 	return nil
 }
 
+func (mk *MockStore) LinkTopicSchema(projectUUID, name, schemaUUID string) error {
+	for idx, topic := range mk.TopicList {
+		if topic.Name == name && topic.ProjectUUID == projectUUID {
+			mk.TopicList[idx].SchemaUUID = schemaUUID
+			break
+		}
+	}
+	return nil
+}
+
 // InsertSub inserts a new sub object to the store
 func (mk *MockStore) InsertSub(projectUUID string, name string, topic string, offset int64, maxMessages int64, authT string, authH string, ack int, push string, rPolicy string, rPeriod int, vhash string, verified bool, createdOn time.Time) error {
 	sub := QSub{

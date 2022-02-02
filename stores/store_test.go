@@ -65,6 +65,15 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal(int32(0), ts4)
 	suite.Equal("", pg4)
 
+	// retrieve a single topic
+	store.LinkTopicSchema("argo_uuid", "topic1", "schema_uuid_1")
+	eTopListSchema := []QTopic{
+		{0, "argo_uuid", "topic1", 0, 0, time.Date(2019, 5, 6, 0, 0, 0, 0, time.UTC), 10, "schema_uuid_1", time.Date(2020, 11, 22, 0, 0, 0, 0, time.UTC), []string{}},
+	}
+	tpListSchema, _, _, _ := store.QueryTopics("argo_uuid", "", "topic1", "", 0)
+	suite.Equal(eTopListSchema, tpListSchema)
+	store.LinkTopicSchema("argo_uuid", "topic1", "")
+
 	// retrieve user's topics
 	eTopList5 := []QTopic{
 		{1, "argo_uuid", "topic2", 0, 0, time.Date(2019, 5, 8, 0, 0, 0, 0, time.UTC), 5.45, "schema_uuid_1", time.Date(2020, 11, 21, 0, 0, 0, 0, time.UTC), []string{}},

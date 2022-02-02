@@ -186,6 +186,16 @@ func CreateTopic(projectUUID string, name string, schemaUUID string, createdOn t
 	return results.Topics[0], err
 }
 
+// AttachSchemaToTopic links the provided schema with the given topic
+func AttachSchemaToTopic(projectUUID, name, schemaUUID string, store stores.Store) error {
+	return store.LinkTopicSchema(projectUUID, name, schemaUUID)
+}
+
+// DetachSchemaFromTopic removes the link between the provided schema and the given topic
+func DetachSchemaFromTopic(projectUUID, name string, store stores.Store) error {
+	return store.LinkTopicSchema(projectUUID, name, "")
+}
+
 // RemoveTopic removes an existing topic
 func RemoveTopic(projectUUID string, name string, store stores.Store) error {
 	if HasTopic(projectUUID, name, store) == false {
