@@ -366,7 +366,7 @@ func (mong *MongoStore) QueryRegistrations(regUUID, status, activationToken, nam
 	return qur, nil
 }
 
-func (mong *MongoStore) UpdateRegistration(regUUID, status, modifiedBy, modifiedAt string) error {
+func (mong *MongoStore) UpdateRegistration(regUUID, status, declineComment, modifiedBy, modifiedAt string) error {
 
 	db := mong.Session.DB(mong.Database)
 	c := db.C("user_registrations")
@@ -375,6 +375,7 @@ func (mong *MongoStore) UpdateRegistration(regUUID, status, modifiedBy, modified
 	change := bson.M{
 		"$set": bson.M{
 			"status":           status,
+			"decline_comment":  declineComment,
 			"modified_by":      modifiedBy,
 			"modified_at":      modifiedAt,
 			"activation_token": "",

@@ -256,11 +256,12 @@ func (mk *MockStore) QueryRegistrations(regUUID, status, activationToken, name, 
 	return reqs, nil
 }
 
-func (mk *MockStore) UpdateRegistration(regUUID, status, modifiedBy, modifiedAt string) error {
+func (mk *MockStore) UpdateRegistration(regUUID, status, declineComment, modifiedBy, modifiedAt string) error {
 
 	for idx, ur := range mk.UserRegistrations {
 		if ur.UUID == regUUID {
 			mk.UserRegistrations[idx].Status = status
+			mk.UserRegistrations[idx].DeclineComment = declineComment
 			mk.UserRegistrations[idx].ModifiedBy = modifiedBy
 			mk.UserRegistrations[idx].ModifiedAt = modifiedAt
 			mk.UserRegistrations[idx].ActivationToken = ""

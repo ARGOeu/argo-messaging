@@ -63,6 +63,7 @@ type QUserRegistration struct {
 	Email           string `bson:"email"`
 	ActivationToken string `bson:"activation_token"`
 	Status          string `bson:"status"`
+	DeclineComment  string `bson:"decline_comment"`
 	RegisteredAt    string `bson:"registered_at"`
 	ModifiedBy      string `bson:"modified_by"`
 	ModifiedAt      string `bson:"modified_at"`

@@ -910,7 +910,7 @@ func (suite *AuthTestSuite) TestUpdateUserRegistration() {
 
 	store := stores.NewMockStore("", "")
 	m := time.Date(2020, 8, 5, 11, 33, 45, 0, time.UTC)
-	e1 := UpdateUserRegistration("ur-uuid1", AcceptedRegistrationStatus, "uuid1", m, store)
+	e1 := UpdateUserRegistration("ur-uuid1", AcceptedRegistrationStatus, "dc", "uuid1", m, store)
 	ur1, _ := FindUserRegistration("ur-uuid1", "accepted", store)
 	expur1 := UserRegistration{
 		UUID:            "ur-uuid1",
