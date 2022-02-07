@@ -131,7 +131,7 @@ func AcceptRegisterUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// update the registration
-	err = auth.UpdateUserRegistration(regUUID, auth.AcceptedRegistrationStatus, refUserUUID, created, refStr)
+	err = auth.UpdateUserRegistration(regUUID, auth.AcceptedRegistrationStatus, "", refUserUUID, created, refStr)
 	if err != nil {
 		log.Errorf("Could not update registration, %v", err.Error())
 	}
@@ -176,7 +176,19 @@ func DeclineRegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = auth.UpdateUserRegistration(regUUID, auth.DeclinedRegistrationStatus, refUserUUID, time.Now().UTC(), refStr)
+	reqBody := make(map[string]string)
+
+	// check the validity of the JSON
+	if r.Body != nil {
+		err = json.NewDecoder(r.Body).Decode(&reqBody)
+		if err != nil {
+			err := APIErrorInvalidRequestBody()
+			respondErr(w, err)
+			return
+		}
+	}
+
+	err = auth.UpdateUserRegistration(regUUID, auth.DeclinedRegistrationStatus, reqBody["comment"], refUserUUID, time.Now().UTC(), refStr)
 	if err != nil {
 		err := APIErrGenericInternal(err.Error())
 		respondErr(w, err)

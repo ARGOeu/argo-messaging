@@ -641,7 +641,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 		ModifiedBy:      "uuid1",
 		ModifiedAt:      "2020-05-17T22:26:58Z",
 	}}
-	store.UpdateRegistration("ur-uuid1", "accepted", "uuid1", "2020-05-17T22:26:58Z")
+	store.UpdateRegistration("ur-uuid1", "accepted", "", "uuid1", "2020-05-17T22:26:58Z")
 	ur2, _ := store.QueryRegistrations("ur-uuid1", "accepted", "", "", "", "")
 	suite.Equal(expur2, ur2)
 

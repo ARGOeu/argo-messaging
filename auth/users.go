@@ -68,7 +68,8 @@ type UserRegistration struct {
 	Description     string `json:"description"`
 	Email           string `json:"email"`
 	Status          string `json:"status"`
-	ActivationToken string `json:"activation_token"`
+	DeclineComment  string `json:"decline_comment,omitempty"`
+	ActivationToken string `json:"activation_token,omitempty"`
 	RegisteredAt    string `json:"registered_at"`
 	ModifiedBy      string `json:"modified_by,omitempty"`
 	ModifiedAt      string `json:"modified_at,omitempty"`
@@ -170,6 +171,7 @@ func FindUserRegistration(regUUID, status string, str stores.Store) (UserRegistr
 		Email:           q[0].Email,
 		ActivationToken: q[0].ActivationToken,
 		Status:          q[0].Status,
+		DeclineComment:  q[0].DeclineComment,
 		Organization:    q[0].Organization,
 		Description:     q[0].Description,
 		RegisteredAt:    q[0].RegisteredAt,
@@ -210,6 +212,7 @@ func FindUserRegistrations(status, activationToken, name, email, org string, str
 			Email:           ur.Email,
 			ActivationToken: ur.ActivationToken,
 			Status:          ur.Status,
+			DeclineComment:  ur.DeclineComment,
 			Organization:    ur.Organization,
 			Description:     ur.Description,
 			RegisteredAt:    ur.RegisteredAt,
@@ -223,8 +226,12 @@ func FindUserRegistrations(status, activationToken, name, email, org string, str
 	return urList, nil
 }
 
-func UpdateUserRegistration(regUUID, status, modifiedBy string, modifiedAt time.Time, refStr stores.Store) error {
-	return refStr.UpdateRegistration(regUUID, status, modifiedBy, modifiedAt.UTC().Format("2006-01-02T15:04:05Z"))
+func UpdateUserRegistration(regUUID, status, declineComment, modifiedBy string, modifiedAt time.Time, refStr stores.Store) error {
+	// only accept decline comment with the decline status action
+	if status != DeclinedRegistrationStatus {
+		declineComment = ""
+	}
+	return refStr.UpdateRegistration(regUUID, status, declineComment, modifiedBy, modifiedAt.UTC().Format("2006-01-02T15:04:05Z"))
 }
 
 // NewUser accepts parameters and creates a new user

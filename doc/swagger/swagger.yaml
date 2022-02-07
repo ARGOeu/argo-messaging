@@ -136,6 +136,15 @@ paths:
           description: UUID of the registration
           required: true
           type: string
+        - name: comment
+          in: body
+          description: Comment regarding the declining of the registration.
+          required: false
+          schema:
+            type: object
+            properties:
+              comment:
+                type: string
       tags:
         - Registrations
       responses:
