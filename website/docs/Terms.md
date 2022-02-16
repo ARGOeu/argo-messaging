@@ -8,7 +8,7 @@ By registering as a user you declare that you have read, understood and will abi
 2. You shall provide appropriate acknowledgement of support or citation for your use of the resources/services provided as required by the body or bodies granting you access.
 3. You shall not use the resources/services for any purpose that is unlawful and not (attempt to) breach or circumvent any administrative or security controls.
 4. You shall respect intellectual property and confidentiality agreements.
-5. You shall protect your access credentials (e.g. private keys or passwords).
+5. You shall protect your access credentials (e.g. private keys, tokens or passwords).
 6. You shall keep all your registered information correct and up to date.
 7. You shall immediately report any known or suspected security breach or misuse of the resources/services or access credentials to the specified incident reporting locations and to the relevant credential issuing authorities.
 8. You use the resources/services at your own risk. There is no guarantee that the resources/services will be available at any time or that their integrity or confidentiality will be preserved or that they will suit any purpose.
