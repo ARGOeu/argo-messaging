@@ -1,10 +1,12 @@
 ---
-sidebar_position: 1
 title: Terms of Use
+id: terms
+
 ---
-# Terms Of Use
+
 By registering as a user you declare that you have read, understood and will abide by the following conditions of use:
-1. You shall only use the resources/services to perform work, or transmit or store data consistent with the stated goals, policies and conditions of use as defined by the body or bodies granting you access.
+
+ 1. You shall only use the resources/services to perform work, or transmit or store data consistent with the stated goals, policies and conditions of use as defined by the body or bodies granting you access.
 2. You shall provide appropriate acknowledgement of support or citation for your use of the resources/services provided as required by the body or bodies granting you access.
 3. You shall not use the resources/services for any purpose that is unlawful and not (attempt to) breach or circumvent any administrative or security controls.
 4. You shall respect intellectual property and confidentiality agreements.
