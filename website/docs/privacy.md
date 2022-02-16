@@ -97,8 +97,8 @@ GRNET SA does not, in any way, transfer/transmit or disclose the personal data o
 
 The personal data of the"Users" may be communicated or transferred to government authorities and/or law enforcement officers, if that is required for the above purposes, or within the scope of enforcing a court decision or order, or for complying with a provision of law, or if so required in order to serve the legitimate interests of GRNET as Data Controller, in accordance with applicable law.
  
-**Rights of Data Subjects:
-**
+F. Rights of Data Subjects:
+-----------------------------------------
 
 GRNET performs all necessary actions both during collection and at each subsequent processing stage of the ARGO MESSAGING Users personal data, so that each User is fully enabled to exercise the rights guaranteed by applicable data protection laws, namely the rights to access, rectify, erase and restrict processing, as well as the right to data portability, which are described below:
  - Right of Access: The data subject has the right to request and obtain from the Controller, within a time-period of one (1) month, confirmation as to whether or not personal data concerning him or her, are being processed, and, where that is the case, access to the personal data and to certain information, as laid out by applicable law. It may also request a copy of the personal data undergoing processing as described herein by sending an email message to the address: argo@grnet.gr 
@@ -120,7 +120,7 @@ The personal data of ARGO MESSAGING "Users" shall not be retained for a period o
 | Categories of personal data collected | Time and place of retention of personal data |
 | --- | --- |
 | <ul><li>IP address</li><li>Data from website navigation through Cookies</li></ul> | 18 months (log retention) |
-| <ul><li>Unique User Identifier</li><li>User Name</li><li>Name</li><li>Surname</li><li>e-mail address</li><li>Last Login</li><li>Distinguished Name</li><li>Display Name</li></ul> | 18 months (db) for the Unique user Identifier, User Name, Name, Surname, e-mail address, Last Login, Distinguished Name, Display Name will be deleted on user request |
+| <ul><li>User Name</li><li>Name</li><li>Surname</li><li>e-mail address</li></ul> | 18 months (db) for the User Name, Name, Surname, e-mail address,  will be deleted on user request |
 
 
 
