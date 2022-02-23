@@ -33,7 +33,8 @@ func (suite *ConfigTestSuite) SetupTest() {
 		"verify_push_server": "true",
         "push_worker_token": "pw-token",
 		"log_facilities": ["SYSLOG", "CONSOLE"],
-        "auth_option": "header"
+        "auth_option": "header",
+ 		"proxy_hostname": "lb.ams.gr"
 	}`
 }
 
@@ -66,6 +67,7 @@ func (suite *ConfigTestSuite) TestLoadConfiguration() {
 	suite.Equal("pw-token", APIcfg2.PushWorkerToken)
 	suite.True(APIcfg2.VerifyPushServer)
 	suite.Equal(0, len(APIcfg2.LogFacilities))
+	suite.Equal("lb.ams.gr", APIcfg2.ProxyHostname)
 }
 
 func (suite *ConfigTestSuite) TestLoadStringJSON() {

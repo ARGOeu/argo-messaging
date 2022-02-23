@@ -38,7 +38,8 @@ func (suite *HandlerTestSuite) SetupTest() {
 	"per_resource_auth":"true",
 	"push_enabled": "true",
 	"push_worker_token": "push_token",
-	"auth_option": "both"
+	"auth_option": "both",
+    "proxy_hostname": "lb.ams.gr"
 	}`
 }
 
@@ -230,9 +231,12 @@ func (suite *HandlerTestSuite) TestListVersion() {
  "compiler": "%v",
  "os": "%v",
  "architecture": "%v",
- "release": "%v"
+ "release": "%v",
+ "distro": "%v",
+ "hostname": "lb.ams.gr"
 }`
-	expResp = fmt.Sprintf(expResp, version.BuildTime, version.GO, version.Compiler, version.OS, version.Arch, version.Release)
+	expResp = fmt.Sprintf(expResp, version.BuildTime, version.GO, version.Compiler,
+		version.OS, version.Arch, version.Release, version.Distro)
 
 	cfgKafka := config.NewAPICfg()
 	cfgKafka.LoadStrJSON(suite.cfgStr)

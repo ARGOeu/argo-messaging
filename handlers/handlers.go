@@ -69,6 +69,7 @@ func WrapMockAuthConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Br
 		gorillaContext.Set(r, "apsc", c)
 		gorillaContext.Set(r, "authOption", cfg.AuthOption())
 		gorillaContext.Set(r, "auth_resource", cfg.ResAuth)
+		gorillaContext.Set(r, "proxy_hostname", cfg.ProxyHostname)
 		gorillaContext.Set(r, "auth_user", "UserA")
 		gorillaContext.Set(r, "auth_user_uuid", "uuid1")
 		gorillaContext.Set(r, "auth_roles", userRoles)
@@ -90,6 +91,7 @@ func WrapConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Broker, st
 		gorillaContext.Set(r, "mgr", mgr)
 		gorillaContext.Set(r, "apsc", c)
 		gorillaContext.Set(r, "authOption", cfg.AuthOption())
+		gorillaContext.Set(r, "proxy_hostname", cfg.ProxyHostname)
 		gorillaContext.Set(r, "auth_resource", cfg.ResAuth)
 		gorillaContext.Set(r, "auth_service_token", cfg.ServiceToken)
 		gorillaContext.Set(r, "push_worker_token", cfg.PushWorkerToken)
@@ -286,12 +288,16 @@ func ListVersion(w http.ResponseWriter, r *http.Request) {
 	charset := "utf-8"
 	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
 
+	proxyHostname := gorillaContext.Get(r, "proxy_hostname").(string)
+
 	v := version.Model{
 		BuildTime: version.BuildTime,
 		GO:        version.GO,
 		Compiler:  version.Compiler,
 		OS:        version.OS,
 		Arch:      version.Arch,
+		Distro:    version.Distro,
+		Hostname:  proxyHostname,
 	}
 
 	authOption := gorillaContext.Get(r, "authOption").(config.AuthOption)

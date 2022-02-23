@@ -2966,3 +2966,7 @@ definitions:
         type: string
       release:
         type: string
+      distro:
+        type: string
+      hostname:
+        type: string
