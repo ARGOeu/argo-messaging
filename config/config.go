@@ -57,7 +57,11 @@ type APICfg struct {
 	ResAuth                   bool
 	ServiceToken              string
 	LogLevel                  string
-	PushEnabled               bool
+	// Proxy Hostname represents the FQDN of the a potential proxy/load balancer that might be
+	// serving requests in front of the ams instance
+	ProxyHostname string
+
+	PushEnabled bool
 	// Whether or not it should communicate over tls with the push server
 	PushTlsEnabled bool
 	// Push server endpoint
@@ -442,6 +446,14 @@ func (cfg *APICfg) LoadTest() {
 		},
 	).Info("Parameter Loaded - service_token")
 
+	// proxy hostname
+	cfg.ProxyHostname = viper.GetString("proxy_hostname")
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - proxy_hostname: %v", cfg.ProxyHostname)
+
 	// push enabled true or false
 	cfg.PushEnabled = viper.GetBool("push_enabled")
 	log.WithFields(
@@ -533,6 +545,9 @@ func (cfg *APICfg) Load() {
 
 		pflag.String("service-key", "", "service token definition for immediate full api access")
 		viper.BindPFlag("service_key", pflag.Lookup("service-key"))
+
+		pflag.String("proxy-hostname", "", "hostname in case ams is installed behind a proxy/load balancer")
+		viper.BindPFlag("proxy_hostname", pflag.Lookup("proxy-hostname"))
 
 		pflag.String("push-enabled", "", "enable automatic handling of push subscriptions at start-up")
 		viper.BindPFlag("push_enabled", pflag.Lookup("push-enabled"))
@@ -691,6 +706,14 @@ func (cfg *APICfg) Load() {
 		},
 	).Info("Parameter Loaded - service_token")
 
+	// proxy hostname
+	cfg.ProxyHostname = viper.GetString("proxy_hostname")
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - proxy_hostname: %v", cfg.ProxyHostname)
+
 	// push enabled true or false
 	cfg.PushEnabled = viper.GetBool("push_enabled")
 	log.WithFields(
@@ -832,7 +855,15 @@ func (cfg *APICfg) LoadStrJSON(input string) {
 		log.Fields{
 			"type": "service_log",
 		},
-	).Info("Parameter Loaded - service_token:")
+	).Info("Parameter Loaded - service_token")
+
+	// proxy hostname
+	cfg.ProxyHostname = viper.GetString("proxy_hostname")
+	log.WithFields(
+		log.Fields{
+			"type": "service_log",
+		},
+	).Infof("Parameter Loaded - proxy_hostname: %v", cfg.ProxyHostname)
 
 	// push enabled true or false
 	cfg.PushEnabled = viper.GetBool("push_enabled")

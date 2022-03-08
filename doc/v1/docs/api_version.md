@@ -30,6 +30,8 @@ Json Response
     "compiler": "gc",
     "os": "linux",
     "architecture": "amd64",
-    "release": "1.1.0"
+    "release": "1.1.0",
+    "distro": "Ubuntu 20.04 LTS",
+    "hostname": "lb.ams.gr"
 }
 ```
