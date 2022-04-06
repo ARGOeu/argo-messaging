@@ -53,7 +53,7 @@ A. Purpose/s for processing the data collected:
 GRNET collects and processes the personal data of its Clients-Users, referred to herebelow, for the following purposes:
 
  - Technical capability for a smooth and uninterrupted operation of the "Website".
- - Troubleshooting User connection problems 
+ - Troubleshooting messaging connection problems 
  - Metric Collection
  - Service Provisioning
 
@@ -72,6 +72,8 @@ B. Categories of personal data processed:
 (b) When creating a personal account for ARGO MESSAGING
  - E-mail address
  - Name
+ - Surname
+ - Organization
  - Token
 
 GRNET does not collect or have access in any way, to sensitive User-client data (racial or ethnic origin, religion, etc.). 
@@ -120,7 +122,7 @@ The personal data of ARGO MESSAGING "Users" shall not be retained for a period o
 | Categories of personal data collected | Time and place of retention of personal data |
 | --- | --- |
 | <ul><li>IP address</li><li>Data from website navigation through Cookies</li></ul> | 18 months (log retention) |
-| <ul><li>User Name</li><li>Name</li><li>Surname</li><li>e-mail address</li></ul> | 18 months (db) for the User Name, Name, Surname, e-mail address,  will be deleted on user request |
+| <ul><li>User Name</li><li>Name</li><li>Surname</li><li>e-mail address</li></ul> |  User Name, Name, Surname, Organization,  e-mail address,  will be deleted on user request |
 
 
 
