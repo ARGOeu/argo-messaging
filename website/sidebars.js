@@ -7,6 +7,6 @@ module.exports = {
     'Guides': ['publisher', 'subscriber_guide', 'subscriber-pull_guide', 'subscriber-push_guide', 'replaying_guide'],
     'How to use': ['how_to_use', 'ams_push_worker'],
     'Frequent Questions': ['qa', 'qa_ruby'],
-    'Policies' : ['terms','ams_privacy_policy']
+    'Policies' : ['terms','ams_privacy_policy', 'tom']
   },
 };
