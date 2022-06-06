@@ -63,12 +63,12 @@ func main() {
 
 	//Configure TLS support only
 	config := &tls.Config{
-		MinVersion:               tls.VersionTLS10,
+		MinVersion:               tls.VersionTLS12,
 		PreferServerCipherSuites: true,
 	}
 
 	// Initialize CORS specifics
-	xReqWithConType := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type"})
+	xReqWithConType := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "x-api-key"})
 	allowVerbs := handlers.AllowedMethods([]string{"OPTIONS", "POST", "GET", "PUT", "DELETE", "HEAD"})
 	// Initialize server wth proper parameters
 	server := &http.Server{Addr: ":" + strconv.Itoa(cfg.Port), Handler: handlers.CORS(xReqWithConType, allowVerbs)(API.Router), TLSConfig: config}

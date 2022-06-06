@@ -97,12 +97,21 @@ Success Response
 Please refer to section [Errors](api_errors.md) to see all possible Errors
 
 ## [POST] Manage Registrations - Decline a User's Registration
-This request declines a user's registration
+This request declines a user's registration.
+You can also provide a comment regarding
+the decline reason of the registration.
 
 ### Request
 ```json
 POST "/v1/registrations/{uuid}:decline"
 ```
+### Post body:
+```json
+{
+   "comment": "comment"
+}
+```
+
 
 ### Example request
 ```bash
@@ -111,7 +120,7 @@ curl -X POST -H "Content-Type: application/json"
 ```
 
 ### Responses  
-If successful, the response contains the newly created user
+If successful, the response contains nothing
 
 Success Response
 `200 OK`

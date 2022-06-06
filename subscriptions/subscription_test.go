@@ -7,12 +7,13 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/ARGOeu/argo-messaging/config"
-	"github.com/ARGOeu/argo-messaging/stores"
-	"github.com/stretchr/testify/suite"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/ARGOeu/argo-messaging/config"
+	"github.com/ARGOeu/argo-messaging/stores"
+	"github.com/stretchr/testify/suite"
 )
 
 type SubTestSuite struct {
@@ -138,7 +139,7 @@ func (suite *SubTestSuite) TestGetSubByName() {
 	expSub.PushCfg.RetPol.PolicyType = ""
 	expSub.PushCfg.RetPol.Period = 0
 	expSub.CreatedOn = "2020-11-19T00:00:00Z"
-	expSub.LatestConsume = time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local)
+	expSub.LatestConsume = time.Date(2019, 5, 6, 0, 0, 0, 0, time.UTC)
 	expSub.ConsumeRate = 10
 	suite.Equal(expSub, result.Subscriptions[0])
 
@@ -151,7 +152,7 @@ func (suite *SubTestSuite) TestGetSubMetric() {
 	mySubM, _ := FindMetric("argo_uuid", "sub1", store)
 	expTopic := SubMetrics{
 		MsgNum:        0,
-		LatestConsume: time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local),
+		LatestConsume: time.Date(2019, 5, 6, 0, 0, 0, 0, time.UTC),
 		ConsumeRate:   10,
 	}
 	suite.Equal(expTopic, mySubM)
@@ -176,21 +177,21 @@ func (suite *SubTestSuite) TestGetSubsByProject() {
 	expSub1.PushCfg.RetPol.PolicyType = ""
 	expSub1.PushCfg.RetPol.Period = 0
 	expSub1.PushCfg.MaxMessages = 0
-	expSub1.LatestConsume = time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local)
+	expSub1.LatestConsume = time.Date(2019, 5, 6, 0, 0, 0, 0, time.UTC)
 	expSub1.ConsumeRate = 10
 	expSub1.CreatedOn = "2020-11-19T00:00:00Z"
 	expSub2 := New("argo_uuid", "ARGO", "sub2", "topic2")
 	expSub2.PushCfg.RetPol.PolicyType = ""
 	expSub2.PushCfg.RetPol.Period = 0
 	expSub2.PushCfg.MaxMessages = 0
-	expSub2.LatestConsume = time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local)
+	expSub2.LatestConsume = time.Date(2019, 5, 7, 0, 0, 0, 0, time.UTC)
 	expSub2.ConsumeRate = 8.99
 	expSub2.CreatedOn = "2020-11-20T00:00:00Z"
 	expSub3 := New("argo_uuid", "ARGO", "sub3", "topic3")
 	expSub3.PushCfg.RetPol.PolicyType = ""
 	expSub3.PushCfg.RetPol.Period = 0
 	expSub3.PushCfg.MaxMessages = 0
-	expSub3.LatestConsume = time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local)
+	expSub3.LatestConsume = time.Date(2019, 5, 8, 0, 0, 0, 0, time.UTC)
 	expSub3.ConsumeRate = 5.45
 	expSub3.CreatedOn = "2020-11-21T00:00:00Z"
 	expSub4 := New("argo_uuid", "ARGO", "sub4", "topic4")
@@ -207,7 +208,7 @@ func (suite *SubTestSuite) TestGetSubsByProject() {
 		Verified:            true,
 		MaxMessages:         1,
 	}
-	expSub4.LatestConsume = time.Date(0, 0, 0, 0, 0, 0, 0, time.Local)
+	expSub4.LatestConsume = time.Date(0, 0, 0, 0, 0, 0, 0, time.UTC)
 	expSub4.ConsumeRate = 0
 
 	// retrieve all subs
@@ -279,21 +280,21 @@ func (suite *SubTestSuite) TestLoadFromCfg() {
 	expSub1.PushCfg.RetPol.PolicyType = ""
 	expSub1.PushCfg.RetPol.Period = 0
 	expSub1.PushCfg.MaxMessages = 0
-	expSub1.LatestConsume = time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local)
+	expSub1.LatestConsume = time.Date(2019, 5, 6, 0, 0, 0, 0, time.UTC)
 	expSub1.ConsumeRate = 10
 	expSub1.CreatedOn = "2020-11-19T00:00:00Z"
 	expSub2 := New("argo_uuid", "ARGO", "sub2", "topic2")
 	expSub2.PushCfg.RetPol.PolicyType = ""
 	expSub2.PushCfg.RetPol.Period = 0
 	expSub2.PushCfg.MaxMessages = 0
-	expSub2.LatestConsume = time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local)
+	expSub2.LatestConsume = time.Date(2019, 5, 7, 0, 0, 0, 0, time.UTC)
 	expSub2.ConsumeRate = 8.99
 	expSub2.CreatedOn = "2020-11-20T00:00:00Z"
 	expSub3 := New("argo_uuid", "ARGO", "sub3", "topic3")
 	expSub3.PushCfg.RetPol.PolicyType = ""
 	expSub3.PushCfg.RetPol.Period = 0
 	expSub3.PushCfg.MaxMessages = 0
-	expSub3.LatestConsume = time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local)
+	expSub3.LatestConsume = time.Date(2019, 5, 8, 0, 0, 0, 0, time.UTC)
 	expSub3.ConsumeRate = 5.45
 	expSub3.CreatedOn = "2020-11-21T00:00:00Z"
 	expSub4 := New("argo_uuid", "ARGO", "sub4", "topic4")
@@ -310,7 +311,7 @@ func (suite *SubTestSuite) TestLoadFromCfg() {
 		Verified:            true,
 		MaxMessages:         1,
 	}
-	expSub4.LatestConsume = time.Date(0, 0, 0, 0, 0, 0, 0, time.Local)
+	expSub4.LatestConsume = time.Date(0, 0, 0, 0, 0, 0, 0, time.UTC)
 	expSub4.ConsumeRate = 0
 	expSubs := []Subscription{}
 	expSubs = append(expSubs, expSub4)
@@ -354,11 +355,11 @@ func (suite *SubTestSuite) TestCreateSubStore() {
 
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
 
-	sub, err := CreateSub("argo_uuid", "sub1", "topic1", "", 0, 0, "", "", 0, "linear", 300, "", true, time.Date(2019, 7, 7, 0, 0, 0, 0, time.Local), store)
+	sub, err := CreateSub("argo_uuid", "sub1", "topic1", "", 0, 0, "", "", 0, "linear", 300, "", true, time.Date(2019, 7, 7, 0, 0, 0, 0, time.UTC), store)
 	suite.Equal(Subscription{}, sub)
 	suite.Equal("exists", err.Error())
 
-	sub2, err2 := CreateSub("argo_uuid", "subNew", "topicNew", "", 0, 0, "", "", 0, "linear", 300, "", true, time.Date(2019, 7, 7, 0, 0, 0, 0, time.Local), store)
+	sub2, err2 := CreateSub("argo_uuid", "subNew", "topicNew", "", 0, 0, "", "", 0, "linear", 300, "", true, time.Date(2019, 7, 7, 0, 0, 0, 0, time.UTC), store)
 	expSub := New("argo_uuid", "ARGO", "subNew", "topicNew")
 	expSub.CreatedOn = "2019-07-07T00:00:00Z"
 	suite.Equal(expSub, sub2)

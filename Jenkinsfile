@@ -69,6 +69,9 @@ pipeline {
             }
         }
         stage ('Deploy Docs') {
+            when {
+                branch 'devel'
+            }
             agent {
                 docker {
                     image 'node:buster'

@@ -5,11 +5,12 @@ import (
 	"errors"
 
 	"encoding/base64"
+	"time"
+
 	"github.com/ARGOeu/argo-messaging/projects"
 	"github.com/ARGOeu/argo-messaging/schemas"
 	"github.com/ARGOeu/argo-messaging/stores"
 	log "github.com/sirupsen/logrus"
-	"time"
 )
 
 // Topic struct to hold information for a given topic
@@ -115,7 +116,7 @@ func Find(projectUUID, userUUID, name, pageToken string, pageSize int32, store s
 		curTop := New(item.ProjectUUID, projectName, item.Name)
 		curTop.LatestPublish = item.LatestPublish
 		curTop.PublishRate = item.PublishRate
-		curTop.CreatedOn = item.CreatedOn.Format("2006-01-02T15:04:05Z")
+		curTop.CreatedOn = item.CreatedOn.UTC().Format("2006-01-02T15:04:05Z")
 
 		if item.SchemaUUID != "" {
 			sl, err := schemas.Find(projectUUID, item.SchemaUUID, "", store)
@@ -183,6 +184,16 @@ func CreateTopic(projectUUID string, name string, schemaUUID string, createdOn t
 	}
 
 	return results.Topics[0], err
+}
+
+// AttachSchemaToTopic links the provided schema with the given topic
+func AttachSchemaToTopic(projectUUID, name, schemaUUID string, store stores.Store) error {
+	return store.LinkTopicSchema(projectUUID, name, schemaUUID)
+}
+
+// DetachSchemaFromTopic removes the link between the provided schema and the given topic
+func DetachSchemaFromTopic(projectUUID, name string, store stores.Store) error {
+	return store.LinkTopicSchema(projectUUID, name, "")
 }
 
 // RemoveTopic removes an existing topic

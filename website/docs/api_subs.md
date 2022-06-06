@@ -15,7 +15,7 @@ This request creates a new subscription in a project with a PUT request
 - subscription_name: The subscription name to create
 
 ### Example request
-```json
+```
 curl -X PUT -H "Content-Type: application/json"  -d 'PUTBODY'
  "https://{URL}/v1/projects/BRAND_NEW/subscriptions/alert_engine ?key=S3CR3T"`
 ```
@@ -157,7 +157,7 @@ This request triggers the process of verifying the ownership of a registered pus
 - subscription_name: The subscription name
 
 ### Example request
-```json
+```
 curl -X POST "https://{URL}/v1/projects/BRAND_NEW/subscriptions/alert_engine:verifyPushEndpoint?key=S3CR3T"`
 ```
 
@@ -692,7 +692,7 @@ This request returns the min, max and current offset of a subscription
 
 ### Example request
 
-```json
+```
 curl -X GET -H "Content-Type: application/json"  
 -d POSTDATA http://{URL}/v1/projects/BRAND_NEW/subscriptions/alert_engine:offsets?key=S3CR3T"
 ```
@@ -727,7 +727,7 @@ This request returns the offset of the first message with a timestamp equal or g
 
 ### Example request
 
-```json
+```
 curl -X GET -H "Content-Type: application/json"  
 http://{URL}/v1/projects/BRAND_NEW/subscriptions/alert_engine:timeToOffset?key=S3CR3T&time=2019-09-02T13:39:11.100Z"
 ```
@@ -763,13 +763,13 @@ This request modifies the current offset of a subscription
 ### Where
 - Project_name: Name of the project
 - subscription_name: The subscription name to consume
-- offset_config: an offset number in int64
+- offset: an offset number in int64
 
 
 
 ### Example request
 
-```json
+```
 curl -X POST -H "Content-Type: application/json"  
 -d POSTDATA http://{URL}/v1/projects/BRAND_NEW/subscriptions/alert_engine:modifyOffset?key=S3CR3T"
 ```

@@ -2,6 +2,7 @@
 
 This method can be used to retrieve api version information
 
+The `release` field is only available if proper authentication credentials are provided.
 ## Input
 
 ```
@@ -28,6 +29,9 @@ Json Response
     "golang": "go1.15.6",
     "compiler": "gc",
     "os": "linux",
-    "architecture": "amd64"
+    "architecture": "amd64",
+    "release": "1.1.0",
+    "distro": "Ubuntu 20.04 LTS",
+    "hostname": "lb.ams.gr"
 }
 ```

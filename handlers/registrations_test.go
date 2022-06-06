@@ -206,14 +206,20 @@ func (suite *RegistrationsHandlersTestSuite) TestAcceptRegisterUser() {
 func (suite *RegistrationsHandlersTestSuite) TestDeclineRegisterUser() {
 
 	type td struct {
+		postBody           string
 		regUUID            string
 		expectedResponse   string
+		declineComment     string
 		expectedStatusCode int
 		msg                string
 	}
 
 	testData := []td{{
+		postBody: `{
+						"comment": "decline comment"
+				   }`,
 		regUUID:            "ur-uuid1",
+		declineComment:     "decline comment",
 		expectedResponse:   `{}`,
 		expectedStatusCode: 200,
 		msg:                "Successfully declined a user's registration",
@@ -246,7 +252,7 @@ func (suite *RegistrationsHandlersTestSuite) TestDeclineRegisterUser() {
 
 		w := httptest.NewRecorder()
 		url := fmt.Sprintf("http://localhost:8080/v1/registrations/%v:decline", t.regUUID)
-		req, err := http.NewRequest("POST", url, nil)
+		req, err := http.NewRequest("POST", url, strings.NewReader(t.postBody))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -254,6 +260,7 @@ func (suite *RegistrationsHandlersTestSuite) TestDeclineRegisterUser() {
 		router.ServeHTTP(w, req)
 		if t.expectedStatusCode == 200 {
 			suite.Equal(auth.DeclinedRegistrationStatus, str.UserRegistrations[0].Status)
+			suite.Equal(t.declineComment, str.UserRegistrations[0].DeclineComment)
 		}
 		suite.Equal(t.expectedStatusCode, w.Code, t.msg)
 		suite.Equal(t.expectedResponse, w.Body.String(), t.msg)

@@ -34,11 +34,12 @@ type Store interface {
 	QueryTotalMessagesPerProject(projectUUIDs []string, startDate time.Time, endDate time.Time) ([]QProjectMessageCount, error)
 	RegisterUser(uuid, name, firstName, lastName, email, org, desc, registeredAt, atkn, status string) error
 	QueryRegistrations(regUUID, status, activationToken, name, email, org string) ([]QUserRegistration, error)
-	UpdateRegistration(regUUID, status, modifiedBy, modifiedAt string) error
+	UpdateRegistration(regUUID, status, declineComment, modifiedBy, modifiedAt string) error
 	InsertUser(uuid string, projects []QProjectRoles, name string, firstName string, lastName string, org string, desc string, token string, email string, serviceRoles []string, createdOn time.Time, modifiedOn time.Time, createdBy string) error
 	InsertProject(uuid string, name string, createdOn time.Time, modifiedOn time.Time, createdBy string, description string) error
 	InsertOpMetric(hostname string, cpu float64, mem float64) error
 	InsertTopic(projectUUID string, name string, schemaUUID string, createdOn time.Time) error
+	LinkTopicSchema(projectUUID, name, schemaUUID string) error
 	IncrementTopicMsgNum(projectUUID string, name string, num int64) error
 	IncrementDailyTopicMsgCount(projectUUID string, topicName string, num int64, date time.Time) error
 	IncrementTopicBytes(projectUUID string, name string, totalBytes int64) error

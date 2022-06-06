@@ -66,7 +66,6 @@ The ARGO Messaging Service accepts JSON over HTTP. In order to publish messages 
 
 The JSON body send to the ARGO Messaging Service may contain one or more messages. Each message can have:
 
-
  - attributes: optional key value pair of metadata you desire
  - data: the data of the message.
 
@@ -100,4 +99,45 @@ Below you can find an example, in which a user publishes two messages in one cal
 You can publish and consume any kind of data through the ARGO Messaging Service (as long as the base64 encoded payload is not larger than the maximum acceptable size).
 
 For more details visit section [Topics: Publish message/s to a topic](api_topics.md#post-publish-messages-to-a-topic)
+
+## Schema Support 
+
+The AMS supports “Schema Validation per topic”. 
+
+When a user want to support a predefined format for messages exchanged then a topic should be created with a schema defined for it.
+A schema is a format that messages from a topic must follow. It is actually a contract between publisher and subscriber. The Messaging Service allows the user to define a schema for each topic and validate messages as they are published. It can protect topics from garbage, incomplete messages especially when a topic has multiple remote publishers to ensure data integrity on the client side.
+
+The Schema Support is on demand mechanism that enables a) the definition of the expected payload schema, b) the definition of the expected set of attributes and values and c) the validation for each message if the requirements are met and immediately notify client
+
+The steps that you should follow for a schema support 
+
+**Step 1:** Create a new schema in your project
+
+The Supported Schema Types are JSON and AVRO
+
+For more details visit section  [Create new schema](https://argoeu.github.io/argo-messaging/docs/api_schemas#post-manage-schemas---create-new-schema)
+
+**Step 2:** Create a topic with this schema attached
+
+If you need to link a schema with your topic you need to provide its name, to the api call during the creation of the topic..
+
+For more details visit section [Create new topic](https://argoeu.github.io/argo-messaging/docs/api_topics#put-manage-topics---create-new-topic) 
+ 
+**Step 3:** Assign this schema to your topic 
+
+If you need to link a schema with your topic you need to provide its name, to the api call
+
+For more details visit section [Update the topic](https://argoeu.github.io/argo-messaging/docs/api_topics#put-manage-topics---create-new-topic) 
+
+**Step 4:** Validate the message 
+
+This  is used whenever we want to test a message against a schema. The process to check that your schema and messages are working as expected is to create a new topic that needs to be associated with the schema, then create the message in bas64 encoding and publish it to the topic. Instead of creating all this pipeline in order to check your schema and messages we can explicitly do it on this API call.
+
+For more details visit section [Validate the message](https://argoeu.github.io/argo-messaging/docs/api_schemas#post-manage-schemas---validate-message)  
+
+**Step 5:** Publish messages to your topic 
+
+You may now start publishing messages to your topic.
+
+For more details visit section [publish-messages-to-a-topic](https://argoeu.github.io/argo-messaging/docs/api_topics#post-publish-messages-to-a-topic)
 
