@@ -455,9 +455,7 @@ curl -X POST -H "Content-Type: application/json"
 
 ```json
 {
-  "roles": ["consumer"],
-   "topics": ["topic1"],
-   "subscriptions": ["sub1"]
+  "roles": ["consumer"]
 }
 ```
 
@@ -477,12 +475,8 @@ Success Response
              "roles": [
                 "consumer"
              ],
-             "topics": [
-                "topic1"
-             ],
-             "subscriptions": [
-                "sub1"
-             ]
+             "topics": [],
+             "subscriptions": []
           }
        ],
        "name": "NewUSer",
