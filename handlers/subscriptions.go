@@ -748,10 +748,24 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 		// otherwise we need to verify the ownership again before wee activate it
 		if postBody.PushCfg.Pend == existingSub.PushCfg.Pend && existingSub.PushCfg.Verified {
 
-			// activate the subscription on the push backend
+			//activate the subscription on the push backend
 			apsc := gorillaContext.Get(r, "apsc").(push.Client)
-			apsc.ActivateSubscription(context.TODO(), existingSub.FullName, existingSub.FullTopic,
-				pushEnd, rPolicy, uint32(rPeriod), maxMessages, authzHeaderValue).Result(false)
+			s := subscriptions.Subscription{
+				FullName:  existingSub.FullName,
+				FullTopic: existingSub.FullTopic,
+				PushCfg: subscriptions.PushConfig{
+					Pend:        pushEnd,
+					MaxMessages: maxMessages,
+					AuthorizationHeader: subscriptions.AuthorizationHeader{
+						Value: authzHeaderValue,
+					},
+					RetPol: subscriptions.RetryPolicy{
+						PolicyType: rPolicy,
+						Period:     rPeriod,
+					},
+				},
+			}
+			apsc.ActivateSubscription(context.TODO(), s).Result(false)
 
 			// modify the sub's acl with the push worker's uuid
 			err = auth.AppendToACL(projectUUID, "subscriptions", existingSub.Name, []string{pushWorker.Name}, refStr)
@@ -831,8 +845,8 @@ func SubVerifyPushEndpoint(w http.ResponseWriter, r *http.Request) {
 	sub := res.Subscriptions[0]
 
 	// check that the subscription is push enabled
-	if sub.PushCfg == (subscriptions.PushConfig{}) {
-		err := APIErrorGenericConflict("Subscription is not in push mode")
+	if sub.PushCfg.Type != subscriptions.HttpEndpointPushConfig {
+		err := APIErrorGenericConflict("Subscription is not in http push mode")
 		respondErr(w, err)
 		return
 	}
@@ -855,20 +869,7 @@ func SubVerifyPushEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	// activate the subscription on the push backend
 	apsc := gorillaContext.Get(r, "apsc").(push.Client)
-	apsc.ActivateSubscription(context.TODO(), sub.FullName, sub.FullTopic, sub.PushCfg.Pend,
-		sub.PushCfg.RetPol.PolicyType, uint32(sub.PushCfg.RetPol.Period),
-		sub.PushCfg.MaxMessages, sub.PushCfg.AuthorizationHeader.Value).Result(false)
-
-	// modify the sub's acl with the push worker's uuid
-	err = auth.AppendToACL(projectUUID, "subscriptions", sub.Name, []string{pushW.Name}, refStr)
-	if err != nil {
-		err := APIErrGenericInternal(err.Error())
-		respondErr(w, err)
-		return
-	}
-
-	// link the sub's project with the push worker
-	err = auth.AppendToUserProjects(pushW.UUID, projectUUID, refStr)
+	err = activatePushSubscription(sub, pushW, apsc, refStr)
 	if err != nil {
 		err := APIErrGenericInternal(err.Error())
 		respondErr(w, err)
@@ -991,17 +992,11 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 	fullTopic := tProjectUUID + "." + tName
 	curOff := refBrk.GetMaxOffset(fullTopic)
 
-	pushEnd := ""
-	authzType := ""
-	authzHeaderValue := ""
-	rPolicy := ""
-	rPeriod := 0
-	maxMessages := int64(1)
-
-	//pushWorker := auth.User{}
-	verifyHash := ""
+	pushConfig := subscriptions.PushConfig{}
 
 	if postBody.PushCfg != (subscriptions.PushConfig{}) {
+
+		pushConfig.Type = postBody.PushCfg.Type
 
 		// check the state of the push functionality
 		pwToken := gorillaContext.Get(r, "push_worker_token").(string)
@@ -1020,63 +1015,85 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		pushEnd = postBody.PushCfg.Pend
-		// Check if push endpoint is not a valid https:// endpoint
-		if !(validation.IsValidHTTPS(pushEnd)) {
-			err := APIErrorInvalidData("Push endpoint should be addressed by a valid https url")
-			respondErr(w, err)
-			return
-		}
-		rPolicy = postBody.PushCfg.RetPol.PolicyType
-		rPeriod = postBody.PushCfg.RetPol.Period
-		maxMessages = postBody.PushCfg.MaxMessages
+		// checks for http endpoint push subscriptions
+		if pushConfig.Type == subscriptions.HttpEndpointPushConfig {
 
-		authzType = postBody.PushCfg.AuthorizationHeader.Type
-		if authzType == "" {
-			authzType = subscriptions.AutoGenerationAuthorizationHeader
-		}
+			pushConfig.Pend = postBody.PushCfg.Pend
 
-		if !subscriptions.IsAuthorizationHeaderTypeSupported(authzType) {
-			err := APIErrorInvalidData(subscriptions.UnSupportedAuthorizationHeader)
-			respondErr(w, err)
-			return
-		}
-
-		switch authzType {
-		case subscriptions.AutoGenerationAuthorizationHeader:
-			authzHeaderValue, err = auth.GenToken()
-			if err != nil {
-				log.Errorf("Could not generate authorization header for subscription %v, %v", urlVars["subscription"], err.Error())
-				err := APIErrGenericInternal("Could not generate authorization header")
+			// Check if push endpoint is not a valid https:// endpoint
+			if !(validation.IsValidHTTPS(pushConfig.Pend)) {
+				err := APIErrorInvalidData("Push endpoint should be addressed by a valid https url")
 				respondErr(w, err)
 				return
 			}
-		case subscriptions.DisabledAuthorizationHeader:
-			authzHeaderValue = ""
-		}
 
-		if rPolicy == "" {
-			rPolicy = subscriptions.LinearRetryPolicyType
-		}
+			pushConfig.MaxMessages = postBody.PushCfg.MaxMessages
+			if pushConfig.MaxMessages == 0 {
+				pushConfig.MaxMessages = int64(1)
+			}
 
-		if maxMessages == 0 {
-			maxMessages = int64(1)
-		}
+			pushConfig.AuthorizationHeader.Type = postBody.PushCfg.AuthorizationHeader.Type
 
-		if rPeriod <= 0 {
-			rPeriod = 3000
-		}
+			if pushConfig.AuthorizationHeader.Type == "" {
+				pushConfig.AuthorizationHeader.Type = subscriptions.AutoGenerationAuthorizationHeader
+			}
 
-		if !subscriptions.IsRetryPolicySupported(rPolicy) {
-			err := APIErrorInvalidData(subscriptions.UnSupportedRetryPolicyError)
+			if !subscriptions.IsAuthorizationHeaderTypeSupported(pushConfig.AuthorizationHeader.Type) {
+				err := APIErrorInvalidData(subscriptions.UnSupportedAuthorizationHeader)
+				respondErr(w, err)
+				return
+			}
+
+			switch pushConfig.AuthorizationHeader.Type {
+			case subscriptions.AutoGenerationAuthorizationHeader:
+				pushConfig.AuthorizationHeader.Value, err = auth.GenToken()
+				if err != nil {
+					log.Errorf("Could not generate authorization header for subscription %v, %v", urlVars["subscription"], err.Error())
+					err := APIErrGenericInternal("Could not generate authorization header")
+					respondErr(w, err)
+					return
+				}
+			case subscriptions.DisabledAuthorizationHeader:
+				pushConfig.AuthorizationHeader.Value = ""
+			}
+
+			pushConfig.VerificationHash, err = auth.GenToken()
+			if err != nil {
+				log.Errorf("Could not generate verification hash for subscription %v, %v", urlVars["subscription"], err.Error())
+				err := APIErrGenericInternal("Could not generate verification hash")
+				respondErr(w, err)
+				return
+			}
+			pushConfig.Verified = false
+		} else if pushConfig.Type == subscriptions.MattermostPushConfig {
+			if postBody.PushCfg.MattermostUrl == "" {
+				err := APIErrorInvalidData("Field mattermostUrl cannot be empty")
+				respondErr(w, err)
+				return
+			}
+			pushConfig.MattermostUrl = postBody.PushCfg.MattermostUrl
+			pushConfig.MattermostUsername = postBody.PushCfg.MattermostUsername
+			pushConfig.MattermostChannel = postBody.PushCfg.MattermostChannel
+			pushConfig.Verified = true
+		} else {
+			err := APIErrorInvalidData(subscriptions.UnsupportedPushConfig)
 			respondErr(w, err)
 			return
 		}
 
-		verifyHash, err = auth.GenToken()
-		if err != nil {
-			log.Errorf("Could not generate verification hash for subscription %v, %v", urlVars["subscription"], err.Error())
-			err := APIErrGenericInternal("Could not generate verification hash")
+		pushConfig.RetPol.PolicyType = postBody.PushCfg.RetPol.PolicyType
+		pushConfig.RetPol.Period = postBody.PushCfg.RetPol.Period
+
+		if pushConfig.RetPol.PolicyType == "" {
+			pushConfig.RetPol.PolicyType = subscriptions.LinearRetryPolicyType
+		}
+
+		if pushConfig.RetPol.Period <= 0 {
+			pushConfig.RetPol.Period = 3000
+		}
+
+		if !subscriptions.IsRetryPolicySupported(pushConfig.RetPol.PolicyType) {
+			err := APIErrorInvalidData(subscriptions.UnSupportedRetryPolicyError)
 			respondErr(w, err)
 			return
 		}
@@ -1086,7 +1103,8 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 	created := time.Now().UTC()
 
 	// Get Result Object
-	res, err := subscriptions.CreateSub(projectUUID, urlVars["subscription"], tName, pushEnd, curOff, maxMessages, authzType, authzHeaderValue, postBody.Ack, rPolicy, rPeriod, verifyHash, false, created, refStr)
+	res, err := subscriptions.Create(projectUUID, urlVars["subscription"], tName, curOff,
+		postBody.Ack, pushConfig, created, refStr)
 
 	if err != nil {
 		if err.Error() == "exists" {
@@ -1408,4 +1426,25 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 
 	output = []byte(resJSON)
 	respondOK(w, output)
+}
+
+func activatePushSubscription(sub subscriptions.Subscription, pushW auth.User,
+	apsc push.Client, refStr stores.Store) error {
+
+	// activate the subscription on the push server
+	apsc.ActivateSubscription(context.TODO(), sub).Result(false)
+
+	// modify the sub's acl with the push worker's uuid
+	err := auth.AppendToACL(sub.ProjectUUID, "subscriptions", sub.Name, []string{pushW.Name}, refStr)
+	if err != nil {
+		return err
+	}
+
+	// link the sub's project with the push worker
+	err = auth.AppendToUserProjects(pushW.UUID, sub.ProjectUUID, refStr)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

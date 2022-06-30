@@ -867,10 +867,30 @@ func (mk *MockStore) Initialize() {
 	mk.TopicList = append(mk.TopicList, qtop4)
 
 	// populate Subscriptions
-	qsub1 := QSub{0, "argo_uuid", "sub1", "topic1", 0, 0, "", "", 0, "", "", 10, "", 0, 0, 0, "", false, time.Date(2019, 5, 6, 0, 0, 0, 0, time.UTC), 10, time.Date(2020, 11, 19, 0, 0, 0, 0, time.UTC), []string{}}
-	qsub2 := QSub{1, "argo_uuid", "sub2", "topic2", 0, 0, "", "", 0, "", "", 10, "", 0, 0, 0, "", false, time.Date(2019, 5, 7, 0, 0, 0, 0, time.UTC), 8.99, time.Date(2020, 11, 20, 0, 0, 0, 0, time.UTC), []string{}}
-	qsub3 := QSub{2, "argo_uuid", "sub3", "topic3", 0, 0, "", "", 0, "", "", 10, "", 0, 0, 0, "", false, time.Date(2019, 5, 8, 0, 0, 0, 0, time.UTC), 5.45, time.Date(2020, 11, 21, 0, 0, 0, 0, time.UTC), []string{}}
-	qsub4 := QSub{3, "argo_uuid", "sub4", "topic4", 0, 0, "", "endpoint.foo", 1, "autogen", "auth-header-1", 10, "linear", 300, 0, 0, "push-id-1", true, time.Date(0, 0, 0, 0, 0, 0, 0, time.UTC), 0, time.Date(2020, 11, 22, 0, 0, 0, 0, time.UTC), []string{}}
+	qsub1 := QSub{0, "argo_uuid", "sub1", "topic1", 0, 0, "",
+		"", "", 0, "", "", 10, "",
+		0, 0, 0, "", false, "", "", "",
+		time.Date(2019, 5, 6, 0, 0, 0, 0, time.UTC),
+		10, time.Date(2020, 11, 19, 0, 0, 0, 0, time.UTC), []string{}}
+
+	qsub2 := QSub{1, "argo_uuid", "sub2", "topic2", 0, 0, "",
+		"", "", 0, "", "", 10, "",
+		0, 0, 0, "", false, "", "", "",
+		time.Date(2019, 5, 7, 0, 0, 0, 0, time.UTC),
+		8.99, time.Date(2020, 11, 20, 0, 0, 0, 0, time.UTC), []string{}}
+
+	qsub3 := QSub{2, "argo_uuid", "sub3", "topic3", 0, 0, "",
+		"", "", 0, "", "", 10, "",
+		0, 0, 0, "", false, "", "", "",
+		time.Date(2019, 5, 8, 0, 0, 0, 0, time.UTC),
+		5.45, time.Date(2020, 11, 21, 0, 0, 0, 0, time.UTC), []string{}}
+
+	qsub4 := QSub{3, "argo_uuid", "sub4", "topic4", 0, 0, "",
+		"http_endpoint", "endpoint.foo", 1, "autogen",
+		"auth-header-1", 10, "linear", 300, 0, 0,
+		"push-id-1", true, "", "", "",
+		time.Date(0, 0, 0, 0, 0, 0, 0, time.UTC),
+		0, time.Date(2020, 11, 22, 0, 0, 0, 0, time.UTC), []string{}}
 	mk.SubList = append(mk.SubList, qsub1)
 	mk.SubList = append(mk.SubList, qsub2)
 	mk.SubList = append(mk.SubList, qsub3)
@@ -1141,26 +1161,31 @@ func (mk *MockStore) LinkTopicSchema(projectUUID, name, schemaUUID string) error
 }
 
 // InsertSub inserts a new sub object to the store
-func (mk *MockStore) InsertSub(projectUUID string, name string, topic string, offset int64, maxMessages int64, authT string, authH string, ack int, push string, rPolicy string, rPeriod int, vhash string, verified bool, createdOn time.Time) error {
+func (mk *MockStore) InsertSub(projectUUID string, name string, topic string,
+	offset int64, ack int, pushCfg QPushConfig, createdOn time.Time) error {
 	sub := QSub{
 		ID:                  len(mk.SubList),
 		ProjectUUID:         projectUUID,
 		Name:                name,
 		Topic:               topic,
 		Offset:              offset,
+		NextOffset:          0,
+		PendingAck:          "",
 		Ack:                 ack,
-		MaxMessages:         maxMessages,
-		AuthorizationType:   authT,
-		AuthorizationHeader: authH,
-		PushEndpoint:        push,
-		RetPolicy:           rPolicy,
-		RetPeriod:           rPeriod,
-		VerificationHash:    vhash,
-		Verified:            verified,
+		PushType:            pushCfg.Type,
+		MaxMessages:         pushCfg.MaxMessages,
+		AuthorizationType:   pushCfg.AuthorizationType,
+		AuthorizationHeader: pushCfg.AuthorizationHeader,
+		PushEndpoint:        pushCfg.PushEndpoint,
+		RetPolicy:           pushCfg.RetPolicy,
+		RetPeriod:           pushCfg.RetPeriod,
+		VerificationHash:    pushCfg.VerificationHash,
+		Verified:            pushCfg.Verified,
+		MattermostUrl:       pushCfg.MattermostUrl,
+		MattermostChannel:   pushCfg.MattermostChannel,
+		MattermostUsername:  pushCfg.MattermostUsername,
 		MsgNum:              0,
 		TotalBytes:          0,
-		LatestConsume:       time.Time{},
-		ConsumeRate:         0,
 		CreatedOn:           createdOn,
 		ACL:                 []string{},
 	}

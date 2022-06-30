@@ -23,8 +23,11 @@ const (
 	SlowStartRetryPolicyType          = "slowstart"
 	AutoGenerationAuthorizationHeader = "autogen"
 	DisabledAuthorizationHeader       = "disabled"
+	HttpEndpointPushConfig            = "http_endpoint"
+	MattermostPushConfig              = "mattermost"
 	UnSupportedRetryPolicyError       = `Retry policy can only be of 'linear' or 'slowstart' type`
 	UnSupportedAuthorizationHeader    = `Authorization header type can only be of 'autogen' or 'disabled' type`
+	UnsupportedPushConfig             = `Push configuration type can only be of 'http_endpoint' or 'mattermost'`
 )
 
 var supportedRetryPolicyTypes = []string{
@@ -35,6 +38,11 @@ var supportedRetryPolicyTypes = []string{
 var supportedAuthorizationHeaderTypes = []string{
 	AutoGenerationAuthorizationHeader,
 	DisabledAuthorizationHeader,
+}
+
+var supportedPushConfigTypes = []string{
+	HttpEndpointPushConfig,
+	MattermostPushConfig,
 }
 
 // Subscription struct to hold information for a given topic
@@ -49,20 +57,24 @@ type Subscription struct {
 	Offset        int64      `json:"-"`
 	NextOffset    int64      `json:"-"`
 	PendingAck    string     `json:"-"`
-	PushStatus    string     `json:"push_status,omitempty"`
-	CreatedOn     string     `json:"created_on"`
+	PushStatus    string     `json:"pushStatus,omitempty"`
+	CreatedOn     string     `json:"createdOn"`
 	LatestConsume time.Time  `json:"-"`
 	ConsumeRate   float64    `json:"-"`
 }
 
 // PushConfig holds optional configuration for push operations
 type PushConfig struct {
+	Type                string              `json:"type"`
 	Pend                string              `json:"pushEndpoint"`
 	MaxMessages         int64               `json:"maxMessages"`
-	AuthorizationHeader AuthorizationHeader `json:"authorization_header"`
+	AuthorizationHeader AuthorizationHeader `json:"authorizationHeader"`
 	RetPol              RetryPolicy         `json:"retryPolicy"`
-	VerificationHash    string              `json:"verification_hash"`
+	VerificationHash    string              `json:"verificationHash"`
 	Verified            bool                `json:"verified"`
+	MattermostUrl       string              `json:"mattermostUrl"`
+	MattermostUsername  string              `json:"mattermostUsername"`
+	MattermostChannel   string              `json:"mattermostChannel"`
 }
 
 // SubMetrics holds the subscription's metric details
@@ -357,7 +369,7 @@ func Find(projectUUID, userUUID, name, pageToken string, pageSize int32, store s
 		curSub.NextOffset = item.NextOffset
 		curSub.Ack = item.Ack
 		curSub.CreatedOn = item.CreatedOn.UTC().Format("2006-01-02T15:04:05Z")
-		if item.PushEndpoint != "" {
+		if item.PushType != "" {
 			rp := RetryPolicy{
 				PolicyType: item.RetPolicy,
 			}
@@ -383,6 +395,10 @@ func Find(projectUUID, userUUID, name, pageToken string, pageSize int32, store s
 				RetPol:              rp,
 				VerificationHash:    item.VerificationHash,
 				Verified:            item.Verified,
+				MattermostUrl:       item.MattermostUrl,
+				MattermostChannel:   item.MattermostChannel,
+				MattermostUsername:  item.MattermostUsername,
+				Type:                item.PushType,
 			}
 		}
 		curSub.LatestConsume = item.LatestConsume
@@ -433,8 +449,9 @@ func LoadPushSubs(store stores.Store) PaginatedSubscriptions {
 	return result
 }
 
-// CreateSub creates a new subscription
-func CreateSub(projectUUID string, name string, topic string, push string, offset int64, maxMessages int64, authzType string, authzHeader string, ack int, retPolicy string, retPeriod int, vhash string, verified bool, createdOn time.Time, store stores.Store) (Subscription, error) {
+// Create creates a new subscription
+func Create(projectUUID string, name string, topic string, offset int64, ack int,
+	pushCfg PushConfig, createdOn time.Time, store stores.Store) (Subscription, error) {
 
 	if HasSub(projectUUID, name, store) {
 		return Subscription{}, errors.New("exists")
@@ -444,11 +461,26 @@ func CreateSub(projectUUID string, name string, topic string, push string, offse
 		ack = 10
 	}
 
-	if retPolicy == SlowStartRetryPolicyType {
-		retPeriod = 0
+	if pushCfg.RetPol.PolicyType == SlowStartRetryPolicyType {
+		pushCfg.RetPol.Period = 0
 	}
 
-	err := store.InsertSub(projectUUID, name, topic, offset, maxMessages, authzType, authzHeader, ack, push, retPolicy, retPeriod, vhash, verified, createdOn)
+	qPushCfg := stores.QPushConfig{
+		Type:                pushCfg.Type,
+		PushEndpoint:        pushCfg.Pend,
+		MaxMessages:         pushCfg.MaxMessages,
+		AuthorizationType:   pushCfg.AuthorizationHeader.Type,
+		AuthorizationHeader: pushCfg.AuthorizationHeader.Value,
+		RetPolicy:           pushCfg.RetPol.PolicyType,
+		RetPeriod:           pushCfg.RetPol.Period,
+		VerificationHash:    pushCfg.VerificationHash,
+		Verified:            pushCfg.Verified,
+		MattermostChannel:   pushCfg.MattermostChannel,
+		MattermostUrl:       pushCfg.MattermostUrl,
+		MattermostUsername:  pushCfg.MattermostUsername,
+	}
+
+	err := store.InsertSub(projectUUID, name, topic, offset, ack, qPushCfg, createdOn)
 	if err != nil {
 		return Subscription{}, errors.New("backend error")
 	}

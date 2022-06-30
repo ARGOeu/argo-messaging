@@ -274,7 +274,7 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubModPushConfigUpdate() {
 	"pushConfig": {
 		 "pushEndpoint": "https://www.example2.com",
          "maxMessages": 5,
-		 "authorization_header": {
+		 "authorizationHeader": {
 			"type": "autogen"
          },
 		 "retryPolicy": {
@@ -410,7 +410,7 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubModPushConfigUpdateAuthzDisa
 	"pushConfig": {
 		 "pushEndpoint": "https://www.example2.com",
          "maxMessages": 5,
-  		"authorization_header": {
+  		"authorizationHeader": {
   		"type": "disabled"
 		},
 		 "retryPolicy": {
@@ -473,6 +473,7 @@ func (suite *SubscriptionsHandlersTestSuite) TestVerifyPushEndpoint() {
 		Name:             "push-sub-v1",
 		ProjectUUID:      "argo_uuid",
 		PushEndpoint:     ts.URL,
+		PushType:         "http_endpoint",
 		VerificationHash: "vhash-1",
 		Verified:         false,
 	}
@@ -525,6 +526,7 @@ func (suite *SubscriptionsHandlersTestSuite) TestVerifyPushEndpointHashMisMatch(
 		Name:             "push-sub-v1",
 		ProjectUUID:      "argo_uuid",
 		PushEndpoint:     ts.URL,
+		PushType:         "http_endpoint",
 		VerificationHash: "vhash-1",
 		Verified:         false,
 	}
@@ -577,6 +579,7 @@ func (suite *SubscriptionsHandlersTestSuite) TestVerifyPushEndpointUnknownRespon
 		Name:             "push-sub-v1",
 		ProjectUUID:      "argo_uuid",
 		PushEndpoint:     ts.URL,
+		PushType:         "http_endpoint",
 		VerificationHash: "vhash-1",
 		Verified:         false,
 	}
@@ -623,6 +626,7 @@ func (suite *SubscriptionsHandlersTestSuite) TestVerifyPushEndpointPushServerErr
 		Name:             "errorSub",
 		ProjectUUID:      "argo_uuid",
 		PushEndpoint:     ts.URL,
+		PushType:         "http_endpoint",
 		VerificationHash: "vhash-1",
 		Verified:         false,
 	}
@@ -668,6 +672,7 @@ func (suite *SubscriptionsHandlersTestSuite) TestVerifyPushEndpointAlreadyVerifi
 		Name:             "push-sub-v1",
 		ProjectUUID:      "argo_uuid",
 		PushEndpoint:     "https://example.com/receive_here",
+		PushType:         "http_endpoint",
 		VerificationHash: "vhash-1",
 		Verified:         true,
 	}
@@ -694,7 +699,7 @@ func (suite *SubscriptionsHandlersTestSuite) TestVerifyPushEndpointNotPushEnable
 	expResp := `{
    "error": {
       "code": 409,
-      "message": "Subscription is not in push mode",
+      "message": "Subscription is not in http push mode",
       "status": "CONFLICT"
    }
 }`
@@ -708,6 +713,7 @@ func (suite *SubscriptionsHandlersTestSuite) TestVerifyPushEndpointNotPushEnable
 	q1 := stores.QSub{
 		Name:        "push-sub-v1",
 		ProjectUUID: "argo_uuid",
+		PushType:    "mattermost",
 	}
 
 	str.SubList = append(str.SubList, q1)
@@ -727,6 +733,7 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubCreatePushConfig() {
 	postJSON := `{
 	"topic":"projects/ARGO/topics/topic1",
 	"pushConfig": {
+         "type": "http_endpoint",
 		 "pushEndpoint": "https://www.example.com",
 		 "retryPolicy": {}
 	}
@@ -741,9 +748,10 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubCreatePushConfig() {
    "name": "/projects/ARGO/subscriptions/subNew",
    "topic": "/projects/ARGO/topics/topic1",
    "pushConfig": {
+      "type": "http_endpoint",
       "pushEndpoint": "https://www.example.com",
       "maxMessages": 1,
-      "authorization_header": {
+      "authorizationHeader": {
          "type": "autogen",
          "value": "{{AUTHZV}}"
       },
@@ -751,11 +759,14 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubCreatePushConfig() {
          "type": "linear",
          "period": 3000
       },
-      "verification_hash": "{{VHASH}}",
-      "verified": false
+      "verificationHash": "{{VHASH}}",
+      "verified": false,
+      "mattermostUrl": "",
+      "mattermostUsername": "",
+      "mattermostChannel": ""
    },
    "ackDeadlineSeconds": 10,
-   "created_on": "{{CON}}"
+   "createdOn": "{{CON}}"
 }`
 
 	cfgKafka := config.NewAPICfg()
@@ -776,13 +787,156 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubCreatePushConfig() {
 	suite.Equal(expResp, w.Body.String())
 }
 
+func (suite *SubscriptionsHandlersTestSuite) TestSubCreatePushConfigMattermost() {
+
+	postJSON := `{
+	"topic":"projects/ARGO/topics/topic1",
+	"pushConfig": {
+         "type": "mattermost",
+		 "pushEndpoint": "https://www.example.com",
+         "maxMessages": 100,
+		 "retryPolicy": {},
+         "mattermostUrl": "mywebhook.com",
+         "mattermostUsername": "willy",
+         "mattermostChannel": "operations"
+	}
+}`
+
+	req, err := http.NewRequest("PUT", "http://localhost:8080/v1/projects/ARGO/subscriptions/subNew", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "name": "/projects/ARGO/subscriptions/subNew",
+   "topic": "/projects/ARGO/topics/topic1",
+   "pushConfig": {
+      "type": "mattermost",
+      "pushEndpoint": "",
+      "maxMessages": 1,
+      "authorizationHeader": {},
+      "retryPolicy": {
+         "type": "linear",
+         "period": 3000
+      },
+      "verificationHash": "",
+      "verified": true,
+      "mattermostUrl": "mywebhook.com",
+      "mattermostUsername": "willy",
+      "mattermostChannel": "operations"
+   },
+   "ackDeadlineSeconds": 10,
+   "createdOn": "{{CON}}"
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubCreate, cfgKafka, &brk, str, &mgr, pc))
+	router.ServeHTTP(w, req)
+	sub, _ := str.QueryOneSub("argo_uuid", "subNew")
+	expResp = strings.Replace(expResp, "{{CON}}", sub.CreatedOn.Format("2006-01-02T15:04:05Z"), 1)
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
+}
+
+func (suite *SubscriptionsHandlersTestSuite) TestSubCreatePushConfigMattermostEmptyUrl() {
+
+	postJSON := `{
+	"topic":"projects/ARGO/topics/topic1",
+	"pushConfig": {
+         "type": "mattermost",
+		 "pushEndpoint": "https://www.example.com",
+         "maxMessages": 100,
+		 "retryPolicy": {},
+         "mattermostUrl": "",
+         "mattermostUsername": "willy",
+         "mattermostChannel": "operations"
+	}
+}`
+
+	req, err := http.NewRequest("PUT", "http://localhost:8080/v1/projects/ARGO/subscriptions/subNew", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "error": {
+      "code": 400,
+      "message": "Field mattermostUrl cannot be empty",
+      "status": "INVALID_ARGUMENT"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubCreate, cfgKafka, &brk, str, &mgr, pc))
+	router.ServeHTTP(w, req)
+	suite.Equal(400, w.Code)
+	suite.Equal(expResp, w.Body.String())
+}
+
+func (suite *SubscriptionsHandlersTestSuite) TestSubCreatePushConfigInvalidType() {
+
+	postJSON := `{
+	"topic":"projects/ARGO/topics/topic1",
+	"pushConfig": {
+         "type": "",
+		 "pushEndpoint": "https://www.example.com",
+         "maxMessages": 100,
+		 "retryPolicy": {},
+         "mattermostUrl": "",
+         "mattermostUsername": "willy",
+         "mattermostChannel": "operations"
+	}
+}`
+
+	req, err := http.NewRequest("PUT", "http://localhost:8080/v1/projects/ARGO/subscriptions/subNew", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "error": {
+      "code": 400,
+      "message": "Push configuration type can only be of 'http_endpoint' or 'mattermost'",
+      "status": "INVALID_ARGUMENT"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubCreate, cfgKafka, &brk, str, &mgr, pc))
+	router.ServeHTTP(w, req)
+	suite.Equal(400, w.Code)
+	suite.Equal(expResp, w.Body.String())
+}
+
 func (suite *SubscriptionsHandlersTestSuite) TestSubCreatePushConfigSlowStart() {
 
 	postJSON := `{
 	"topic":"projects/ARGO/topics/topic1",
 	"pushConfig": {
+         "type": "http_endpoint",
 		 "pushEndpoint": "https://www.example.com",
-		 "authorization_header": {
+		 "authorizationHeader": {
          	"type": "disabled"
 		 },
 		 "retryPolicy": {
@@ -800,19 +954,23 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubCreatePushConfigSlowStart() 
    "name": "/projects/ARGO/subscriptions/subNew",
    "topic": "/projects/ARGO/topics/topic1",
    "pushConfig": {
+      "type": "http_endpoint",
       "pushEndpoint": "https://www.example.com",
       "maxMessages": 1,
-      "authorization_header": {
+      "authorizationHeader": {
          "type": "disabled"
       },
       "retryPolicy": {
          "type": "slowstart"
       },
-      "verification_hash": "{{VHASH}}",
-      "verified": false
+      "verificationHash": "{{VHASH}}",
+      "verified": false,
+      "mattermostUrl": "",
+      "mattermostUsername": "",
+      "mattermostChannel": ""
    },
    "ackDeadlineSeconds": 10,
-   "created_on": "{{CON}}"
+   "createdOn": "{{CON}}"
 }`
 
 	cfgKafka := config.NewAPICfg()
@@ -922,6 +1080,7 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubCreateInvalidRetPol() {
 	postJSON := `{
 	"topic":"projects/ARGO/topics/topic1",
 	"pushConfig": {
+         "type": "http_endpoint",
 		 "pushEndpoint": "https://www.example.com",
 		 "retryPolicy": {
 			"type": "unknown"
@@ -961,6 +1120,7 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubCreatePushConfigError() {
 	postJSON := `{
 	"topic":"projects/ARGO/topics/topic1",
 	"pushConfig": {
+         "type": "http_endpoint",
 		 "pushEndpoint": "http://www.example.com",
 		 "retryPolicy": {}
 	}
@@ -1007,15 +1167,19 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubCreate() {
    "name": "/projects/ARGO/subscriptions/subNew",
    "topic": "/projects/ARGO/topics/topic1",
    "pushConfig": {
+      "type": "",
       "pushEndpoint": "",
       "maxMessages": 0,
-      "authorization_header": {},
+      "authorizationHeader": {},
       "retryPolicy": {},
-      "verification_hash": "",
-      "verified": false
+      "verificationHash": "",
+      "verified": false,
+      "mattermostUrl": "",
+      "mattermostUsername": "",
+      "mattermostChannel": ""
    },
    "ackDeadlineSeconds": 10,
-   "created_on": "{{CON}}"
+   "createdOn": "{{CON}}"
 }`
 
 	cfgKafka := config.NewAPICfg()
@@ -1160,6 +1324,7 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubWithPushConfigDeletePushServ
 		PushEndpoint: "example.com",
 		// sub needs to be verified in order to perform the call to the push server
 		Verified: true,
+		PushType: "mattermost",
 	})
 	mgr := oldPush.Manager{}
 	router := mux.NewRouter().StrictSlash(true)
@@ -1210,15 +1375,19 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubListOne() {
    "name": "/projects/ARGO/subscriptions/sub1",
    "topic": "/projects/ARGO/topics/topic1",
    "pushConfig": {
+      "type": "",
       "pushEndpoint": "",
       "maxMessages": 0,
-      "authorization_header": {},
+      "authorizationHeader": {},
       "retryPolicy": {},
-      "verification_hash": "",
-      "verified": false
+      "verificationHash": "",
+      "verified": false,
+      "mattermostUrl": "",
+      "mattermostUsername": "",
+      "mattermostChannel": ""
    },
    "ackDeadlineSeconds": 10,
-   "created_on": "2020-11-19T00:00:00Z"
+   "createdOn": "2020-11-19T00:00:00Z"
 }`
 
 	cfgKafka := config.NewAPICfg()
@@ -1249,9 +1418,10 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubListAll() {
          "name": "/projects/ARGO/subscriptions/sub4",
          "topic": "/projects/ARGO/topics/topic4",
          "pushConfig": {
+            "type": "http_endpoint",
             "pushEndpoint": "endpoint.foo",
             "maxMessages": 1,
-            "authorization_header": {
+            "authorizationHeader": {
                "type": "autogen",
                "value": "auth-header-1"
             },
@@ -1259,53 +1429,68 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubListAll() {
                "type": "linear",
                "period": 300
             },
-            "verification_hash": "push-id-1",
-            "verified": true
+            "verificationHash": "push-id-1",
+            "verified": true,
+            "mattermostUrl": "",
+            "mattermostUsername": "",
+            "mattermostChannel": ""
          },
          "ackDeadlineSeconds": 10,
-         "created_on": "2020-11-22T00:00:00Z"
+         "createdOn": "2020-11-22T00:00:00Z"
       },
       {
          "name": "/projects/ARGO/subscriptions/sub3",
          "topic": "/projects/ARGO/topics/topic3",
          "pushConfig": {
+            "type": "",
             "pushEndpoint": "",
             "maxMessages": 0,
-            "authorization_header": {},
+            "authorizationHeader": {},
             "retryPolicy": {},
-            "verification_hash": "",
-            "verified": false
+            "verificationHash": "",
+            "verified": false,
+            "mattermostUrl": "",
+            "mattermostUsername": "",
+            "mattermostChannel": ""
          },
          "ackDeadlineSeconds": 10,
-         "created_on": "2020-11-21T00:00:00Z"
+         "createdOn": "2020-11-21T00:00:00Z"
       },
       {
          "name": "/projects/ARGO/subscriptions/sub2",
          "topic": "/projects/ARGO/topics/topic2",
          "pushConfig": {
+            "type": "",
             "pushEndpoint": "",
             "maxMessages": 0,
-            "authorization_header": {},
+            "authorizationHeader": {},
             "retryPolicy": {},
-            "verification_hash": "",
-            "verified": false
+            "verificationHash": "",
+            "verified": false,
+            "mattermostUrl": "",
+            "mattermostUsername": "",
+            "mattermostChannel": ""
          },
          "ackDeadlineSeconds": 10,
-         "created_on": "2020-11-20T00:00:00Z"
+         "createdOn": "2020-11-20T00:00:00Z"
       },
       {
          "name": "/projects/ARGO/subscriptions/sub1",
          "topic": "/projects/ARGO/topics/topic1",
          "pushConfig": {
+            "type": "",
             "pushEndpoint": "",
             "maxMessages": 0,
-            "authorization_header": {},
+            "authorizationHeader": {},
             "retryPolicy": {},
-            "verification_hash": "",
-            "verified": false
+            "verificationHash": "",
+            "verified": false,
+            "mattermostUrl": "",
+            "mattermostUsername": "",
+            "mattermostChannel": ""
          },
          "ackDeadlineSeconds": 10,
-         "created_on": "2020-11-19T00:00:00Z"
+         "createdOn": "2020-11-19T00:00:00Z"
       }
    ],
    "nextPageToken": "",
@@ -1339,9 +1524,10 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubListAllFirstPage() {
          "name": "/projects/ARGO/subscriptions/sub4",
          "topic": "/projects/ARGO/topics/topic4",
          "pushConfig": {
+            "type": "http_endpoint",
             "pushEndpoint": "endpoint.foo",
             "maxMessages": 1,
-            "authorization_header": {
+            "authorizationHeader": {
                "type": "autogen",
                "value": "auth-header-1"
             },
@@ -1349,25 +1535,32 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubListAllFirstPage() {
                "type": "linear",
                "period": 300
             },
-            "verification_hash": "push-id-1",
-            "verified": true
+            "verificationHash": "push-id-1",
+            "verified": true,
+            "mattermostUrl": "",
+            "mattermostUsername": "",
+            "mattermostChannel": ""
          },
          "ackDeadlineSeconds": 10,
-         "created_on": "2020-11-22T00:00:00Z"
+         "createdOn": "2020-11-22T00:00:00Z"
       },
       {
          "name": "/projects/ARGO/subscriptions/sub3",
          "topic": "/projects/ARGO/topics/topic3",
          "pushConfig": {
+            "type": "",
             "pushEndpoint": "",
             "maxMessages": 0,
-            "authorization_header": {},
+            "authorizationHeader": {},
             "retryPolicy": {},
-            "verification_hash": "",
-            "verified": false
+            "verificationHash": "",
+            "verified": false,
+            "mattermostUrl": "",
+            "mattermostUsername": "",
+            "mattermostChannel": ""
          },
          "ackDeadlineSeconds": 10,
-         "created_on": "2020-11-21T00:00:00Z"
+         "createdOn": "2020-11-21T00:00:00Z"
       }
    ],
    "nextPageToken": "MQ==",
@@ -1401,29 +1594,37 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubListAllNextPage() {
          "name": "/projects/ARGO/subscriptions/sub2",
          "topic": "/projects/ARGO/topics/topic2",
          "pushConfig": {
+            "type": "",
             "pushEndpoint": "",
             "maxMessages": 0,
-            "authorization_header": {},
+            "authorizationHeader": {},
             "retryPolicy": {},
-            "verification_hash": "",
-            "verified": false
+            "verificationHash": "",
+            "verified": false,
+            "mattermostUrl": "",
+            "mattermostUsername": "",
+            "mattermostChannel": ""
          },
          "ackDeadlineSeconds": 10,
-         "created_on": "2020-11-20T00:00:00Z"
+         "createdOn": "2020-11-20T00:00:00Z"
       },
       {
          "name": "/projects/ARGO/subscriptions/sub1",
          "topic": "/projects/ARGO/topics/topic1",
          "pushConfig": {
+            "type": "",
             "pushEndpoint": "",
             "maxMessages": 0,
-            "authorization_header": {},
+            "authorizationHeader": {},
             "retryPolicy": {},
-            "verification_hash": "",
-            "verified": false
+            "verificationHash": "",
+            "verified": false,
+            "mattermostUrl": "",
+            "mattermostUsername": "",
+            "mattermostChannel": ""
          },
          "ackDeadlineSeconds": 10,
-         "created_on": "2020-11-19T00:00:00Z"
+         "createdOn": "2020-11-19T00:00:00Z"
       }
    ],
    "nextPageToken": "",
@@ -1486,9 +1687,10 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubListAllConsumer() {
          "name": "/projects/ARGO/subscriptions/sub4",
          "topic": "/projects/ARGO/topics/topic4",
          "pushConfig": {
+            "type": "http_endpoint",
             "pushEndpoint": "endpoint.foo",
             "maxMessages": 1,
-            "authorization_header": {
+            "authorizationHeader": {
                "type": "autogen",
                "value": "auth-header-1"
             },
@@ -1496,39 +1698,50 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubListAllConsumer() {
                "type": "linear",
                "period": 300
             },
-            "verification_hash": "push-id-1",
-            "verified": true
+            "verificationHash": "push-id-1",
+            "verified": true,
+            "mattermostUrl": "",
+            "mattermostUsername": "",
+            "mattermostChannel": ""
          },
          "ackDeadlineSeconds": 10,
-         "created_on": "2020-11-22T00:00:00Z"
+         "createdOn": "2020-11-22T00:00:00Z"
       },
       {
          "name": "/projects/ARGO/subscriptions/sub3",
          "topic": "/projects/ARGO/topics/topic3",
          "pushConfig": {
+            "type": "",
             "pushEndpoint": "",
             "maxMessages": 0,
-            "authorization_header": {},
+            "authorizationHeader": {},
             "retryPolicy": {},
-            "verification_hash": "",
-            "verified": false
+            "verificationHash": "",
+            "verified": false,
+            "mattermostUrl": "",
+            "mattermostUsername": "",
+            "mattermostChannel": ""
          },
          "ackDeadlineSeconds": 10,
-         "created_on": "2020-11-21T00:00:00Z"
+         "createdOn": "2020-11-21T00:00:00Z"
       },
       {
          "name": "/projects/ARGO/subscriptions/sub2",
          "topic": "/projects/ARGO/topics/topic2",
          "pushConfig": {
+            "type": "",
             "pushEndpoint": "",
             "maxMessages": 0,
-            "authorization_header": {},
+            "authorizationHeader": {},
             "retryPolicy": {},
-            "verification_hash": "",
-            "verified": false
+            "verificationHash": "",
+            "verified": false,
+            "mattermostUrl": "",
+            "mattermostUsername": "",
+            "mattermostChannel": ""
          },
          "ackDeadlineSeconds": 10,
-         "created_on": "2020-11-20T00:00:00Z"
+         "createdOn": "2020-11-20T00:00:00Z"
       }
    ],
    "nextPageToken": "",
@@ -1562,9 +1775,10 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubListAllConsumerWithPaginatio
          "name": "/projects/ARGO/subscriptions/sub4",
          "topic": "/projects/ARGO/topics/topic4",
          "pushConfig": {
+            "type": "http_endpoint",
             "pushEndpoint": "endpoint.foo",
             "maxMessages": 1,
-            "authorization_header": {
+            "authorizationHeader": {
                "type": "autogen",
                "value": "auth-header-1"
             },
@@ -1572,25 +1786,32 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubListAllConsumerWithPaginatio
                "type": "linear",
                "period": 300
             },
-            "verification_hash": "push-id-1",
-            "verified": true
+            "verificationHash": "push-id-1",
+            "verified": true,
+            "mattermostUrl": "",
+            "mattermostUsername": "",
+            "mattermostChannel": ""
          },
          "ackDeadlineSeconds": 10,
-         "created_on": "2020-11-22T00:00:00Z"
+         "createdOn": "2020-11-22T00:00:00Z"
       },
       {
          "name": "/projects/ARGO/subscriptions/sub3",
          "topic": "/projects/ARGO/topics/topic3",
          "pushConfig": {
+            "type": "",
             "pushEndpoint": "",
             "maxMessages": 0,
-            "authorization_header": {},
+            "authorizationHeader": {},
             "retryPolicy": {},
-            "verification_hash": "",
-            "verified": false
+            "verificationHash": "",
+            "verified": false,
+            "mattermostUrl": "",
+            "mattermostUsername": "",
+            "mattermostChannel": ""
          },
          "ackDeadlineSeconds": 10,
-         "created_on": "2020-11-21T00:00:00Z"
+         "createdOn": "2020-11-21T00:00:00Z"
       }
    ],
    "nextPageToken": "MQ==",
@@ -2419,15 +2640,19 @@ func (suite *SubscriptionsHandlersTestSuite) TestValidationInSubs() {
    "name": "/projects/ARGO/subscriptions/sub1",
    "topic": "/projects/ARGO/topics/topic1",
    "pushConfig": {
+      "type": "",
       "pushEndpoint": "",
       "maxMessages": 0,
-      "authorization_header": {},
+      "authorizationHeader": {},
       "retryPolicy": {},
-      "verification_hash": "",
-      "verified": false
+      "verificationHash": "",
+      "verified": false,
+      "mattermostUrl": "",
+      "mattermostUsername": "",
+      "mattermostChannel": ""
    },
    "ackDeadlineSeconds": 10,
-   "created_on": "2020-11-19T00:00:00Z"
+   "createdOn": "2020-11-19T00:00:00Z"
 }`
 
 	invProject := `{
