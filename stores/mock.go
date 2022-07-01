@@ -632,17 +632,21 @@ func (mk *MockStore) ModAck(projectUUID string, name string, ack int) error {
 }
 
 // ModSubPush modifies the subscription push configuration
-func (mk *MockStore) ModSubPush(projectUUID string, name string, push string, authzType string, authzValue string, maxMessages int64, rPolicy string, rPeriod int, vhash string, verified bool) error {
+func (mk *MockStore) ModSubPush(projectUUID string, name string, config QPushConfig) error {
 	for i, item := range mk.SubList {
 		if item.ProjectUUID == projectUUID && item.Name == name {
-			mk.SubList[i].PushEndpoint = push
-			mk.SubList[i].AuthorizationType = authzType
-			mk.SubList[i].AuthorizationHeader = authzValue
-			mk.SubList[i].MaxMessages = maxMessages
-			mk.SubList[i].RetPolicy = rPolicy
-			mk.SubList[i].RetPeriod = rPeriod
-			mk.SubList[i].VerificationHash = vhash
-			mk.SubList[i].Verified = verified
+			mk.SubList[i].PushType = config.Type
+			mk.SubList[i].PushEndpoint = config.PushEndpoint
+			mk.SubList[i].AuthorizationType = config.AuthorizationType
+			mk.SubList[i].AuthorizationHeader = config.AuthorizationHeader
+			mk.SubList[i].MaxMessages = config.MaxMessages
+			mk.SubList[i].RetPolicy = config.RetPolicy
+			mk.SubList[i].RetPeriod = config.RetPeriod
+			mk.SubList[i].VerificationHash = config.VerificationHash
+			mk.SubList[i].Verified = config.Verified
+			mk.SubList[i].MattermostUrl = config.MattermostUrl
+			mk.SubList[i].MattermostUsername = config.MattermostUsername
+			mk.SubList[i].MattermostChannel = config.MattermostChannel
 			return nil
 		}
 	}

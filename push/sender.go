@@ -38,7 +38,7 @@ func NewHTTPSender(timeoutSec int) *HTTPSender {
 func (hs *HTTPSender) Send(msg string, endpoint string) error {
 	var jsonStr = []byte(msg)
 	req, err := http.NewRequest("POST", endpoint, bytes.NewBuffer(jsonStr))
-	req.Header.Set("Content-PushType", "application/json")
+	req.Header.Set("Content-Type", "application/json")
 	log.Debug("Sending to endpoint:", endpoint)
 	log.Debug("message contents:", msg)
 

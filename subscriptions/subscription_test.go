@@ -399,7 +399,25 @@ func (suite *SubTestSuite) TestModSubPush() {
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
 
 	// modify push config
-	err1 := ModSubPush("argo_uuid", "sub1", "example.com", "autogen", "auth-h", 2, "linear", 400, "hash-1", true, store)
+	cfg := PushConfig{
+		Type:        "http_endpoint",
+		Pend:        "example.com",
+		MaxMessages: 2,
+		AuthorizationHeader: AuthorizationHeader{
+			Type:  AutoGenerationAuthorizationHeader,
+			Value: "auth-h",
+		},
+		RetPol: RetryPolicy{
+			PolicyType: LinearRetryPolicyType,
+			Period:     400,
+		},
+		VerificationHash:   "hash-1",
+		Verified:           true,
+		MattermostUrl:      "",
+		MattermostUsername: "",
+		MattermostChannel:  "",
+	}
+	err1 := ModSubPush("argo_uuid", "sub1", cfg, store)
 
 	suite.Nil(err1)
 
@@ -412,7 +430,7 @@ func (suite *SubTestSuite) TestModSubPush() {
 	suite.True(sub1.Verified)
 
 	// test error case
-	err2 := ModSubPush("argo_uuid", "unknown", "", "", "", 0, "", 0, "", false, store)
+	err2 := ModSubPush("argo_uuid", "unknown", PushConfig{}, store)
 	suite.Equal("not found", err2.Error())
 }
 

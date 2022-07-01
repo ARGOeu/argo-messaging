@@ -326,9 +326,19 @@ func VerifyPushEndpoint(sub Subscription, c *http.Client, store stores.Store) er
 	}
 
 	// update the push config with verified true
-	err = ModSubPush(sub.ProjectUUID, sub.Name, sub.PushCfg.Pend, sub.PushCfg.AuthorizationHeader.Type,
-		sub.PushCfg.AuthorizationHeader.Value, sub.PushCfg.MaxMessages, sub.PushCfg.RetPol.PolicyType,
-		sub.PushCfg.RetPol.Period, sub.PushCfg.VerificationHash, true, store)
+	cfg := PushConfig{
+		Type:                sub.PushCfg.Type,
+		Pend:                sub.PushCfg.Pend,
+		MaxMessages:         sub.PushCfg.MaxMessages,
+		AuthorizationHeader: sub.PushCfg.AuthorizationHeader,
+		RetPol:              sub.PushCfg.RetPol,
+		VerificationHash:    sub.PushCfg.VerificationHash,
+		Verified:            true,
+		MattermostUrl:       sub.PushCfg.MattermostUrl,
+		MattermostUsername:  sub.PushCfg.MattermostUsername,
+		MattermostChannel:   sub.PushCfg.MattermostChannel,
+	}
+	err = ModSubPush(sub.ProjectUUID, sub.Name, cfg, store)
 	if err != nil {
 		return err
 	}
@@ -508,17 +518,32 @@ func ModAck(projectUUID string, name string, ack int, store stores.Store) error 
 }
 
 // ModSubPush updates the subscription push config
-func ModSubPush(projectUUID string, name string, push string, authzType string, authzValue string, maxMessages int64, retPolicy string, retPeriod int, vhash string, verified bool, store stores.Store) error {
+func ModSubPush(projectUUID string, name string, pushCfg PushConfig, store stores.Store) error {
 
 	if HasSub(projectUUID, name, store) == false {
 		return errors.New("not found")
 	}
 
-	if retPolicy == SlowStartRetryPolicyType {
-		retPeriod = 0
+	if pushCfg.RetPol.PolicyType == SlowStartRetryPolicyType {
+		pushCfg.RetPol.Period = 0
 	}
 
-	return store.ModSubPush(projectUUID, name, push, authzType, authzValue, maxMessages, retPolicy, retPeriod, vhash, verified)
+	qPushCfg := stores.QPushConfig{
+		Type:                pushCfg.Type,
+		PushEndpoint:        pushCfg.Pend,
+		MaxMessages:         pushCfg.MaxMessages,
+		AuthorizationType:   pushCfg.AuthorizationHeader.Type,
+		AuthorizationHeader: pushCfg.AuthorizationHeader.Value,
+		RetPolicy:           pushCfg.RetPol.PolicyType,
+		RetPeriod:           pushCfg.RetPol.Period,
+		VerificationHash:    pushCfg.VerificationHash,
+		Verified:            pushCfg.Verified,
+		MattermostChannel:   pushCfg.MattermostChannel,
+		MattermostUrl:       pushCfg.MattermostUrl,
+		MattermostUsername:  pushCfg.MattermostUsername,
+	}
+
+	return store.ModSubPush(projectUUID, name, qPushCfg)
 }
 
 // RemoveSub removes an existing subscription

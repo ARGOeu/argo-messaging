@@ -46,6 +46,7 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubModPushConfigError() {
 	postJSON := `{
 	"topic":"projects/ARGO/topics/topic1",
 	"pushConfig": {
+         "type": "http_endpoint",
 		 "pushEndpoint": "http://www.example.com",
 		 "retryPolicy": {}
 	}
@@ -117,6 +118,51 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubModPushInvalidRetPol() {
 
 }
 
+func (suite *SubscriptionsHandlersTestSuite) TestSubModPushConfigInvalidType() {
+
+	postJSON := `{
+	"topic":"projects/ARGO/topics/topic1",
+	"pushConfig": {
+         "type": "",
+		 "pushEndpoint": "https://www.example.com",
+         "maxMessages": 100,
+		 "retryPolicy": {},
+         "mattermostUrl": "",
+         "mattermostUsername": "willy",
+         "mattermostChannel": "operations"
+	}
+}`
+
+	req, err := http.NewRequest("PUT",
+		"http://localhost:8080/v1/projects/ARGO/subscriptions/sub4:modifyPushConfig",
+		bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "error": {
+      "code": 400,
+      "message": "Push configuration type can only be of 'http_endpoint' or 'mattermost'",
+      "status": "INVALID_ARGUMENT"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modifyPushConfig",
+		WrapMockAuthConfig(SubCreate, cfgKafka, &brk, str, &mgr, pc))
+	router.ServeHTTP(w, req)
+	suite.Equal(400, w.Code)
+	suite.Equal(expResp, w.Body.String())
+}
+
 // TestSubModPushConfigToActive tests the case where the user modifies the push configuration,
 // in order to activate the subscription on the push server
 // the push configuration was empty before the api call
@@ -124,6 +170,7 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubModPushConfigToActive() {
 
 	postJSON := `{
 	"pushConfig": {
+         "type": "http_endpoint",
 		 "pushEndpoint": "https://www.example.com",
 		 "retryPolicy": {}
 	}
@@ -272,6 +319,7 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubModPushConfigUpdate() {
 
 	postJSON := `{
 	"pushConfig": {
+         "type": "http_endpoint",
 		 "pushEndpoint": "https://www.example2.com",
          "maxMessages": 5,
 		 "authorizationHeader": {
@@ -280,7 +328,10 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubModPushConfigUpdate() {
 		 "retryPolicy": {
              "type":"linear",
              "period": 5000
-         }
+         },
+		"mattermostUrl": "test.com",
+		"mattermostUsername": "test",
+		"mattermostChannel": "test"
 	}
 }`
 
@@ -311,6 +362,112 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubModPushConfigUpdate() {
 	suite.NotEqual("", sub.VerificationHash)
 	suite.NotEqual("push-id-1", sub.VerificationHash)
 	suite.NotEqual(subBeforeUpdate.AuthorizationHeader, sub.AuthorizationHeader)
+	suite.Equal("", sub.MattermostChannel)
+	suite.Equal("", sub.MattermostUrl)
+	suite.Equal("", sub.MattermostUsername)
+}
+
+func (suite *SubscriptionsHandlersTestSuite) TestSubModPushConfigUpdateMattermost() {
+
+	postJSON := `{
+	"pushConfig": {
+         "type": "mattermost",
+		 "pushEndpoint": "https://www.example2.com",
+         "maxMessages": 5,
+		 "authorizationHeader": {
+			"type": "autogen"
+         },
+		 "retryPolicy": {
+             "type":"linear",
+             "period": 5000
+         },
+		"mattermostUrl": "test.com",
+		"mattermostUsername": "test",
+		"mattermostChannel": "test"
+	}
+}`
+
+	req, err := http.NewRequest("POST",
+		"http://localhost:8080/v1/projects/ARGO/subscriptions/sub4:modifyPushConfig",
+		strings.NewReader(postJSON))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modifyPushConfig",
+		WrapMockAuthConfig(SubModPush, cfgKafka, &brk, str, &mgr, pc))
+	router.ServeHTTP(w, req)
+	sub, _ := str.QueryOneSub("argo_uuid", "sub4")
+	suite.Equal(200, w.Code)
+	suite.Equal("", w.Body.String())
+	suite.Equal("", sub.PushEndpoint)
+	suite.Equal(int64(1), sub.MaxMessages)
+	suite.Equal(5000, sub.RetPeriod)
+	suite.Equal("linear", sub.RetPolicy)
+	suite.True(sub.Verified)
+	suite.Equal("", sub.VerificationHash)
+	suite.Equal("", sub.AuthorizationHeader)
+	suite.Equal("test", sub.MattermostChannel)
+	suite.Equal("test.com", sub.MattermostUrl)
+	suite.Equal("test", sub.MattermostUsername)
+}
+
+func (suite *SubscriptionsHandlersTestSuite) TestSubModPushConfigUpdateMattermostEmptyUrl() {
+
+	postJSON := `{
+	"pushConfig": {
+         "type": "mattermost",
+		 "pushEndpoint": "https://www.example2.com",
+         "maxMessages": 5,
+		 "authorizationHeader": {
+			"type": "autogen"
+         },
+		 "retryPolicy": {
+             "type":"linear",
+             "period": 5000
+         },
+		"mattermostUrl": "",
+		"mattermostUsername": "test",
+		"mattermostChannel": "test"
+	}
+}`
+
+	expResp := `{
+   "error": {
+      "code": 400,
+      "message": "Field mattermostUrl cannot be empty",
+      "status": "INVALID_ARGUMENT"
+   }
+}`
+
+	req, err := http.NewRequest("POST",
+		"http://localhost:8080/v1/projects/ARGO/subscriptions/sub4:modifyPushConfig",
+		strings.NewReader(postJSON))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modifyPushConfig",
+		WrapMockAuthConfig(SubModPush, cfgKafka, &brk, str, &mgr, pc))
+	router.ServeHTTP(w, req)
+	suite.Equal(400, w.Code)
+	suite.Equal(expResp, w.Body.String())
 }
 
 // TestSubModPushConfigToActiveORUpdatePushDisabled tests the case where the user modifies the push configuration,
@@ -408,6 +565,7 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubModPushConfigUpdateAuthzDisa
 
 	postJSON := `{
 	"pushConfig": {
+         "type": "http_endpoint",
 		 "pushEndpoint": "https://www.example2.com",
          "maxMessages": 5,
   		"authorizationHeader": {
