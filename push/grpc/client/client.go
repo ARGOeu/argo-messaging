@@ -122,11 +122,19 @@ func (c *GrpcClient) SubscriptionStatus(ctx context.Context, fullSub string) Cli
 // ActivateSubscription is a wrapper over the grpc ActivateSubscription call
 func (c *GrpcClient) ActivateSubscription(ctx context.Context, subscription subscriptions.Subscription) ClientStatus {
 
+	var pushType amsPb.PushType
+	if subscription.PushCfg.Type == subscriptions.HttpEndpointPushConfig {
+		pushType = amsPb.PushType_HTTP_ENDPOINT
+	} else {
+		pushType = amsPb.PushType_MATTERMOST
+	}
+
 	actSubR := &amsPb.ActivateSubscriptionRequest{
 		Subscription: &amsPb.Subscription{
 			FullName:  subscription.FullName,
 			FullTopic: subscription.FullTopic,
 			PushConfig: &amsPb.PushConfig{
+				Type:                pushType,
 				PushEndpoint:        subscription.PushCfg.Pend,
 				MaxMessages:         subscription.PushCfg.MaxMessages,
 				AuthorizationHeader: subscription.PushCfg.AuthorizationHeader.Value,
@@ -134,6 +142,9 @@ func (c *GrpcClient) ActivateSubscription(ctx context.Context, subscription subs
 					Type:   subscription.PushCfg.RetPol.PolicyType,
 					Period: uint32(subscription.PushCfg.RetPol.Period),
 				},
+				MattermostUrl:      subscription.PushCfg.MattermostUrl,
+				MattermostChannel:  subscription.PushCfg.MattermostChannel,
+				MattermostUsername: subscription.PushCfg.MattermostUsername,
 			},
 		}}
 

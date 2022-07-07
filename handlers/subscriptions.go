@@ -765,68 +765,71 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 		pushWorker, _ = auth.GetPushWorker(pwToken, refStr)
 	}
 
-	// TODO remove checks for http_endpoint when grpc client has support for mattermost fields
 	// if the sub, was push enabled before the update and the endpoint was verified
 	// (also works the same for mattermost push subs since they are always verified)
 	// we need to deactivate it on the push server
-	if existingSub.PushCfg.Type == subscriptions.HttpEndpointPushConfig {
-		if existingSub.PushCfg != (subscriptions.PushConfig{}) {
-			if existingSub.PushCfg.Verified {
-				// deactivate the subscription on the push backend
-				apsc := gorillaContext.Get(r, "apsc").(push.Client)
-				apsc.DeactivateSubscription(context.TODO(), existingSub.FullName).Result(false)
+	if existingSub.PushCfg != (subscriptions.PushConfig{}) {
+		if existingSub.PushCfg.Verified {
+			// deactivate the subscription on the push backend
+			apsc := gorillaContext.Get(r, "apsc").(push.Client)
+			apsc.DeactivateSubscription(context.TODO(), existingSub.FullName).Result(false)
 
-				// remove the push worker user from the sub's acl
-				err = auth.RemoveFromACL(projectUUID, "subscriptions", existingSub.Name, []string{pushWorker.Name}, refStr)
-				if err != nil {
-					err := APIErrGenericInternal(err.Error())
-					respondErr(w, err)
-					return
-				}
+			// remove the push worker user from the sub's acl
+			err = auth.RemoveFromACL(projectUUID, "subscriptions", existingSub.Name, []string{pushWorker.Name}, refStr)
+			if err != nil {
+				err := APIErrGenericInternal(err.Error())
+				respondErr(w, err)
+				return
 			}
 		}
-		// if the update on push configuration is not intended to stop the push functionality
-		// activate the subscription with the new values
-		if postBody.PushCfg != (subscriptions.PushConfig{}) {
+	}
+	// if the update on push configuration is not intended to stop the push functionality
+	// activate the subscription with the new values
+	if postBody.PushCfg != (subscriptions.PushConfig{}) {
 
-			// reactivate only if the push endpoint hasn't changed and it was already verified
-			// otherwise we need to verify the ownership again before wee activate it
-			if postBody.PushCfg.Pend == existingSub.PushCfg.Pend && existingSub.PushCfg.Verified {
+		// reactivate only if the push endpoint hasn't changed and it was already verified
+		// otherwise we need to verify the ownership again before wee activate it
+		if (postBody.PushCfg.Type == subscriptions.HttpEndpointPushConfig &&
+			postBody.PushCfg.Pend == existingSub.PushCfg.Pend && existingSub.PushCfg.Verified) ||
+			(postBody.PushCfg.Type == subscriptions.MattermostPushConfig) {
 
-				//activate the subscription on the push backend
-				apsc := gorillaContext.Get(r, "apsc").(push.Client)
-				s := subscriptions.Subscription{
-					FullName:  existingSub.FullName,
-					FullTopic: existingSub.FullTopic,
-					PushCfg: subscriptions.PushConfig{
-						Pend:        pushEnd,
-						MaxMessages: maxMessages,
-						AuthorizationHeader: subscriptions.AuthorizationHeader{
-							Value: authzHeaderValue,
-						},
-						RetPol: subscriptions.RetryPolicy{
-							PolicyType: rPolicy,
-							Period:     rPeriod,
-						},
+			//activate the subscription on the push backend
+			apsc := gorillaContext.Get(r, "apsc").(push.Client)
+			s := subscriptions.Subscription{
+				FullName:  existingSub.FullName,
+				FullTopic: existingSub.FullTopic,
+				PushCfg: subscriptions.PushConfig{
+					Type:        pushType,
+					Pend:        pushEnd,
+					MaxMessages: maxMessages,
+					AuthorizationHeader: subscriptions.AuthorizationHeader{
+						Value: authzHeaderValue,
 					},
-				}
-				apsc.ActivateSubscription(context.TODO(), s).Result(false)
+					RetPol: subscriptions.RetryPolicy{
+						PolicyType: rPolicy,
+						Period:     rPeriod,
+					},
+					MattermostUrl:      mattermostUrl,
+					MattermostUsername: mattermostUsername,
+					MattermostChannel:  mattermostChannel,
+				},
+			}
+			apsc.ActivateSubscription(context.TODO(), s).Result(false)
 
-				// modify the sub's acl with the push worker's uuid
-				err = auth.AppendToACL(projectUUID, "subscriptions", existingSub.Name, []string{pushWorker.Name}, refStr)
-				if err != nil {
-					err := APIErrGenericInternal(err.Error())
-					respondErr(w, err)
-					return
-				}
+			// modify the sub's acl with the push worker's uuid
+			err = auth.AppendToACL(projectUUID, "subscriptions", existingSub.Name, []string{pushWorker.Name}, refStr)
+			if err != nil {
+				err := APIErrGenericInternal(err.Error())
+				respondErr(w, err)
+				return
+			}
 
-				// link the sub's project with the push worker
-				err = auth.AppendToUserProjects(pushWorker.UUID, projectUUID, refStr)
-				if err != nil {
-					err := APIErrGenericInternal(err.Error())
-					respondErr(w, err)
-					return
-				}
+			// link the sub's project with the push worker
+			err = auth.AppendToUserProjects(pushWorker.UUID, projectUUID, refStr)
+			if err != nil {
+				err := APIErrGenericInternal(err.Error())
+				respondErr(w, err)
+				return
 			}
 		}
 	}
@@ -1161,6 +1164,23 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 		err := APIErrGenericInternal(err.Error())
 		respondErr(w, err)
 		return
+	}
+
+	// if the subscription is push enabled mattermost, activate it
+	// on the push backend
+	if res.PushCfg.Type == subscriptions.MattermostPushConfig {
+
+		pwToken := gorillaContext.Get(r, "push_worker_token").(string)
+
+		pushWorker, err := auth.GetPushWorker(pwToken, refStr)
+		if err != nil {
+			err := APIErrInternalPush()
+			respondErr(w, err)
+			return
+		}
+
+		apsc := gorillaContext.Get(r, "apsc").(push.Client)
+		activatePushSubscription(res, pushWorker, apsc, refStr)
 	}
 
 	// Output result to JSON
