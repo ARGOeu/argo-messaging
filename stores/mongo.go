@@ -1445,7 +1445,8 @@ func (mong *MongoStore) InsertProject(uuid string, name string, createdOn time.T
 }
 
 // InsertSub inserts a subscription to the store
-func (mong *MongoStore) InsertSub(projectUUID string, name string, topic string, offset int64, maxMessages int64, authzType string, authzHeader string, ack int, push string, rPolicy string, rPeriod int, vhash string, verified bool, createdOn time.Time) error {
+func (mong *MongoStore) InsertSub(projectUUID string, name string, topic string,
+	offset int64, ack int, pushCfg QPushConfig, createdOn time.Time) error {
 	sub := QSub{
 		ProjectUUID:         projectUUID,
 		Name:                name,
@@ -1454,14 +1455,18 @@ func (mong *MongoStore) InsertSub(projectUUID string, name string, topic string,
 		NextOffset:          0,
 		PendingAck:          "",
 		Ack:                 ack,
-		MaxMessages:         maxMessages,
-		AuthorizationType:   authzType,
-		AuthorizationHeader: authzHeader,
-		PushEndpoint:        push,
-		RetPolicy:           rPolicy,
-		RetPeriod:           rPeriod,
-		VerificationHash:    vhash,
-		Verified:            verified,
+		PushType:            pushCfg.Type,
+		MaxMessages:         pushCfg.MaxMessages,
+		AuthorizationType:   pushCfg.AuthorizationType,
+		AuthorizationHeader: pushCfg.AuthorizationHeader,
+		PushEndpoint:        pushCfg.PushEndpoint,
+		RetPolicy:           pushCfg.RetPolicy,
+		RetPeriod:           pushCfg.RetPeriod,
+		VerificationHash:    pushCfg.VerificationHash,
+		Verified:            pushCfg.Verified,
+		MattermostUrl:       pushCfg.MattermostUrl,
+		MattermostChannel:   pushCfg.MattermostChannel,
+		MattermostUsername:  pushCfg.MattermostUsername,
 		MsgNum:              0,
 		TotalBytes:          0,
 		CreatedOn:           createdOn,

@@ -3,7 +3,7 @@ swagger: '2.0'
 info:
   title: argo-messaging-api
   description: "ARGO is a lightweight service for Service Level Monitoring designed for medium and large sized e-Infrastructures. This swagger UI interface provides access to the specification of the ARGO messaging api, which can be used to produce or consume messages."
-  version: "0.9.2"
+  version: "1.2.0"
   contact:
     name: ARGO Developers
     url: http://argoeu.github.io/
@@ -2658,7 +2658,7 @@ definitions:
       ackDeadlineSeconds:
         type: integer
         description: maximum wait time in seconds for Acknowledgement
-      created_on:
+      createdOn:
         type: string
         description: creation date
   PushConfigRef:
@@ -2675,14 +2675,20 @@ definitions:
       maxMessages:
         type: integer
         description: batch size of messages per push action
-      authorization_header:
+      authorizationHeader:
         $ref: '#/definitions/AuthorizationHeader'
       retryPolicy:
         $ref: '#/definitions/RetryPolicy'
-      verification_hash:
+      verificationHash:
         type: string
       verified:
         type: boolean
+      mattermostUrl:
+        type: string
+      mattermostUsername:
+        type: string
+      mattermostChannel:
+        type: string
 
   PushStatus:
     type: object
