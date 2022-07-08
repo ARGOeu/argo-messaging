@@ -891,17 +891,17 @@ paths:
           description: Name of the user
           required: true
           type: string
-        - name: User information
+        - name: User roles in the project
           in: body
-          description: Extra user information such as roles and email
+          description: User roles in the project
           required: false
           schema:
             type: object
             properties:
-              projects:
+              roles:
                 type: array
                 items:
-                  $ref: "#/definitions/ProjectRoles"
+                  type: string
       tags:
         - Projects
       responses:
