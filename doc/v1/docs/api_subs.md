@@ -51,6 +51,9 @@ The `maxMessages` field declares the number of messages that should be sent per
 push action. The default value is `1`. If `maxMessages` holds a value of `1` your
 push endpoint should expect a request body with the following schema:
 
+The `base64Decode` field indicates that the push mechanism should
+decode each message before sending it to the remote destination.
+
 ```json
 {
      "message": {
@@ -585,7 +588,8 @@ This request modifies the push configuration of a subscription
       "retryPolicy":{  
          "type":"linear",
          "period":300
-      }
+      },
+      "base64Decode": false
    }
 }
 ```
@@ -601,7 +605,8 @@ This request modifies the push configuration of a subscription
       },
       "mattermostUrl": "webhook.com",
       "mattermostUsername": "willy",
-      "mattermostChannel": "ops"
+      "mattermostChannel": "ops",
+      "base64Decode": true
    }
 }
 ```

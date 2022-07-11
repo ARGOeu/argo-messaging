@@ -208,6 +208,7 @@ func (suite *SubTestSuite) TestGetSubsByProject() {
 		VerificationHash:    "push-id-1",
 		Verified:            true,
 		MaxMessages:         1,
+		Base64Decode:        true,
 	}
 	expSub4.LatestConsume = time.Date(0, 0, 0, 0, 0, 0, 0, time.UTC)
 	expSub4.ConsumeRate = 0
@@ -312,6 +313,7 @@ func (suite *SubTestSuite) TestLoadFromCfg() {
 		VerificationHash:    "push-id-1",
 		Verified:            true,
 		MaxMessages:         1,
+		Base64Decode:        true,
 	}
 	expSub4.LatestConsume = time.Date(0, 0, 0, 0, 0, 0, 0, time.UTC)
 	expSub4.ConsumeRate = 0
@@ -558,7 +560,8 @@ func (suite *SubTestSuite) TestExportJson() {
       "verified": false,
       "mattermostUrl": "",
       "mattermostUsername": "",
-      "mattermostChannel": ""
+      "mattermostChannel": "",
+      "base64Decode": false
    },
    "ackDeadlineSeconds": 10,
    "createdOn": "2020-11-19T00:00:00Z"
@@ -586,7 +589,8 @@ func (suite *SubTestSuite) TestExportJson() {
             "verified": true,
             "mattermostUrl": "",
             "mattermostUsername": "",
-            "mattermostChannel": ""
+            "mattermostChannel": "",
+            "base64Decode": true
          },
          "ackDeadlineSeconds": 10,
          "createdOn": "2020-11-22T00:00:00Z"
@@ -604,7 +608,8 @@ func (suite *SubTestSuite) TestExportJson() {
             "verified": false,
             "mattermostUrl": "",
             "mattermostUsername": "",
-            "mattermostChannel": ""
+            "mattermostChannel": "",
+            "base64Decode": false
          },
          "ackDeadlineSeconds": 10,
          "createdOn": "2020-11-21T00:00:00Z"
@@ -622,7 +627,8 @@ func (suite *SubTestSuite) TestExportJson() {
             "verified": false,
             "mattermostUrl": "",
             "mattermostUsername": "",
-            "mattermostChannel": ""
+            "mattermostChannel": "",
+            "base64Decode": false
          },
          "ackDeadlineSeconds": 10,
          "createdOn": "2020-11-20T00:00:00Z"
@@ -640,7 +646,8 @@ func (suite *SubTestSuite) TestExportJson() {
             "verified": false,
             "mattermostUrl": "",
             "mattermostUsername": "",
-            "mattermostChannel": ""
+            "mattermostChannel": "",
+            "base64Decode": false
          },
          "ackDeadlineSeconds": 10,
          "createdOn": "2020-11-19T00:00:00Z"

@@ -86,6 +86,8 @@ message PushConfig {
     string mattermost_username = 7;
     // Mattermost channel that the messages will be delivered to
     string mattermost_channel = 8;
+    // Indicates whether or not the payload should be decoded before being pushed to any remote destination
+    bool base_64_decode = 9;
 }
 
 // RetryPolicy holds information regarding the retry policy.

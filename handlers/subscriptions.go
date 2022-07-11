@@ -582,6 +582,7 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 	mattermostUsername := ""
 	mattermostChannel := ""
 	pushType := ""
+	base64Decode := false
 
 	if postBody.PushCfg != (subscriptions.PushConfig{}) {
 
@@ -600,6 +601,8 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 			respondErr(w, err)
 			return
 		}
+
+		base64Decode = postBody.PushCfg.Base64Decode
 
 		rPolicy = postBody.PushCfg.RetPol.PolicyType
 		rPeriod = postBody.PushCfg.RetPol.Period
@@ -746,6 +749,7 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 		MattermostUrl:      mattermostUrl,
 		MattermostUsername: mattermostUsername,
 		MattermostChannel:  mattermostChannel,
+		Base64Decode:       base64Decode,
 	}
 	err = subscriptions.ModSubPush(projectUUID, subName, cfg, refStr)
 
@@ -1129,6 +1133,8 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 			respondErr(w, err)
 			return
 		}
+
+		pushConfig.Base64Decode = postBody.PushCfg.Base64Decode
 
 		pushConfig.RetPol.PolicyType = postBody.PushCfg.RetPol.PolicyType
 		pushConfig.RetPol.Period = postBody.PushCfg.RetPol.Period

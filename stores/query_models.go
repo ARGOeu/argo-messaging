@@ -28,6 +28,7 @@ type QSub struct {
 	MattermostUrl       string      `bson:"mattermost_url"`
 	MattermostUsername  string      `bson:"mattermost_username"`
 	MattermostChannel   string      `bson:"mattermost_channel"`
+	Base64Decode        bool        `bson:"base_64_decode"`
 	LatestConsume       time.Time   `bson:"latest_consume"`
 	ConsumeRate         float64     `bson:"consume_rate"`
 	CreatedOn           time.Time   `bson:"created_on"`
@@ -48,6 +49,7 @@ type QPushConfig struct {
 	MattermostUrl       string `bson:"mattermost_url"`
 	MattermostUsername  string `bson:"mattermost_username"`
 	MattermostChannel   string `bson:"mattermost_channel"`
+	Base64Decode        bool   `bson:"base_64_decode"`
 }
 
 // QAcl holds a list of authorized users queried from topic or subscription collections
