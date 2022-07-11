@@ -68,7 +68,7 @@ func main() {
 	}
 
 	// Initialize CORS specifics
-	xReqWithConType := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-PushType", "x-api-key"})
+	xReqWithConType := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "x-api-key"})
 	allowVerbs := handlers.AllowedMethods([]string{"OPTIONS", "POST", "GET", "PUT", "DELETE", "HEAD"})
 	// Initialize server wth proper parameters
 	server := &http.Server{Addr: ":" + strconv.Itoa(cfg.Port), Handler: handlers.CORS(xReqWithConType, allowVerbs)(API.Router), TLSConfig: config}
