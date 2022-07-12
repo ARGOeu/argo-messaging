@@ -921,7 +921,8 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubCreatePushConfig() {
       "verified": false,
       "mattermostUrl": "",
       "mattermostUsername": "",
-      "mattermostChannel": ""
+      "mattermostChannel": "",
+      "base64Decode": false
    },
    "ackDeadlineSeconds": 10,
    "createdOn": "{{CON}}"
@@ -956,7 +957,8 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubCreatePushConfigMattermost()
 		 "retryPolicy": {},
          "mattermostUrl": "mywebhook.com",
          "mattermostUsername": "willy",
-         "mattermostChannel": "operations"
+         "mattermostChannel": "operations",
+         "base64Decode": true
 	}
 }`
 
@@ -981,7 +983,8 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubCreatePushConfigMattermost()
       "verified": true,
       "mattermostUrl": "mywebhook.com",
       "mattermostUsername": "willy",
-      "mattermostChannel": "operations"
+      "mattermostChannel": "operations",
+      "base64Decode": true
    },
    "ackDeadlineSeconds": 10,
    "createdOn": "{{CON}}"
@@ -1014,7 +1017,8 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubCreatePushConfigMattermostEm
 		 "retryPolicy": {},
          "mattermostUrl": "",
          "mattermostUsername": "willy",
-         "mattermostChannel": "operations"
+         "mattermostChannel": "operations",
+         "base64Decode": true
 	}
 }`
 
@@ -1125,7 +1129,8 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubCreatePushConfigSlowStart() 
       "verified": false,
       "mattermostUrl": "",
       "mattermostUsername": "",
-      "mattermostChannel": ""
+      "mattermostChannel": "",
+      "base64Decode": false
    },
    "ackDeadlineSeconds": 10,
    "createdOn": "{{CON}}"
@@ -1334,7 +1339,8 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubCreate() {
       "verified": false,
       "mattermostUrl": "",
       "mattermostUsername": "",
-      "mattermostChannel": ""
+      "mattermostChannel": "",
+      "base64Decode": false
    },
    "ackDeadlineSeconds": 10,
    "createdOn": "{{CON}}"
@@ -1542,7 +1548,8 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubListOne() {
       "verified": false,
       "mattermostUrl": "",
       "mattermostUsername": "",
-      "mattermostChannel": ""
+      "mattermostChannel": "",
+      "base64Decode": false
    },
    "ackDeadlineSeconds": 10,
    "createdOn": "2020-11-19T00:00:00Z"
@@ -1591,7 +1598,8 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubListAll() {
             "verified": true,
             "mattermostUrl": "",
             "mattermostUsername": "",
-            "mattermostChannel": ""
+            "mattermostChannel": "",
+            "base64Decode": true
          },
          "ackDeadlineSeconds": 10,
          "createdOn": "2020-11-22T00:00:00Z"
@@ -1609,7 +1617,8 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubListAll() {
             "verified": false,
             "mattermostUrl": "",
             "mattermostUsername": "",
-            "mattermostChannel": ""
+            "mattermostChannel": "",
+            "base64Decode": false
          },
          "ackDeadlineSeconds": 10,
          "createdOn": "2020-11-21T00:00:00Z"
@@ -1627,7 +1636,8 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubListAll() {
             "verified": false,
             "mattermostUrl": "",
             "mattermostUsername": "",
-            "mattermostChannel": ""
+            "mattermostChannel": "",
+            "base64Decode": false
          },
          "ackDeadlineSeconds": 10,
          "createdOn": "2020-11-20T00:00:00Z"
@@ -1645,7 +1655,8 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubListAll() {
             "verified": false,
             "mattermostUrl": "",
             "mattermostUsername": "",
-            "mattermostChannel": ""
+            "mattermostChannel": "",
+            "base64Decode": false
          },
          "ackDeadlineSeconds": 10,
          "createdOn": "2020-11-19T00:00:00Z"
@@ -1697,7 +1708,8 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubListAllFirstPage() {
             "verified": true,
             "mattermostUrl": "",
             "mattermostUsername": "",
-            "mattermostChannel": ""
+            "mattermostChannel": "",
+            "base64Decode": true
          },
          "ackDeadlineSeconds": 10,
          "createdOn": "2020-11-22T00:00:00Z"
@@ -1715,7 +1727,8 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubListAllFirstPage() {
             "verified": false,
             "mattermostUrl": "",
             "mattermostUsername": "",
-            "mattermostChannel": ""
+            "mattermostChannel": "",
+            "base64Decode": false
          },
          "ackDeadlineSeconds": 10,
          "createdOn": "2020-11-21T00:00:00Z"
@@ -1761,7 +1774,8 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubListAllNextPage() {
             "verified": false,
             "mattermostUrl": "",
             "mattermostUsername": "",
-            "mattermostChannel": ""
+            "mattermostChannel": "",
+            "base64Decode": false
          },
          "ackDeadlineSeconds": 10,
          "createdOn": "2020-11-20T00:00:00Z"
@@ -1779,7 +1793,8 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubListAllNextPage() {
             "verified": false,
             "mattermostUrl": "",
             "mattermostUsername": "",
-            "mattermostChannel": ""
+            "mattermostChannel": "",
+            "base64Decode": false
          },
          "ackDeadlineSeconds": 10,
          "createdOn": "2020-11-19T00:00:00Z"
@@ -1860,7 +1875,8 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubListAllConsumer() {
             "verified": true,
             "mattermostUrl": "",
             "mattermostUsername": "",
-            "mattermostChannel": ""
+            "mattermostChannel": "",
+            "base64Decode": true
          },
          "ackDeadlineSeconds": 10,
          "createdOn": "2020-11-22T00:00:00Z"
@@ -1878,7 +1894,8 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubListAllConsumer() {
             "verified": false,
             "mattermostUrl": "",
             "mattermostUsername": "",
-            "mattermostChannel": ""
+            "mattermostChannel": "",
+            "base64Decode": false
          },
          "ackDeadlineSeconds": 10,
          "createdOn": "2020-11-21T00:00:00Z"
@@ -1896,7 +1913,8 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubListAllConsumer() {
             "verified": false,
             "mattermostUrl": "",
             "mattermostUsername": "",
-            "mattermostChannel": ""
+            "mattermostChannel": "",
+            "base64Decode": false
          },
          "ackDeadlineSeconds": 10,
          "createdOn": "2020-11-20T00:00:00Z"
@@ -1948,7 +1966,8 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubListAllConsumerWithPaginatio
             "verified": true,
             "mattermostUrl": "",
             "mattermostUsername": "",
-            "mattermostChannel": ""
+            "mattermostChannel": "",
+            "base64Decode": true
          },
          "ackDeadlineSeconds": 10,
          "createdOn": "2020-11-22T00:00:00Z"
@@ -1966,7 +1985,8 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubListAllConsumerWithPaginatio
             "verified": false,
             "mattermostUrl": "",
             "mattermostUsername": "",
-            "mattermostChannel": ""
+            "mattermostChannel": "",
+            "base64Decode": false
          },
          "ackDeadlineSeconds": 10,
          "createdOn": "2020-11-21T00:00:00Z"
@@ -2807,7 +2827,8 @@ func (suite *SubscriptionsHandlersTestSuite) TestValidationInSubs() {
       "verified": false,
       "mattermostUrl": "",
       "mattermostUsername": "",
-      "mattermostChannel": ""
+      "mattermostChannel": "",
+      "base64Decode": false
    },
    "ackDeadlineSeconds": 10,
    "createdOn": "2020-11-19T00:00:00Z"

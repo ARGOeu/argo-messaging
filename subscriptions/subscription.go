@@ -75,6 +75,7 @@ type PushConfig struct {
 	MattermostUrl       string              `json:"mattermostUrl"`
 	MattermostUsername  string              `json:"mattermostUsername"`
 	MattermostChannel   string              `json:"mattermostChannel"`
+	Base64Decode        bool                `json:"base64Decode"`
 }
 
 // SubMetrics holds the subscription's metric details
@@ -409,6 +410,7 @@ func Find(projectUUID, userUUID, name, pageToken string, pageSize int32, store s
 				MattermostChannel:   item.MattermostChannel,
 				MattermostUsername:  item.MattermostUsername,
 				Type:                item.PushType,
+				Base64Decode:        item.Base64Decode,
 			}
 		}
 		curSub.LatestConsume = item.LatestConsume
@@ -488,6 +490,7 @@ func Create(projectUUID string, name string, topic string, offset int64, ack int
 		MattermostChannel:   pushCfg.MattermostChannel,
 		MattermostUrl:       pushCfg.MattermostUrl,
 		MattermostUsername:  pushCfg.MattermostUsername,
+		Base64Decode:        pushCfg.Base64Decode,
 	}
 
 	err := store.InsertSub(projectUUID, name, topic, offset, ack, qPushCfg, createdOn)

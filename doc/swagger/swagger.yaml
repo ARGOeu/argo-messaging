@@ -2689,6 +2689,8 @@ definitions:
         type: string
       mattermostChannel:
         type: string
+      base64Decode:
+        type: boolean
 
   PushStatus:
     type: object

@@ -1467,6 +1467,7 @@ func (mong *MongoStore) InsertSub(projectUUID string, name string, topic string,
 		MattermostUrl:       pushCfg.MattermostUrl,
 		MattermostChannel:   pushCfg.MattermostChannel,
 		MattermostUsername:  pushCfg.MattermostUsername,
+		Base64Decode:        pushCfg.Base64Decode,
 		MsgNum:              0,
 		TotalBytes:          0,
 		CreatedOn:           createdOn,
@@ -1769,6 +1770,7 @@ func (mong *MongoStore) ModSubPush(projectUUID string, name string, pushCfg QPus
 			"mattermost_url":       pushCfg.MattermostUrl,
 			"mattermost_username":  pushCfg.MattermostUsername,
 			"mattermost_channel":   pushCfg.MattermostChannel,
+			"base_64_decode":       pushCfg.Base64Decode,
 		},
 		})
 	return err

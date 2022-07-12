@@ -145,6 +145,7 @@ func (c *GrpcClient) ActivateSubscription(ctx context.Context, subscription subs
 				MattermostUrl:      subscription.PushCfg.MattermostUrl,
 				MattermostChannel:  subscription.PushCfg.MattermostChannel,
 				MattermostUsername: subscription.PushCfg.MattermostUsername,
+				Base_64Decode:      subscription.PushCfg.Base64Decode,
 			},
 		}}
 
