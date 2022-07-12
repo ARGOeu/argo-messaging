@@ -1757,7 +1757,7 @@ func (mong *MongoStore) ModSubPush(projectUUID string, name string, pushCfg QPus
 		"name":         name,
 	},
 		bson.M{"$set": bson.M{
-			"type":                 pushCfg.Type,
+			"push_type":            pushCfg.Type,
 			"push_endpoint":        pushCfg.PushEndpoint,
 			"authorization_type":   pushCfg.AuthorizationType,
 			"authorization_header": pushCfg.AuthorizationHeader,
