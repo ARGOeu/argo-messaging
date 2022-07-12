@@ -572,11 +572,12 @@ This request modifies the push configuration of a subscription
 ### Request
 `POST /v1/projects/{project_name}/subscriptions/{subscription_name}:modifyPushConfig`
 
-### Post body:
-```
+### Post body for http_endpoint
+```json
 {  
    "pushConfig":{  
-      "pushEndpoint":"",
+      "type": "http_endpoint",
+      "pushEndpoint":"example.com",
       "maxMessages": 5,
       "authorizationHeader": {
          "type": "autogen"
@@ -585,6 +586,22 @@ This request modifies the push configuration of a subscription
          "type":"linear",
          "period":300
       }
+   }
+}
+```
+
+### Post body for mattermost
+```json
+{  
+   "pushConfig":{  
+      "type": "mattermost",
+      "retryPolicy":{  
+         "type":"linear",
+         "period":300
+      },
+      "mattermostUrl": "webhook.com",
+      "mattermostUsername": "willy",
+      "mattermostChannel": "ops"
    }
 }
 ```
@@ -612,9 +629,10 @@ curl -X POST -H "Content-Type: application/json"
 ```
 
 ### post body:
-```
+```json
 {  
    "pushConfig":{  
+      "type": "http_endpoint",
       "pushEndpoint":"host:example.com:8080/path/to/hook",
       "maxMessages": 3,
       "retryPolicy":{  

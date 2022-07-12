@@ -259,7 +259,21 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal(66, subAck.Ack)
 
 	// Test mod push sub
-	e1 := store.ModSubPush("argo_uuid", "sub1", "example.com", "autogen", "auth-h-1", 3, "linear", 400, "hash-1", true)
+	qCfg := QPushConfig{
+		Type:                "http_endpoint",
+		PushEndpoint:        "example.com",
+		MaxMessages:         3,
+		AuthorizationType:   "autogen",
+		AuthorizationHeader: "auth-h-1",
+		RetPolicy:           "linear",
+		RetPeriod:           400,
+		VerificationHash:    "hash-1",
+		Verified:            true,
+		MattermostUrl:       "",
+		MattermostUsername:  "",
+		MattermostChannel:   "",
+	}
+	e1 := store.ModSubPush("argo_uuid", "sub1", qCfg)
 	sub1, _ := store.QueryOneSub("argo_uuid", "sub1")
 	suite.Nil(e1)
 	suite.Equal("example.com", sub1.PushEndpoint)
@@ -271,7 +285,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal("auth-h-1", sub1.AuthorizationHeader)
 	suite.True(sub1.Verified)
 
-	e2 := store.ModSubPush("argo_uuid", "unknown", "", "", "", 0, "", 0, "", false)
+	e2 := store.ModSubPush("argo_uuid", "unknown", QPushConfig{})
 	suite.Equal("not found", e2.Error())
 
 	// exists in acl
