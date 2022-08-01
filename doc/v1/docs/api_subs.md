@@ -33,7 +33,7 @@ Success Response
  "name": "projects/BRAND_NEW/subscriptions/alert_engine",
  "topic": "projects/BRAND_NEW/topics/monitoring",
  "ackDeadlineSeconds": 10  ,
- "created_on": "2020-11-19T00:00:00Z"
+ "createdOn": "2020-11-19T00:00:00Z"
 }
 ```
 
@@ -42,9 +42,17 @@ Whenever a subscription is created with a valid push configuration, the service 
 should be later used to validate the ownership of the registered push endpoint, and will mark the subscription as 
 unverified.
 
-The `maxMessages` field declares the number of messages that should be send per
+The `type` field specifies what kind of push subscription the service will handle.
+The `http_endpoint` type is about subscriptions that will forward their messages
+to remote http endpoints. The `mattermost` type is about subscriptions that will
+forward their messages to mattermost channels through a mattermost webhook.
+
+The `maxMessages` field declares the number of messages that should be sent per
 push action. The default value is `1`. If `maxMessages` holds a value of `1` your
 push endpoint should expect a request body with the following schema:
+
+The `base64Decode` field indicates that the push mechanism should
+decode each message before sending it to the remote destination.
 
 ```json
 {
@@ -88,12 +96,13 @@ should expect a request body with the following schema:
 }
 ```
 
-## Request to create Push Enabled Subscription
+## Request to create Push Enabled Subscription for http_endpoint
 ```json
 {
  "topic": "projects/BRAND_NEW/topics/monitoring",
  "ackDeadlineSeconds":10,
   "pushConfig": {
+    "type": "http_endpoint",
     "pushEndpoint": "https://127.0.0.1:5000/receive_here",
     "maxMessages": 3,
     "retryPolicy": {
@@ -112,7 +121,7 @@ should expect a request body with the following schema:
   "pushConfig": {
     "pushEndpoint": "https://127.0.0.1:5000/receive_here",
     "maxMessages": 3,
-    "authorization_header": {
+    "authorizationHeader": {
       "type": "autogen",
       "value": "4551h9j7f7dde380a5f8bc4fdb4fe980c565b67b"
     } ,
@@ -120,10 +129,55 @@ should expect a request body with the following schema:
       "type": "linear", 
       "period": 1000              	
     },
-    "verification_hash": "9d5189f7f758e380a5f8bc4fdb4fe980c565b67b",
-    "verified": false
+    "verificationHash": "9d5189f7f758e380a5f8bc4fdb4fe980c565b67b",
+    "verified": false,
+    "mattermostUrl": "",
+    "mattermostUsername": "",
+    "mattermostChannel": ""
     },
-  "created_on": "2020-11-19T00:00:00Z"
+  "createdOn": "2020-11-19T00:00:00Z"
+}
+```
+
+
+## Request to create Push Enabled Subscription for mattermost
+```json
+{
+ "topic": "projects/BRAND_NEW/topics/monitoring",
+ "ackDeadlineSeconds":10,
+  "pushConfig": {
+    "type": "mattermost",
+    "mattermostUrl": "webhook.com",
+    "mattermostUsername": "mattermost",
+    "mattermostChannel": "channel",
+    "retryPolicy": {
+      "type": "linear", 
+      "period": 1000              	
+    }
+   }
+}
+```
+
+### Response
+```json
+{
+ "name": "projects/BRAND_NEW/subscriptions/alert_engine",
+ "topic": "projects/BRAND_NEW/topics/monitoring",
+ "ackDeadlineSeconds": 10,
+  "pushConfig": {
+    "pushEndpoint": "",
+    "maxMessages": 1,
+    "retryPolicy": {
+      "type": "linear", 
+      "period": 1000              	
+    },
+    "verificationHash": "",
+    "verified": true,
+    "mattermostUrl": "webhook.com",
+    "mattermostUsername": "mattermost",
+    "mattermostChannel": "channel"
+    },
+  "createdOn": "2020-11-19T00:00:00Z"
 }
 ```
 
@@ -182,14 +236,14 @@ unverified.
 The owner of the push endpoint needs to execute the following steps in order to verify the ownership of the
 registered endpoint.
 
-- Open an api call with a path of `/ams_verification_hash`. The service will try to access this path using the `host:port`
+- Open an api call with a path of `/ams_verificationHash`. The service will try to access this path using the `host:port`
 of the push endpoint. For example, if the push endpoint is `https://example.com:8443/receive_here`, the  push endpoint should also
-support the api route of `https://example.com:8443/ams_verification_hash`.
+support the api route of `https://example.com:8443/ams_verificationHash`.
 
-- The api route of `https://example.com:8443/ams_verification_hash` should support the http `GET` method.
+- The api route of `https://example.com:8443/ams_verificationHash` should support the http `GET` method.
 
-- A `GET` request to `https://example.com:8443/ams_verification_hash` should return a response body 
-with only the `verification_hash`
+- A `GET` request to `https://example.com:8443/ams_verificationHash` should return a response body 
+with only the `verificationHash`
 that is found inside the subscriptions push configuration, 
 a `status code` of `200` and the header `Content-type: plain/text`.
 
@@ -279,14 +333,14 @@ Success Response
     "topic": "projects/BRAND_NEW/topics/monitoring",
     "pushConfig": {},
     "ackDeadlineSeconds": 10,
-    "created_on": "2020-11-19T00:00:00Z"
+    "createdOn": "2020-11-19T00:00:00Z"
   },
  {
    "name": "projects/BRAND_NEW/subscriptions/alert_engine2",
    "topic": "projects/BRAND_NEW/topics/monitoring",
    "pushConfig": {},
    "ackDeadlineSeconds": 10,
-   "created_on": "2020-11-19T00:00:00Z"
+   "createdOn": "2020-11-19T00:00:00Z"
  }],
  "nextPageToken": "",
  "totalSize": 2
@@ -321,7 +375,7 @@ Success Response
     "topic": "projects/BRAND_NEW/topics/monitoring",
     "pushConfig": {},
     "ackDeadlineSeconds": 10,
-    "created_on": "2020-11-19T00:00:00Z"
+    "createdOn": "2020-11-19T00:00:00Z"
   }
  ],
  "nextPageToken": "",
@@ -357,7 +411,7 @@ Success Response
     "topic": "projects/BRAND_NEW/topics/monitoring",
     "pushConfig": {},
     "ackDeadlineSeconds": 10,
-    "created_on": "2020-11-19T00:00:00Z"
+    "createdOn": "2020-11-19T00:00:00Z"
   }
  ],
  "nextPageToken": "some_token",
@@ -521,19 +575,38 @@ This request modifies the push configuration of a subscription
 ### Request
 `POST /v1/projects/{project_name}/subscriptions/{subscription_name}:modifyPushConfig`
 
-### Post body:
-```
+### Post body for http_endpoint
+```json
 {  
    "pushConfig":{  
-      "pushEndpoint":"",
+      "type": "http_endpoint",
+      "pushEndpoint":"example.com",
       "maxMessages": 5,
-      "authorization_header": {
+      "authorizationHeader": {
          "type": "autogen"
       },
       "retryPolicy":{  
          "type":"linear",
          "period":300
-      }
+      },
+      "base64Decode": false
+   }
+}
+```
+
+### Post body for mattermost
+```json
+{  
+   "pushConfig":{  
+      "type": "mattermost",
+      "retryPolicy":{  
+         "type":"linear",
+         "period":300
+      },
+      "mattermostUrl": "webhook.com",
+      "mattermostUsername": "willy",
+      "mattermostChannel": "ops",
+      "base64Decode": true
    }
 }
 ```
@@ -561,9 +634,10 @@ curl -X POST -H "Content-Type: application/json"
 ```
 
 ### post body:
-```
+```json
 {  
    "pushConfig":{  
+      "type": "http_endpoint",
       "pushEndpoint":"host:example.com:8080/path/to/hook",
       "maxMessages": 3,
       "retryPolicy":{  

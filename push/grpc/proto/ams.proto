@@ -77,6 +77,17 @@ message PushConfig {
     RetryPolicy retry_policy = 2;
     // Required. Authorization header that the sent messages should include into the request
     string authorization_header = 4;
+    // Required. Defines the type of the destination the data will be sent to.
+    // Can be either http_endpoint or mattermost
+    PushType type = 5 ;
+    // Mattermost webhook url
+    string mattermost_url = 6;
+    // Mattermost username that the messages will be displayed under
+    string mattermost_username = 7;
+    // Mattermost channel that the messages will be delivered to
+    string mattermost_channel = 8;
+    // Indicates whether or not the payload should be decoded before being pushed to any remote destination
+    bool base_64_decode = 9;
 }
 
 // RetryPolicy holds information regarding the retry policy.
@@ -85,5 +96,13 @@ message RetryPolicy {
     string type = 1;
     // Required. Retry period in milliseconds.
     uint32 period = 2;
+}
+
+// PushType declares what kind of push configuration info a subscription will hold
+enum PushType {
+    // HTTP_ENDPOINT refers to subscriptions that push messages to remote http endpoints
+    HTTP_ENDPOINT = 0;
+    // MATTERMOST refers to subscriptions that push messages to mattermost webhooks
+    MATTERMOST  = 1;
 }
 

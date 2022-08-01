@@ -3,6 +3,7 @@ package push
 import (
 	"context"
 	"fmt"
+	"github.com/ARGOeu/argo-messaging/subscriptions"
 )
 
 type MockClient struct{}
@@ -26,32 +27,32 @@ func (*MockClient) Target() string {
 
 func (*MockClient) Dial() error { return nil }
 
-func (*MockClient) ActivateSubscription(ctx context.Context, fullSub, fullTopic, pushEndpoint, retryType string, retryPeriod uint32, maxMessages int64, authzHeader string) ClientStatus {
+func (*MockClient) ActivateSubscription(ctx context.Context, subscription subscriptions.Subscription) ClientStatus {
 
-	switch fullSub {
+	switch subscription.FullName {
 	case "/projects/ARGO/subscriptions/subNew":
 
 		return &MockClientStatus{
-			Status: fmt.Sprintf("Subscription %v activated", fullSub),
+			Status: fmt.Sprintf("Subscription %v activated", subscription.FullName),
 		}
 
 	case "/projects/ARGO/subscriptions/sub1":
 
 		return &GrpcClientStatus{
 			err:     nil,
-			message: fmt.Sprintf("Subscription %v activated", fullSub),
+			message: fmt.Sprintf("Subscription %v activated", subscription.FullName),
 		}
 
 	case "/projects/ARGO/subscriptions/sub4":
 
 		return &GrpcClientStatus{
 			err:     nil,
-			message: fmt.Sprintf("Subscription %v activated", fullSub),
+			message: fmt.Sprintf("Subscription %v activated", subscription.FullName),
 		}
 	}
 
 	return &MockClientStatus{
-		Status: fmt.Sprintf("Subscription %v is already active", fullSub),
+		Status: fmt.Sprintf("Subscription %v is already active", subscription.FullName),
 	}
 
 }

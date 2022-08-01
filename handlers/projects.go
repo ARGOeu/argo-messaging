@@ -753,8 +753,6 @@ func ProjectUserAdd(w http.ResponseWriter, r *http.Request) {
 	userProjects = append(userProjects, auth.ProjectRoles{
 		Project: projName,
 		Roles:   data.Roles,
-		Subs:    data.Subs,
-		Topics:  data.Topics,
 	})
 
 	_, err = auth.UpdateUser(userUUID, userFN, userLN, userOrg, userDesc, userName, userProjects, userEmail, userSRoles, modified, false, refStr)

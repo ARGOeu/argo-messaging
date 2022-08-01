@@ -13,6 +13,7 @@ type QSub struct {
 	Offset              int64       `bson:"offset"`
 	NextOffset          int64       `bson:"next_offset"`
 	PendingAck          string      `bson:"pending_ack"`
+	PushType            string      `bson:"push_type"`
 	PushEndpoint        string      `bson:"push_endpoint"`
 	MaxMessages         int64       `bson:"max_messages"`
 	AuthorizationType   string      `bson:"authorization_type"`
@@ -24,10 +25,31 @@ type QSub struct {
 	TotalBytes          int64       `bson:"total_bytes"`
 	VerificationHash    string      `bson:"verification_hash"`
 	Verified            bool        `bson:"verified"`
+	MattermostUrl       string      `bson:"mattermost_url"`
+	MattermostUsername  string      `bson:"mattermost_username"`
+	MattermostChannel   string      `bson:"mattermost_channel"`
+	Base64Decode        bool        `bson:"base_64_decode"`
 	LatestConsume       time.Time   `bson:"latest_consume"`
 	ConsumeRate         float64     `bson:"consume_rate"`
 	CreatedOn           time.Time   `bson:"created_on"`
 	ACL                 []string    `bson:"acl"`
+}
+
+// QPushConfig holds optional configuration for push operations
+type QPushConfig struct {
+	Type                string `bson:"type"`
+	PushEndpoint        string `bson:"push_endpoint"`
+	MaxMessages         int64  `bson:"max_messages"`
+	AuthorizationType   string `bson:"authorization_type"`
+	AuthorizationHeader string `bson:"authorization_header"`
+	RetPolicy           string `bson:"retry_policy"`
+	RetPeriod           int    `bson:"retry_period"`
+	VerificationHash    string `bson:"verification_hash"`
+	Verified            bool   `bson:"verified"`
+	MattermostUrl       string `bson:"mattermost_url"`
+	MattermostUsername  string `bson:"mattermost_username"`
+	MattermostChannel   string `bson:"mattermost_channel"`
+	Base64Decode        bool   `bson:"base_64_decode"`
 }
 
 // QAcl holds a list of authorized users queried from topic or subscription collections

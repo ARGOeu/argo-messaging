@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/ARGOeu/argo-messaging/config"
 	amsPb "github.com/ARGOeu/argo-messaging/push/grpc/proto"
+	"github.com/ARGOeu/argo-messaging/subscriptions"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -119,20 +120,32 @@ func (c *GrpcClient) SubscriptionStatus(ctx context.Context, fullSub string) Cli
 }
 
 // ActivateSubscription is a wrapper over the grpc ActivateSubscription call
-func (c *GrpcClient) ActivateSubscription(ctx context.Context, fullSub, fullTopic, pushEndpoint, retryType string, retryPeriod uint32, maxMessages int64, authzHeader string) ClientStatus {
+func (c *GrpcClient) ActivateSubscription(ctx context.Context, subscription subscriptions.Subscription) ClientStatus {
+
+	var pushType amsPb.PushType
+	if subscription.PushCfg.Type == subscriptions.HttpEndpointPushConfig {
+		pushType = amsPb.PushType_HTTP_ENDPOINT
+	} else {
+		pushType = amsPb.PushType_MATTERMOST
+	}
 
 	actSubR := &amsPb.ActivateSubscriptionRequest{
 		Subscription: &amsPb.Subscription{
-			FullName:  fullSub,
-			FullTopic: fullTopic,
+			FullName:  subscription.FullName,
+			FullTopic: subscription.FullTopic,
 			PushConfig: &amsPb.PushConfig{
-				PushEndpoint:        pushEndpoint,
-				MaxMessages:         maxMessages,
-				AuthorizationHeader: authzHeader,
+				Type:                pushType,
+				PushEndpoint:        subscription.PushCfg.Pend,
+				MaxMessages:         subscription.PushCfg.MaxMessages,
+				AuthorizationHeader: subscription.PushCfg.AuthorizationHeader.Value,
 				RetryPolicy: &amsPb.RetryPolicy{
-					Type:   retryType,
-					Period: retryPeriod,
+					Type:   subscription.PushCfg.RetPol.PolicyType,
+					Period: uint32(subscription.PushCfg.RetPol.Period),
 				},
+				MattermostUrl:      subscription.PushCfg.MattermostUrl,
+				MattermostChannel:  subscription.PushCfg.MattermostChannel,
+				MattermostUsername: subscription.PushCfg.MattermostUsername,
+				Base_64Decode:      subscription.PushCfg.Base64Decode,
 			},
 		}}
 

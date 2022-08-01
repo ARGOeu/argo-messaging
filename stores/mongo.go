@@ -1445,7 +1445,8 @@ func (mong *MongoStore) InsertProject(uuid string, name string, createdOn time.T
 }
 
 // InsertSub inserts a subscription to the store
-func (mong *MongoStore) InsertSub(projectUUID string, name string, topic string, offset int64, maxMessages int64, authzType string, authzHeader string, ack int, push string, rPolicy string, rPeriod int, vhash string, verified bool, createdOn time.Time) error {
+func (mong *MongoStore) InsertSub(projectUUID string, name string, topic string,
+	offset int64, ack int, pushCfg QPushConfig, createdOn time.Time) error {
 	sub := QSub{
 		ProjectUUID:         projectUUID,
 		Name:                name,
@@ -1454,14 +1455,19 @@ func (mong *MongoStore) InsertSub(projectUUID string, name string, topic string,
 		NextOffset:          0,
 		PendingAck:          "",
 		Ack:                 ack,
-		MaxMessages:         maxMessages,
-		AuthorizationType:   authzType,
-		AuthorizationHeader: authzHeader,
-		PushEndpoint:        push,
-		RetPolicy:           rPolicy,
-		RetPeriod:           rPeriod,
-		VerificationHash:    vhash,
-		Verified:            verified,
+		PushType:            pushCfg.Type,
+		MaxMessages:         pushCfg.MaxMessages,
+		AuthorizationType:   pushCfg.AuthorizationType,
+		AuthorizationHeader: pushCfg.AuthorizationHeader,
+		PushEndpoint:        pushCfg.PushEndpoint,
+		RetPolicy:           pushCfg.RetPolicy,
+		RetPeriod:           pushCfg.RetPeriod,
+		VerificationHash:    pushCfg.VerificationHash,
+		Verified:            pushCfg.Verified,
+		MattermostUrl:       pushCfg.MattermostUrl,
+		MattermostChannel:   pushCfg.MattermostChannel,
+		MattermostUsername:  pushCfg.MattermostUsername,
+		Base64Decode:        pushCfg.Base64Decode,
 		MsgNum:              0,
 		TotalBytes:          0,
 		CreatedOn:           createdOn,
@@ -1743,7 +1749,7 @@ func (mong *MongoStore) ModAck(projectUUID string, name string, ack int) error {
 }
 
 // ModSubPush modifies the push configuration
-func (mong *MongoStore) ModSubPush(projectUUID string, name string, push string, authzType string, authzValue string, maxMessages int64, rPolicy string, rPeriod int, vhash string, verified bool) error {
+func (mong *MongoStore) ModSubPush(projectUUID string, name string, pushCfg QPushConfig) error {
 	db := mong.Session.DB(mong.Database)
 	c := db.C("subscriptions")
 
@@ -1752,14 +1758,19 @@ func (mong *MongoStore) ModSubPush(projectUUID string, name string, push string,
 		"name":         name,
 	},
 		bson.M{"$set": bson.M{
-			"push_endpoint":        push,
-			"authorization_type":   authzType,
-			"authorization_header": authzValue,
-			"max_messages":         maxMessages,
-			"retry_policy":         rPolicy,
-			"retry_period":         rPeriod,
-			"verification_hash":    vhash,
-			"verified":             verified,
+			"push_type":            pushCfg.Type,
+			"push_endpoint":        pushCfg.PushEndpoint,
+			"authorization_type":   pushCfg.AuthorizationType,
+			"authorization_header": pushCfg.AuthorizationHeader,
+			"max_messages":         pushCfg.MaxMessages,
+			"retry_policy":         pushCfg.RetPolicy,
+			"retry_period":         pushCfg.RetPeriod,
+			"verification_hash":    pushCfg.VerificationHash,
+			"verified":             pushCfg.Verified,
+			"mattermost_url":       pushCfg.MattermostUrl,
+			"mattermost_username":  pushCfg.MattermostUsername,
+			"mattermost_channel":   pushCfg.MattermostChannel,
+			"base_64_decode":       pushCfg.Base64Decode,
 		},
 		})
 	return err

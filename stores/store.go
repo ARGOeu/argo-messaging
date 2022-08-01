@@ -45,7 +45,7 @@ type Store interface {
 	IncrementTopicBytes(projectUUID string, name string, totalBytes int64) error
 	IncrementSubBytes(projectUUID string, name string, totalBytes int64) error
 	IncrementSubMsgNum(projectUUID string, name string, num int64) error
-	InsertSub(projectUUID string, name string, topic string, offest int64, maxMessages int64, authzType string, authzHeader string, ack int, push string, rPolicy string, rPeriod int, vhash string, verified bool, createdOn time.Time) error
+	InsertSub(projectUUID string, name string, topic string, offest int64, ack int, pushCfg QPushConfig, createdOn time.Time) error
 	HasProject(name string) bool
 	HasUsers(projectUUID string, users []string) (bool, []string)
 	QueryOneSub(projectUUID string, name string) (QSub, error)
@@ -57,7 +57,7 @@ type Store interface {
 	UpdateSubOffset(projectUUID string, name string, offset int64)
 	UpdateSubPull(projectUUID string, name string, offset int64, ts string) error
 	UpdateSubOffsetAck(projectUUID string, name string, offset int64, ts string) error
-	ModSubPush(projectUUID string, name string, push string, authzType string, authzValue string, maxMessages int64, rPolicy string, rPeriod int, vhash string, verified bool) error
+	ModSubPush(projectUUID string, name string, pushCfg QPushConfig) error
 	QueryACL(projectUUID string, resource string, name string) (QAcl, error)
 	ExistsInACL(projectUUID string, resource string, resourceName string, userUUID string) error
 	ModACL(projectUUID string, resource string, name string, acl []string) error
