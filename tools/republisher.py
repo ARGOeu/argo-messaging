@@ -12,8 +12,6 @@ import logging.handlers
 import sys
 import json
 import time
-from base64 import b64encode, b64decode
-
 
 # set up logging
 LOGGER = logging.getLogger("AMS republish script")
@@ -25,7 +23,7 @@ def extract_messages(ams, ingest_sub, bulk_size, schema, verify):
     consumed_msgs = ams.pull_sub(ingest_sub, num=bulk_size, return_immediately=True, verify=verify)
 
     # initialise the avro reader
-    avro_reader = DatumReader(writer_schema=schema)
+    avro_reader = DatumReader(writers_schema=schema)
 
     # all the decoded messages that will be returned
     decoded_msgs = []
@@ -36,12 +34,12 @@ def extract_messages(ams, ingest_sub, bulk_size, schema, verify):
         try:
 
             # decode the data field again using the provided avro schema
-            msg_bytes = BytesIO(b64decode(msg[1]._data))
+            msg_bytes = BytesIO(msg[1].get_data())
             msg_decoder = BinaryDecoder(msg_bytes)
             avro_msg = avro_reader.read(msg_decoder)
 
             # check that the tags field is present
-            if avro_msg["tags"] is None:
+            if "tags" not in avro_msg:
                 raise KeyError("tags field is empty")
 
             # append to decoded messages
@@ -144,8 +142,7 @@ def main(args):
 
     ams = ArgoMessagingService(endpoint=ams_endpoint, token=config["ams_token"], project=config["ams_project"])
 
-    schema = avro.schema.Parse(open(config["avro_schema"], "rb").read())
-
+    schema = avro.schema.parse(open(config["avro_schema"], "rb").read())
 
     while True:
 

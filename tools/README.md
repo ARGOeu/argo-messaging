@@ -1,6 +1,41 @@
 AMS data tools
 ========================
 
+alerts_format
+----------------
+Stream producer is a script that allows you to connect to an AMS endpoint and publish messages of configurable size indefinitely.
+Alerts format is a script that consumes messages from an alerts topic and re-formats
+them in a predefined way before publishing them again back to the service.The new messages
+are ment to be consumed by a push subscription and delivered to a remote endpoint 
+or mattermost webhook.
+
+An example of a formatted message:
+
+:red_circle: CDI-Helpdesk-System is CRITICAL :red_circle: 
+Summary: CRITICAL - Socket timeout 
+URL : https//example.com/cdi
+
+Requirements
+------------
+
+- argo_ams_library
+
+How to run alerts_format
+--------------------------
+
+`./alerts_format.py --host some.ams.host --port 443 --token some_ams_token --project ams_project --topic ams_topic
+--sub ams_sub --interval 5`
+
+- `-host, --host` is the AMS endpoint to connect to.
+- `-port, --port` is the AMS port.
+- `-token, --token` is the AMS token that will grant you access to perform all the needed actions.
+- `-project, --project` is the AMS project that the topic belongs to.
+- `-topic, --topic` is the AMS topic that the messages will be published to.
+- `-sub, --sub` is the AMS subscription that the messages will be consumed from.
+- `-interval, --interval` is the interval at which the messages will be published in seconds, `default=0`.
+- `--verify` whether or not to do ssl verification, `if left undeclared, it will not verify`.
+
+
 reassign_partitions
 -------------------
 
