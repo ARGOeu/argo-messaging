@@ -1,8 +1,3 @@
----
-id: api_subs
-title: Subscriptions
----
-
 # Subscriptions Api Calls
 
 ## [PUT] Manage Subscriptions - Create subscriptions  
