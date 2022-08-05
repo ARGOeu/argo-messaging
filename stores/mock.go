@@ -1776,3 +1776,15 @@ func (mk *MockStore) DeleteSchema(schemaUUID string) error {
 
 	return errors.New("not found")
 }
+
+func (mk *MockStore) DeleteRegistration(regUUID string) error {
+
+	for idx, s := range mk.UserRegistrations {
+		if s.UUID == regUUID {
+			mk.UserRegistrations = append(mk.UserRegistrations[:idx], mk.UserRegistrations[idx+1:]...)
+			return nil
+		}
+	}
+
+	return errors.New("not found")
+}

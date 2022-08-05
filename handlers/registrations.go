@@ -270,3 +270,40 @@ func ListAllRegistrations(w http.ResponseWriter, r *http.Request) {
 
 	respondOK(w, urb)
 }
+
+// DeleteRegistration (DELETE) removes a registration from the service's store
+func DeleteRegistration(w http.ResponseWriter, r *http.Request) {
+
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+	regUUID := urlVars["uuid"]
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+
+	_, err := auth.FindUserRegistration(regUUID, "", refStr)
+	if err != nil {
+
+		if err.Error() == "not found" {
+			err := APIErrorNotFound("User registration")
+			respondErr(w, err)
+			return
+		}
+
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+
+	err = auth.DeleteUserRegistration(regUUID, refStr)
+	if err != nil {
+		err := APIErrGenericInternal(err.Error())
+		respondErr(w, err)
+		return
+	}
+	respondOK(w, nil)
+}

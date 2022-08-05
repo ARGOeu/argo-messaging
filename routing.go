@@ -94,6 +94,7 @@ var defaultRoutes = []APIRoute{
 	{"registrations:newUser", "POST", "/registrations", handlers.RegisterUser},
 	{"registrations:acceptNewUser", "POST", "/registrations/{uuid}:accept", handlers.AcceptRegisterUser},
 	{"registrations:declineNewUser", "POST", "/registrations/{uuid}:decline", handlers.DeclineRegisterUser},
+	{"registrations:delete", "DELETE", "/registrations/{uuid}", handlers.DeleteRegistration},
 	{"registrations:show", "GET", "/registrations/{uuid}", handlers.ListOneRegistration},
 	{"registrations:list", "GET", "/registrations", handlers.ListAllRegistrations},
 	{"projects:list", "GET", "/projects", handlers.ProjectListAll},

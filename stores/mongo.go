@@ -326,6 +326,11 @@ func (mong *MongoStore) RegisterUser(uuid, name, firstName, lastName, email, org
 	return mong.InsertResource("user_registrations", ur)
 }
 
+// DeleteRegistration removes the respective registration from the
+func (mong *MongoStore) DeleteRegistration(uuid string) error {
+	return mong.RemoveResource("user_registrations", bson.M{"uuid": uuid})
+}
+
 func (mong *MongoStore) QueryRegistrations(regUUID, status, activationToken, name, email, org string) ([]QUserRegistration, error) {
 
 	query := bson.M{}

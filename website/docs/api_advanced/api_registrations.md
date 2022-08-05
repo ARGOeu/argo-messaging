@@ -216,3 +216,24 @@ Success Response
 ```
 ### Errors
 Please refer to section [Errors](/api_basic/api_errors.md) to see all possible Errors
+
+## [DELETE] Manage Registrations - Delete a User's Registration
+This request deletes a user's registration 
+
+### Request
+```
+DELETE "/v1/registrations/{uuid}"
+```
+
+### Example request
+```bash
+curl -X DELETE -H "Content-Type: application/json"
+"https://{URL}/v1/registrations/ur-uuid1"
+```
+
+### Responses  
+Success Response
+`200 OK`
+
+### Errors
+Please refer to section [Errors](/api_basic/api_errors.md) to see all possible Errors

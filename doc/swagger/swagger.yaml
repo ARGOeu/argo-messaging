@@ -190,6 +190,30 @@ paths:
           $ref: "#/responses/404"
         500:
           $ref: "#/responses/500"
+    delete:
+      summary: Delete a specific user registration
+      description: |
+        Deletes a user's registration
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: UUID
+          in: path
+          description: UUID of the registration
+          required: true
+          type: string
+      tags:
+        - Registrations
+      responses:
+        200:
+          description: User's registration
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
 
   /projects/{PROJECT}/schemas:
     get:
