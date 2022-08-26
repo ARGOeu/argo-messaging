@@ -91,9 +91,9 @@ The following request returns a list of authorized users for a given subscriptio
 
 ### Example request
 
-```
+```bash
 curl -X POST -H "Content-Type: application/json"  
--d { POSTDATA } https://{URL}/v1/projects/EGI/subscriptions/monitoring:acl?key=S3CR3T"`
+-d $POSTDATA "https://{URL}/v1/projects/EGI/subscriptions/monitoring:acl?key=S3CR3T"
 ```
 
 ### Responses  
@@ -134,8 +134,8 @@ The following request Modifies the authorized users list of a given subscription
 
 ### Example request
 
-```
-curl -H "Content-Type: application/json"  https://{URL}/v1/projects/EGI/subscriptions/monitoring:modifyAcl?key=S3CR3T"`
+```bash
+curl -H "Content-Type: application/json"  "https://{URL}/v1/projects/EGI/subscriptions/monitoring:modifyAcl?key=S3CR3T"
 ```
 
 ### Responses  

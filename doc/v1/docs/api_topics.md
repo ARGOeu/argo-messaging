@@ -7,7 +7,7 @@ A topic name must be scoped to a project.
 This request creates a new topic with the given topic_name in a project with a PUT request
 
 ### Request
-```json
+```
 PUT "/v1/projects/{project_name}/topics/{topic_name}"
 ```
 
@@ -24,9 +24,9 @@ If you need to link a schema with the topic you need to provide its name.
 - Topic_name: The topic name to create
 
 ### Example request
-```json
+```bash
 curl -X PUT -H "Content-Type: application/json"
- " https://{URL}/v1/projects/BRAND_NEW/topics/monitoring?key=S3CR3T"
+ "https://{URL}/v1/projects/BRAND_NEW/topics/monitoring?key=S3CR3T"
 ```
 
 ### Responses  
@@ -50,7 +50,7 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 This request deletes the defined topic in a project with a DELETE request
 
 ### Request
-```json
+```
 DELETE "/v1/projects/{project_name}/topics/{topic_name}"
 ```
 
@@ -60,7 +60,7 @@ DELETE "/v1/projects/{project_name}/topics/{topic_name}"
 
 ### Example request
 
-```json
+```bash
 curl -X DELETE -H "Content-Type: application/json"  
 -d '' "https://{URL}/v1/projects/BRAND_NEW/topics/monitoring?key=S3CR3T"
 ```
@@ -77,7 +77,7 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 This request gets the details of a topic in a project with a GET request
 
 ### Request
-```json
+```
 GET "/v1/projects/{project_name}/topics/{topic_name}"
 ```
 
@@ -87,7 +87,7 @@ GET "/v1/projects/{project_name}/topics/{topic_name}"
 
 ### Example request
 
-```json
+```bash
 curl -H "Content-Type: application/json"  
  "https://{URL}/v1/projects/BRAND_NEW/topics/monitoring?key=S3CR3T"
 ```
@@ -132,14 +132,16 @@ Also the default value for `pageSize = 0` and `pageToken = "`.
 
 ### Paginated Request that returns all topics under the specified project
 
-```GET "/v1/projects/{project_name}/topics"```
+```
+GET "/v1/projects/{project_name}/topics"
+```
 
 ### Where
  - Project_name: Name of the project to get the list of topics
 
 ### Example request
 
-```
+```bash
 curl -H "Content-Type: application/json"
 "https://{URL}/v1/projects/BRAND_NEW/topics/?key=S3CR3T"`
 ```
@@ -167,7 +169,9 @@ Success Response
 
 ### Paginated Request that returns the first page of a specific size
 
-```GET "/v1/projects/{project_name}/topics"```
+```
+GET "/v1/projects/{project_name}/topics"
+```
 
 
 ### Where
@@ -175,7 +179,7 @@ Success Response
 
 ### Example request
 
-```
+```bash
 curl -H "Content-Type: application/json"
 "https://{URL}/v1/projects/BRAND_NEW/topics/?key=S3CR3T&pageSize=1"`
 ```
@@ -207,7 +211,7 @@ Success Response
 
 ### Example request
 
-```
+```bash
 curl -H "Content-Type: application/json"
 "https://{URL}/v1/projects/BRAND_NEW/topics/?key=S3CR3T&pageSize=1&pageToken=some_token"`
 ```
@@ -236,7 +240,7 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 The topic:publish endpoint publishes a message, or a list of messages to a specific topic with a  POST request
 
 ### Request
-```json
+```
 POST "/v1/projects/{project_name}/topics/{topic_name}:publish"
 ```
 
@@ -270,9 +274,9 @@ to work properly.
 
 ### Example request
 
-```json
+```bash
 curl -X POST -H "Content-Type: application/json"  
--d { POSTDATA } "https://{URL}/v1/projects/BRAND_NEW/topics/monitoring:publish?key=S3CR3T"
+-d $POSTDATA "https://{URL}/v1/projects/BRAND_NEW/topics/monitoring:publish?key=S3CR3T"
 ```
 
 ### Responses  
@@ -296,7 +300,7 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 Attach one of the project's schemas to the given topic.
 
 ### Request
-```json
+```
 POST "/v1/projects/{project_name}/topics/{topic_name}:attachSchema"
 ```
 
@@ -313,9 +317,9 @@ POST "/v1/projects/{project_name}/topics/{topic_name}:attachSchema"
 
 ### Example request
 
-```json
+```bash
 curl -X POST -H "Content-Type: application/json"  
--d { POSTDATA } "https://{URL}/v1/projects/BRAND_NEW/topics/monitoring:attachSchema?key=S3CR3T"
+-d $POSTDATA "https://{URL}/v1/projects/BRAND_NEW/topics/monitoring:attachSchema?key=S3CR3T"
 ```
 
 ### Responses  
@@ -333,7 +337,7 @@ Detach the topic's current assigned schema.
 If the topic has no assigned schema, nothing happens.
 
 ### Request
-```json
+```
 POST "/v1/projects/{project_name}/topics/{topic_name}:detachSchema"
 ```
 
@@ -343,7 +347,7 @@ POST "/v1/projects/{project_name}/topics/{topic_name}:detachSchema"
 
 ### Example request
 
-```json
+```bash
 curl -X POST -H "Content-Type: application/json"  
 "https://{URL}/v1/projects/BRAND_NEW/topics/monitoring:detachSchema?key=S3CR3T"
 ```
@@ -371,7 +375,7 @@ GET "/v1/projects/{project_name}/topics/{topic_name}:acl"
 
 ### Example request
 
-```json
+```bash
 curl  -H "Content-Type: application/json"
 "https://{URL}/v1/projects/BRAND_NEW/topics/monitoring:acl?key=S3CR3T"
 ```
@@ -418,9 +422,9 @@ POST "/v1/projects/{project_name}/topics/{topic_name}:modifyAcl"
 
 ### Example request
 
-```
+```bash
 curl -X POST -H "Content-Type: application/json"  
--d { POSTDATA } "https://{URL}/v1/projects/BRAND_NEW/topics/monitoring:modifyAcl?key=S3CR3T"
+-d $POSTDATA "https://{URL}/v1/projects/BRAND_NEW/topics/monitoring:modifyAcl?key=S3CR3T"
 ```
 
 ### Responses  
@@ -457,7 +461,7 @@ GET "/v1/projects/{project_name}/topics/{topic_name}:metrics"
 
 ### Example request
 
-```json
+```bash
 curl  -H "Content-Type: application/json"
 "https://{URL}/v1/projects/BRAND_NEW/topics/monitoring:metrics?key=S3CR3T"
 ```
