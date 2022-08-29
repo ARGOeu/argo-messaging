@@ -6,7 +6,7 @@ Schemas is a resource that works with topics by validating the published message
 This request retrieves a specific schema under the given project
 
 ### Request
-```json
+```
 GET "/v1/projects/{project_name}/schemas/{schema_name}"
 ```
 
@@ -15,9 +15,9 @@ GET "/v1/projects/{project_name}/schemas/{schema_name}"
 - schema_name: Name of the schema to be created
 
 ### Example request
-```json
+```bash
 curl -X GET -H "Content-Type: application/json"
- " https://{URL}/v1/projects/project-1/schemas/schema-1?key=S3CR3T"
+ "https://{URL}/v1/projects/project-1/schemas/schema-1?key=S3CR3T"
 ```
 
 ### Responses  
@@ -62,7 +62,7 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 This request retrieves all schemas under the given project.
 
 ### Request
-```json
+```
 GET "/v1/projects/{project_name}/schemas"
 ```
 
@@ -70,9 +70,9 @@ GET "/v1/projects/{project_name}/schemas"
 - project_name: Name of the project in which the schema will belong
 
 ### Example request
-```json
+```bash
 curl -X GET -H "Content-Type: application/json"
- " https://{URL}/v1/projects/project-1/schemas?key=S3CR3T"
+ "https://{URL}/v1/projects/project-1/schemas?key=S3CR3T"
 ```
 
 ### Responses  
@@ -151,7 +151,7 @@ This request creates a new schema
 > JSON,AVRO
 
 ### Request
-```json
+```
 POST "/v1/projects/{project_name}/schemas/{schema_name}"
 ```
 
@@ -160,9 +160,9 @@ POST "/v1/projects/{project_name}/schemas/{schema_name}"
 - schema_name: Name of the schema to be created
 
 ### Example request
-```json
-curl -X POST -H "Content-Type: application/json -d POSTDATA"
- " https://{URL}/v1/projects/project-1/schemas/schema-1?key=S3CR3T"
+```bash
+curl -X POST -H "Content-Type: application/json" -d $POSTDATA
+ "https://{URL}/v1/projects/project-1/schemas/schema-1?key=S3CR3T"
 ```
 
 ### Post body:
@@ -225,7 +225,7 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 This request updates the contents of a schema. You can update `one` or `all` of the fields at a time.
 
 ### Request
-```json
+```
 PUT "/v1/projects/{project_name}/schemas/{schema_name}"
 ```
 
@@ -234,9 +234,9 @@ PUT "/v1/projects/{project_name}/schemas/{schema_name}"
 - schema_name: Name of the schema to be updated
 
 ### Example request
-```json
-curl -X PUT -H "Content-Type: application/json -d POSTDATA"
- " https://{URL}/v1/projects/project-1/schemas/schema-1?key=S3CR3T"
+```bash
+curl -X PUT -H "Content-Type: application/json" -d $POSTDATA
+ "https://{URL}/v1/projects/project-1/schemas/schema-1?key=S3CR3T"
 ```
 
 ### Post body:
@@ -302,7 +302,7 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 This request deletes a schema.
 
 ### Request
-```json
+```
 DELETE "/v1/projects/{project_name}/schemas/{schema_name}"
 ```
 
@@ -311,9 +311,9 @@ DELETE "/v1/projects/{project_name}/schemas/{schema_name}"
 - schema_name: Name of the schema to be deleted
 
 ### Example request
-```json
+```bash
 curl -X DELETE -H "Content-Type: application/json"
- " https://{URL}/v1/projects/project-1/schemas/schema-1?key=S3CR3T"
+ "https://{URL}/v1/projects/project-1/schemas/schema-1?key=S3CR3T"
 ```
 
 ### Responses  
@@ -322,7 +322,7 @@ If successful, the response is empty.
 
 Success Response
 `200 OK`
-```json
+```
 ```
 
 ### Errors
@@ -336,7 +336,7 @@ publish it to the topic.Instead of creating all this pipeline in order to check 
 we can explicitly do it on this API call.
 
 ### Request
-```json
+```
 POST "/v1/projects/{project_name}/schemas/{schema_name}:validate"
 ```
 
@@ -345,9 +345,9 @@ POST "/v1/projects/{project_name}/schemas/{schema_name}:validate"
 - schema_name: Name of the schema to be updated
 
 ### Example request
-```json
-curl -X POST -H "Content-Type: application/json -d POSTDATA"
- " https://{URL}/v1/projects/project-1/schemas/schema-1:validate?key=S3CR3T"
+```bash
+curl -X POST -H "Content-Type: application/json" -d $POSTDATA
+ "https://{URL}/v1/projects/project-1/schemas/schema-1:validate?key=S3CR3T"
 ```
 
 ### Post body:

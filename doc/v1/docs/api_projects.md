@@ -11,7 +11,7 @@ GET "/v1/projects"
 ```
 
 ### Example request
-```
+```bash
 curl -X GET -H "Content-Type: application/json"
   "https://{URL}/v1/projects?key=S3CR3T"
 ```
@@ -24,7 +24,6 @@ Success Response
 
 
 ```json
-
 {
  "projects": [
     {
@@ -69,7 +68,7 @@ GET "/v1/projects/{project_name}"
 
 
 ### Example request
-```
+```bash
 curl -X GET -H "Content-Type: application/json"
   "https://{URL}/v1/projects/BRAND_NEW?key=S3CR3T"
 ```
@@ -116,9 +115,9 @@ POST "/v1/projects/{project_name}"
 ### Example request
 
 
-```
+```bash
 curl -X POST -H "Content-Type: application/json"
- -d POSTDATA "https://{URL}/v1/projects/PROJECT_NEW?key=S3CR3T"
+ -d $POSTDATA "https://{URL}/v1/projects/PROJECT_NEW?key=S3CR3T"
 ```
 
 ### Responses  
@@ -144,7 +143,7 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 This request updates information (such as name,description) on an existing project (PUT)
 
 ### Request
-```json
+```
 PUT "/v1/projects/{project_name}"
 ```
 
@@ -160,9 +159,9 @@ PUT "/v1/projects/{project_name}"
 ```
 
 ### Example request
-```
+```bash
 curl -X PUT -H "Content-Type: application/json"
- -d POSTDATA "https://{URL}/v1/projects/PROJECT_NEW?key=S3CR3T"
+ -d $POSTDATA "https://{URL}/v1/projects/PROJECT_NEW?key=S3CR3T"
 ```
 
 ### Responses  
@@ -188,7 +187,7 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 This request deletes a specific project
 
 ### Request
-```json
+```
 DELETE "/v1/projects/{project_name}"
 ```
 
@@ -197,7 +196,7 @@ DELETE "/v1/projects/{project_name}"
 
 ### Example request
 
-```json
+```bash
 curl -X DELETE -H "Content-Type: application/json"  
  "https://{URL}/v1/projects/BRAND_NEW?key=S3CR3T"
 ```
@@ -217,7 +216,7 @@ containing the projects, subscriptions and topics that the user belongs to.
 
 
 ### Example request
-```
+```bash
 curl -X GET -H "Content-Type: application/json"
   "https://{URL}/v1/projects/ARGO2/members?key=S3CR3T&details=true"
 ```
@@ -293,7 +292,7 @@ returned remove user information such as `token`, `service_roles` and `created_b
 ### [GET] Show a specific member user of the specific project
 
 ### Example request
-```
+```bash
 curl -X GET -H "Content-Type: application/json"
   "https://{URL}/v1/projects/ARGO2/members/Test?key=S3CR3T"
 ```
@@ -339,9 +338,9 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 ### [POST] Create a new member user under the specific project
 
 ### Example request
-```
+```bash
 curl -X POST -H "Content-Type: application/json"
-  -d POSTDATA "https://{URL}/v1/projects/ARGO2/members/NewUser?key=S3CR3T"
+  -d $POSTDATA "https://{URL}/v1/projects/ARGO2/members/NewUser?key=S3CR3T"
 ```
 
 ### Post body:
@@ -393,9 +392,9 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 ### [PUT] Updates the roles for a member user under the specific project
 
 ### Example request
-```
+```bash
 curl -X PUT -H "Content-Type: application/json"
-  -d POSTDATA "https://{URL}/v1/projects/ARGO2/members/NewUser?key=S3CR3T"
+  -d $POSTDATA "https://{URL}/v1/projects/ARGO2/members/NewUser?key=S3CR3T"
 ```
 
 ### Post body:
@@ -446,9 +445,9 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 ### [POST] Add/Invite a user to a project
 
 ### Example request
-```
+```bash
 curl -X POST -H "Content-Type: application/json"
-  -d POSTDATA "https://{URL}/v1/projects/ARGO2/members/NewUser:add?key=S3CR3T"
+  -d $POSTDATA "https://{URL}/v1/projects/ARGO2/members/NewUser:add?key=S3CR3T"
 ```
 
 ### Post body:
@@ -495,7 +494,7 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 ### [POST] Remove a user from the project
 
 ### Example request
-```
+```bash
 curl -X POST -H "Content-Type: application/json"
  "https://{URL}/v1/projects/ARGO2/members/NewUser:remove?key=S3CR3T"
 ```
@@ -526,7 +525,7 @@ GET "/v1/projects/{project_name}:metrics"
 
 ### Example request
 
-```json
+```bash
 curl  -H "Content-Type: application/json"
 "https://{URL}/v1/projects/BRAND_NEW:metrics?key=S3CR3T"
 ```
