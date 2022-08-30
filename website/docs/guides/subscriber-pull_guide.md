@@ -13,7 +13,7 @@ In pull delivery, your subscription application initiates requests to the Pub/Su
 
 ## Before you start
 
-In order to get an account on the ARGO Messaging Service, submit a request through the [ARGO Messaging Service account form](https://docs.google.com/forms/d/e/1FAIpQLScfMCYPkUqUa5lT046RK1yCR4yn6M96WbgD5DMlNJ-zRFHSRA/viewform)
+In order to get an account on the ARGO Messaging Service, submit a request through the [ARGO Messaging Service registration form](https://ams-register.argo.grnet.gr/)
 
 Upon account approval, you will receive information via e-mail about your new project along with an API token.
 
@@ -21,7 +21,7 @@ Upon account approval, you will receive information via e-mail about your new pr
 
 As already mentioned, the AMS supports “Schema Validation per topic”. The subscription consumes the messages from the topic with the defined schema. 
 
-For more information visit [Schemas](https://argoeu.github.io/argo-messaging/docs/api_schemas)
+For more information visit [Schemas](api_advanced/api_schemas.md)
 
 ## Consume Messages 
 
@@ -33,11 +33,11 @@ In AMS the request supports the following parameters
 
 The user may specify the max number of messages returned by one call by setting maxMessages field. By default, the server will keep the connection open until at least one message is received; you can optionally set the returnImmediately field to true to prevent the subscriber from waiting if the queue is currently empty.
 
-For more information visit [Consume messages](https://argoeu.github.io/argo-messaging/docs/api_subscriptions#post-pull-messages-from-a-subscription-consume)
+For more information visit [Consume messages](api_advanced/api_subs.md#post-pull-messages-from-a-subscription-consume)
 
 ## Acknowledge messages
 
 The messages are stored in the queue. In order to remove the messages from the queue they should be Acknowledged. Messages retrieved from a pull subscription can be acknowledged by sending message with an array of ackIDs.
 
-For more information visit [Sending an ack](https://argoeu.github.io/argo-messaging/docs/api_subscriptions#post-sending-an-ack)
+For more information visit [Sending an ack](api_advanced/api_subs.md#post-sending-an-ack)
 

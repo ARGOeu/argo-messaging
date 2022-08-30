@@ -21,18 +21,18 @@ Last but not least, it is important to note that a message is being kept availab
 
 ## Before you start
 
-In order to get an account on the ARGO Messaging Service, submit a request through the [ARGO Messaging Service account form](https://docs.google.com/forms/d/e/1FAIpQLScfMCYPkUqUa5lT046RK1yCR4yn6M96WbgD5DMlNJ-zRFHSRA/viewform)
+In order to get an account on the ARGO Messaging Service, submit a request through the [ARGO Messaging Service account form](https://ams-register.argo.grnet.gr/)
 
 Upon account approval, you will receive information via e-mail about your new project along with an API token.
 
 ## Get Subscription's offsets
 
-A subscription’s offsets can be accessed through the API using the following http call [Get Subscription's offsets](https://argoeu.github.io/argo-messaging/docs/api_subscriptions#get-get-offsets.)
+A subscription’s offsets can be accessed through the API using the following http call [Get Subscription's offsets](api_advanced/api_subs.md#get-get-offsets.)
 
 ## Get Subscription's offsets by timestamp
 
-The following http call gives access to the aforementioned functionality [Get Subscription's offsets by timestamp](https://argoeu.github.io/argo-messaging/docs/api_subscriptions#get-get-offset-by-timestamp).
+The following http call gives access to the aforementioned functionality [Get Subscription's offsets by timestamp](api_advanced/api_subs.md#get-get-offset-by-timestamp).
 
 ## Move Subscription's offsets
 
-The following http call gives access to the modifyOffset api call [Move Subscription's offsets](https://argoeu.github.io/argo-messaging/docs/api_subscriptions#post-modify-offsets) to move the indices around and re-consume/replay a subscription’s messages.
+The following http call gives access to the modifyOffset api call [Move Subscription's offsets](api_advanced/api_subs.md#post-modify-offsets) to move the indices around and re-consume/replay a subscription’s messages.

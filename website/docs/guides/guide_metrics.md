@@ -4,18 +4,18 @@ title: Metrics Guide
 sidebar_position: 6
 ---
 
-**Project metrics:**  If you want to see the specific project metrics please visit this page [Project Metrics](https://argoeu.github.io/argo-messaging/docs/api_projects#get-project-metrics)
+**Project metrics:**  If you want to see the specific project metrics please visit this page [Project Metrics](api_advanced/api_projects.md#get-project-metrics)
  - number of topics
  - number of subscriptions
  - per project user number of subscriptions
  - number of daily messages*
 
-**Subscriptions metrics:** [Subscription Metrics](https://argoeu.github.io/argo-messaging/docs/api_subscriptions#get-subscription-metrics)
+**Subscriptions metrics:** [Subscription Metrics](api_advanced/api_subs.md#get-subscription-metrics)
  - number of messages
  - total bytes consumed 
  - consumption rate(A rate that displays how many messages were consumed per second between the last two consume events)
 
-**Topic metrics:** [Topics Metrics](https://argoeu.github.io/argo-messaging/docs/api_topics#get-topic-metrics)
+**Topic metrics:** [Topics Metrics](api_advanced/api_topics.md#get-topic-metrics)
  - number of messages
  - number of subscriptions
  - number of messages
@@ -23,7 +23,7 @@ sidebar_position: 6
  - number of daily messages
  - publishing rate(A rate that displays how many messages were published per second between the last two publish events)
 
-**Operational metrics:** [Operational Metrics](https://argoeu.github.io/argo-messaging/docs/api_metrics)
+**Operational metrics:** [Operational Metrics](api_advanced/api_metrics.md)
  - per ams node cpu usage
  - per ams node memory usage
 
