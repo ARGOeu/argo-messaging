@@ -659,6 +659,13 @@ func (suite *StoreTestSuite) TestMockStore() {
 	ur2, _ := store.QueryRegistrations("ur-uuid1", "accepted", "", "", "", "")
 	suite.Equal(expur2, ur2)
 
+	suite.Equal(2, len(store.UserRegistrations))
+	_ = store.DeleteRegistration("ruuid1")
+	suite.Equal(1, len(store.UserRegistrations))
+
+	dErr := store.DeleteRegistration("unknown")
+	suite.Equal("not found", dErr.Error())
+
 	sdate := time.Date(2008, 11, 19, 8, 0, 0, 0, time.UTC)
 	edate := time.Date(2020, 11, 21, 6, 0, 0, 0, time.UTC)
 	tc, _ := store3.TopicsCount(sdate, edate, []string{})

@@ -338,6 +338,63 @@ func (suite *RegistrationsHandlersTestSuite) TestListOneRegistration() {
 
 }
 
+func (suite *RegistrationsHandlersTestSuite) TestDeleteRegistration() {
+
+	type td struct {
+		regUUID            string
+		expectedResponse   string
+		expectedStatusCode int
+		msg                string
+	}
+
+	testData := []td{
+		{
+			regUUID:            "ur-uuid1",
+			expectedResponse:   ``,
+			expectedStatusCode: 200,
+			msg:                "User registration deleted successfully",
+		},
+		{
+			regUUID: "unknown",
+			expectedResponse: `{
+   "error": {
+      "code": 404,
+      "message": "User registration doesn't exist",
+      "status": "NOT_FOUND"
+   }
+}`,
+			expectedStatusCode: 404,
+			msg:                "User registration doesn't exist",
+		},
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	cfgKafka.PushEnabled = true
+	cfgKafka.PushWorkerToken = "push_token"
+	cfgKafka.ResAuth = false
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	mgr := oldPush.Manager{}
+	pc := new(push.MockClient)
+
+	for _, t := range testData {
+
+		w := httptest.NewRecorder()
+		url := fmt.Sprintf("http://localhost:8080/v1/registrations/%v", t.regUUID)
+		req, err := http.NewRequest("DELETE", url, nil)
+		if err != nil {
+			log.Fatal(err)
+		}
+		router.HandleFunc("/v1/registrations/{uuid}", WrapMockAuthConfig(DeleteRegistration, cfgKafka, &brk, str, &mgr, pc))
+		router.ServeHTTP(w, req)
+		suite.Equal(t.expectedStatusCode, w.Code, t.msg)
+		suite.Equal(t.expectedResponse, w.Body.String(), t.msg)
+	}
+
+}
+
 func (suite *RegistrationsHandlersTestSuite) TestListManyRegistrations() {
 
 	type td struct {

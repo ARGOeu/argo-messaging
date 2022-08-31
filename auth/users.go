@@ -143,6 +143,11 @@ func RegisterUser(uuid, name, fname, lname, email, org, desc, registeredAt, atkn
 	}, nil
 }
 
+// DeleteUserRegistration removes the respective registration from the store based on the given uuid
+func DeleteUserRegistration(regUUID string, str stores.Store) error {
+	return str.DeleteRegistration(regUUID)
+}
+
 func FindUserRegistration(regUUID, status string, str stores.Store) (UserRegistration, error) {
 
 	q, err := str.QueryRegistrations(regUUID, status, "", "", "", "")

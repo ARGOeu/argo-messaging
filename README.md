@@ -1,6 +1,5 @@
 # ARGO Messaging
 
-## Description
 The ARGO Messaging Service is a Publish/Subscribe Service,
 which implements the Google PubSub protocol. 
 Instead of focusing on a single Messaging API specification 
