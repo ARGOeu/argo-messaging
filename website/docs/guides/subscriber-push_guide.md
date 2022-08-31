@@ -16,7 +16,7 @@ In a push subscription, the push server sends a request to the subscriber applic
 
 ## Before you start
 
-In order to get an account on the ARGO Messaging Service, submit a request through the [ARGO Messaging Service account form](https://docs.google.com/forms/d/e/1FAIpQLScfMCYPkUqUa5lT046RK1yCR4yn6M96WbgD5DMlNJ-zRFHSRA/viewform)
+In order to get an account on the ARGO Messaging Service, submit a request through the [ARGO Messaging Service account form](https://ams-register.argo.grnet.gr/)
 
 Upon account approval, you will receive information via e-mail about your new project along with an API token.
 
@@ -26,7 +26,7 @@ Upon account approval, you will receive information via e-mail about your new pr
 
 This request creates a new subscription in a project with a PUT request. Whenever a subscription is created with a valid push configuration, the service will also generate a unique hash that should be later used to validate the ownership of the registered push endpoint, and will mark the subscription as unverified.
 
-You may find more information from here [Push Enabled Subscription](https://argoeu.github.io/argo-messaging/docs/api_subscriptions#request-to-create-push-enabled-subscription) 
+You may find more information from here [Push Enabled Subscription](api_advanced/api_subs.md#request-to-create-push-enabled-subscription) 
 
 **Step 2** : Verify ownership of a push endpoint
 
@@ -34,7 +34,7 @@ The owner of the push endpoint in order to start the communication with the AMS 
 Whenever a subscription is created with a valid push configuration, the AMS service also generates a unique hash. 
 This hash should be later used to validate the ownership of the registered push endpoint, and will mark the subscription as verified.
 
-You may find more information from here [Verify ownership of a push endpoint](https://argoeu.github.io/argo-messaging/docs/api_subscriptions#post-manage-subscriptions---verify-ownership-of-a-push-endpoint) 
+You may find more information from here [Verify ownership of a push endpoint](api_advanced/api_subs.md#post-manage-subscriptions---verify-ownership-of-a-push-endpoint) 
 
 **Step 3** : Modify Push Configuration
 
@@ -43,7 +43,7 @@ pushConfig. The pushConfig configuration includes the pushEndpoint for the remot
 
 _NOTE_: Changing the push endpoint of a push enabled subscription, or removing the push configuration and then re-applying will mark the subscription as unverified and a new verification process should take place.
 
-You may find more information from here [Modify Push Configuration](https://argoeu.github.io/argo-messaging/docs/api_subscriptions#post-modify-push-configuration) 
+You may find more information from here [Modify Push Configuration](api_advanced/api_subs.md#post-modify-push-configuration) 
 
 
 ## Retry Policies

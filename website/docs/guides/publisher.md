@@ -8,7 +8,7 @@ Publishers can send messages to named-channels called Topics.
 
 ## Before you start
 
-In order to get an account on the ARGO Messaging Service, submit a request through the [ARGO Messaging Service account form](https://docs.google.com/forms/d/e/1FAIpQLScfMCYPkUqUa5lT046RK1yCR4yn6M96WbgD5DMlNJ-zRFHSRA/viewform)
+In order to get an account on the ARGO Messaging Service, submit a request through the [ARGO Messaging Service account form](https://ams-register.argo.grnet.gr/)
 
 Upon account approval, you will receive information via e-mail about your new project along with an API token.
 
