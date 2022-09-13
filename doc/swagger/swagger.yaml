@@ -1250,6 +1250,32 @@ paths:
         500:
           $ref: "#/responses/500"
 
+  /users/usageReport:
+    get:
+      summary: Show the projects and their metrics, alongside service operational metrics based on the provided key
+      description: |
+        Show a specific's user usage information regarding its projects
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - $ref: '#/parameters/StartDate'
+        - $ref: '#/parameters/EndDate'
+        - $ref: '#/parameters/Projects'
+      tags:
+        - Users
+      responses:
+        200:
+          description: A User usage report object
+          schema:
+            $ref: '#/definitions/UserUsageReport'
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        500:
+          $ref: "#/responses/500"
+
   /users/{USER}:refreshToken:
     post:
       summary: Refreshes the token of an existing user
@@ -2562,6 +2588,17 @@ definitions:
         type: string
       schema:
         type: object
+
+  UserUsageReport:
+    type: object
+    properties:
+      va_report:
+        type: object
+        $ref: '#/definitions/VAMetrics'
+      operational_metrics:
+        type: array
+        items:
+          $ref: '#/definitions/Metric'
 
   VAMetrics:
     type: object

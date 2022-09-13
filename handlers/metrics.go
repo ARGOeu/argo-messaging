@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/ARGOeu/argo-messaging/config"
 	"net/http"
 	"strings"
 	"time"
@@ -112,6 +113,144 @@ func VaMetrics(w http.ResponseWriter, r *http.Request) {
 	}
 
 	output, err := json.MarshalIndent(vr, "", " ")
+	if err != nil {
+		err := APIErrExportJSON()
+		respondErr(w, err)
+		return
+	}
+
+	// Write response
+	respondOK(w, output)
+}
+
+// UserUsageReport (GET) retrieves metrics regarding a project's users, subscriptions, topics and messages
+// alongside service operational metrics
+// This handler is supposed to be used for project admins in order to get usage information for their projects
+func UserUsageReport(w http.ResponseWriter, r *http.Request) {
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+
+	authOption := gorillaContext.Get(r, "authOption").(config.AuthOption)
+
+	tokenExtractStrategy := GetRequestTokenExtractStrategy(authOption)
+	token := tokenExtractStrategy(r)
+
+	if token == "" {
+		err := APIErrorUnauthorized()
+		respondErr(w, err)
+		return
+	}
+
+	user, err := auth.GetUserByToken(token, refStr)
+
+	if err != nil {
+		if err.Error() == "not found" {
+			err := APIErrorUnauthorized()
+			respondErr(w, err)
+			return
+		}
+		err := APIErrQueryDatastore()
+		respondErr(w, err)
+		return
+	}
+
+	startDate := time.Time{}
+	endDate := time.Time{}
+
+	// if no start date was provided, set it to the start of the unix time
+	if r.URL.Query().Get("start_date") != "" {
+		startDate, err = time.Parse("2006-01-02", r.URL.Query().Get("start_date"))
+		if err != nil {
+			err := APIErrorInvalidData("Start date is not in valid format")
+			respondErr(w, err)
+			return
+		}
+	} else {
+		startDate = time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
+	}
+
+	// if no end date was provided, set it to today
+	if r.URL.Query().Get("end_date") != "" {
+		endDate, err = time.Parse("2006-01-02", r.URL.Query().Get("end_date"))
+		if err != nil {
+			err := APIErrorInvalidData("End date is not in valid format")
+			respondErr(w, err)
+			return
+		}
+	} else {
+		endDate = time.Now().UTC()
+	}
+
+	if startDate.After(endDate) {
+		err := APIErrorInvalidData("Start date cannot be after the end date")
+		respondErr(w, err)
+		return
+	}
+
+	// filter based on url parameters projects and project_admin role
+	projectsUrlValue := r.URL.Query().Get("projects")
+	projectsList := make([]string, 0)
+	if projectsUrlValue != "" {
+		projectsList = strings.Split(projectsUrlValue, ",")
+	}
+
+	queryProjects := make([]string, 0)
+
+	for _, p := range user.Projects {
+		// first check that the user is a project admin for the specific project
+		isProjectAdmin := false
+		for _, userRole := range p.Roles {
+			if userRole == "project_admin" {
+				isProjectAdmin = true
+			}
+		}
+
+		if !isProjectAdmin {
+			continue
+		}
+
+		// check if the project belongs to the filter list of projects
+		// first check if the filter has any value provided
+		if projectsUrlValue != "" {
+			for _, filterProject := range projectsList {
+				if filterProject == p.Project {
+					queryProjects = append(queryProjects, p.Project)
+				}
+			}
+		} else {
+			// add the project that the user is a project admin for
+			queryProjects = append(queryProjects, p.Project)
+		}
+
+	}
+
+	// if no projects were marked for the query return empty response
+	vr := metrics.UserUsageReport{
+		VAReport: metrics.VAReport{
+			ProjectsMetrics: metrics.TotalProjectsMessageCount{
+				Projects: []metrics.ProjectMetrics{},
+			},
+		},
+		OperationalMetrics: metrics.MetricList{
+			Metrics: []metrics.Metric{},
+		},
+	}
+	if len(queryProjects) > 0 {
+		vr, err = metrics.GetUserUsageReport(queryProjects, startDate, endDate, refStr)
+		if err != nil {
+			err := APIErrorNotFound(err.Error())
+			respondErr(w, err)
+			return
+		}
+	}
+
+	output, err := json.MarshalIndent(vr, "", "   ")
 	if err != nil {
 		err := APIErrExportJSON()
 		respondErr(w, err)
