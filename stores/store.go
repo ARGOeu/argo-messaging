@@ -30,6 +30,7 @@ type Store interface {
 	RemoveProject(uuid string) error
 	RemoveProjectTopics(projectUUID string) error
 	RemoveProjectSubs(projectUUID string) error
+	RemoveProjectDailyMessageCounters(projectUUID string) error
 	QueryDailyProjectMsgCount(projectUUID string) ([]QDailyProjectMsgCount, error)
 	QueryTotalMessagesPerProject(projectUUIDs []string, startDate time.Time, endDate time.Time) ([]QProjectMessageCount, error)
 	RegisterUser(uuid, name, firstName, lastName, email, org, desc, registeredAt, atkn, status string) error

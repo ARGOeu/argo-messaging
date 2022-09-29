@@ -1493,6 +1493,11 @@ func (mong *MongoStore) RemoveProjectSubs(projectUUID string) error {
 	return mong.RemoveAll("subscriptions", subMatch)
 }
 
+// RemoveProjectDailyMessageCount removes all message counts related to a project UUID
+func (mong *MongoStore) RemoveProjectDailyMessageCounters(projectUUID string) error {
+	return mong.RemoveAll("daily_topic_msg_count", bson.M{"project_uuid": projectUUID})
+}
+
 // QueryTotalMessagesPerProject returns the total amount of messages per project for the given time window
 func (mong *MongoStore) QueryTotalMessagesPerProject(projectUUIDs []string, startDate time.Time, endDate time.Time) ([]QProjectMessageCount, error) {
 

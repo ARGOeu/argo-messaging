@@ -1284,6 +1284,25 @@ func (mk *MockStore) RemoveProjectSubs(projectUUID string) error {
 	return errors.New("not found")
 }
 
+// RemoveProjectDailyMessageCounters removes all existing message counters belonging to a specific project uuid
+func (mk *MockStore) RemoveProjectDailyMessageCounters(projectUUID string) error {
+	found := false
+	newList := []QDailyTopicMsgCount{}
+	for _, qc := range mk.DailyTopicMsgCount {
+		if qc.ProjectUUID != projectUUID {
+			// found item at i, remove it using index
+			newList = append(newList, qc)
+		} else {
+			found = true
+		}
+	}
+	mk.DailyTopicMsgCount = newList
+	if found {
+		return nil
+	}
+	return errors.New("not found")
+}
+
 // RemoveSub removes an existing sub from the store
 func (mk *MockStore) RemoveSub(projectUUID string, name string) error {
 	for i, sub := range mk.SubList {
