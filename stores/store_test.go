@@ -452,6 +452,9 @@ func (suite *StoreTestSuite) TestMockStore() {
 	store.RemoveProjectSubs("argo_uuid")
 	resSub, _, _, _ := store.QuerySubs("argo_uuid", "", "", "", 0)
 	suite.Equal(0, len(resSub))
+	store.RemoveProjectDailyMessageCounters("argo_uuid")
+	resMc, _ := store.QueryDailyProjectMsgCount("argo_uuid")
+	suite.Equal(0, len(resMc))
 
 	// Test RemoveProject
 	store.RemoveProject("argo_uuid")

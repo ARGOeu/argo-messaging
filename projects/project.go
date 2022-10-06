@@ -231,6 +231,14 @@ func RemoveProject(uuid string, store stores.Store) error {
 		return errors.New("backend error")
 	}
 
+	if err := store.RemoveProjectDailyMessageCounters(uuid); err != nil {
+		if err.Error() == "not found" {
+			return err
+		}
+
+		return errors.New("backend error")
+	}
+
 	return nil
 
 }
