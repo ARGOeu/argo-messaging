@@ -18,7 +18,7 @@ information about errors regarding the push server.
 - A user token corresponding to a `service_admin` or `admin_viewer`
 has to be provided when using the `details` parameter.
 
-```
+```bash
 curl -H "Content-Type: application/json"
  "https://{URL}/v1/status?details=true&key=token"
 ```

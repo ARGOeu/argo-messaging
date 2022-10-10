@@ -25,14 +25,14 @@ Also the default value for `pageSize = 0` and `pageToken = "`.
 
 `Pagesize = 0` returns all the results.
 ### Request
-```json
+```
 GET "/v1/users"
 ```
 
 ### Paginated Request that returns all users in one page
 
 ### Example request
-```
+```bash
 curl -X GET -H "Content-Type: application/json"
   "https://{URL}/v1/users?key=S3CR3T&details=true"
 ```
@@ -185,7 +185,7 @@ Success Response
 ### Paginated Request that returns the 2 most recent users
 
 ### Example request
-```
+```bash
 curl -X GET -H "Content-Type: application/json"
   "https://{URL}/v1/users?key=S3CR3T&pageSize=2&details=true"
 ```
@@ -255,7 +255,7 @@ Success Response
 ### Paginated Request that returns the next 3 users
 
 ### Example request
-```
+```bash
 curl -X GET -H "Content-Type: application/json"
   "https://{URL}/v1/users?key=S3CR3T&pageSize=3&pageToken=some_token2&details=true"
 ```
@@ -357,7 +357,7 @@ Success Response
 ### Paginated Request that returns all users that are members of a specific project
 
 ### Example request
-```
+```bash
 curl -X GET -H "Content-Type: application/json"
   "https://{URL}/v1/users?key=S3CR3T&project=ARGO2&details=true"
 ```
@@ -413,7 +413,7 @@ GET "/v1/users/{user_name}"
 - user_name: Name of the user
 
 ### Example request
-```
+```bash
 curl -X GET -H "Content-Type: application/json"
   "https://{URL}/v1/users/UserA?key=S3CR3T"
 ```
@@ -476,7 +476,7 @@ GET "/v1/users:byToken/{token}"
 - token: the token of the user
 
 ### Example request
-```
+```bash
 curl -X GET -H "Content-Type: application/json"
   "https://{URL}/v1/users:byToken/S3CR3T1?key=S3CR3T"
 ```
@@ -537,7 +537,7 @@ GET "/v1/users/profile"
 ```
 
 ### Example request
-```
+```bash
 curl -X GET -H "Content-Type: application/json"
   "https://{URL}/v1/users/profile?key=S3CR3T1"
 ```
@@ -598,7 +598,7 @@ GET "/v1/users:byUUID/{uuid}"
 - uuid: the uuid of the user
 
 ### Example request
-```
+```bash
 curl -X GET -H "Content-Type: application/json"
   "https://{URL}/v1/users:byUUID/99bfd746-4ebe-11e8-9c2d-fa7ae01bbebc?key=S3CR3T"
 ```
@@ -650,7 +650,7 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 This request creates a new user in a project
 
 ### Request
-```json
+```
 POST "/v1/users/{user_name}"
 ```
 
@@ -697,10 +697,9 @@ and the following service-wide role:
 | service_admin  | Users with `service_admin` role operate service wide. They are able to create, modify and delete projects. Also they are able to create, modify and delete users and assign them to projects.  
 
 ### Example request
-```
-json
+```bash
 curl -X POST -H "Content-Type: application/json"
- -d POSTDATA "https://{URL}/v1/projects/ARGO/users/USERNEW?key=S3CR3T"
+ -d $POSTDATA "https://{URL}/v1/projects/ARGO/users/USERNEW?key=S3CR3T"
 ```
 
 ### Responses  
@@ -742,7 +741,7 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 This request updates an existing user's information
 
 ### Request
-```json
+```
 PUT "/v1/users/{user_name}"
 ```
 
@@ -776,8 +775,7 @@ PUT "/v1/users/{user_name}"
 
 
 ### Example request
-```
-json
+```bash
 curl -X POST -H "Content-Type: application/json"
  -d PUTDATA "https://{URL}/v1/projects/ARGO/users/USERNEW?key=S3CR3T"
 ```
@@ -822,7 +820,7 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 This request refreshes an existing user's token
 ### Request
 
-```json
+```
 POST "/v1/users/{user_name}:refreshToken"
 ```
 ### Where
@@ -830,8 +828,7 @@ POST "/v1/users/{user_name}:refreshToken"
 
 
 ### Example request
-```
-json
+```bash
 curl -X POST -H "Content-Type: application/json"
  "https://{URL}/v1/projects/ARGO/users/USER2:refreshToken?key=S3CR3T"
 ```
@@ -872,7 +869,7 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 This request deletes an existing user
 ### Request
 
-```json
+```
 DELETE "/v1/users/{user_name}"
 ```
 
@@ -881,7 +878,7 @@ DELETE "/v1/users/{user_name}"
 
 
 ### Example request
-``` json
+```bash
 curl -X DELETE -H "Content-Type: application/json"
  "https://{URL}/v1/projects/ARGO/users/USER2?key=S3CR3T"
 ```

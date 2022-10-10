@@ -6,14 +6,14 @@ Operational Metrics include metrics related to the CPU or memory usage of the am
 This request gets a list of operational metrics for the specific ams servcice
 
 ### Request
-```json
+```
 GET "/v1/metrics"
 ```
 
 
 ### Example request
 
-```json
+```bash
 curl -H "Content-Type: application/json"
  "https://{URL}/v1/metrics?key=S3CR3T"
 ```
@@ -81,14 +81,14 @@ GET "/v1/metrics/va_metrics"
 
 ### Example request
 
-```
+```bash
 curl -H "Content-Type: application/json"
  "https://{URL}/v1/metrics/va_metrics"
 ```
 
 ### Example request with URL parameters
 
-```
+```bash
 curl -H "Content-Type: application/json"
  "https://{URL}/v1/metrics/va_metrics?start_date=2019-03-01&end_date=2019-07-24&projects=ARGO,ARGO-2"
 ```

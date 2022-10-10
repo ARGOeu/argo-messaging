@@ -84,6 +84,11 @@ type Timepoint struct {
 	Value     interface{} `json:"value"`
 }
 
+type UserUsageReport struct {
+	VAReport           VAReport   `json:"va_metrics"`
+	OperationalMetrics MetricList `json:"operational_metrics"`
+}
+
 // ExportJSON exports whole ProjectTopic structure
 func (m *Metric) ExportJSON() (string, error) {
 	output, err := json.MarshalIndent(m, "", "   ")

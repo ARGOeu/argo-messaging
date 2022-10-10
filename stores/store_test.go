@@ -452,6 +452,9 @@ func (suite *StoreTestSuite) TestMockStore() {
 	store.RemoveProjectSubs("argo_uuid")
 	resSub, _, _, _ := store.QuerySubs("argo_uuid", "", "", "", 0)
 	suite.Equal(0, len(resSub))
+	store.RemoveProjectDailyMessageCounters("argo_uuid")
+	resMc, _ := store.QueryDailyProjectMsgCount("argo_uuid")
+	suite.Equal(0, len(resMc))
 
 	// Test RemoveProject
 	store.RemoveProject("argo_uuid")
@@ -658,6 +661,13 @@ func (suite *StoreTestSuite) TestMockStore() {
 	store.UpdateRegistration("ur-uuid1", "accepted", "", "uuid1", "2020-05-17T22:26:58Z")
 	ur2, _ := store.QueryRegistrations("ur-uuid1", "accepted", "", "", "", "")
 	suite.Equal(expur2, ur2)
+
+	suite.Equal(2, len(store.UserRegistrations))
+	_ = store.DeleteRegistration("ruuid1")
+	suite.Equal(1, len(store.UserRegistrations))
+
+	dErr := store.DeleteRegistration("unknown")
+	suite.Equal("not found", dErr.Error())
 
 	sdate := time.Date(2008, 11, 19, 8, 0, 0, 0, time.UTC)
 	edate := time.Date(2020, 11, 21, 6, 0, 0, 0, time.UTC)

@@ -326,6 +326,11 @@ func (mong *MongoStore) RegisterUser(uuid, name, firstName, lastName, email, org
 	return mong.InsertResource("user_registrations", ur)
 }
 
+// DeleteRegistration removes the respective registration from the
+func (mong *MongoStore) DeleteRegistration(uuid string) error {
+	return mong.RemoveResource("user_registrations", bson.M{"uuid": uuid})
+}
+
 func (mong *MongoStore) QueryRegistrations(regUUID, status, activationToken, name, email, org string) ([]QUserRegistration, error) {
 
 	query := bson.M{}
@@ -1486,6 +1491,11 @@ func (mong *MongoStore) RemoveProjectTopics(projectUUID string) error {
 func (mong *MongoStore) RemoveProjectSubs(projectUUID string) error {
 	subMatch := bson.M{"project_uuid": projectUUID}
 	return mong.RemoveAll("subscriptions", subMatch)
+}
+
+// RemoveProjectDailyMessageCount removes all message counts related to a project UUID
+func (mong *MongoStore) RemoveProjectDailyMessageCounters(projectUUID string) error {
+	return mong.RemoveAll("daily_topic_msg_count", bson.M{"project_uuid": projectUUID})
 }
 
 // QueryTotalMessagesPerProject returns the total amount of messages per project for the given time window

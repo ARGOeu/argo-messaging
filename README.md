@@ -1,6 +1,7 @@
 # ARGO Messaging
+[![Build Status](https://jenkins.einfra.grnet.gr/buildStatus/icon?job=ARGO%2Fargo-messaging%2Fmaster&style=flat-square&color=darkturquoise&subject=build-master)](https://jenkins.einfra.grnet.gr/job/ARGO/job/argo-messaging/job/master/) 
+[![Build Status](https://jenkins.einfra.grnet.gr/buildStatus/icon?job=ARGO%2Fargo-messaging%2Fdevel&style=flat-square&subject=build-devel)](https://jenkins.einfra.grnet.gr/job/ARGO/job/argo-messaging/job/devel/)
 
-## Description
 The ARGO Messaging Service is a Publish/Subscribe Service,
 which implements the Google PubSub protocol. 
 Instead of focusing on a single Messaging API specification 

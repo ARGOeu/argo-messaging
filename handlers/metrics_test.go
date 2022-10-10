@@ -1,12 +1,14 @@
 package handlers
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
@@ -717,6 +719,104 @@ func (suite *MetricsHandlersTestSuite) TestTopicMetricsNotFound() {
 	suite.Equal(404, w.Code)
 	suite.Equal(expRes, w.Body.String())
 
+}
+
+func (suite *MetricsHandlersTestSuite) TestUserUsageProfile() {
+
+	req, err := http.NewRequest("GET", "http://localhost:8080/v1/users/usageReport"+
+		"?projects=ARGO&start_date=2007-10-01&end_date=2020-11-24&key=S3CR3T1T", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expResp := `{
+   "va_metrics": {
+      "projects_metrics": {
+         "projects": [
+            {
+               "project": "ARGO",
+               "message_count": 140,
+               "average_daily_messages": 0,
+               "topics_count": 4,
+               "subscriptions_count": 4,
+               "users_count": 7
+            }
+         ],
+         "total_message_count": 140,
+         "average_daily_messages": 0
+      },
+      "total_users_count": 7,
+      "total_topics_count": 4,
+      "total_subscriptions_count": 4
+   },
+   "operational_metrics": {
+      "metrics": [
+         {
+            "metric": "ams_node.cpu_usage",
+            "metric_type": "percentage",
+            "value_type": "float64",
+            "resource_type": "ams_node",
+            "resource_name": "{{HOST}}",
+            "timeseries": [
+               {
+                  "timestamp": "{{TS1}}",
+                  "value": {{VAL1}}
+               }
+            ],
+            "description": "Percentage value that displays the CPU usage of ams service in the specific node"
+         },
+         {
+            "metric": "ams_node.memory_usage",
+            "metric_type": "percentage",
+            "value_type": "float64",
+            "resource_type": "ams_node",
+            "resource_name": "{{HOST}}",
+            "timeseries": [
+               {
+                  "timestamp": "{{TS1}}",
+                  "value": {{VAL2}}
+               }
+            ],
+            "description": "Percentage value that displays the Memory usage of ams service in the specific node"
+         }
+      ]
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	str.UserList = append(str.UserList, stores.QUser{1, "uuid1", []stores.QProjectRoles{
+		{
+			ProjectUUID: "argo_uuid",
+			Roles:       []string{"project_admin"},
+		},
+	},
+		"UserA", "FirstA", "LastA", "OrgA",
+		"DescA", "S3CR3T1T", "foo-email", []string{},
+		time.Now(), time.Now(), ""})
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+	mgr := oldPush.Manager{}
+	router.HandleFunc("/v1/users/usageReport", WrapMockAuthConfig(UserUsageReport, cfgKafka, &brk, str, &mgr, nil))
+	router.ServeHTTP(w, req)
+
+	metricOut := metrics.UserUsageReport{}
+	json.Unmarshal([]byte(w.Body.String()), &metricOut)
+	ts1 := metricOut.OperationalMetrics.Metrics[0].Timeseries[0].Timestamp
+	val1 := metricOut.OperationalMetrics.Metrics[0].Timeseries[0].Value.(float64)
+	ts2 := metricOut.OperationalMetrics.Metrics[1].Timeseries[0].Timestamp
+	val2 := metricOut.OperationalMetrics.Metrics[1].Timeseries[0].Value.(float64)
+	host := metricOut.OperationalMetrics.Metrics[0].Resource
+	expResp = strings.Replace(expResp, "{{TS1}}", ts1, -1)
+	expResp = strings.Replace(expResp, "{{TS2}}", ts2, -1)
+	expResp = strings.Replace(expResp, "{{VAL1}}", strconv.FormatFloat(val1, 'g', 1, 64), -1)
+	expResp = strings.Replace(expResp, "{{VAL2}}", strconv.FormatFloat(val2, 'g', 1, 64), -1)
+	expResp = strings.Replace(expResp, "{{HOST}}", host, -1)
+
+	suite.Equal(200, w.Code)
+	suite.Equal(expResp, w.Body.String())
 }
 
 func TestMetricsHandlersTestSuite(t *testing.T) {

@@ -6,7 +6,7 @@ ARGO Messaging Service supports calls for registering users
 This request creates a new registration for a future user
 
 ### Request
-```json
+```
 POST "/v1/registrations
 ```
 
@@ -61,7 +61,7 @@ This request accepts a user's registration
 and as a result it creates a new user with the provided information.
 
 ### Request
-```json
+```
 POST "/v1/registrations/{uuid}:accept"
 ```
 
@@ -102,7 +102,7 @@ You can also provide a comment regarding
 the decline reason of the registration.
 
 ### Request
-```json
+```
 POST "/v1/registrations/{uuid}:decline"
 ```
 ### Post body:
@@ -135,7 +135,7 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 This request retrieves a user's registration 
 
 ### Request
-```json
+```
 GET "/v1/registrations/{uuid}"
 ```
 
@@ -174,7 +174,7 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 This request retrieves all registration in the service
 
 ### Request
-```json
+```
 GET "/v1/registrations"
 ```
 

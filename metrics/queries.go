@@ -225,3 +225,22 @@ func GenerateVAReport(projects []string, startDate time.Time, endDate time.Time,
 
 	return vaReport, nil
 }
+
+// GetUserUsageReport returns a VAReport populated with the needed metrics alongside service operational metrics
+func GetUserUsageReport(projects []string, startDate time.Time, endDate time.Time, str stores.Store) (UserUsageReport, error) {
+
+	vr, err := GetVAReport(projects, startDate, endDate, str)
+	if err != nil {
+		return UserUsageReport{}, err
+	}
+
+	om, err := GetUsageCpuMem(str)
+	if err != nil {
+		return UserUsageReport{}, err
+	}
+
+	return UserUsageReport{
+		VAReport:           vr,
+		OperationalMetrics: om,
+	}, nil
+}

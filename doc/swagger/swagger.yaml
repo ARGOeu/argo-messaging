@@ -190,6 +190,30 @@ paths:
           $ref: "#/responses/404"
         500:
           $ref: "#/responses/500"
+    delete:
+      summary: Delete a specific user registration
+      description: |
+        Deletes a user's registration
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - name: UUID
+          in: path
+          description: UUID of the registration
+          required: true
+          type: string
+      tags:
+        - Registrations
+      responses:
+        200:
+          description: User's registration
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
 
   /projects/{PROJECT}/schemas:
     get:
@@ -1223,6 +1247,32 @@ paths:
             $ref: '#/definitions/User'
         401:
           $ref: "#/responses/401"
+        500:
+          $ref: "#/responses/500"
+
+  /users/usageReport:
+    get:
+      summary: Show the projects and their metrics, alongside service operational metrics based on the provided key
+      description: |
+        Show a specific's user usage information regarding its projects
+      parameters:
+        - $ref: '#/parameters/ApiKey'
+        - $ref: '#/parameters/StartDate'
+        - $ref: '#/parameters/EndDate'
+        - $ref: '#/parameters/Projects'
+      tags:
+        - Users
+      responses:
+        200:
+          description: A User usage report object
+          schema:
+            $ref: '#/definitions/UserUsageReport'
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
         500:
           $ref: "#/responses/500"
 
@@ -2538,6 +2588,17 @@ definitions:
         type: string
       schema:
         type: object
+
+  UserUsageReport:
+    type: object
+    properties:
+      va_report:
+        type: object
+        $ref: '#/definitions/VAMetrics'
+      operational_metrics:
+        type: array
+        items:
+          $ref: '#/definitions/Metric'
 
   VAMetrics:
     type: object
