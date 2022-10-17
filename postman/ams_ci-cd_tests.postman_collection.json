@@ -11,10 +11,10 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "e2adddbb-8ca9-4d89-a283-900529189567",
+						"id": "24057c81-e529-4ccb-b031-630b9febe09c",
 						"type": "text/javascript",
 						"exec": [
-							"pm.test(\"Check that the projection creation was successfull\", function () {",
+							"pm.test(\"Check that the project creation was successfull\", function () {",
 							"    pm.response.to.have.status(200);",
 							"});"
 						]
@@ -27,6 +27,10 @@
 					{
 						"key": "Content-Type",
 						"value": "application/json"
+					},
+					{
+						"key": "x-api-key",
+						"value": "{{dev-api-key}}"
 					}
 				],
 				"body": {
@@ -34,7 +38,7 @@
 					"raw": "{\n\t\"description\": \"Ams project to be used during the CI/CD tests\"\n}"
 				},
 				"url": {
-					"raw": "https://{{dev-api}}/v1/projects/ams-cicd-test?key={{dev-api-key}}",
+					"raw": "https://{{dev-api}}/v1/projects/ams-cicd-test",
 					"protocol": "https",
 					"host": [
 						"{{dev-api}}"
@@ -43,12 +47,6 @@
 						"v1",
 						"projects",
 						"ams-cicd-test"
-					],
-					"query": [
-						{
-							"key": "key",
-							"value": "{{dev-api-key}}"
-						}
 					]
 				}
 			},
@@ -79,6 +77,10 @@
 					{
 						"key": "Content-Type",
 						"value": "application/json"
+					},
+					{
+						"key": "x-api-key",
+						"value": "{{dev-api-key}}"
 					}
 				],
 				"body": {
@@ -86,7 +88,7 @@
 					"raw": "{\n  \"email\": \"test@admin.example.com\",\n  \"projects\": [\n    {\n      \"project\": \"ams-cicd-test\",\n      \"roles\": [\"project_admin\"]\n    }\n  ]\n}"
 				},
 				"url": {
-					"raw": "https://{{dev-api}}/v1/users/ams_cicd_admin?key={{dev-api-key}}",
+					"raw": "https://{{dev-api}}/v1/users/ams_cicd_admin",
 					"protocol": "https",
 					"host": [
 						"{{dev-api}}"
@@ -95,12 +97,6 @@
 						"v1",
 						"users",
 						"ams_cicd_admin"
-					],
-					"query": [
-						{
-							"key": "key",
-							"value": "{{dev-api-key}}"
-						}
 					]
 				}
 			},
@@ -131,6 +127,10 @@
 					{
 						"key": "Content-Type",
 						"value": "application/json"
+					},
+					{
+						"key": "x-api-key",
+						"value": "{{proj-admin-key}}"
 					}
 				],
 				"body": {
@@ -138,7 +138,7 @@
 					"raw": "{\n\t\"projects\": [\n\t\t\t{\n\t\t\t\t\"project\": \"ams-cicd-test\",\n\t\t\t\t\"roles\": [\"publisher\", \"consumer\"]\n\t\t\t}\n\t\t],\n\t\"email\": \"email@test.com\"\n}"
 				},
 				"url": {
-					"raw": "https://{{dev-api}}/v1/projects/ams-cicd-test/members/ams_cicd_pubsub?key={{proj-admin-key}}",
+					"raw": "https://{{dev-api}}/v1/projects/ams-cicd-test/members/ams_cicd_pubsub",
 					"protocol": "https",
 					"host": [
 						"{{dev-api}}"
@@ -149,12 +149,6 @@
 						"ams-cicd-test",
 						"members",
 						"ams_cicd_pubsub"
-					],
-					"query": [
-						{
-							"key": "key",
-							"value": "{{proj-admin-key}}"
-						}
 					]
 				}
 			},
@@ -182,6 +176,10 @@
 					{
 						"key": "Content-Type",
 						"value": "application/json"
+					},
+					{
+						"key": "x-api-key",
+						"value": "{{proj-admin-key}}"
 					}
 				],
 				"body": {
@@ -189,7 +187,7 @@
 					"raw": ""
 				},
 				"url": {
-					"raw": "https://{{dev-api}}/v1/projects/ams-cicd-test/topics/cicd-topic?key={{proj-admin-key}}",
+					"raw": "https://{{dev-api}}/v1/projects/ams-cicd-test/topics/cicd-topic",
 					"protocol": "https",
 					"host": [
 						"{{dev-api}}"
@@ -200,12 +198,6 @@
 						"ams-cicd-test",
 						"topics",
 						"cicd-topic"
-					],
-					"query": [
-						{
-							"key": "key",
-							"value": "{{proj-admin-key}}"
-						}
 					]
 				}
 			},
@@ -234,6 +226,10 @@
 					{
 						"key": "Content-Type",
 						"value": "application/json"
+					},
+					{
+						"key": "x-api-key",
+						"value": "{{proj-admin-key}}"
 					}
 				],
 				"body": {
@@ -241,7 +237,7 @@
 					"raw": "{\n    \"authorized_users\": [\"ams_cicd_pubsub\"]\n}"
 				},
 				"url": {
-					"raw": "https://{{dev-api}}/v1/projects/ams-cicd-test/topics/cicd-topic:modifyAcl?key={{proj-admin-key}}",
+					"raw": "https://{{dev-api}}/v1/projects/ams-cicd-test/topics/cicd-topic:modifyAcl",
 					"protocol": "https",
 					"host": [
 						"{{dev-api}}"
@@ -252,12 +248,6 @@
 						"ams-cicd-test",
 						"topics",
 						"cicd-topic:modifyAcl"
-					],
-					"query": [
-						{
-							"key": "key",
-							"value": "{{proj-admin-key}}"
-						}
 					]
 				}
 			},
@@ -285,6 +275,10 @@
 					{
 						"key": "Content-Type",
 						"value": "application/json"
+					},
+					{
+						"key": "x-api-key",
+						"value": "{{proj-admin-key}}"
 					}
 				],
 				"body": {
@@ -292,7 +286,7 @@
 					"raw": "{\n\t\"topic\": \"projects/ams-cicd-test/topics/cicd-topic\",\n\t \"ackDeadlineSeconds\": 300 ,\n\t\n  \"pushConfig\": {}\n\t \n}"
 				},
 				"url": {
-					"raw": "https://{{dev-api}}/v1/projects/ams-cicd-test/subscriptions/cicd-sub?key={{proj-admin-key}}",
+					"raw": "https://{{dev-api}}/v1/projects/ams-cicd-test/subscriptions/cicd-sub",
 					"protocol": "https",
 					"host": [
 						"{{dev-api}}"
@@ -303,12 +297,6 @@
 						"ams-cicd-test",
 						"subscriptions",
 						"cicd-sub"
-					],
-					"query": [
-						{
-							"key": "key",
-							"value": "{{proj-admin-key}}"
-						}
 					]
 				}
 			},
@@ -336,6 +324,10 @@
 					{
 						"key": "Content-Type",
 						"value": "application/json"
+					},
+					{
+						"key": "x-api-key",
+						"value": "{{proj-admin-key}}"
 					}
 				],
 				"body": {
@@ -343,7 +335,7 @@
 					"raw": "{\n    \"authorized_users\": [\"ams_cicd_pubsub\"]\n}"
 				},
 				"url": {
-					"raw": "https://{{dev-api}}/v1/projects/ams-cicd-test/subscriptions/cicd-sub:modifyAcl?key={{proj-admin-key}}",
+					"raw": "https://{{dev-api}}/v1/projects/ams-cicd-test/subscriptions/cicd-sub:modifyAcl",
 					"protocol": "https",
 					"host": [
 						"{{dev-api}}"
@@ -354,12 +346,6 @@
 						"ams-cicd-test",
 						"subscriptions",
 						"cicd-sub:modifyAcl"
-					],
-					"query": [
-						{
-							"key": "key",
-							"value": "{{proj-admin-key}}"
-						}
 					]
 				}
 			},
@@ -392,6 +378,10 @@
 					{
 						"key": "Content-Type",
 						"value": "application/json"
+					},
+					{
+						"key": "x-api-key",
+						"value": "{{pubsub-key}}"
 					}
 				],
 				"body": {
@@ -399,7 +389,7 @@
 					"raw": "{\n\t\"messages\" : [\n\t\t\t\t\t{\n\t\t\t\t\t\"attributes\": {},\n\t\t\t\t\t\"data\": \"msg 1\"\n\t\t\t\t\t},\n\t\t\t\t\t{\n\t\t\t\t\t\"attributes\": {},\n\t\t\t\t\t\"data\": \"msg 2\"\n\t\t\t\t\t}\n\t\t\t]\n}"
 				},
 				"url": {
-					"raw": "https://{{dev-api}}/v1/projects/ams-cicd-test/topics/cicd-topic:publish?key={{pubsub-key}}",
+					"raw": "https://{{dev-api}}/v1/projects/ams-cicd-test/topics/cicd-topic:publish",
 					"protocol": "https",
 					"host": [
 						"{{dev-api}}"
@@ -410,12 +400,6 @@
 						"ams-cicd-test",
 						"topics",
 						"cicd-topic:publish"
-					],
-					"query": [
-						{
-							"key": "key",
-							"value": "{{pubsub-key}}"
-						}
 					]
 				}
 			},
@@ -450,6 +434,10 @@
 					{
 						"key": "Content-Type",
 						"value": "application/json"
+					},
+					{
+						"key": "x-api-key",
+						"value": "{{pubsub-key}}"
 					}
 				],
 				"body": {
@@ -457,7 +445,7 @@
 					"raw": "{\"maxMessages\": \"1\"}"
 				},
 				"url": {
-					"raw": "https://{{dev-api}}/v1/projects/ams-cicd-test/subscriptions/cicd-sub:pull?key={{pubsub-key}}",
+					"raw": "https://{{dev-api}}/v1/projects/ams-cicd-test/subscriptions/cicd-sub:pull",
 					"protocol": "https",
 					"host": [
 						"{{dev-api}}"
@@ -468,12 +456,6 @@
 						"ams-cicd-test",
 						"subscriptions",
 						"cicd-sub:pull"
-					],
-					"query": [
-						{
-							"key": "key",
-							"value": "{{pubsub-key}}"
-						}
 					]
 				}
 			},
@@ -501,6 +483,10 @@
 					{
 						"key": "Content-Type",
 						"value": "application/json"
+					},
+					{
+						"key": "x-api-key",
+						"value": "{{pubsub-key}}"
 					}
 				],
 				"body": {
@@ -508,7 +494,7 @@
 					"raw": "{\n  \"ackIds\": [\n   \"projects/ams-cicd-test/subscriptions/cicd-sub:0\"\n  ]\n}"
 				},
 				"url": {
-					"raw": "https://{{dev-api}}/v1/projects/ams-cicd-test/subscriptions/cicd-sub:acknowledge?key={{pubsub-key}}",
+					"raw": "https://{{dev-api}}/v1/projects/ams-cicd-test/subscriptions/cicd-sub:acknowledge",
 					"protocol": "https",
 					"host": [
 						"{{dev-api}}"
@@ -519,12 +505,6 @@
 						"ams-cicd-test",
 						"subscriptions",
 						"cicd-sub:acknowledge"
-					],
-					"query": [
-						{
-							"key": "key",
-							"value": "{{pubsub-key}}"
-						}
 					]
 				}
 			},
@@ -559,6 +539,10 @@
 					{
 						"key": "Content-Type",
 						"value": "application/json"
+					},
+					{
+						"key": "x-api-key",
+						"value": "{{pubsub-key}}"
 					}
 				],
 				"body": {
@@ -566,7 +550,7 @@
 					"raw": "{\"maxMessages\": \"1\"}"
 				},
 				"url": {
-					"raw": "https://{{dev-api}}/v1/projects/ams-cicd-test/subscriptions/cicd-sub:pull?key={{pubsub-key}}",
+					"raw": "https://{{dev-api}}/v1/projects/ams-cicd-test/subscriptions/cicd-sub:pull",
 					"protocol": "https",
 					"host": [
 						"{{dev-api}}"
@@ -577,12 +561,6 @@
 						"ams-cicd-test",
 						"subscriptions",
 						"cicd-sub:pull"
-					],
-					"query": [
-						{
-							"key": "key",
-							"value": "{{pubsub-key}}"
-						}
 					]
 				}
 			},
@@ -606,10 +584,15 @@
 			],
 			"request": {
 				"method": "DELETE",
-				"header": [],
+				"header": [
+					{
+						"key": "x-api-key",
+						"value": "{{dev-api-key}}"
+					}
+				],
 				"body": {},
 				"url": {
-					"raw": "https://{{dev-api}}/v1/users/ams_cicd_admin?key={{dev-api-key}}",
+					"raw": "https://{{dev-api}}/v1/users/ams_cicd_admin",
 					"protocol": "https",
 					"host": [
 						"{{dev-api}}"
@@ -618,12 +601,6 @@
 						"v1",
 						"users",
 						"ams_cicd_admin"
-					],
-					"query": [
-						{
-							"key": "key",
-							"value": "{{dev-api-key}}"
-						}
 					]
 				}
 			},
@@ -647,7 +624,12 @@
 			],
 			"request": {
 				"method": "DELETE",
-				"header": [],
+				"header": [
+					{
+						"key": "x-api-key",
+						"value": "{{dev-api-key}}"
+					}
+				],
 				"body": {},
 				"url": {
 					"raw": "https://{{dev-api}}/v1/users/ams_cicd_pubsub?key={{dev-api-key}}",
@@ -688,10 +670,15 @@
 			],
 			"request": {
 				"method": "DELETE",
-				"header": [],
+				"header": [
+					{
+						"key": "x-api-key",
+						"value": "{{dev-api-key}}"
+					}
+				],
 				"body": {},
 				"url": {
-					"raw": "https://{{dev-api}}/v1/projects/ams-cicd-test?key={{dev-api-key}}",
+					"raw": "https://{{dev-api}}/v1/projects/ams-cicd-test",
 					"protocol": "https",
 					"host": [
 						"{{dev-api}}"
@@ -700,12 +687,6 @@
 						"v1",
 						"projects",
 						"ams-cicd-test"
-					],
-					"query": [
-						{
-							"key": "key",
-							"value": "{{dev-api-key}}"
-						}
 					]
 				}
 			},
