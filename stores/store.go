@@ -10,8 +10,8 @@ type Store interface {
 	QuerySubsByTopic(projectUUID, topic string) ([]QSub, error)
 	QueryTopicsByACL(projectUUID, user string) ([]QTopic, error)
 	QuerySubsByACL(projectUUID, user string) ([]QSub, error)
-	QuerySubs(projectUUID string, userUUID string, name string, pageToken string, pageSize int32) ([]QSub, int32, string, error)
-	QueryTopics(projectUUID string, userUUID string, name string, pageToken string, pageSize int32) ([]QTopic, int32, string, error)
+	QuerySubs(projectUUID string, userUUID string, name string, pageToken string, pageSize int64) ([]QSub, int64, string, error)
+	QueryTopics(projectUUID string, userUUID string, name string, pageToken string, pageSize int64) ([]QTopic, int64, string, error)
 	QueryDailyTopicMsgCount(projectUUID string, name string, date time.Time) ([]QDailyTopicMsgCount, error)
 	UpdateTopicLatestPublish(projectUUID string, name string, date time.Time) error
 	UpdateTopicPublishRate(projectUUID string, name string, rate float64) error
@@ -19,7 +19,7 @@ type Store interface {
 	UpdateSubConsumeRate(projectUUID string, name string, rate float64) error
 	RemoveTopic(projectUUID string, name string) error
 	RemoveSub(projectUUID string, name string) error
-	PaginatedQueryUsers(pageToken string, pageSize int32, projectUUID string) ([]QUser, int32, string, error)
+	PaginatedQueryUsers(pageToken string, pageSize int64, projectUUID string) ([]QUser, int64, string, error)
 	QueryUsers(projectUUID string, uuid string, name string) ([]QUser, error)
 	UpdateUser(uuid, fname, lname, org, desc string, projects []QProjectRoles, name string, email string, serviceRoles []string, modifiedOn time.Time) error
 	AppendToUserProjects(userUUID string, projectUUID string, pRoles ...string) error

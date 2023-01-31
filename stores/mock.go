@@ -756,7 +756,7 @@ func (mk *MockStore) QueryUsers(projectUUID string, uuid string, name string) ([
 }
 
 // PaginatedQueryUsers provides query to the list of users using pagination parameters
-func (mk *MockStore) PaginatedQueryUsers(pageToken string, pageSize int32, projectUUID string) ([]QUser, int32, string, error) {
+func (mk *MockStore) PaginatedQueryUsers(pageToken string, pageSize int64, projectUUID string) ([]QUser, int64, string, error) {
 
 	var qUsers []QUser
 	var nextPageToken string
@@ -764,7 +764,7 @@ func (mk *MockStore) PaginatedQueryUsers(pageToken string, pageSize int32, proje
 	var pg int
 	var limit int
 
-	totalSize := int32(0)
+	totalSize := int64(0)
 
 	if pageSize == 0 {
 		limit = len(mk.UserList)
@@ -828,7 +828,7 @@ func (mk *MockStore) PaginatedQueryUsers(pageToken string, pageSize int32, proje
 	}
 
 	if projectUUID == "" {
-		totalSize = int32(len(qUsers))
+		totalSize = int64(len(qUsers))
 	} else {
 		for _, user := range mk.UserList {
 			for _, project := range user.Projects {
@@ -1322,10 +1322,10 @@ func (mk *MockStore) QueryPushSubs() []QSub {
 }
 
 // QuerySubs Query Subscription info from store
-func (mk *MockStore) QuerySubs(projectUUID, userUUID, name, pageToken string, pageSize int32) ([]QSub, int32, string, error) {
+func (mk *MockStore) QuerySubs(projectUUID, userUUID, name, pageToken string, pageSize int64) ([]QSub, int64, string, error) {
 
 	var qSubs []QSub
-	var totalSize int32
+	var totalSize int64
 	var nextPageToken string
 	var err error
 	var pg int
@@ -1400,7 +1400,7 @@ func (mk *MockStore) QuerySubs(projectUUID, userUUID, name, pageToken string, pa
 
 		}
 
-		totalSize = int32(counter)
+		totalSize = int64(counter)
 
 		if len(qSubs) > 0 && len(qSubs) == int(pageSize)+1 {
 			nextPageToken = strconv.Itoa(qSubs[int(pageSize)].ID.(int))
@@ -1473,10 +1473,10 @@ func (mk *MockStore) QueryTopicsByACL(projectUUID, user string) ([]QTopic, error
 }
 
 // QueryTopics Query Subscription info from store
-func (mk *MockStore) QueryTopics(projectUUID, userUUID, name, pageToken string, pageSize int32) ([]QTopic, int32, string, error) {
+func (mk *MockStore) QueryTopics(projectUUID, userUUID, name, pageToken string, pageSize int64) ([]QTopic, int64, string, error) {
 
 	var qTopics []QTopic
-	var totalSize int32
+	var totalSize int64
 	var nextPageToken string
 	var err error
 	var pg int
@@ -1556,7 +1556,7 @@ func (mk *MockStore) QueryTopics(projectUUID, userUUID, name, pageToken string, 
 
 		}
 
-		totalSize = int32(counter)
+		totalSize = int64(counter)
 
 		if len(qTopics) > 0 && len(qTopics) == int(pageSize)+1 {
 			nextPageToken = strconv.Itoa(qTopics[int(pageSize)].ID.(int))

@@ -55,7 +55,7 @@ type Users struct {
 type PaginatedUsers struct {
 	Users         []User `json:"users"`
 	NextPageToken string `json:"nextPageToken"`
-	TotalSize     int32  `json:"totalSize"`
+	TotalSize     int64  `json:"totalSize"`
 }
 
 // UserRegistration holds information about a new user registration
@@ -75,7 +75,7 @@ type UserRegistration struct {
 	ModifiedAt      string `json:"modified_at,omitempty"`
 }
 
-// UserRegistration holds a list with all the user registrations in the service
+// UserRegistrationsList holds a list with all the user registrations in the service
 type UserRegistrationsList struct {
 	UserRegistrations []UserRegistration `json:"user_registrations"`
 }
@@ -391,9 +391,9 @@ func FindUsers(projectUUID string, uuid string, name string, priviledged bool, s
 }
 
 // PaginatedFindUsers returns a page of users
-func PaginatedFindUsers(pageToken string, pageSize int32, projectUUID string, privileged, detailedView bool, store stores.Store) (PaginatedUsers, error) {
+func PaginatedFindUsers(pageToken string, pageSize int64, projectUUID string, privileged, detailedView bool, store stores.Store) (PaginatedUsers, error) {
 
-	var totalSize int32
+	var totalSize int64
 	var nextPageToken string
 	var err error
 	var users []stores.QUser

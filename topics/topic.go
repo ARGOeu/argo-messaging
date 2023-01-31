@@ -35,7 +35,7 @@ type TopicMetrics struct {
 type PaginatedTopics struct {
 	Topics        []Topic `json:"topics"`
 	NextPageToken string  `json:"nextPageToken"`
-	TotalSize     int32   `json:"totalSize"`
+	TotalSize     int64   `json:"totalSize"`
 }
 
 // Empty returns true if Topics has no items
@@ -81,11 +81,11 @@ func FindMetric(projectUUID string, name string, store stores.Store) (TopicMetri
 }
 
 // Find searches and returns a specific topic or all topics of a given project
-func Find(projectUUID, userUUID, name, pageToken string, pageSize int32, store stores.Store) (PaginatedTopics, error) {
+func Find(projectUUID, userUUID, name, pageToken string, pageSize int64, store stores.Store) (PaginatedTopics, error) {
 
 	var err error
 	var qTopics []stores.QTopic
-	var totalSize int32
+	var totalSize int64
 	var nextPageToken string
 	var pageTokenBytes []byte
 
