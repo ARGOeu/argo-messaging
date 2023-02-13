@@ -540,7 +540,7 @@ func TopicListAll(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if res, err = topics.Find(projectUUID, userUUID, "", pageToken, int32(pageSize), refStr); err != nil {
+	if res, err = topics.Find(projectUUID, userUUID, "", pageToken, int64(pageSize), refStr); err != nil {
 		err := APIErrorInvalidData("Invalid page token")
 		respondErr(w, err)
 		return

@@ -1286,7 +1286,8 @@ func SubListAll(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if res, err = subscriptions.Find(projectUUID, userUUID, "", pageToken, int32(pageSize), refStr); err != nil {
+	res, err = subscriptions.Find(projectUUID, userUUID, "", pageToken, int64(pageSize), refStr)
+	if err != nil {
 		err := APIErrorInvalidData("Invalid page token")
 		respondErr(w, err)
 		return

@@ -697,11 +697,11 @@ func (mong *MongoStore) QueryUsers(projectUUID string, uuid string, name string)
 }
 
 // PaginatedQueryUsers returns a page of users
-func (mong *MongoStore) PaginatedQueryUsers(pageToken string, pageSize int32, projectUUID string) ([]QUser, int32, string, error) {
+func (mong *MongoStore) PaginatedQueryUsers(pageToken string, pageSize int64, projectUUID string) ([]QUser, int64, string, error) {
 
 	var qUsers []QUser
-	var totalSize int32
-	var limit int32
+	var totalSize int64
+	var limit int64
 	var size int
 	var nextPageToken string
 	var err error
@@ -740,7 +740,7 @@ func (mong *MongoStore) PaginatedQueryUsers(pageToken string, pageSize int32, pr
 			},
 		).Fatal(err.Error())
 	}
-	totalSize = int32(size)
+	totalSize = int64(size)
 
 	// now take into account if pagination is enabled and change the query accordingly
 	// first check if an pageToken is provided and whether or not is a valid bson ID
@@ -887,11 +887,11 @@ func (mong *MongoStore) QueryTopicsByACL(projectUUID, user string) ([]QTopic, er
 }
 
 // QueryTopics Query Subscription info from store
-func (mong *MongoStore) QueryTopics(projectUUID, userUUID, name, pageToken string, pageSize int32) ([]QTopic, int32, string, error) {
+func (mong *MongoStore) QueryTopics(projectUUID, userUUID, name, pageToken string, pageSize int64) ([]QTopic, int64, string, error) {
 
 	var err error
-	var totalSize int32
-	var limit int32
+	var totalSize int64
+	var limit int64
 	var nextPageToken string
 	var qTopics []QTopic
 	var ok bool
@@ -966,7 +966,7 @@ func (mong *MongoStore) QueryTopics(projectUUID, userUUID, name, pageToken strin
 			).Fatal(err.Error())
 		}
 
-		totalSize = int32(size)
+		totalSize = int64(size)
 
 		// if the amount of topics that were found was equal to the limit, its a sign that there are topics to populate the next page
 		// so pick the last element's pageToken to use as the starting point for the next page
@@ -1822,11 +1822,11 @@ func (mong *MongoStore) RemoveResource(col string, res interface{}) error {
 }
 
 // QuerySubs Query Subscription info from store
-func (mong *MongoStore) QuerySubs(projectUUID, userUUID, name, pageToken string, pageSize int32) ([]QSub, int32, string, error) {
+func (mong *MongoStore) QuerySubs(projectUUID, userUUID, name, pageToken string, pageSize int64) ([]QSub, int64, string, error) {
 
 	var err error
-	var totalSize int32
-	var limit int32
+	var totalSize int64
+	var limit int64
 	var nextPageToken string
 	var qSubs []QSub
 	var ok bool
@@ -1901,7 +1901,7 @@ func (mong *MongoStore) QuerySubs(projectUUID, userUUID, name, pageToken string,
 			).Fatal(err.Error())
 		}
 
-		totalSize = int32(size)
+		totalSize = int64(size)
 
 		// if the amount of subscriptions that were found was equal to the limit, its a sign that there are subscriptions to populate the next page
 		// so pick the last element's pageToken to use as the starting point for the next page

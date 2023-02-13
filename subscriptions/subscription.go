@@ -101,7 +101,7 @@ type AuthorizationHeader struct {
 type PaginatedSubscriptions struct {
 	Subscriptions []Subscription `json:"subscriptions"`
 	NextPageToken string         `json:"nextPageToken"`
-	TotalSize     int32          `json:"totalSize"`
+	TotalSize     int64          `json:"totalSize"`
 }
 
 // SubPullOptions holds info about a pull operation on a subscription
@@ -348,11 +348,11 @@ func VerifyPushEndpoint(sub Subscription, c *http.Client, store stores.Store) er
 }
 
 // Find searches the store for all subscriptions of a given project or a specific one
-func Find(projectUUID, userUUID, name, pageToken string, pageSize int32, store stores.Store) (PaginatedSubscriptions, error) {
+func Find(projectUUID, userUUID, name, pageToken string, pageSize int64, store stores.Store) (PaginatedSubscriptions, error) {
 
 	var err error
 	var qSubs []stores.QSub
-	var totalSize int32
+	var totalSize int64
 	var nextPageToken string
 	var pageTokenBytes []byte
 

@@ -34,7 +34,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 	// retrieve all topics
 	tpList, ts1, pg1, _ := store.QueryTopics("argo_uuid", "", "", "", 0)
 	suite.Equal(eTopList, tpList)
-	suite.Equal(int32(4), ts1)
+	suite.Equal(int64(4), ts1)
 	suite.Equal("", pg1)
 
 	// retrieve first 2
@@ -44,7 +44,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 	}
 	tpList2, ts2, pg2, _ := store.QueryTopics("argo_uuid", "", "", "", 2)
 	suite.Equal(eTopList1st2, tpList2)
-	suite.Equal(int32(4), ts2)
+	suite.Equal(int64(4), ts2)
 	suite.Equal("1", pg2)
 
 	// retrieve the last one
@@ -53,7 +53,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 	}
 	tpList3, ts3, pg3, _ := store.QueryTopics("argo_uuid", "", "", "0", 1)
 	suite.Equal(eTopList3, tpList3)
-	suite.Equal(int32(4), ts3)
+	suite.Equal(int64(4), ts3)
 	suite.Equal("", pg3)
 
 	// retrieve a single topic
@@ -62,7 +62,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 	}
 	tpList4, ts4, pg4, _ := store.QueryTopics("argo_uuid", "", "topic1", "", 0)
 	suite.Equal(eTopList4, tpList4)
-	suite.Equal(int32(0), ts4)
+	suite.Equal(int64(0), ts4)
 	suite.Equal("", pg4)
 
 	// retrieve a single topic
@@ -81,7 +81,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 	}
 	tpList5, ts5, pg5, _ := store.QueryTopics("argo_uuid", "uuid1", "", "", 0)
 	suite.Equal(eTopList5, tpList5)
-	suite.Equal(int32(2), ts5)
+	suite.Equal(int64(2), ts5)
 	suite.Equal("", pg5)
 
 	// retrieve use's topic with pagination
@@ -91,13 +91,13 @@ func (suite *StoreTestSuite) TestMockStore() {
 
 	tpList6, ts6, pg6, _ := store.QueryTopics("argo_uuid", "uuid1", "", "", 1)
 	suite.Equal(eTopList6, tpList6)
-	suite.Equal(int32(2), ts6)
+	suite.Equal(int64(2), ts6)
 	suite.Equal("0", pg6)
 
 	// retrieve all subs
 	subList, ts1, pg1, err1 := store.QuerySubs("argo_uuid", "", "", "", 0)
 	suite.Equal(eSubList, subList)
-	suite.Equal(int32(4), ts1)
+	suite.Equal(int64(4), ts1)
 	suite.Equal("", pg3)
 
 	// retrieve first 2 subs
@@ -107,7 +107,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 
 	subList2, ts2, pg2, err2 := store.QuerySubs("argo_uuid", "", "", "", 2)
 	suite.Equal(eSubListFirstPage, subList2)
-	suite.Equal(int32(4), ts2)
+	suite.Equal(int64(4), ts2)
 	suite.Equal("1", pg2)
 
 	// retrieve next 2 subs
@@ -118,7 +118,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 
 	subList3, ts3, pg3, err3 := store.QuerySubs("argo_uuid", "", "", "1", 2)
 	suite.Equal(eSubListNextPage, subList3)
-	suite.Equal(int32(4), ts3)
+	suite.Equal(int64(4), ts3)
 	suite.Equal("", pg3)
 
 	// retrieve user's subs
@@ -130,7 +130,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 
 	subList4, ts4, pg4, err4 := store.QuerySubs("argo_uuid", "uuid1", "", "", 0)
 
-	suite.Equal(int32(3), ts4)
+	suite.Equal(int64(3), ts4)
 	suite.Equal("", pg4)
 	suite.Equal(eSubList4, subList4)
 
@@ -141,7 +141,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 	}
 	subList5, ts5, pg5, err5 := store.QuerySubs("argo_uuid", "uuid1", "", "", 2)
 
-	suite.Equal(int32(3), ts5)
+	suite.Equal(int64(3), ts5)
 	suite.Equal("1", pg5)
 	suite.Equal(eSubList5, subList5)
 
@@ -531,21 +531,21 @@ func (suite *StoreTestSuite) TestMockStore() {
 
 	suite.Equal(store2.UserList, qUsers1)
 	suite.Equal("", pg1)
-	suite.Equal(int32(9), ts1)
+	suite.Equal(int64(9), ts1)
 
 	suite.Equal(8, qUsers2[0].ID)
 	suite.Equal(7, qUsers2[1].ID)
 	suite.Equal("6", pg2)
-	suite.Equal(int32(2), ts2)
+	suite.Equal(int64(2), ts2)
 
 	suite.Equal(0, len(qUsers3))
 	suite.Equal("", pg3)
-	suite.Equal(int32(0), ts3)
+	suite.Equal(int64(0), ts3)
 
 	suite.Equal(4, qUsers4[0].ID)
 	suite.Equal(3, qUsers4[1].ID)
 	suite.Equal("2", pg4)
-	suite.Equal(int32(2), ts4)
+	suite.Equal(int64(2), ts4)
 
 	// test update topic latest publish time
 	e1ulp := store2.UpdateTopicLatestPublish("argo_uuid", "topic1", time.Date(2019, 8, 8, 0, 0, 0, 0, time.UTC))

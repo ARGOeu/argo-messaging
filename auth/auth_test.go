@@ -597,26 +597,26 @@ func (suite *AuthTestSuite) TestAuth() {
 
 	puC, e1 := PaginatedFindUsers("", 1, "argo_uuid2", false, true, store2)
 	suite.Equal(qUsersC, puC.Users)
-	suite.Equal(int32(1), puC.TotalSize)
+	suite.Equal(int64(1), puC.TotalSize)
 	suite.Equal("", puC.NextPageToken)
 
 	suite.Equal(qUsers1, pu1.Users)
-	suite.Equal(int32(9), pu1.TotalSize)
+	suite.Equal(int64(9), pu1.TotalSize)
 	suite.Equal("", pu1.NextPageToken)
 	suite.Nil(e1)
 
 	suite.Equal(qUsers2, pu2.Users)
-	suite.Equal(int32(3), pu2.TotalSize)
+	suite.Equal(int64(3), pu2.TotalSize)
 	suite.Equal("NQ==", pu2.NextPageToken)
 	suite.Nil(e2)
 
 	suite.Equal(qUsers3, pu3.Users)
-	suite.Equal(int32(2), pu3.TotalSize)
+	suite.Equal(int64(2), pu3.TotalSize)
 	suite.Equal("Mg==", pu3.NextPageToken)
 	suite.Nil(e3)
 
 	suite.Equal(0, len(pu4.Users))
-	suite.Equal(int32(0), pu4.TotalSize)
+	suite.Equal(int64(0), pu4.TotalSize)
 	suite.Equal("", pu4.NextPageToken)
 	suite.Nil(e4)
 
