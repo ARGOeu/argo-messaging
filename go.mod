@@ -8,7 +8,7 @@ require (
 	github.com/Shopify/sarama v1.22.1
 	github.com/golang/protobuf v1.4.2
 	github.com/gorilla/context v0.0.0-20150820051245-1c83b3eabd45
-	github.com/gorilla/handlers v0.0.0-20160816184729-a5775781a543
+	github.com/gorilla/handlers v1.3.0
 	github.com/gorilla/mux v0.0.0-20150908165839-49c024275504
 	github.com/linkedin/goavro v2.1.0+incompatible
 	github.com/onsi/ginkgo v1.13.0 // indirect
