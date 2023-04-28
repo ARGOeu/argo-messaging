@@ -108,6 +108,8 @@ perform common tasks OR help you get started with interacting with AMS.
 There is also a handy python [library]((https://github.com/ARGOeu/argo-ams-library))
 for interacting with AMS.
 
+## SQAaaS badge 
+[![SQAaaS badge](https://github.com/EOSC-synergy/SQAaaS/raw/master/badges/badges_150x116/badge_software_silver.png)](https://api.eu.badgr.io/public/assertions/NKZknEBuToC8zwXEeWph1Q "SQAaaS silver badge achieved")
 
 ## Credits
 
