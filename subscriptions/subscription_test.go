@@ -251,25 +251,25 @@ func (suite *SubTestSuite) TestGetSubsByProject() {
 
 	suite.Equal(expSubs1, result1.Subscriptions)
 	suite.Equal("", result1.NextPageToken)
-	suite.Equal(int32(4), result1.TotalSize)
+	suite.Equal(int64(4), result1.TotalSize)
 
 	suite.Equal(expSubs2, result2.Subscriptions)
 	suite.Equal("MQ==", result2.NextPageToken)
-	suite.Equal(int32(4), result2.TotalSize)
+	suite.Equal(int64(4), result2.TotalSize)
 
 	suite.Equal(expSubs3, result3.Subscriptions)
 	suite.Equal("", result3.NextPageToken)
-	suite.Equal(int32(4), result3.TotalSize)
+	suite.Equal(int64(4), result3.TotalSize)
 
 	suite.Equal("illegal base64 data at input byte 4", err.Error())
 
 	suite.Equal(expSubs4, result4.Subscriptions)
 	suite.Equal("", result4.NextPageToken)
-	suite.Equal(int32(3), result4.TotalSize)
+	suite.Equal(int64(3), result4.TotalSize)
 
 	suite.Equal(expSubs5, result5.Subscriptions)
 	suite.Equal("MQ==", result5.NextPageToken)
-	suite.Equal(int32(3), result5.TotalSize)
+	suite.Equal(int64(3), result5.TotalSize)
 }
 
 func (suite *SubTestSuite) TestLoadFromCfg() {

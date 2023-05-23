@@ -1,0 +1,30 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: Argo Messaging Service 
+message: The ARGO Messaging Service is a Publish/Subscribe Service, which implements the Google PubSub protocol. It provides an HTTP API that enables Users/Systems to implement message oriented service using the Publish/Subscribe Model over plain HTTP.
+type: software
+authors:
+  - given-names: Kostas
+    family-names: Kagkelidis
+    email: kaggis@admin.grnet.gr
+    affiliation: GRNET S.A.
+  - given-names: Themis
+    family-names: Zamani
+    email: themis@admin.grnet.gr
+    affiliation: GRNET S.A.
+  - given-names: Agelos
+    family-names: Tsalapatis
+    email: agelostsal@admin.grnet.gr
+    affiliation: GRNET S.A.
+  - given-names: Kostas
+    family-names: Koumantaros
+    email: kkoum@admin.grnet.gr
+    affiliation: GRNET S.A.
+  - given-names: Anastasios 
+    family-names: Lisgaras
+  - given-names: Kostas 
+    family-names: Evangelou
+
+  

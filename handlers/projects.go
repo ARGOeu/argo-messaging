@@ -849,11 +849,14 @@ func ProjectListUsers(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// check that user is indeed a service admin in order to be priviledged to see full user info
-	priviledged := auth.IsServiceAdmin(refRoles)
+	// check that user is indeed a service admin in order to be privileged to see full user info
+	privileged := auth.IsServiceAdmin(refRoles)
 
-	// Get Results Object - call is always priviledged because this handler is only accessible by service admins
-	if paginatedUsers, err = auth.PaginatedFindUsers(pageToken, int32(pageSize), projectUUID, priviledged, usersDetailedView, refStr); err != nil {
+	// Get Results Object - call is always privileged because this handler is only accessible by service admins
+	paginatedUsers, err =
+		auth.PaginatedFindUsers(pageToken, int64(pageSize), projectUUID, privileged, usersDetailedView, refStr)
+
+	if err != nil {
 		err := APIErrorInvalidData("Invalid page token")
 		respondErr(w, err)
 		return

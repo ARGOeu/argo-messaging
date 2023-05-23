@@ -20,7 +20,7 @@ specific topics and receive messages.
 
 #### Build Requirements
 
- - Golang 1.15
+ - Golang 1.19
 
 #### Datastore Requirements
   - The service has been tested with mongodb from version `3.2.22` up to `4.2.3`.
@@ -108,6 +108,8 @@ perform common tasks OR help you get started with interacting with AMS.
 There is also a handy python [library]((https://github.com/ARGOeu/argo-ams-library))
 for interacting with AMS.
 
+## SQAaaS badge 
+[![SQAaaS badge](https://github.com/EOSC-synergy/SQAaaS/raw/master/badges/badges_150x116/badge_software_silver.png)](https://api.eu.badgr.io/public/assertions/NKZknEBuToC8zwXEeWph1Q "SQAaaS silver badge achieved")
 
 ## Credits
 
@@ -116,3 +118,5 @@ The ARGO Messaging Service is developed by [GRNET](http://www.grnet.gr)
 The work represented by this software was partially funded by 
  - EGI-ENGAGE project through the European Union (EU) Horizon 2020 program under Grant number 654142.
  - EOSC-Hub project through the European Union (EU) Horizon 2020 program under Grant number 77753642.
+ - EOSC-Future project through the European Union (EU) Horizon 2020 program under Grant number 101017536.
+ - DICE project through the European Union (EU) Horizon 2020 program under Grant number 101017207.
