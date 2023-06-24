@@ -1,0 +1,21 @@
+{
+  "@context": "https://doi.org/10.5063/SCHEMA/CODEMETA-2.0",
+  "@type": "SoftwareSourceCode",
+  "name": "Argo Messaging Service",
+  "description": "The ARGO Messaging Service is a Publish/Subscribe Service, which implements the Google PubSub protocol. Instead of focusing on a single Messaging API specification for handling the logic of publishing/subscribing to the broker network the API focuses on creating nodes of Publishers and Subscribers as a Service. It provides an HTTP API that enables Users/Systems to implement message oriented services using the Publish/Subscribe Model over plain HTTP. In the Publish/Subscribe paradigm, Publishers are users/systems that can send messages to named-channels called Topics. Subscribers are users/systems that create Subscriptions to specific topics and receive messages.",
+  "programmingLanguage": ["Golang", "Python"],
+  "license": "Apache",
+  "version": "1.5.0",
+  "url": "https://github.com/ARGOeu/argo-messaging",
+  "author": {
+    "@type": "Organization",
+    "name": "GRNET",
+    "url": "https://grnet.gr/"
+  },
+  "keywords": ["messaging", "pub/sub", "golang"],
+  "repositoryCode": {
+    "@type": "GitRepository",
+    "codeRepository": "https://github.com/ARGOeu/argo-messaging.git"
+  }
+}
+
