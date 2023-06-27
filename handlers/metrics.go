@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/ARGOeu/argo-messaging/config"
@@ -19,6 +20,8 @@ import (
 
 // OpMetrics (GET) all operational metrics
 func OpMetrics(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	// Init output
 	output := []byte("")
@@ -32,11 +35,11 @@ func OpMetrics(w http.ResponseWriter, r *http.Request) {
 	refStr := gorillaContext.Get(r, "str").(stores.Store)
 
 	// Get Results Object
-	res, err := metrics.GetUsageCpuMem(refStr)
+	res, err := metrics.GetUsageCpuMem(rCTX, refStr)
 
 	if err != nil && err.Error() != "not found" {
 		err := APIErrQueryDatastore()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -45,7 +48,7 @@ func OpMetrics(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		err := APIErrExportJSON()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -56,6 +59,8 @@ func OpMetrics(w http.ResponseWriter, r *http.Request) {
 
 // VaMetrics (GET) retrieves metrics regrading projects, users, subscriptions, topics
 func VaMetrics(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -74,7 +79,7 @@ func VaMetrics(w http.ResponseWriter, r *http.Request) {
 		startDate, err = time.Parse("2006-01-02", r.URL.Query().Get("start_date"))
 		if err != nil {
 			err := APIErrorInvalidData("Start date is not in valid format")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 	} else {
@@ -86,7 +91,7 @@ func VaMetrics(w http.ResponseWriter, r *http.Request) {
 		endDate, err = time.Parse("2006-01-02", r.URL.Query().Get("end_date"))
 		if err != nil {
 			err := APIErrorInvalidData("End date is not in valid format")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 	} else {
@@ -95,7 +100,7 @@ func VaMetrics(w http.ResponseWriter, r *http.Request) {
 
 	if startDate.After(endDate) {
 		err := APIErrorInvalidData("Start date cannot be after the end date")
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -105,17 +110,17 @@ func VaMetrics(w http.ResponseWriter, r *http.Request) {
 		projectsList = strings.Split(projectsUrlValue, ",")
 	}
 
-	vr, err := metrics.GetVAReport(projectsList, startDate, endDate, refStr)
+	vr, err := metrics.GetVAReport(rCTX, projectsList, startDate, endDate, refStr)
 	if err != nil {
 		err := APIErrorNotFound(err.Error())
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
 	output, err := json.MarshalIndent(vr, "", " ")
 	if err != nil {
 		err := APIErrExportJSON()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -127,6 +132,8 @@ func VaMetrics(w http.ResponseWriter, r *http.Request) {
 // alongside service operational metrics
 // This handler is supposed to be used for project admins in order to get usage information for their projects
 func UserUsageReport(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -143,20 +150,20 @@ func UserUsageReport(w http.ResponseWriter, r *http.Request) {
 
 	if token == "" {
 		err := APIErrorUnauthorized()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
-	user, err := auth.GetUserByToken(token, refStr)
+	user, err := auth.GetUserByToken(rCTX, token, refStr)
 
 	if err != nil {
 		if err.Error() == "not found" {
 			err := APIErrorUnauthorized()
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 		err := APIErrQueryDatastore()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -168,7 +175,7 @@ func UserUsageReport(w http.ResponseWriter, r *http.Request) {
 		startDate, err = time.Parse("2006-01-02", r.URL.Query().Get("start_date"))
 		if err != nil {
 			err := APIErrorInvalidData("Start date is not in valid format")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 	} else {
@@ -180,7 +187,7 @@ func UserUsageReport(w http.ResponseWriter, r *http.Request) {
 		endDate, err = time.Parse("2006-01-02", r.URL.Query().Get("end_date"))
 		if err != nil {
 			err := APIErrorInvalidData("End date is not in valid format")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 	} else {
@@ -189,7 +196,7 @@ func UserUsageReport(w http.ResponseWriter, r *http.Request) {
 
 	if startDate.After(endDate) {
 		err := APIErrorInvalidData("Start date cannot be after the end date")
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -242,10 +249,10 @@ func UserUsageReport(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 	if len(queryProjects) > 0 {
-		vr, err = metrics.GetUserUsageReport(queryProjects, startDate, endDate, refStr)
+		vr, err = metrics.GetUserUsageReport(rCTX, queryProjects, startDate, endDate, refStr)
 		if err != nil {
 			err := APIErrorNotFound(err.Error())
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 	}
@@ -253,7 +260,7 @@ func UserUsageReport(w http.ResponseWriter, r *http.Request) {
 	output, err := json.MarshalIndent(vr, "", "   ")
 	if err != nil {
 		err := APIErrExportJSON()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -263,6 +270,8 @@ func UserUsageReport(w http.ResponseWriter, r *http.Request) {
 
 // ProjectMetrics (GET) metrics for one project (number of topics)
 func ProjectMetrics(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	// Init output
 	output := []byte("")
@@ -292,17 +301,17 @@ func ProjectMetrics(w http.ResponseWriter, r *http.Request) {
 	numTopics := int64(0)
 	numSubs := int64(0)
 
-	numTopics2, err2 := metrics.GetProjectTopics(projectUUID, refStr)
+	numTopics2, err2 := metrics.GetProjectTopics(rCTX, projectUUID, refStr)
 	if err2 != nil {
 		err := APIErrExportJSON()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 	numTopics = numTopics2
-	numSubs2, err2 := metrics.GetProjectSubs(projectUUID, refStr)
+	numSubs2, err2 := metrics.GetProjectSubs(rCTX, projectUUID, refStr)
 	if err2 != nil {
 		err := APIErrExportJSON()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 	numSubs = numSubs2
@@ -310,9 +319,9 @@ func ProjectMetrics(w http.ResponseWriter, r *http.Request) {
 	var timePoints []metrics.Timepoint
 	var err error
 
-	if timePoints, err = metrics.GetDailyProjectMsgCount(projectUUID, refStr); err != nil {
+	if timePoints, err = metrics.GetDailyProjectMsgCount(rCTX, projectUUID, refStr); err != nil {
 		err := APIErrGenericBackend()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -322,10 +331,10 @@ func ProjectMetrics(w http.ResponseWriter, r *http.Request) {
 	res.Metrics = append(res.Metrics, m2)
 
 	// ProjectUUID User topics aggregation
-	m3, err := metrics.AggrProjectUserTopics(projectUUID, refStr)
+	m3, err := metrics.AggrProjectUserTopics(rCTX, projectUUID, refStr)
 	if err != nil {
 		err := APIErrExportJSON()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -334,10 +343,10 @@ func ProjectMetrics(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// ProjectUUID User subscriptions aggregation
-	m4, err := metrics.AggrProjectUserSubs(projectUUID, refStr)
+	m4, err := metrics.AggrProjectUserSubs(rCTX, projectUUID, refStr)
 	if err != nil {
 		err := APIErrExportJSON()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -352,7 +361,7 @@ func ProjectMetrics(w http.ResponseWriter, r *http.Request) {
 	resJSON, err := res.ExportJSON()
 	if err != nil {
 		err := APIErrExportJSON()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -363,6 +372,8 @@ func ProjectMetrics(w http.ResponseWriter, r *http.Request) {
 
 // TopicMetrics (GET) metrics for one topic
 func TopicMetrics(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	// Init output
 	output := []byte("")
@@ -391,24 +402,24 @@ func TopicMetrics(w http.ResponseWriter, r *http.Request) {
 
 	if refAuthResource && auth.IsPublisher(refRoles) {
 
-		if auth.PerResource(projectUUID, "topics", urlTopic, refUserUUID, refStr) == false {
+		if auth.PerResource(rCTX, projectUUID, "topics", urlTopic, refUserUUID, refStr) == false {
 			err := APIErrorForbidden()
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 	}
 
 	// Number of bytes and number of messages
-	resultsMsg, err := topics.FindMetric(projectUUID, urlTopic, refStr)
+	resultsMsg, err := topics.FindMetric(rCTX, projectUUID, urlTopic, refStr)
 
 	if err != nil {
 		if err.Error() == "not found" {
 			err := APIErrorNotFound("Topic")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 		err := APIErrGenericInternal(err.Error())
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -416,22 +427,22 @@ func TopicMetrics(w http.ResponseWriter, r *http.Request) {
 	numBytes := resultsMsg.TotalBytes
 
 	numSubs := int64(0)
-	numSubs, err = metrics.GetProjectSubsByTopic(projectUUID, urlTopic, refStr)
+	numSubs, err = metrics.GetProjectSubsByTopic(rCTX, projectUUID, urlTopic, refStr)
 	if err != nil {
 		if err.Error() == "not found" {
 			err := APIErrorNotFound("Topic")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 		err := APIErrGenericBackend()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
 	var timePoints []metrics.Timepoint
-	if timePoints, err = metrics.GetDailyTopicMsgCount(projectUUID, urlTopic, refStr); err != nil {
+	if timePoints, err = metrics.GetDailyTopicMsgCount(rCTX, projectUUID, urlTopic, refStr); err != nil {
 		err := APIErrGenericBackend()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -449,7 +460,7 @@ func TopicMetrics(w http.ResponseWriter, r *http.Request) {
 	resJSON, err := res.ExportJSON()
 	if err != nil {
 		err := APIErrExportJSON()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -460,6 +471,8 @@ func TopicMetrics(w http.ResponseWriter, r *http.Request) {
 
 // SubMetrics (GET) metrics for one subscription
 func SubMetrics(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	// Init output
 	output := []byte("")
@@ -488,23 +501,23 @@ func SubMetrics(w http.ResponseWriter, r *http.Request) {
 
 	if refAuthResource && auth.IsConsumer(refRoles) {
 
-		if auth.PerResource(projectUUID, "subscriptions", urlSub, refUserUUID, refStr) == false {
+		if auth.PerResource(rCTX, projectUUID, "subscriptions", urlSub, refUserUUID, refStr) == false {
 			err := APIErrorForbidden()
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 	}
 
-	resultMsg, err := subscriptions.FindMetric(projectUUID, urlSub, refStr)
+	resultMsg, err := subscriptions.FindMetric(rCTX, projectUUID, urlSub, refStr)
 
 	if err != nil {
 		if err.Error() == "not found" {
 			err := APIErrorNotFound("Subscription")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 		err := APIErrGenericBackend()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 	}
 
 	numMsg := resultMsg.MsgNum
@@ -521,7 +534,7 @@ func SubMetrics(w http.ResponseWriter, r *http.Request) {
 	resJSON, err := res.ExportJSON()
 	if err != nil {
 		err := APIErrExportJSON()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 

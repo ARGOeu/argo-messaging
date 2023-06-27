@@ -1,6 +1,7 @@
 package schemas
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -167,13 +168,13 @@ func FormatSchemaRef(projectName, schemaName string) string {
 }
 
 // Find retrieves a specific schema or all the schemas under a project
-func Find(projectUUID, schemaUUID, schemaName string, str stores.Store) (SchemaList, error) {
+func Find(ctx context.Context, projectUUID, schemaUUID, schemaName string, str stores.Store) (SchemaList, error) {
 
 	schemaList := SchemaList{
 		Schemas: []Schema{},
 	}
 
-	qSchemas, err := str.QuerySchemas(projectUUID, schemaUUID, schemaName)
+	qSchemas, err := str.QuerySchemas(ctx, projectUUID, schemaUUID, schemaName)
 	if err != nil {
 		return schemaList, err
 	}
@@ -211,7 +212,7 @@ func Find(projectUUID, schemaUUID, schemaName string, str stores.Store) (SchemaL
 			return SchemaList{}, errors.New("Could not load the schema")
 		}
 
-		projectName := projects.GetNameByUUID(projectUUID, str)
+		projectName := projects.GetNameByUUID(ctx, projectUUID, str)
 
 		_schema.FullName = FormatSchemaRef(projectName, s.Name)
 
@@ -222,19 +223,19 @@ func Find(projectUUID, schemaUUID, schemaName string, str stores.Store) (SchemaL
 }
 
 // Delete wraps the store's method for removing a schema
-func Delete(schemaUUID string, str stores.Store) error {
-	return str.DeleteSchema(schemaUUID)
+func Delete(ctx context.Context, schemaUUID string, str stores.Store) error {
+	return str.DeleteSchema(ctx, schemaUUID)
 }
 
 // Update updates the provided schema , validates its content and saves it to the store
-func Update(existingSchema Schema, newSchemaName, newSchemaType string, newRawSchema map[string]interface{}, str stores.Store) (Schema, error) {
+func Update(ctx context.Context, existingSchema Schema, newSchemaName, newSchemaType string, newRawSchema map[string]interface{}, str stores.Store) (Schema, error) {
 
 	newSchema := Schema{}
 
 	if newSchemaName != "" {
 		// if the name has changed check that is not already taken by another schema under the given project
 		if existingSchema.Name != newSchemaName {
-			exists, err := ExistsWithName(existingSchema.ProjectUUID, newSchemaName, str)
+			exists, err := ExistsWithName(ctx, existingSchema.ProjectUUID, newSchemaName, str)
 			if err != nil {
 				return Schema{}, err
 			}
@@ -288,12 +289,12 @@ func Update(existingSchema Schema, newSchemaName, newSchemaType string, newRawSc
 
 	}
 
-	err := str.UpdateSchema(existingSchema.UUID, newSchema.Name, newSchema.Type, rawSchemaString)
+	err := str.UpdateSchema(ctx, existingSchema.UUID, newSchema.Name, newSchema.Type, rawSchemaString)
 	if err != nil {
 		return Schema{}, err
 	}
 
-	projectName := projects.GetNameByUUID(existingSchema.ProjectUUID, str)
+	projectName := projects.GetNameByUUID(ctx, existingSchema.ProjectUUID, str)
 
 	existingSchema.FullName = FormatSchemaRef(projectName, existingSchema.Name)
 
@@ -301,9 +302,9 @@ func Update(existingSchema Schema, newSchemaName, newSchemaType string, newRawSc
 }
 
 // Create checks the validity of the schema to be created and then saves it to the store
-func Create(projectUUID, schemaUUID, name, schemaType string, rawSchema map[string]interface{}, str stores.Store) (Schema, error) {
+func Create(ctx context.Context, projectUUID, schemaUUID, name, schemaType string, rawSchema map[string]interface{}, str stores.Store) (Schema, error) {
 
-	exists, err := ExistsWithName(projectUUID, name, str)
+	exists, err := ExistsWithName(ctx, projectUUID, name, str)
 	if err != nil {
 		return Schema{}, err
 	}
@@ -326,12 +327,12 @@ func Create(projectUUID, schemaUUID, name, schemaType string, rawSchema map[stri
 		return Schema{}, err
 	}
 
-	err = str.InsertSchema(projectUUID, schemaUUID, name, schemaType, b64SchemaString)
+	err = str.InsertSchema(ctx, projectUUID, schemaUUID, name, schemaType, b64SchemaString)
 	if err != nil {
 		return Schema{}, err
 	}
 
-	projectName := projects.GetNameByUUID(projectUUID, str)
+	projectName := projects.GetNameByUUID(ctx, projectUUID, str)
 
 	schema := Schema{
 		UUID:      schemaUUID,
@@ -376,8 +377,8 @@ func checkSchema(schemaType string, schemaContent map[string]interface{}) error 
 }
 
 // ExistsWithName checks if a schema with the given name exists under the given project
-func ExistsWithName(projectUUID string, schemaName string, str stores.Store) (bool, error) {
-	qSchemas, err := str.QuerySchemas(projectUUID, "", schemaName)
+func ExistsWithName(ctx context.Context, projectUUID string, schemaName string, str stores.Store) (bool, error) {
+	qSchemas, err := str.QuerySchemas(ctx, projectUUID, "", schemaName)
 
 	if err != nil {
 		return false, errors.New("backend error")

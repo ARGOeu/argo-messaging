@@ -93,10 +93,10 @@ func (b *MockBroker) Initialize(peers []string) {
 }
 
 // Publish function publish a message to the broker
-func (b *MockBroker) Publish(topic string, msg messages.Message) (string, string, int, int64, error) {
+func (b *MockBroker) Publish(ctx context.Context, topic string, msg messages.Message) (string, string, int, int64, error) {
 	payload, _ := msg.ExportJSON()
 	b.MsgList = append(b.MsgList, payload)
-	off := b.GetMaxOffset(topic) - 1
+	off := b.GetMaxOffset(ctx, topic) - 1
 	msgID := strconv.FormatInt(off, 10)
 	// split the name that SHOULD come in the form of project_uuid.topic_name
 	s := strings.Split(topic, ".")
@@ -104,12 +104,12 @@ func (b *MockBroker) Publish(topic string, msg messages.Message) (string, string
 }
 
 // GetOffset returns a current topic's offset
-func (b *MockBroker) GetMaxOffset(topic string) int64 {
+func (b *MockBroker) GetMaxOffset(ctx context.Context, topic string) int64 {
 	return int64(len(b.MsgList) + 1)
 }
 
 // GetOffset returns a current topic's offset
-func (b *MockBroker) GetMinOffset(topic string) int64 {
+func (b *MockBroker) GetMinOffset(ctx context.Context, topic string) int64 {
 	return int64(len(b.MsgList))
 }
 
@@ -119,7 +119,7 @@ func (b *MockBroker) Consume(ctx context.Context, topic string, offset int64, im
 }
 
 // Delete topic from the broker
-func (b *MockBroker) DeleteTopic(topic string) error {
+func (b *MockBroker) DeleteTopic(ctx context.Context, topic string) error {
 
 	_, ok := b.Topics[topic]
 	if !ok {
@@ -130,7 +130,7 @@ func (b *MockBroker) DeleteTopic(topic string) error {
 	return nil
 }
 
-func (b *MockBroker) TimeToOffset(topic string, time time.Time) (int64, error) {
+func (b *MockBroker) TimeToOffset(ctx context.Context, topic string, time time.Time) (int64, error) {
 
 	topicTimeIndices, ok := b.TopicTimeIndices[topic]
 

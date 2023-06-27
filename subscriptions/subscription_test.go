@@ -1,6 +1,7 @@
 package subscriptions
 
 import (
+	"context"
 	"errors"
 	"io/ioutil"
 	"testing"
@@ -19,6 +20,7 @@ import (
 type SubTestSuite struct {
 	suite.Suite
 	cfgStr string
+	ctx    context.Context
 }
 
 type MockPushRoundTripper struct{}
@@ -68,6 +70,7 @@ func (m *MockPushRoundTripper) RoundTrip(r *http.Request) (*http.Response, error
 }
 
 func (suite *SubTestSuite) SetupTest() {
+	suite.ctx = context.Background()
 	suite.cfgStr = `{
 	  "port":8080,
 		"broker_hosts":["localhost:9092"],
@@ -91,13 +94,13 @@ func (suite *SubTestSuite) TestFindByTopic() {
 
 	store := stores.NewMockStore("", "")
 
-	nl1, err1 := FindByTopic("argo_uuid", "topic1", store)
+	nl1, err1 := FindByTopic(suite.ctx, "argo_uuid", "topic1", store)
 	suite.Equal([]string{"/projects/ARGO/subscriptions/sub1"}, nl1.Subscriptions)
 	suite.Nil(err1)
 
 	// check empty case
 	store.SubList = nil
-	nl2, err2 := FindByTopic("argo_uuid", "topic1", store)
+	nl2, err2 := FindByTopic(suite.ctx, "argo_uuid", "topic1", store)
 	suite.Equal([]string{}, nl2.Subscriptions)
 	suite.Nil(err2)
 }
@@ -134,7 +137,7 @@ func (suite *SubTestSuite) TestGetSubByName() {
 	cfgAPI.LoadStrJSON(suite.cfgStr)
 	store := stores.NewMockStore(cfgAPI.StoreHost, cfgAPI.StoreDB)
 
-	result, _ := Find("argo_uuid", "", "sub1", "", 0, store)
+	result, _ := Find(suite.ctx, "argo_uuid", "", "sub1", "", 0, store)
 	expSub := New("argo_uuid", "ARGO", "sub1", "topic1")
 	expSub.PushCfg.RetPol.PolicyType = ""
 	expSub.PushCfg.RetPol.Period = 0
@@ -149,7 +152,7 @@ func (suite *SubTestSuite) TestGetSubMetric() {
 	APIcfg := config.NewAPICfg()
 	APIcfg.LoadStrJSON(suite.cfgStr)
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
-	mySubM, _ := FindMetric("argo_uuid", "sub1", store)
+	mySubM, _ := FindMetric(suite.ctx, "argo_uuid", "sub1", store)
 	expTopic := SubMetrics{
 		MsgNum:        0,
 		LatestConsume: time.Date(2019, 5, 6, 0, 0, 0, 0, time.UTC),
@@ -163,8 +166,8 @@ func (suite *SubTestSuite) TestHasProjectTopic() {
 	cfgAPI.LoadStrJSON(suite.cfgStr)
 	store := stores.NewMockStore(cfgAPI.StoreHost, cfgAPI.StoreDB)
 
-	suite.Equal(false, HasSub("argo_uuid", "FOO", store))
-	suite.Equal(true, HasSub("argo_uuid", "sub1", store))
+	suite.Equal(false, HasSub(suite.ctx, "argo_uuid", "FOO", store))
+	suite.Equal(true, HasSub(suite.ctx, "argo_uuid", "sub1", store))
 }
 
 func (suite *SubTestSuite) TestGetSubsByProject() {
@@ -219,35 +222,35 @@ func (suite *SubTestSuite) TestGetSubsByProject() {
 	expSubs1 = append(expSubs1, expSub3)
 	expSubs1 = append(expSubs1, expSub2)
 	expSubs1 = append(expSubs1, expSub1)
-	result1, _ := Find("argo_uuid", "", "", "", 0, store)
+	result1, _ := Find(suite.ctx, "argo_uuid", "", "", "", 0, store)
 
 	// retrieve first two subs
 	expSubs2 := []Subscription{}
 	expSubs2 = append(expSubs2, expSub4)
 	expSubs2 = append(expSubs2, expSub3)
-	result2, _ := Find("argo_uuid", "", "", "", 2, store)
+	result2, _ := Find(suite.ctx, "argo_uuid", "", "", "", 2, store)
 
 	//retrieve the next two subs
 	expSubs3 := []Subscription{}
 	expSubs3 = append(expSubs3, expSub2)
 	expSubs3 = append(expSubs3, expSub1)
-	result3, _ := Find("argo_uuid", "", "", "MQ==", 2, store)
+	result3, _ := Find(suite.ctx, "argo_uuid", "", "", "MQ==", 2, store)
 
 	// provide an invalid page token
-	_, err := Find("", "", "", "invalid", 0, store)
+	_, err := Find(suite.ctx, "", "", "", "invalid", 0, store)
 
 	// retrieve user's subs
 	expSubs4 := []Subscription{}
 	expSubs4 = append(expSubs4, expSub4)
 	expSubs4 = append(expSubs4, expSub3)
 	expSubs4 = append(expSubs4, expSub2)
-	result4, _ := Find("argo_uuid", "uuid1", "", "", 0, store)
+	result4, _ := Find(suite.ctx, "argo_uuid", "uuid1", "", "", 0, store)
 
 	// retrieve user's subs with pagination
 	expSubs5 := []Subscription{}
 	expSubs5 = append(expSubs5, expSub4)
 	expSubs5 = append(expSubs5, expSub3)
-	result5, _ := Find("argo_uuid", "uuid1", "", "", 2, store)
+	result5, _ := Find(suite.ctx, "argo_uuid", "uuid1", "", "", 2, store)
 
 	suite.Equal(expSubs1, result1.Subscriptions)
 	suite.Equal("", result1.NextPageToken)
@@ -277,7 +280,7 @@ func (suite *SubTestSuite) TestLoadFromCfg() {
 	cfgAPI.LoadStrJSON(suite.cfgStr)
 
 	store := stores.NewMockStore(cfgAPI.StoreHost, cfgAPI.StoreDB)
-	results, _ := Find("argo_uuid", "", "", "", 0, store)
+	results, _ := Find(suite.ctx, "argo_uuid", "", "", "", 0, store)
 	expSub1 := New("argo_uuid", "ARGO", "sub1", "topic1")
 	expSub1.PushCfg.RetPol.PolicyType = ""
 	expSub1.PushCfg.RetPol.Period = 0
@@ -344,12 +347,12 @@ func (suite *SubTestSuite) TestRemoveSubStore() {
 
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
 
-	suite.Equal(true, HasSub("argo_uuid", "sub1", store))
+	suite.Equal(true, HasSub(suite.ctx, "argo_uuid", "sub1", store))
 
-	suite.Equal("not found", RemoveSub("argo_uuid", "subFoo", store).Error())
-	suite.Equal(nil, RemoveSub("argo_uuid", "sub1", store))
+	suite.Equal("not found", RemoveSub(suite.ctx, "argo_uuid", "subFoo", store).Error())
+	suite.Equal(nil, RemoveSub(suite.ctx, "argo_uuid", "sub1", store))
 
-	suite.Equal(false, HasSub("ARGO", "sub1", store))
+	suite.Equal(false, HasSub(suite.ctx, "ARGO", "sub1", store))
 }
 
 func (suite *SubTestSuite) TestCreateSubStore() {
@@ -359,12 +362,12 @@ func (suite *SubTestSuite) TestCreateSubStore() {
 
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
 
-	sub, err := Create("argo_uuid", "sub1", "topic1", 0, 300,
+	sub, err := Create(suite.ctx, "argo_uuid", "sub1", "topic1", 0, 300,
 		PushConfig{}, time.Date(2019, 7, 7, 0, 0, 0, 0, time.UTC), store)
 	suite.Equal(Subscription{}, sub)
 	suite.Equal("exists", err.Error())
 
-	sub2, err2 := Create("argo_uuid", "subNew", "topicNew", 0, 0,
+	sub2, err2 := Create(suite.ctx, "argo_uuid", "subNew", "topicNew", 0, 0,
 		PushConfig{}, time.Date(2019, 7, 7, 0, 0, 0, 0, time.UTC), store)
 	expSub := New("argo_uuid", "ARGO", "subNew", "topicNew")
 	expSub.CreatedOn = "2019-07-07T00:00:00Z"
@@ -380,16 +383,16 @@ func (suite *SubTestSuite) TestModAck() {
 
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
 
-	err := ModAck("argo_uuid", "sub1", 300, store)
+	err := ModAck(suite.ctx, "argo_uuid", "sub1", 300, store)
 	suite.Equal(nil, err)
 
-	err = ModAck("argo_uuid", "sub1", 0, store)
+	err = ModAck(suite.ctx, "argo_uuid", "sub1", 0, store)
 	suite.Equal(nil, err)
 
-	err = ModAck("argo_uuid", "sub1", -300, store)
+	err = ModAck(suite.ctx, "argo_uuid", "sub1", -300, store)
 	suite.Equal(errors.New("wrong value"), err)
 
-	err = ModAck("argo_uuid", "sub1", 601, store)
+	err = ModAck(suite.ctx, "argo_uuid", "sub1", 601, store)
 	suite.Equal(errors.New("wrong value"), err)
 }
 
@@ -419,11 +422,11 @@ func (suite *SubTestSuite) TestModSubPush() {
 		MattermostUsername: "",
 		MattermostChannel:  "",
 	}
-	err1 := ModSubPush("argo_uuid", "sub1", cfg, store)
+	err1 := ModSubPush(suite.ctx, "argo_uuid", "sub1", cfg, store)
 
 	suite.Nil(err1)
 
-	sub1, _ := store.QueryOneSub("argo_uuid", "sub1")
+	sub1, _ := store.QueryOneSub(suite.ctx, "argo_uuid", "sub1")
 	suite.Equal("example.com", sub1.PushEndpoint)
 	suite.Equal(int64(2), sub1.MaxMessages)
 	suite.Equal("linear", sub1.RetPolicy)
@@ -432,7 +435,7 @@ func (suite *SubTestSuite) TestModSubPush() {
 	suite.True(sub1.Verified)
 
 	// test error case
-	err2 := ModSubPush("argo_uuid", "unknown", PushConfig{}, store)
+	err2 := ModSubPush(suite.ctx, "argo_uuid", "unknown", PushConfig{}, store)
 	suite.Equal("not found", err2.Error())
 }
 
@@ -498,9 +501,9 @@ func (suite *SubTestSuite) TestVerifyPushEndpoint() {
 		Transport: new(MockPushRoundTripper),
 	}
 
-	e1 := VerifyPushEndpoint(s1, c1, str)
+	e1 := VerifyPushEndpoint(suite.ctx, s1, c1, str)
 
-	qs1, _ := str.QueryOneSub("argo_uuid", "push-sub-v1")
+	qs1, _ := str.QueryOneSub(suite.ctx, "argo_uuid", "push-sub-v1")
 
 	suite.Nil(e1)
 	suite.True(qs1.Verified)
@@ -517,7 +520,7 @@ func (suite *SubTestSuite) TestVerifyPushEndpoint() {
 		Transport: new(MockPushRoundTripper),
 	}
 
-	e2 := VerifyPushEndpoint(s2, c2, nil)
+	e2 := VerifyPushEndpoint(suite.ctx, s2, c2, nil)
 
 	suite.Equal("Wrong response status code", e2.Error())
 
@@ -533,7 +536,7 @@ func (suite *SubTestSuite) TestVerifyPushEndpoint() {
 		Transport: new(MockPushRoundTripper),
 	}
 
-	e3 := VerifyPushEndpoint(s3, c3, nil)
+	e3 := VerifyPushEndpoint(suite.ctx, s3, c3, nil)
 
 	suite.Equal("Wrong verification hash", e3.Error())
 }
@@ -544,7 +547,7 @@ func (suite *SubTestSuite) TestExportJson() {
 
 	store := stores.NewMockStore(cfgAPI.StoreHost, cfgAPI.StoreDB)
 
-	res, _ := Find("argo_uuid", "", "sub1", "", 0, store)
+	res, _ := Find(suite.ctx, "argo_uuid", "", "sub1", "", 0, store)
 
 	outJSON, _ := res.Subscriptions[0].ExportJSON()
 	expJSON := `{
@@ -656,7 +659,7 @@ func (suite *SubTestSuite) TestExportJson() {
    "nextPageToken": "",
    "totalSize": 4
 }`
-	results, _ := Find("argo_uuid", "", "", "", 0, store)
+	results, _ := Find(suite.ctx, "argo_uuid", "", "", "", 0, store)
 	outJSON2, _ := results.ExportJSON()
 	suite.Equal(expJSON2, outJSON2)
 

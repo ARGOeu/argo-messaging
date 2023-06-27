@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
@@ -22,9 +23,11 @@ import (
 type TopicsHandlersTestSuite struct {
 	suite.Suite
 	cfgStr string
+	ctx    context.Context
 }
 
 func (suite *TopicsHandlersTestSuite) SetupTest() {
+	suite.ctx = context.Background()
 	suite.cfgStr = `{
 	"bind_ip":"",
 	"port":8080,
@@ -90,7 +93,7 @@ func (suite *TopicsHandlersTestSuite) TestTopicCreate() {
 	mgr := oldPush.Manager{}
 	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapMockAuthConfig(TopicCreate, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
-	tp, _, _, _ := str.QueryTopics("argo_uuid", "", "topicNew", "", 1)
+	tp, _, _, _ := str.QueryTopics(suite.ctx, "argo_uuid", "", "topicNew", "", 1)
 	expResp = strings.Replace(expResp, "{{CON}}", tp[0].CreatedOn.Format("2006-01-02T15:04:05Z"), 1)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -118,7 +121,7 @@ func (suite *TopicsHandlersTestSuite) TestTopicAttachSchema() {
 	mgr := oldPush.Manager{}
 	router.HandleFunc("/v1/projects/{project}/topics/{topic}:attachSchema", WrapMockAuthConfig(TopicAttachSchema, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
-	tp, _, _, _ := str.QueryTopics("argo_uuid", "", "topic1", "", 1)
+	tp, _, _, _ := str.QueryTopics(suite.ctx, "argo_uuid", "", "topic1", "", 1)
 	suite.Equal(200, w.Code)
 	suite.Equal("", w.Body.String())
 	suite.Equal("schema_uuid_1", tp[0].SchemaUUID)
@@ -146,7 +149,7 @@ func (suite *TopicsHandlersTestSuite) TestTopicDetachSchema() {
 	mgr := oldPush.Manager{}
 	router.HandleFunc("/v1/projects/{project}/topics/{topic}:detachSchema", WrapMockAuthConfig(TopicDetachSchema, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
-	tp, _, _, _ := str.QueryTopics("argo_uuid", "", "topic5", "", 1)
+	tp, _, _, _ := str.QueryTopics(suite.ctx, "argo_uuid", "", "topic5", "", 1)
 	suite.Equal(200, w.Code)
 	suite.Equal("", w.Body.String())
 	suite.Equal("", tp[0].SchemaUUID)
@@ -881,7 +884,7 @@ func (suite *TopicsHandlersTestSuite) TestPublish() {
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expJSON, w.Body.String())
-	tpc, _, _, _ := str.QueryTopics("argo_uuid", "", "topic1", "", 0)
+	tpc, _, _, _ := str.QueryTopics(suite.ctx, "argo_uuid", "", "topic1", "", 0)
 	suite.True(tn.Before(tpc[0].LatestPublish))
 	suite.NotEqual(tpc[0].PublishRate, 10)
 
@@ -1090,7 +1093,7 @@ func (suite *TopicsHandlersTestSuite) TestValidationInTopics() {
 		req, err := http.NewRequest("GET", url, bytes.NewBuffer([]byte("")))
 		router := mux.NewRouter().StrictSlash(true)
 		mgr := oldPush.Manager{}
-		router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapValidate(WrapMockAuthConfig(TopicListOne, cfgKafka, &brk, str, &mgr, nil)))
+		router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapMockAuthConfig(WrapValidate(TopicListOne), cfgKafka, &brk, str, &mgr, nil))
 
 		if err != nil {
 			log.Fatal(err)

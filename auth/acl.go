@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 
@@ -32,55 +33,55 @@ func GetACLFromJSON(input []byte) (ACL, error) {
 }
 
 // ModACL is called to modify an acl
-func ModACL(projectUUID string, resourceType string, resourceName string, acl []string, store stores.Store) error {
+func ModACL(ctx context.Context, projectUUID string, resourceType string, resourceName string, acl []string, store stores.Store) error {
 	// Transform user name to user uuid
 
 	userUUIDs := []string{}
 	for _, username := range acl {
-		userUUID := GetUUIDByName(username, store)
+		userUUID := GetUUIDByName(ctx, username, store)
 		userUUIDs = append(userUUIDs, userUUID)
 	}
 
-	return store.ModACL(projectUUID, resourceType, resourceName, userUUIDs)
+	return store.ModACL(ctx, projectUUID, resourceType, resourceName, userUUIDs)
 }
 
 // AppendToACL is used to append unique users to a topic's or sub's ACL
-func AppendToACL(projectUUID string, resourceType string, resourceName string, acl []string, store stores.Store) error {
+func AppendToACL(ctx context.Context, projectUUID string, resourceType string, resourceName string, acl []string, store stores.Store) error {
 
 	// Transform user name to user uuid
 	userUUIDs := []string{}
 	for _, username := range acl {
-		userUUID := GetUUIDByName(username, store)
+		userUUID := GetUUIDByName(ctx, username, store)
 		userUUIDs = append(userUUIDs, userUUID)
 	}
 
-	return store.AppendToACL(projectUUID, resourceType, resourceName, userUUIDs)
+	return store.AppendToACL(ctx, projectUUID, resourceType, resourceName, userUUIDs)
 }
 
 // AppendToACL is used to remove users from a topic's or sub's acl
-func RemoveFromACL(projectUUID string, resourceType string, resourceName string, acl []string, store stores.Store) error {
+func RemoveFromACL(ctx context.Context, projectUUID string, resourceType string, resourceName string, acl []string, store stores.Store) error {
 
 	// Transform user name to user uuid
 	userUUIDs := []string{}
 	for _, username := range acl {
-		userUUID := GetUUIDByName(username, store)
+		userUUID := GetUUIDByName(ctx, username, store)
 		userUUIDs = append(userUUIDs, userUUID)
 	}
 
-	return store.RemoveFromACL(projectUUID, resourceType, resourceName, userUUIDs)
+	return store.RemoveFromACL(ctx, projectUUID, resourceType, resourceName, userUUIDs)
 }
 
 // GetACL returns an authorized list of user for the resource (topic or subscription)
-func GetACL(projectUUID string, resourceType string, resourceName string, store stores.Store) (ACL, error) {
+func GetACL(ctx context.Context, projectUUID string, resourceType string, resourceName string, store stores.Store) (ACL, error) {
 	result := ACL{}
-	acl, err := store.QueryACL(projectUUID, resourceType, resourceName)
+	acl, err := store.QueryACL(ctx, projectUUID, resourceType, resourceName)
 	if err != nil {
 		return result, err
 	}
 	for _, item := range acl.ACL {
 
 		// Get Username from user uuid
-		username := GetNameByUUID(item, store)
+		username := GetNameByUUID(ctx, item, store)
 		// if username is empty, meaning that the user with this id probably doesn't exists
 		// skip it and don't pollute the acl with empty ""
 		if username == "" {

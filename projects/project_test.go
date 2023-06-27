@@ -1,6 +1,7 @@
 package projects
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -11,6 +12,7 @@ import (
 
 type ProjectsTestSuite struct {
 	suite.Suite
+	ctx context.Context
 }
 
 func (suite *ProjectsTestSuite) TestProjects() {
@@ -24,16 +26,16 @@ func (suite *ProjectsTestSuite) TestProjects() {
 	ep3 := Projects{List: []Project{item1, item2}}
 	ep4 := Projects{}
 
-	p1, err := Find("", "ARGO", store)
+	p1, err := Find(suite.ctx, "", "ARGO", store)
 	suite.Equal(ep1, p1)
 	suite.Equal(nil, err)
-	p2, err := Find("", "ARGO2", store)
+	p2, err := Find(suite.ctx, "", "ARGO2", store)
 	suite.Equal(ep2, p2)
 	suite.Equal(nil, err)
-	p3, err := Find("", "", store)
+	p3, err := Find(suite.ctx, "", "", store)
 	suite.Equal(ep3, p3)
 	suite.Equal(nil, err)
-	p4, err := Find("", "FOO", store)
+	p4, err := Find(suite.ctx, "", "FOO", store)
 
 	suite.Equal(ep4, p4)
 	suite.Equal(errors.New("not found"), err)
@@ -41,26 +43,26 @@ func (suite *ProjectsTestSuite) TestProjects() {
 	// Create new project
 	itemNew := NewProject("uuid_new", "BRAND_NEW", tm, tm, "UserA", "brand new project")
 
-	reflect, err := CreateProject("uuid_new", "BRAND_NEW", tm, "uuid1", "brand new project", store)
+	reflect, err := CreateProject(suite.ctx, "uuid_new", "BRAND_NEW", tm, "uuid1", "brand new project", store)
 
 	expNew := Projects{List: []Project{itemNew}}
 	expAllNew := Projects{List: []Project{item1, item2, itemNew}}
 
-	pNew, err := Find("", "BRAND_NEW", store)
+	pNew, err := Find(suite.ctx, "", "BRAND_NEW", store)
 
 	suite.Equal(expNew.List[0], reflect)
 	suite.Equal(expNew, pNew)
 	suite.Equal(nil, err)
 
 	// Test GetNameByUUID
-	suite.Equal("BRAND_NEW", GetNameByUUID("uuid_new", store))
-	suite.Equal("", GetNameByUUID("", store))
+	suite.Equal("BRAND_NEW", GetNameByUUID(suite.ctx, "uuid_new", store))
+	suite.Equal("", GetNameByUUID(suite.ctx, "", store))
 
 	// Test GetUUIDByName
-	suite.Equal("uuid_new", GetUUIDByName("BRAND_NEW", store))
-	suite.Equal("", GetUUIDByName("", store))
+	suite.Equal("uuid_new", GetUUIDByName(suite.ctx, "BRAND_NEW", store))
+	suite.Equal("", GetUUIDByName(suite.ctx, "", store))
 
-	pAllNew, err := Find("", "", store)
+	pAllNew, err := Find(suite.ctx, "", "", store)
 
 	suite.Equal(expAllNew, pAllNew)
 	suite.Equal(nil, err)
@@ -159,28 +161,30 @@ func (suite *ProjectsTestSuite) TestProjects() {
    ]
 }`
 
-	UpdateProject("argo_uuid", "NEW_ARGO", "a new description and name for  project", tm, store)
-	UpdateProject("argo_uuid2", "", "this project has only description changed", tm, store)
-	UpdateProject("uuid_new", "ONLY_NAME_CHANGED", "", tm, store)
+	UpdateProject(suite.ctx, "argo_uuid", "NEW_ARGO", "a new description and name for  project", tm, store)
+	UpdateProject(suite.ctx, "argo_uuid2", "", "this project has only description changed", tm, store)
+	UpdateProject(suite.ctx, "uuid_new", "ONLY_NAME_CHANGED", "", tm, store)
 
-	pAllUpdated, _ := Find("", "", store)
+	pAllUpdated, _ := Find(suite.ctx, "", "", store)
 	outAllUpdJSON, _ := pAllUpdated.ExportJSON()
 
 	suite.Equal(expUpdJSON, outAllUpdJSON)
 
 	// Test removing project
-	RemoveProject("argo_uuid", store)
-	pRemoved, err := Find("argo_uuid", "", store)
+	RemoveProject(suite.ctx, "argo_uuid", store)
+	pRemoved, err := Find(suite.ctx, "argo_uuid", "", store)
 	suite.Equal(Projects{}, pRemoved)
 	suite.Equal(errors.New("not found"), err)
 	// Check to see that also projects topics and subscriptions have been removed from the store
 
-	resTop, _, _, _ := store.QueryTopics("argo_uuid", "", "", "", 0)
+	resTop, _, _, _ := store.QueryTopics(suite.ctx, "argo_uuid", "", "", "", 0)
 	suite.Equal(0, len(resTop))
-	resSub, _, _, _ := store.QuerySubs("argo_uuid", "", "", "", 0)
+	resSub, _, _, _ := store.QuerySubs(suite.ctx, "argo_uuid", "", "", "", 0)
 	suite.Equal(0, len(resSub))
 }
 
 func TestProjectsTestSuite(t *testing.T) {
-	suite.Run(t, new(ProjectsTestSuite))
+	suite.Run(t, &ProjectsTestSuite{
+		ctx: context.Background(),
+	})
 }

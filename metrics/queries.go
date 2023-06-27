@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"context"
 	"fmt"
 	amsProjects "github.com/ARGOeu/argo-messaging/projects"
 	"github.com/ARGOeu/argo-messaging/stores"
@@ -8,39 +9,39 @@ import (
 	"time"
 )
 
-func GetProjectTopics(projectUUID string, store stores.Store) (int64, error) {
-	topics, _, _, err := store.QueryTopics(projectUUID, "", "", "", 0)
+func GetProjectTopics(ctx context.Context, projectUUID string, store stores.Store) (int64, error) {
+	topics, _, _, err := store.QueryTopics(ctx, projectUUID, "", "", "", 0)
 	return int64(len(topics)), err
 }
 
-func GetProjectSubsByTopic(projectUUID string, topic string, store stores.Store) (int64, error) {
-	subs, err := store.QuerySubsByTopic(projectUUID, topic)
+func GetProjectSubsByTopic(ctx context.Context, projectUUID string, topic string, store stores.Store) (int64, error) {
+	subs, err := store.QuerySubsByTopic(ctx, projectUUID, topic)
 	return int64(len(subs)), err
 }
 
-func GetProjectTopicsACL(projectUUID string, username string, store stores.Store) (int64, error) {
-	topics, err := store.QueryTopicsByACL(projectUUID, username)
+func GetProjectTopicsACL(ctx context.Context, projectUUID string, username string, store stores.Store) (int64, error) {
+	topics, err := store.QueryTopicsByACL(ctx, projectUUID, username)
 	return int64(len(topics)), err
 }
 
-func GetProjectSubs(projectUUID string, store stores.Store) (int64, error) {
-	subs, _, _, err := store.QuerySubs(projectUUID, "", "", "", 0)
+func GetProjectSubs(ctx context.Context, projectUUID string, store stores.Store) (int64, error) {
+	subs, _, _, err := store.QuerySubs(ctx, projectUUID, "", "", "", 0)
 	return int64(len(subs)), err
 }
 
-func GetProjectSubsACL(projectUUID string, username string, store stores.Store) (int64, error) {
-	subs, err := store.QuerySubsByACL(projectUUID, username)
+func GetProjectSubsACL(ctx context.Context, projectUUID string, username string, store stores.Store) (int64, error) {
+	subs, err := store.QuerySubsByACL(ctx, projectUUID, username)
 	return int64(len(subs)), err
 }
 
-func GetDailyTopicMsgCount(projectUUID string, topicName string, store stores.Store) ([]Timepoint, error) {
+func GetDailyTopicMsgCount(ctx context.Context, projectUUID string, topicName string, store stores.Store) ([]Timepoint, error) {
 
 	var err error
 	var qDtmc []stores.QDailyTopicMsgCount
 
 	timePoints := []Timepoint{}
 
-	if qDtmc, err = store.QueryDailyTopicMsgCount(projectUUID, topicName, time.Time{}); err != nil {
+	if qDtmc, err = store.QueryDailyTopicMsgCount(ctx, projectUUID, topicName, time.Time{}); err != nil {
 		return timePoints, err
 	}
 	for _, qd := range qDtmc {
@@ -50,14 +51,14 @@ func GetDailyTopicMsgCount(projectUUID string, topicName string, store stores.St
 	return timePoints, err
 }
 
-func GetDailyProjectMsgCount(projectUUID string, store stores.Store) ([]Timepoint, error) {
+func GetDailyProjectMsgCount(ctx context.Context, projectUUID string, store stores.Store) ([]Timepoint, error) {
 
 	var err error
 	var qDpmc []stores.QDailyProjectMsgCount
 
 	timePoints := []Timepoint{}
 
-	if qDpmc, err = store.QueryDailyProjectMsgCount(projectUUID); err != nil {
+	if qDpmc, err = store.QueryDailyProjectMsgCount(ctx, projectUUID); err != nil {
 		return timePoints, err
 	}
 
@@ -68,18 +69,18 @@ func GetDailyProjectMsgCount(projectUUID string, store stores.Store) ([]Timepoin
 	return timePoints, err
 }
 
-func AggrProjectUserSubs(projectUUID string, store stores.Store) (MetricList, error) {
-	pr, err := store.QueryProjects(projectUUID, "")
+func AggrProjectUserSubs(ctx context.Context, projectUUID string, store stores.Store) (MetricList, error) {
+	pr, err := store.QueryProjects(ctx, projectUUID, "")
 	if err != nil {
 		return MetricList{}, err
 	}
 	prName := pr[0].Name
-	users, err := store.QueryUsers(projectUUID, "", "")
+	users, err := store.QueryUsers(ctx, projectUUID, "", "")
 	ml := MetricList{}
 	for _, item := range users {
 		username := item.Name
 		userUUID := item.UUID
-		numSubs, _ := GetProjectSubsACL(projectUUID, userUUID, store)
+		numSubs, _ := GetProjectSubsACL(ctx, projectUUID, userUUID, store)
 		if numSubs > 0 {
 			m := NewProjectUserSubs(prName, username, numSubs, GetTimeNowZulu())
 			ml.Metrics = append(ml.Metrics, m)
@@ -89,18 +90,18 @@ func AggrProjectUserSubs(projectUUID string, store stores.Store) (MetricList, er
 	return ml, err
 }
 
-func AggrProjectUserTopics(projectUUID string, store stores.Store) (MetricList, error) {
-	pr, err := store.QueryProjects(projectUUID, "")
+func AggrProjectUserTopics(ctx context.Context, projectUUID string, store stores.Store) (MetricList, error) {
+	pr, err := store.QueryProjects(ctx, projectUUID, "")
 	if err != nil {
 		return MetricList{}, err
 	}
 	prName := pr[0].Name
-	users, err := store.QueryUsers(projectUUID, "", "")
+	users, err := store.QueryUsers(ctx, projectUUID, "", "")
 	ml := MetricList{}
 	for _, item := range users {
 		username := item.Name
 		userUUID := item.UUID
-		numSubs, _ := GetProjectTopicsACL(projectUUID, userUUID, store)
+		numSubs, _ := GetProjectTopicsACL(ctx, projectUUID, userUUID, store)
 		if numSubs > 0 {
 			m := NewProjectUserTopics(prName, username, numSubs, GetTimeNowZulu())
 			ml.Metrics = append(ml.Metrics, m)
@@ -111,7 +112,7 @@ func AggrProjectUserTopics(projectUUID string, store stores.Store) (MetricList, 
 }
 
 // GetVAReport returns a VAReport populated with the needed metrics
-func GetVAReport(projects []string, startDate time.Time, endDate time.Time, str stores.Store) (VAReport, error) {
+func GetVAReport(ctx context.Context, projects []string, startDate time.Time, endDate time.Time, str stores.Store) (VAReport, error) {
 
 	vaReport := VAReport{}
 
@@ -119,7 +120,7 @@ func GetVAReport(projects []string, startDate time.Time, endDate time.Time, str 
 	// if some gives 2020-15-01 we need to get all counters up to 2020-15-01T23:59:59
 	endDate = time.Date(endDate.Year(), endDate.Month(), endDate.Day(), 23, 59, 59, 0, endDate.Location())
 
-	tpm, err := GenerateVAReport(projects, startDate, endDate, str)
+	tpm, err := GenerateVAReport(ctx, projects, startDate, endDate, str)
 	if err != nil {
 		return vaReport, err
 	}
@@ -130,7 +131,7 @@ func GetVAReport(projects []string, startDate time.Time, endDate time.Time, str 
 // GenerateVAReport returns per project metrics regarding users,topics subscriptions for the given time period
 // It also includes various totals that derive from the each individual's project metrics.
 // The generated result is called a VA Report
-func GenerateVAReport(projects []string, startDate time.Time, endDate time.Time, str stores.Store) (VAReport, error) {
+func GenerateVAReport(ctx context.Context, projects []string, startDate time.Time, endDate time.Time, str stores.Store) (VAReport, error) {
 
 	tpj := TotalProjectsMessageCount{
 		Projects:   []ProjectMetrics{},
@@ -150,7 +151,7 @@ func GenerateVAReport(projects []string, startDate time.Time, endDate time.Time,
 	// translate the project NAMES to their respective UUIDs
 	projectUUIDs := make([]string, 0)
 	for _, prj := range projects {
-		projectUUID := amsProjects.GetUUIDByName(prj, str)
+		projectUUID := amsProjects.GetUUIDByName(ctx, prj, str)
 		if projectUUID == "" {
 			return VAReport{}, fmt.Errorf("Project %v", prj)
 		}
@@ -158,22 +159,22 @@ func GenerateVAReport(projects []string, startDate time.Time, endDate time.Time,
 		projectsUUIDNames[projectUUID] = prj
 	}
 
-	qtpj, err = str.QueryTotalMessagesPerProject(projectUUIDs, startDate, endDate)
+	qtpj, err = str.QueryTotalMessagesPerProject(ctx, projectUUIDs, startDate, endDate)
 	if err != nil {
 		return VAReport{}, err
 	}
 
-	topicsCount, err := str.TopicsCount(startDate, endDate, projectUUIDs)
+	topicsCount, err := str.TopicsCount(ctx, startDate, endDate, projectUUIDs)
 	if err != nil {
 		return VAReport{}, err
 	}
 
-	subCount, err := str.SubscriptionsCount(startDate, endDate, projectUUIDs)
+	subCount, err := str.SubscriptionsCount(ctx, startDate, endDate, projectUUIDs)
 	if err != nil {
 		return VAReport{}, err
 	}
 
-	userCount, err := str.UsersCount(startDate, endDate, projectUUIDs)
+	userCount, err := str.UsersCount(ctx, startDate, endDate, projectUUIDs)
 	if err != nil {
 		return VAReport{}, err
 	}
@@ -188,7 +189,7 @@ func GenerateVAReport(projects []string, startDate time.Time, endDate time.Time,
 
 		// if no project names were provided we have to do the mapping between name and uuid
 		if len(projects) == 0 {
-			projectName = amsProjects.GetNameByUUID(prj.ProjectUUID, str)
+			projectName = amsProjects.GetNameByUUID(ctx, prj.ProjectUUID, str)
 		} else {
 			projectName = projectsUUIDNames[prj.ProjectUUID]
 		}
@@ -227,14 +228,14 @@ func GenerateVAReport(projects []string, startDate time.Time, endDate time.Time,
 }
 
 // GetUserUsageReport returns a VAReport populated with the needed metrics alongside service operational metrics
-func GetUserUsageReport(projects []string, startDate time.Time, endDate time.Time, str stores.Store) (UserUsageReport, error) {
+func GetUserUsageReport(ctx context.Context, projects []string, startDate time.Time, endDate time.Time, str stores.Store) (UserUsageReport, error) {
 
-	vr, err := GetVAReport(projects, startDate, endDate, str)
+	vr, err := GetVAReport(ctx, projects, startDate, endDate, str)
 	if err != nil {
 		return UserUsageReport{}, err
 	}
 
-	om, err := GetUsageCpuMem(str)
+	om, err := GetUsageCpuMem(ctx, str)
 	if err != nil {
 		return UserUsageReport{}, err
 	}

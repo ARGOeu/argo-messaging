@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
@@ -23,9 +24,11 @@ import (
 type SubscriptionsHandlersTestSuite struct {
 	cfgStr string
 	suite.Suite
+	ctx context.Context
 }
 
 func (suite *SubscriptionsHandlersTestSuite) SetupTest() {
+	suite.ctx = context.Background()
 	suite.cfgStr = `{
 	"bind_ip":"",
 	"port":8080,
@@ -191,7 +194,7 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubModPushConfigToActive() {
 	w := httptest.NewRecorder()
 	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modifyPushConfig", WrapMockAuthConfig(SubModPush, cfgKafka, &brk, str, &mgr, pc))
 	router.ServeHTTP(w, req)
-	sub, _ := str.QueryOneSub("argo_uuid", "sub1")
+	sub, _ := str.QueryOneSub(suite.ctx, "argo_uuid", "sub1")
 	suite.Equal(200, w.Code)
 	suite.Equal("", w.Body.String())
 	suite.Equal("https://www.example.com", sub.PushEndpoint)
@@ -228,7 +231,7 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubModPushConfigToInactive() {
 	w := httptest.NewRecorder()
 	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modifyPushConfig", WrapMockAuthConfig(SubModPush, cfgKafka, &brk, str, &mgr, pc))
 	router.ServeHTTP(w, req)
-	sub, _ := str.QueryOneSub("argo_uuid", "sub4")
+	sub, _ := str.QueryOneSub(suite.ctx, "argo_uuid", "sub4")
 	suite.Equal(200, w.Code)
 	suite.Equal("", w.Body.String())
 	suite.Equal("", sub.PushEndpoint)
@@ -237,7 +240,7 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubModPushConfigToInactive() {
 	suite.Equal("", sub.VerificationHash)
 	suite.False(sub.Verified)
 	// check to see that the push worker user has been removed from the subscription's acl
-	a1, _ := str.QueryACL("argo_uuid", "subscriptions", "sub4")
+	a1, _ := str.QueryACL(suite.ctx, "argo_uuid", "subscriptions", "sub4")
 	suite.Equal([]string{"uuid2", "uuid4"}, a1.ACL)
 }
 
@@ -267,7 +270,7 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubModPushConfigToInactivePushD
 	w := httptest.NewRecorder()
 	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modifyPushConfig", WrapMockAuthConfig(SubModPush, cfgKafka, &brk, str, &mgr, pc))
 	router.ServeHTTP(w, req)
-	sub, _ := str.QueryOneSub("argo_uuid", "sub4")
+	sub, _ := str.QueryOneSub(suite.ctx, "argo_uuid", "sub4")
 	suite.Equal(200, w.Code)
 	suite.Equal("", w.Body.String())
 	suite.Equal("", sub.PushEndpoint)
@@ -302,7 +305,7 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubModPushConfigToInactiveMissi
 	w := httptest.NewRecorder()
 	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modifyPushConfig", WrapMockAuthConfig(SubModPush, cfgKafka, &brk, str, &mgr, pc))
 	router.ServeHTTP(w, req)
-	sub, _ := str.QueryOneSub("argo_uuid", "sub4")
+	sub, _ := str.QueryOneSub(suite.ctx, "argo_uuid", "sub4")
 	suite.Equal(200, w.Code)
 	suite.Equal("", w.Body.String())
 	suite.Equal("", sub.PushEndpoint)
@@ -348,10 +351,10 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubModPushConfigUpdate() {
 	mgr := oldPush.Manager{}
 	pc := new(push.MockClient)
 	w := httptest.NewRecorder()
-	subBeforeUpdate, _ := str.QueryOneSub("argo_uuid", "sub4")
+	subBeforeUpdate, _ := str.QueryOneSub(suite.ctx, "argo_uuid", "sub4")
 	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modifyPushConfig", WrapMockAuthConfig(SubModPush, cfgKafka, &brk, str, &mgr, pc))
 	router.ServeHTTP(w, req)
-	sub, _ := str.QueryOneSub("argo_uuid", "sub4")
+	sub, _ := str.QueryOneSub(suite.ctx, "argo_uuid", "sub4")
 	suite.Equal(200, w.Code)
 	suite.Equal("", w.Body.String())
 	suite.Equal("https://www.example2.com", sub.PushEndpoint)
@@ -405,7 +408,7 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubModPushConfigUpdateMattermos
 	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modifyPushConfig",
 		WrapMockAuthConfig(SubModPush, cfgKafka, &brk, str, &mgr, pc))
 	router.ServeHTTP(w, req)
-	sub, _ := str.QueryOneSub("argo_uuid", "sub4")
+	sub, _ := str.QueryOneSub(suite.ctx, "argo_uuid", "sub4")
 	suite.Equal(200, w.Code)
 	suite.Equal("", w.Body.String())
 	suite.Equal("", sub.PushEndpoint)
@@ -593,7 +596,7 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubModPushConfigUpdateAuthzDisa
 	w := httptest.NewRecorder()
 	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:modifyPushConfig", WrapMockAuthConfig(SubModPush, cfgKafka, &brk, str, &mgr, pc))
 	router.ServeHTTP(w, req)
-	sub, _ := str.QueryOneSub("argo_uuid", "sub4")
+	sub, _ := str.QueryOneSub(suite.ctx, "argo_uuid", "sub4")
 	suite.Equal(200, w.Code)
 	suite.Equal("", w.Body.String())
 	suite.Equal("https://www.example2.com", sub.PushEndpoint)
@@ -648,7 +651,7 @@ func (suite *SubscriptionsHandlersTestSuite) TestVerifyPushEndpoint() {
 	suite.Equal(200, w.Code)
 	suite.Equal("", w.Body.String())
 	// check to see that the push worker user has been added to the subscription's acl
-	a1, _ := str.QueryACL("argo_uuid", "subscriptions", "push-sub-v1")
+	a1, _ := str.QueryACL(suite.ctx, "argo_uuid", "subscriptions", "push-sub-v1")
 	suite.Equal([]string{"uuid7"}, a1.ACL)
 }
 
@@ -701,7 +704,7 @@ func (suite *SubscriptionsHandlersTestSuite) TestVerifyPushEndpointHashMisMatch(
 	suite.Equal(401, w.Code)
 	suite.Equal(expResp, w.Body.String())
 	// check to see that the push worker user has NOT been added to the subscription's acl
-	a1, _ := str.QueryACL("argo_uuid", "subscriptions", "push-sub-v1")
+	a1, _ := str.QueryACL(suite.ctx, "argo_uuid", "subscriptions", "push-sub-v1")
 	suite.Equal(0, len(a1.ACL))
 }
 
@@ -754,7 +757,7 @@ func (suite *SubscriptionsHandlersTestSuite) TestVerifyPushEndpointUnknownRespon
 	suite.Equal(401, w.Code)
 	suite.Equal(expResp, w.Body.String())
 	// check to see that the push worker user has NOT been added to the subscription's acl
-	a1, _ := str.QueryACL("argo_uuid", "subscriptions", "push-sub-v1")
+	a1, _ := str.QueryACL(suite.ctx, "argo_uuid", "subscriptions", "push-sub-v1")
 	suite.Equal(0, len(a1.ACL))
 }
 
@@ -801,7 +804,7 @@ func (suite *SubscriptionsHandlersTestSuite) TestVerifyPushEndpointPushServerErr
 	suite.Equal(200, w.Code)
 	suite.Equal("", w.Body.String())
 	// check to see that the push worker user has been added to the subscription's acl
-	a1, _ := str.QueryACL("argo_uuid", "subscriptions", "errorSub")
+	a1, _ := str.QueryACL(suite.ctx, "argo_uuid", "subscriptions", "errorSub")
 	suite.Equal([]string{"uuid7"}, a1.ACL)
 }
 
@@ -938,7 +941,7 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubCreatePushConfig() {
 	w := httptest.NewRecorder()
 	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubCreate, cfgKafka, &brk, str, &mgr, pc))
 	router.ServeHTTP(w, req)
-	sub, _ := str.QueryOneSub("argo_uuid", "subNew")
+	sub, _ := str.QueryOneSub(suite.ctx, "argo_uuid", "subNew")
 	expResp = strings.Replace(expResp, "{{VHASH}}", sub.VerificationHash, 1)
 	expResp = strings.Replace(expResp, "{{AUTHZV}}", sub.AuthorizationHeader, 1)
 	expResp = strings.Replace(expResp, "{{CON}}", sub.CreatedOn.Format("2006-01-02T15:04:05Z"), 1)
@@ -1000,7 +1003,7 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubCreatePushConfigMattermost()
 	w := httptest.NewRecorder()
 	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubCreate, cfgKafka, &brk, str, &mgr, pc))
 	router.ServeHTTP(w, req)
-	sub, _ := str.QueryOneSub("argo_uuid", "subNew")
+	sub, _ := str.QueryOneSub(suite.ctx, "argo_uuid", "subNew")
 	expResp = strings.Replace(expResp, "{{CON}}", sub.CreatedOn.Format("2006-01-02T15:04:05Z"), 1)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -1146,7 +1149,7 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubCreatePushConfigSlowStart() 
 	w := httptest.NewRecorder()
 	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubCreate, cfgKafka, &brk, str, &mgr, pc))
 	router.ServeHTTP(w, req)
-	sub, _ := str.QueryOneSub("argo_uuid", "subNew")
+	sub, _ := str.QueryOneSub(suite.ctx, "argo_uuid", "subNew")
 	expResp = strings.Replace(expResp, "{{VHASH}}", sub.VerificationHash, 1)
 	expResp = strings.Replace(expResp, "{{CON}}", sub.CreatedOn.Format("2006-01-02T15:04:05Z"), 1)
 	suite.Equal(0, sub.RetPeriod)
@@ -1190,7 +1193,7 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubCreatePushConfigMissingPushW
 	router.ServeHTTP(w, req)
 	// subscription should not have been inserted to the store if it has push configuration
 	// but we can't retrieve the push worker
-	_, errSub := str.QueryOneSub("argo_uuid", "subNew")
+	_, errSub := str.QueryOneSub(suite.ctx, "argo_uuid", "subNew")
 	suite.Equal(500, w.Code)
 	suite.Equal(expResp, w.Body.String())
 	suite.Equal("empty", errSub.Error())
@@ -1232,7 +1235,7 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubCreatePushConfigPushDisabled
 	router.ServeHTTP(w, req)
 	// subscription should not have been inserted to the store if it has push configuration
 	// but push enables is false
-	_, errSub := str.QueryOneSub("argo_uuid", "subNew")
+	_, errSub := str.QueryOneSub(suite.ctx, "argo_uuid", "subNew")
 	suite.Equal(409, w.Code)
 	suite.Equal(expResp, w.Body.String())
 	suite.Equal("empty", errSub.Error())
@@ -1355,7 +1358,7 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubCreate() {
 	w := httptest.NewRecorder()
 	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubCreate, cfgKafka, &brk, str, &mgr, nil))
 	router.ServeHTTP(w, req)
-	sub, _ := str.QueryOneSub("argo_uuid", "subNew")
+	sub, _ := str.QueryOneSub(suite.ctx, "argo_uuid", "subNew")
 	fmt.Println(sub)
 	expResp = strings.Replace(expResp, "{{CON}}", sub.CreatedOn.Format("2006-01-02T15:04:05Z"), 1)
 	suite.Equal(200, w.Code)
@@ -2358,7 +2361,7 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubPullOne() {
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expJSON, w.Body.String())
-	spc, _, _, _ := str.QuerySubs("argo_uuid", "", "sub1", "", 0)
+	spc, _, _, _ := str.QuerySubs(suite.ctx, "argo_uuid", "", "sub1", "", 0)
 	suite.True(tn.Before(spc[0].LatestConsume))
 	suite.NotEqual(spc[0].ConsumeRate, 10)
 
@@ -2562,7 +2565,7 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubModAck() {
 	suite.Equal(200, w.Code)
 	suite.Equal(expJSON1, w.Body.String())
 
-	subRes, err := str.QueryOneSub("argo_uuid", "sub1")
+	subRes, err := str.QueryOneSub(suite.ctx, "argo_uuid", "sub1")
 	suite.Equal(33, subRes.Ack)
 
 	req2, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(postJSON2)))
@@ -2865,7 +2868,7 @@ func (suite *SubscriptionsHandlersTestSuite) TestValidationInSubs() {
 		req, err := http.NewRequest("GET", url, bytes.NewBuffer([]byte("")))
 		router := mux.NewRouter().StrictSlash(true)
 		mgr := oldPush.Manager{}
-		router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapValidate(WrapMockAuthConfig(SubListOne, cfgKafka, &brk, str, &mgr, nil)))
+		router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(WrapValidate(SubListOne), cfgKafka, &brk, str, &mgr, nil))
 
 		if err != nil {
 			log.Fatal(err)
