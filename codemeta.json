@@ -1,21 +1,88 @@
 {
-  "@context": "https://doi.org/10.5063/SCHEMA/CODEMETA-2.0",
-  "@type": "SoftwareSourceCode",
-  "name": "Argo Messaging Service",
-  "description": "The ARGO Messaging Service is a Publish/Subscribe Service, which implements the Google PubSub protocol. Instead of focusing on a single Messaging API specification for handling the logic of publishing/subscribing to the broker network the API focuses on creating nodes of Publishers and Subscribers as a Service. It provides an HTTP API that enables Users/Systems to implement message oriented services using the Publish/Subscribe Model over plain HTTP. In the Publish/Subscribe paradigm, Publishers are users/systems that can send messages to named-channels called Topics. Subscribers are users/systems that create Subscriptions to specific topics and receive messages.",
-  "programmingLanguage": ["Golang", "Python"],
-  "license": "Apache",
-  "version": "1.5.0",
-  "url": "https://github.com/ARGOeu/argo-messaging",
-  "author": {
-    "@type": "Organization",
-    "name": "GRNET",
-    "url": "https://grnet.gr/"
-  },
-  "keywords": ["messaging", "pub/sub", "golang"],
-  "repositoryCode": {
-    "@type": "GitRepository",
-    "codeRepository": "https://github.com/ARGOeu/argo-messaging.git"
-  }
+    "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+    "@type": "SoftwareSourceCode",
+    "license": "https://spdx.org/licenses/Apache-2.0.html",
+    "codeRepository": "https://github.com/ARGOeu/argo-messaging.git",
+    "dateCreated": "2015-12-20",
+    "datePublished": "2016-03-24",
+    "dateModified": "2023-05-23",
+    "downloadUrl": "https://github.com/ARGOeu/argo-messaging/archive/refs/heads/master.zip",
+    "issueTracker": "https://github.com/ARGOeu/argo-messaging/issues",
+    "name": "Argo Messaging Service",
+    "version": "1.5.0",
+    "description": "The ARGO Messaging Service is a Publish/Subscribe Service, which implements the Google PubSub protocol. Instead of focusing on a single Messaging API specification for handling the logic of publishing/subscribing to the broker network the API focuses on creating nodes of Publishers and Subscribers as a Service. It provides an HTTP API that enables Users/Systems to implement message oriented services using the Publish/Subscribe Model over plain HTTP. In the Publish/Subscribe paradigm, Publishers are users/systems that can send messages to named-channels called Topics. Subscribers are users/systems that create Subscriptions to specific topics and receive messages.",
+    "applicationCategory": "messaging service",
+    "releaseNotes": "Features\nAM-311 Upgrade to go1.19\nBug/Fixes\nUpdate docusaurus dependencies\nAM-306 Static analysis assessment fixes\nUpdate Postman CI/CD collection to use x-api-key header\nDocumentation\n\nUpdate README.md\nCreate CITATION.cff\nCreate CONTRIBUTING.md\nCreate CODE_OF_CONDUCT.md\nProcess for adding a new mattermost integration",
+    "developmentStatus": "active",
+    "isPartOf": "https://eosc-portal.eu",
+    "funder": {
+        "@type": "Organization",
+        "name": "GRNET S.A. – National Infrastructures for Research and Technology"
+    },
+    "keywords": [
+        "messaging",
+        "pub/sub",
+        "golang",
+        "kafka"
+    ],
+    "programmingLanguage": [
+       "Golang",
+        "Python",
+        "Java"
+    ],
+    "author": [
+        {
+            "@type": "Person",
+            "@id": "https://orcid.org/0000-0003-1148-1738",
+            "givenName": "Themis",
+            "familyName": "Zamani",
+            "email": "themis@admin.grnet.gr",
+            "affiliation": {
+                "@type": "Organization",
+                "name": "GRNET S.A"
+            }
+        },
+        {
+            "@type": "Person",
+            "givenName": "Konstantinos",
+            "familyName": "Kagkelidis",
+            "email": "kaggis@admin.grnet.gr",
+            "affiliation": {
+                "@type": "Organization",
+                "name": "GRNET S.A "
+            }
+        },
+        {
+            "@type": "Person",
+            "givenName": "Agelos ",
+            "familyName": "Tsalapatis",
+            "email": "agelostsal@admin.grnet.gr",
+            "affiliation": {
+                "@type": "Organization",
+                "name": "GRNET S.A"
+            }
+        },
+        {
+            "@type": "Person",
+            "givenName": "Kostas",
+            "familyName": "Koumantaros",
+            "email": "kkoum@admin.grnet.gr",
+            "affiliation": {
+                "@type": "Organization",
+                "name": "GRNET S.A"
+            }
+        }
+    ],
+    "contributor": [
+        {
+            "@type": "Person",
+            "givenName": "Konstantinos",
+            "familyName": "Evangelou",
+            "email": "kevangel@admin.grnet.gr",
+            "affiliation": {
+                "@type": "Organization",
+                "name": "GRNET S.A"
+            }
+        }
+    ]
 }
-
