@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -14,8 +15,10 @@ import (
 	"net/http"
 )
 
-// SchemaCreate(POST) handles the creation of a new schema
+// SchemaCreate (POST) handles the creation of a new schema
 func SchemaCreate(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -39,28 +42,28 @@ func SchemaCreate(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&schema)
 	if err != nil {
 		err := APIErrorInvalidArgument("Schema")
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
-	schema, err = schemas.Create(projectUUID, schemaUUID, schemaName, schema.Type, schema.RawSchema, refStr)
+	schema, err = schemas.Create(rCTX, projectUUID, schemaUUID, schemaName, schema.Type, schema.RawSchema, refStr)
 	if err != nil {
 		if err.Error() == "exists" {
 			err := APIErrorConflict("Schema")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 
 		}
 
 		if err.Error() == "unsupported" {
 			err := APIErrorInvalidData(schemas.UnsupportedSchemaError)
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 
 		}
 
 		err := APIErrorInvalidData(err.Error())
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -68,8 +71,10 @@ func SchemaCreate(w http.ResponseWriter, r *http.Request) {
 	respondOK(w, output)
 }
 
-// SchemaListOne(GET) retrieves information about the requested schema
+// SchemaListOne (GET) retrieves information about the requested schema
 func SchemaListOne(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -85,16 +90,16 @@ func SchemaListOne(w http.ResponseWriter, r *http.Request) {
 
 	// Get project UUID First to use as reference
 	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
-	schemasList, err := schemas.Find(projectUUID, "", schemaName, refStr)
+	schemasList, err := schemas.Find(rCTX, projectUUID, "", schemaName, refStr)
 	if err != nil {
 		err := APIErrGenericInternal(err.Error())
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
 	if schemasList.Empty() {
 		err := APIErrorNotFound("Schema")
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -102,8 +107,10 @@ func SchemaListOne(w http.ResponseWriter, r *http.Request) {
 	respondOK(w, output)
 }
 
-// SchemaLisAll(GET) retrieves all the schemas under the given project
+// SchemaLisAll (GET) retrieves all the schemas under the given project
 func SchemaListAll(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -115,10 +122,10 @@ func SchemaListAll(w http.ResponseWriter, r *http.Request) {
 
 	// Get project UUID First to use as reference
 	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
-	schemasList, err := schemas.Find(projectUUID, "", "", refStr)
+	schemasList, err := schemas.Find(rCTX, projectUUID, "", "", refStr)
 	if err != nil {
 		err := APIErrGenericInternal(err.Error())
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -126,8 +133,10 @@ func SchemaListAll(w http.ResponseWriter, r *http.Request) {
 	respondOK(w, output)
 }
 
-// SchemaUpdate(PUT) updates the given schema
+// SchemaUpdate (PUT) updates the given schema
 func SchemaUpdate(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -143,16 +152,16 @@ func SchemaUpdate(w http.ResponseWriter, r *http.Request) {
 
 	// Get project UUID First to use as reference
 	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
-	schemasList, err := schemas.Find(projectUUID, "", schemaName, refStr)
+	schemasList, err := schemas.Find(rCTX, projectUUID, "", schemaName, refStr)
 	if err != nil {
 		err := APIErrGenericInternal(err.Error())
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
 	if schemasList.Empty() {
 		err := APIErrorNotFound("Schema")
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -161,7 +170,7 @@ func SchemaUpdate(w http.ResponseWriter, r *http.Request) {
 	err = json.NewDecoder(r.Body).Decode(&updatedSchema)
 	if err != nil {
 		err := APIErrorInvalidArgument("Schema")
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -169,30 +178,30 @@ func SchemaUpdate(w http.ResponseWriter, r *http.Request) {
 		_, schemaName, err := schemas.ExtractSchema(updatedSchema.FullName)
 		if err != nil {
 			err := APIErrorInvalidData(err.Error())
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 		updatedSchema.Name = schemaName
 	}
 
-	schema, err := schemas.Update(schemasList.Schemas[0], updatedSchema.Name, updatedSchema.Type, updatedSchema.RawSchema, refStr)
+	schema, err := schemas.Update(rCTX, schemasList.Schemas[0], updatedSchema.Name, updatedSchema.Type, updatedSchema.RawSchema, refStr)
 	if err != nil {
 		if err.Error() == "exists" {
 			err := APIErrorConflict("Schema")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 
 		}
 
 		if err.Error() == "unsupported" {
 			err := APIErrorInvalidData(schemas.UnsupportedSchemaError)
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 
 		}
 
 		err := APIErrorInvalidData(err.Error())
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -201,6 +210,8 @@ func SchemaUpdate(w http.ResponseWriter, r *http.Request) {
 }
 
 func SchemaDelete(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -217,31 +228,33 @@ func SchemaDelete(w http.ResponseWriter, r *http.Request) {
 	// Get project UUID First to use as reference
 	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 
-	schemasList, err := schemas.Find(projectUUID, "", schemaName, refStr)
+	schemasList, err := schemas.Find(rCTX, projectUUID, "", schemaName, refStr)
 	if err != nil {
 		err := APIErrGenericInternal(err.Error())
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
 	if schemasList.Empty() {
 		err := APIErrorNotFound("Schema")
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
-	err = schemas.Delete(schemasList.Schemas[0].UUID, refStr)
+	err = schemas.Delete(rCTX, schemasList.Schemas[0].UUID, refStr)
 	if err != nil {
 		err := APIErrGenericInternal(err.Error())
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
 	respondOK(w, nil)
 }
 
-// SchemaValidateMessage(POST) validates the given message against the schema
+// SchemaValidateMessage (POST) validates the given message against the schema
 func SchemaValidateMessage(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -257,16 +270,16 @@ func SchemaValidateMessage(w http.ResponseWriter, r *http.Request) {
 
 	// Get project UUID First to use as reference
 	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
-	schemasList, err := schemas.Find(projectUUID, "", schemaName, refStr)
+	schemasList, err := schemas.Find(rCTX, projectUUID, "", schemaName, refStr)
 	if err != nil {
 		err := APIErrGenericInternal(err.Error())
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
 	if schemasList.Empty() {
 		err := APIErrorNotFound("Schema")
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -274,7 +287,7 @@ func SchemaValidateMessage(w http.ResponseWriter, r *http.Request) {
 	_, err = buf.ReadFrom(r.Body)
 	if err != nil {
 		err := APIErrorInvalidData(err.Error())
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -294,7 +307,7 @@ func SchemaValidateMessage(w http.ResponseWriter, r *http.Request) {
 		err := json.Unmarshal(buf.Bytes(), &body)
 		if err != nil {
 			err := APIErrorInvalidRequestBody()
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 
@@ -310,7 +323,7 @@ func SchemaValidateMessage(w http.ResponseWriter, r *http.Request) {
 		} else {
 
 			err := APIErrorInvalidArgument("Schema Payload")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 	}
@@ -319,11 +332,11 @@ func SchemaValidateMessage(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if err.Error() == "500" {
 			err := APIErrGenericInternal(schemas.GenericError)
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		} else {
 			err := APIErrorInvalidData(err.Error())
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 	}

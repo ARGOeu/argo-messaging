@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"github.com/ARGOeu/argo-messaging/auth"
 	"github.com/ARGOeu/argo-messaging/config"
@@ -19,6 +20,8 @@ import (
 
 // UserProfile returns a user's profile based on the provided url parameter(key)
 func UserProfile(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -34,20 +37,20 @@ func UserProfile(w http.ResponseWriter, r *http.Request) {
 
 	if token == "" {
 		err := APIErrorUnauthorized()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
-	result, err := auth.GetUserByToken(token, refStr)
+	result, err := auth.GetUserByToken(rCTX, token, refStr)
 
 	if err != nil {
 		if err.Error() == "not found" {
 			err := APIErrorUnauthorized()
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 		err := APIErrQueryDatastore()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -56,7 +59,7 @@ func UserProfile(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		err := APIErrExportJSON()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -67,6 +70,8 @@ func UserProfile(w http.ResponseWriter, r *http.Request) {
 
 // RefreshToken (POST) refreshes user's token
 func RefreshToken(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	// Init output
 	output := []byte("")
@@ -84,19 +89,19 @@ func RefreshToken(w http.ResponseWriter, r *http.Request) {
 	refStr := gorillaContext.Get(r, "str").(stores.Store)
 
 	// Get Result Object
-	userUUID := auth.GetUUIDByName(urlUser, refStr)
+	userUUID := auth.GetUUIDByName(rCTX, urlUser, refStr)
 	token, err := auth.GenToken() // generate a new user token
 
-	res, err := auth.UpdateUserToken(userUUID, token, refStr)
+	res, err := auth.UpdateUserToken(rCTX, userUUID, token, refStr)
 
 	if err != nil {
 		if err.Error() == "not found" {
 			err := APIErrorNotFound("User")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 		err := APIErrGenericInternal(err.Error())
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -104,7 +109,7 @@ func RefreshToken(w http.ResponseWriter, r *http.Request) {
 	resJSON, err := res.ExportJSON()
 	if err != nil {
 		err := APIErrExportJSON()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -115,6 +120,8 @@ func RefreshToken(w http.ResponseWriter, r *http.Request) {
 
 // UserUpdate (PUT) updates the user information
 func UserUpdate(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	// Init output
 	output := []byte("")
@@ -135,7 +142,7 @@ func UserUpdate(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		err := APIErrorInvalidRequestBody()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -143,14 +150,14 @@ func UserUpdate(w http.ResponseWriter, r *http.Request) {
 	postBody, err := auth.GetUserFromJSON(body)
 	if err != nil {
 		err := APIErrorInvalidArgument("User")
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
 	// Get Result Object
-	userUUID := auth.GetUUIDByName(urlUser, refStr)
+	userUUID := auth.GetUUIDByName(rCTX, urlUser, refStr)
 	modified := time.Now().UTC()
-	res, err := auth.UpdateUser(userUUID, postBody.FirstName, postBody.LastName, postBody.Organization, postBody.Description,
+	res, err := auth.UpdateUser(rCTX, userUUID, postBody.FirstName, postBody.LastName, postBody.Organization, postBody.Description,
 		postBody.Name, postBody.Projects, postBody.Email, postBody.ServiceRoles, modified, true, refStr)
 
 	if err != nil {
@@ -159,24 +166,24 @@ func UserUpdate(w http.ResponseWriter, r *http.Request) {
 
 		if err.Error() == "not found" {
 			err := APIErrorNotFound("User")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 
 		if strings.HasPrefix(err.Error(), "invalid") {
 			err := APIErrorInvalidData(err.Error())
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 
 		if strings.HasPrefix(err.Error(), "duplicate") {
 			err := APIErrorInvalidData(err.Error())
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 
 		err := APIErrGenericInternal(err.Error())
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -184,7 +191,7 @@ func UserUpdate(w http.ResponseWriter, r *http.Request) {
 	resJSON, err := res.ExportJSON()
 	if err != nil {
 		err := APIErrExportJSON()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -195,6 +202,8 @@ func UserUpdate(w http.ResponseWriter, r *http.Request) {
 
 // UserCreate (POST) creates a new user inside a project
 func UserCreate(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	// Init output
 	output := []byte("")
@@ -216,7 +225,7 @@ func UserCreate(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		err := APIErrorInvalidRequestBody()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -224,8 +233,7 @@ func UserCreate(w http.ResponseWriter, r *http.Request) {
 	postBody, err := auth.GetUserFromJSON(body)
 	if err != nil {
 		err := APIErrorInvalidArgument("User")
-		respondErr(w, err)
-		log.Error(string(body[:]))
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -233,30 +241,30 @@ func UserCreate(w http.ResponseWriter, r *http.Request) {
 	token, err := auth.GenToken() // generate a new user token
 	created := time.Now().UTC()
 	// Get Result Object
-	res, err := auth.CreateUser(uuid, urlUser, postBody.FirstName, postBody.LastName, postBody.Organization, postBody.Description,
+	res, err := auth.CreateUser(rCTX, uuid, urlUser, postBody.FirstName, postBody.LastName, postBody.Organization, postBody.Description,
 		postBody.Projects, token, postBody.Email, postBody.ServiceRoles, created, refUserUUID, refStr)
 
 	if err != nil {
 		if err.Error() == "exists" {
 			err := APIErrorConflict("User")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 
 		if strings.HasPrefix(err.Error(), "duplicate") {
 			err := APIErrorInvalidData(err.Error())
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 
 		if strings.HasPrefix(err.Error(), "invalid") {
 			err := APIErrorInvalidData(err.Error())
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 
 		err := APIErrGenericInternal(err.Error())
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -264,7 +272,7 @@ func UserCreate(w http.ResponseWriter, r *http.Request) {
 	resJSON, err := res.ExportJSON()
 	if err != nil {
 		err := APIErrExportJSON()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -275,6 +283,8 @@ func UserCreate(w http.ResponseWriter, r *http.Request) {
 
 // UserListByToken (GET) one user by his token
 func UserListByToken(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	// Init output
 	output := []byte("")
@@ -292,16 +302,16 @@ func UserListByToken(w http.ResponseWriter, r *http.Request) {
 	refStr := gorillaContext.Get(r, "str").(stores.Store)
 
 	// Get Results Object
-	result, err := auth.GetUserByToken(urlToken, refStr)
+	result, err := auth.GetUserByToken(rCTX, urlToken, refStr)
 
 	if err != nil {
 		if err.Error() == "not found" {
 			err := APIErrorNotFound("User")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 		err := APIErrQueryDatastore()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -310,7 +320,7 @@ func UserListByToken(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		err := APIErrExportJSON()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -322,6 +332,8 @@ func UserListByToken(w http.ResponseWriter, r *http.Request) {
 
 // UserListOne (GET) one user
 func UserListOne(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	// Init output
 	output := []byte("")
@@ -339,17 +351,17 @@ func UserListOne(w http.ResponseWriter, r *http.Request) {
 	refStr := gorillaContext.Get(r, "str").(stores.Store)
 
 	// Get Results Object
-	results, err := auth.FindUsers("", "", urlUser, true, refStr)
+	results, err := auth.FindUsers(rCTX, "", "", urlUser, true, refStr)
 
 	if err != nil {
 		if err.Error() == "not found" {
 			err := APIErrorNotFound("User")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 
 		err := APIErrQueryDatastore()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -360,7 +372,7 @@ func UserListOne(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		err := APIErrExportJSON()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -371,6 +383,8 @@ func UserListOne(w http.ResponseWriter, r *http.Request) {
 
 // UserListByUUID (GET) one user by uuid
 func UserListByUUID(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	// Init output
 	output := []byte("")
@@ -387,23 +401,23 @@ func UserListByUUID(w http.ResponseWriter, r *http.Request) {
 	refStr := gorillaContext.Get(r, "str").(stores.Store)
 
 	// Get Results Object
-	result, err := auth.GetUserByUUID(urlVars["uuid"], refStr)
+	result, err := auth.GetUserByUUID(rCTX, urlVars["uuid"], refStr)
 
 	if err != nil {
 		if err.Error() == "not found" {
 			err := APIErrorNotFound("User")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 
 		if err.Error() == "multiple uuids" {
 			err := APIErrGenericInternal("Multiple users found with the same uuid")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 
 		err := APIErrQueryDatastore()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -412,7 +426,7 @@ func UserListByUUID(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		err := APIErrExportJSON()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 	}
 
 	// Write response
@@ -422,6 +436,8 @@ func UserListByUUID(w http.ResponseWriter, r *http.Request) {
 
 // UserListAll (GET) all users - or users belonging to a project
 func UserListAll(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	var err error
 	var pageSize int
@@ -453,19 +469,26 @@ func UserListAll(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if projectName != "" {
-		projectUUID = projects.GetUUIDByName(projectName, refStr)
+		projectUUID = projects.GetUUIDByName(rCTX, projectName, refStr)
 		if projectUUID == "" {
 			err := APIErrorNotFound("ProjectUUID")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 	}
 
 	if strPageSize != "" {
 		if pageSize, err = strconv.Atoi(strPageSize); err != nil {
-			log.Errorf("Pagesize %v produced an error  while being converted to int: %v", strPageSize, err.Error())
+			log.WithFields(
+				log.Fields{
+					"trace_id":  rCTX.Value("trace_id"),
+					"type":      "request_log",
+					"page_size": pageSize,
+					"error":     err.Error(),
+				},
+			).Error("error while converting page size to int")
 			err := APIErrorInvalidData("Invalid page size")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 	}
@@ -475,11 +498,11 @@ func UserListAll(w http.ResponseWriter, r *http.Request) {
 
 	// Get Results Object - call is always privileged because this handler is only accessible by service admins
 	paginatedUsers, err =
-		auth.PaginatedFindUsers(pageToken, int64(pageSize), projectUUID, privileged, usersDetailedView, refStr)
+		auth.PaginatedFindUsers(rCTX, pageToken, int64(pageSize), projectUUID, privileged, usersDetailedView, refStr)
 
 	if err != nil {
 		err := APIErrorInvalidData("Invalid page token")
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -488,7 +511,7 @@ func UserListAll(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		err := APIErrExportJSON()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -499,6 +522,8 @@ func UserListAll(w http.ResponseWriter, r *http.Request) {
 
 // UserDelete (DEL) deletes an existing user
 func UserDelete(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	// Init output
 	output := []byte("")
@@ -514,17 +539,17 @@ func UserDelete(w http.ResponseWriter, r *http.Request) {
 	urlVars := mux.Vars(r)
 	urlUser := urlVars["user"]
 
-	userUUID := auth.GetUUIDByName(urlUser, refStr)
+	userUUID := auth.GetUUIDByName(rCTX, urlUser, refStr)
 
-	err := auth.RemoveUser(userUUID, refStr)
+	err := auth.RemoveUser(rCTX, userUUID, refStr)
 	if err != nil {
 		if err.Error() == "not found" {
 			err := APIErrorNotFound("User")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 		err := APIErrGenericInternal(err.Error())
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 

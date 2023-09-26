@@ -25,7 +25,7 @@ type APIError struct {
 	Reason  string `json:"reason"`
 }
 
-// api err to be used when dealing with an invalid request body
+// APIErrorInvalidRequestBody to be used when dealing with an invalid request body
 var APIErrorInvalidRequestBody = func() APIErrorRoot {
 
 	apiErrBody := APIErrorBody{
@@ -39,7 +39,7 @@ var APIErrorInvalidRequestBody = func() APIErrorRoot {
 	}
 }
 
-// api err to be used when a name provided through the url parameters is not valid
+// APIErrorInvalidName to be used when a name provided through the url parameters is not valid
 var APIErrorInvalidName = func(key string) APIErrorRoot {
 
 	apiErrBody := APIErrorBody{
@@ -53,7 +53,7 @@ var APIErrorInvalidName = func(key string) APIErrorRoot {
 	}
 }
 
-// api err to be used when data provided is invalid
+// APIErrorInvalidData to be used when data provided is invalid
 var APIErrorInvalidData = func(msg string) APIErrorRoot {
 
 	apiErrBody := APIErrorBody{
@@ -67,7 +67,7 @@ var APIErrorInvalidData = func(msg string) APIErrorRoot {
 	}
 }
 
-// api err to be used when argument's provided are invalid according to the resource
+// APIErrorInvalidArgument to be used when argument's provided are invalid according to the resource
 var APIErrorInvalidArgument = func(resource string) APIErrorRoot {
 
 	apiErrBody := APIErrorBody{
@@ -81,7 +81,7 @@ var APIErrorInvalidArgument = func(resource string) APIErrorRoot {
 	}
 }
 
-// api err to be used when a user is unauthorized
+// APIErrorUnauthorized to be used when a user is unauthorized
 var APIErrorUnauthorized = func() APIErrorRoot {
 
 	apiErrBody := APIErrorBody{
@@ -95,7 +95,7 @@ var APIErrorUnauthorized = func() APIErrorRoot {
 	}
 }
 
-// api err to be used when access to a resource is forbidden for the request user
+// APIErrorForbidden to be used when access to a resource is forbidden for the request user
 var APIErrorForbidden = func() APIErrorRoot {
 
 	apiErrBody := APIErrorBody{
@@ -109,13 +109,13 @@ var APIErrorForbidden = func() APIErrorRoot {
 	}
 }
 
-// api err to be used when access to a resource is forbidden for the request user
+// APIErrorForbiddenWithMsg to be used when access to a resource is forbidden for the request user
 var APIErrorForbiddenWithMsg = func(msg string) APIErrorRoot {
 	apiErrBody := APIErrorBody{Code: http.StatusForbidden, Message: fmt.Sprintf("Access to this resource is forbidden. %v", msg), Status: "FORBIDDEN"}
 	return APIErrorRoot{Body: apiErrBody}
 }
 
-// api err for dealing with absent resources
+// APIErrorNotFound for dealing with absent resources
 var APIErrorNotFound = func(resource string) APIErrorRoot {
 
 	apiErrBody := APIErrorBody{
@@ -129,7 +129,7 @@ var APIErrorNotFound = func(resource string) APIErrorRoot {
 	}
 }
 
-// api err for dealing with  timeouts
+// APIErrorTimeout for dealing with  timeouts
 var APIErrorTimeout = func(msg string) APIErrorRoot {
 
 	apiErrBody := APIErrorBody{
@@ -143,7 +143,7 @@ var APIErrorTimeout = func(msg string) APIErrorRoot {
 	}
 }
 
-// api err for dealing with already existing resources
+// APIErrorConflict for dealing with already existing resources
 var APIErrorConflict = func(resource string) APIErrorRoot {
 
 	apiErrBody := APIErrorBody{
@@ -157,7 +157,7 @@ var APIErrorConflict = func(resource string) APIErrorRoot {
 	}
 }
 
-// api error to be used when push enabled false
+// APIErrorPushConflict to be used when push enabled false
 var APIErrorPushConflict = func() APIErrorRoot {
 
 	apiErrBody := APIErrorBody{
@@ -171,7 +171,7 @@ var APIErrorPushConflict = func() APIErrorRoot {
 	}
 }
 
-// api error to be used to format generic conflict errors
+// APIErrorGenericConflict to be used to format generic conflict errors
 var APIErrorGenericConflict = func(msg string) APIErrorRoot {
 
 	apiErrBody := APIErrorBody{
@@ -185,7 +185,7 @@ var APIErrorGenericConflict = func(msg string) APIErrorRoot {
 	}
 }
 
-// api error to be used when push enabled false
+// APIErrorPullNoTopic to be used when push enabled false
 var APIErrorPullNoTopic = func() APIErrorRoot {
 
 	apiErrBody := APIErrorBody{
@@ -199,7 +199,7 @@ var APIErrorPullNoTopic = func() APIErrorRoot {
 	}
 }
 
-// api err for dealing with too large messages
+// APIErrTooLargeMessage for dealing with too large messages
 var APIErrTooLargeMessage = func(resource string) APIErrorRoot {
 
 	apiErrBody := APIErrorBody{
@@ -213,7 +213,7 @@ var APIErrTooLargeMessage = func(resource string) APIErrorRoot {
 	}
 }
 
-// api err for dealing with generic internal errors
+// APIErrGenericInternal for dealing with generic internal errors
 var APIErrGenericInternal = func(msg string) APIErrorRoot {
 
 	apiErrBody := APIErrorBody{
@@ -227,7 +227,7 @@ var APIErrGenericInternal = func(msg string) APIErrorRoot {
 	}
 }
 
-// api err for dealing with generic internal errors
+// APIErrPushVerification for dealing with generic internal errors
 var APIErrPushVerification = func(msg string) APIErrorRoot {
 
 	apiErrBody := APIErrorBody{
@@ -241,7 +241,7 @@ var APIErrPushVerification = func(msg string) APIErrorRoot {
 	}
 }
 
-// api err for dealing with internal errors when marshaling json to struct
+// APIErrExportJSON for dealing with internal errors when marshaling json to struct
 var APIErrExportJSON = func() APIErrorRoot {
 
 	apiErrBody := APIErrorBody{
@@ -255,7 +255,7 @@ var APIErrExportJSON = func() APIErrorRoot {
 	}
 }
 
-// api err for dealing with internal errors when querying the datastore
+// APIErrQueryDatastore for dealing with internal errors when querying the datastore
 var APIErrQueryDatastore = func() APIErrorRoot {
 
 	apiErrBody := APIErrorBody{
@@ -269,7 +269,7 @@ var APIErrQueryDatastore = func() APIErrorRoot {
 	}
 }
 
-// api err for dealing with internal errors related to acknowledgement
+// APIErrHandlingAcknowledgement for dealing with internal errors related to acknowledgement
 var APIErrHandlingAcknowledgement = func() APIErrorRoot {
 
 	apiErrBody := APIErrorBody{
@@ -283,7 +283,7 @@ var APIErrHandlingAcknowledgement = func() APIErrorRoot {
 	}
 }
 
-// api err for dealing with generic backend errors
+// APIErrGenericBackend for dealing with generic backend errors
 var APIErrGenericBackend = func() APIErrorRoot {
 
 	apiErrBody := APIErrorBody{
@@ -297,7 +297,7 @@ var APIErrGenericBackend = func() APIErrorRoot {
 	}
 }
 
-// api error to be used when push enabled true but push worker was not able to be retrieved
+// APIErrInternalPush to be used when push enabled true but push worker was not able to be retrieved
 var APIErrInternalPush = func() APIErrorRoot {
 
 	apiErrBody := APIErrorBody{

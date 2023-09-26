@@ -1,6 +1,7 @@
 package topics
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 
@@ -56,10 +57,10 @@ func New(projectUUID string, projectName string, name string) Topic {
 	return t
 }
 
-// Find searches and returns a specific topic or all topics of a given project
-func FindMetric(projectUUID string, name string, store stores.Store) (TopicMetrics, error) {
+// FindMetric searches and returns a specific topic or all topics of a given project
+func FindMetric(ctx context.Context, projectUUID string, name string, store stores.Store) (TopicMetrics, error) {
 	result := TopicMetrics{MsgNum: 0}
-	topics, _, _, err := store.QueryTopics(projectUUID, "", name, "", 0)
+	topics, _, _, err := store.QueryTopics(ctx, projectUUID, "", name, "", 0)
 
 	// check if the topic exists
 	if len(topics) == 0 {
@@ -67,7 +68,7 @@ func FindMetric(projectUUID string, name string, store stores.Store) (TopicMetri
 	}
 
 	for _, item := range topics {
-		projectName := projects.GetNameByUUID(item.ProjectUUID, store)
+		projectName := projects.GetNameByUUID(ctx, item.ProjectUUID, store)
 		if projectName == "" {
 			return result, errors.New("invalid project")
 		}
@@ -81,7 +82,7 @@ func FindMetric(projectUUID string, name string, store stores.Store) (TopicMetri
 }
 
 // Find searches and returns a specific topic or all topics of a given project
-func Find(projectUUID, userUUID, name, pageToken string, pageSize int64, store stores.Store) (PaginatedTopics, error) {
+func Find(ctx context.Context, projectUUID, userUUID, name, pageToken string, pageSize int64, store stores.Store) (PaginatedTopics, error) {
 
 	var err error
 	var qTopics []stores.QTopic
@@ -95,17 +96,20 @@ func Find(projectUUID, userUUID, name, pageToken string, pageSize int64, store s
 	if pageTokenBytes, err = base64.StdEncoding.DecodeString(pageToken); err != nil {
 		log.WithFields(
 			log.Fields{
-				"type": "service_log",
+				"trace_id":   ctx.Value("trace_id"),
+				"type":       "request_log",
+				"page_token": pageToken,
+				"error":      err.Error(),
 			},
-		).Errorf("Page token %v produced an error while being decoded to base64: %v", pageToken, err.Error())
+		).Error("error while decoding to base64")
 		return result, err
 	}
 
-	if qTopics, totalSize, nextPageToken, err = store.QueryTopics(projectUUID, userUUID, name, string(pageTokenBytes), pageSize); err != nil {
+	if qTopics, totalSize, nextPageToken, err = store.QueryTopics(ctx, projectUUID, userUUID, name, string(pageTokenBytes), pageSize); err != nil {
 		return result, err
 	}
 
-	projectName := projects.GetNameByUUID(projectUUID, store)
+	projectName := projects.GetNameByUUID(ctx, projectUUID, store)
 
 	if projectName == "" {
 		return result, errors.New("invalid project")
@@ -119,7 +123,7 @@ func Find(projectUUID, userUUID, name, pageToken string, pageSize int64, store s
 		curTop.CreatedOn = item.CreatedOn.UTC().Format("2006-01-02T15:04:05Z")
 
 		if item.SchemaUUID != "" {
-			sl, err := schemas.Find(projectUUID, item.SchemaUUID, "", store)
+			sl, err := schemas.Find(ctx, projectUUID, item.SchemaUUID, "", store)
 			if err == nil {
 				if !sl.Empty() {
 					curTop.Schema = schemas.FormatSchemaRef(projectName, sl.Schemas[0].Name)
@@ -127,6 +131,7 @@ func Find(projectUUID, userUUID, name, pageToken string, pageSize int64, store s
 			} else {
 				log.WithFields(
 					log.Fields{
+						"trace_id":     ctx.Value("trace_id"),
 						"type":         "service_log",
 						"topic_name":   item.Name,
 						"project_uuid": projectUUID,
@@ -166,18 +171,18 @@ func (tl *PaginatedTopics) ExportJSON() (string, error) {
 }
 
 // CreateTopic creates a new topic
-func CreateTopic(projectUUID string, name string, schemaUUID string, createdOn time.Time, store stores.Store) (Topic, error) {
+func CreateTopic(ctx context.Context, projectUUID string, name string, schemaUUID string, createdOn time.Time, store stores.Store) (Topic, error) {
 
-	if HasTopic(projectUUID, name, store) {
+	if HasTopic(ctx, projectUUID, name, store) {
 		return Topic{}, errors.New("exists")
 	}
 
-	err := store.InsertTopic(projectUUID, name, schemaUUID, createdOn)
+	err := store.InsertTopic(ctx, projectUUID, name, schemaUUID, createdOn)
 	if err != nil {
 		return Topic{}, errors.New("backend error")
 	}
 
-	results, err := Find(projectUUID, "", name, "", 0, store)
+	results, err := Find(ctx, projectUUID, "", name, "", 0, store)
 
 	if len(results.Topics) != 1 {
 		return Topic{}, errors.New("backend error")
@@ -187,27 +192,27 @@ func CreateTopic(projectUUID string, name string, schemaUUID string, createdOn t
 }
 
 // AttachSchemaToTopic links the provided schema with the given topic
-func AttachSchemaToTopic(projectUUID, name, schemaUUID string, store stores.Store) error {
-	return store.LinkTopicSchema(projectUUID, name, schemaUUID)
+func AttachSchemaToTopic(ctx context.Context, projectUUID, name, schemaUUID string, store stores.Store) error {
+	return store.LinkTopicSchema(ctx, projectUUID, name, schemaUUID)
 }
 
 // DetachSchemaFromTopic removes the link between the provided schema and the given topic
-func DetachSchemaFromTopic(projectUUID, name string, store stores.Store) error {
-	return store.LinkTopicSchema(projectUUID, name, "")
+func DetachSchemaFromTopic(ctx context.Context, projectUUID, name string, store stores.Store) error {
+	return store.LinkTopicSchema(ctx, projectUUID, name, "")
 }
 
 // RemoveTopic removes an existing topic
-func RemoveTopic(projectUUID string, name string, store stores.Store) error {
-	if HasTopic(projectUUID, name, store) == false {
+func RemoveTopic(ctx context.Context, projectUUID string, name string, store stores.Store) error {
+	if HasTopic(ctx, projectUUID, name, store) == false {
 		return errors.New("not found")
 	}
 
-	return store.RemoveTopic(projectUUID, name)
+	return store.RemoveTopic(ctx, projectUUID, name)
 }
 
 // HasTopic returns true if project & topic combination exist
-func HasTopic(projectUUID string, name string, store stores.Store) bool {
-	res, err := Find(projectUUID, "", name, "", 0, store)
+func HasTopic(ctx context.Context, projectUUID string, name string, store stores.Store) bool {
+	res, err := Find(ctx, projectUUID, "", name, "", 0, store)
 	if len(res.Topics) > 0 && err == nil {
 		return true
 	}

@@ -1,6 +1,7 @@
 package schemas
 
 import (
+	"context"
 	"errors"
 	"github.com/ARGOeu/argo-messaging/messages"
 	"github.com/ARGOeu/argo-messaging/stores"
@@ -10,6 +11,7 @@ import (
 
 type SchemasTestSuite struct {
 	suite.Suite
+	ctx context.Context
 }
 
 func (suite *SchemasTestSuite) TestExtractSchema() {
@@ -176,7 +178,7 @@ func (suite *SchemasTestSuite) TestFind() {
 	}
 
 	for _, t := range testData {
-		s, e := Find(t.projectUUID, t.schemaUUID, t.schemaName, store)
+		s, e := Find(suite.ctx, t.projectUUID, t.schemaUUID, t.schemaName, store)
 		suite.Equal(t.err, e, t.msg)
 		suite.Equal(t.schemaList, s, t.msg)
 	}
@@ -229,7 +231,7 @@ func (suite *SchemasTestSuite) TestUpdate() {
 			},
 			err: nil,
 			queryFunc: func() interface{} {
-				qs, _ := store.QuerySchemas("argo_uuid", "schema_uuid_1", "new-schema-name")
+				qs, _ := store.QuerySchemas(suite.ctx, "argo_uuid", "schema_uuid_1", "new-schema-name")
 				return qs[0]
 			},
 			returnQuery: stores.QSchema{
@@ -328,7 +330,7 @@ func (suite *SchemasTestSuite) TestUpdate() {
 	}
 
 	for _, t := range testData {
-		s, e := Update(t.existingSchema, t.newName, t.newType, t.newSchema, store)
+		s, e := Update(suite.ctx, t.existingSchema, t.newName, t.newType, t.newSchema, store)
 		suite.Equal(t.expectedSchema, s, t.msg)
 		suite.Equal(t.err, e, t.msg)
 		suite.Equal(t.returnQuery, t.queryFunc(), t.msg)
@@ -474,9 +476,9 @@ func (suite *SchemasTestSuite) TestDelete() {
 
 	store := stores.NewMockStore("", "")
 
-	e1 := Delete("schema_uuid_1", store)
-	sl, _ := Find("argo_uuid", "schema_uuid_1", "", store)
-	qtd, _, _, _ := store.QueryTopics("argo_uuid", "", "topic2", "", 1)
+	e1 := Delete(suite.ctx, "schema_uuid_1", store)
+	sl, _ := Find(suite.ctx, "argo_uuid", "schema_uuid_1", "", store)
+	qtd, _, _, _ := store.QueryTopics(suite.ctx, "argo_uuid", "", "topic2", "", 1)
 	suite.Equal([]Schema{}, sl.Schemas)
 	suite.Equal("", qtd[0].SchemaUUID)
 	suite.Nil(e1)
@@ -515,7 +517,7 @@ func (suite *SchemasTestSuite) TestCreate() {
 				RawSchema: map[string]interface{}{"type": "string"},
 			},
 			queryFunc: func() interface{} {
-				qs, _ := store.QuerySchemas("argo_uuid", "suuid", "s1")
+				qs, _ := store.QuerySchemas(suite.ctx, "argo_uuid", "suuid", "s1")
 				return qs[0]
 			},
 			returnQuery: stores.QSchema{
@@ -544,7 +546,7 @@ func (suite *SchemasTestSuite) TestCreate() {
 	}
 
 	for _, t := range testData {
-		s, e := Create(t.projectUUID, t.uuid, t.name, t.schemaType, t.rawSchema, store)
+		s, e := Create(suite.ctx, t.projectUUID, t.uuid, t.name, t.schemaType, t.rawSchema, store)
 		suite.Equal(t.err, e, t.msg)
 		suite.Equal(t.returnedSchema, s, t.msg)
 		suite.Equal(t.returnQuery, t.queryFunc())
@@ -576,7 +578,7 @@ func (suite *SchemasTestSuite) TestExistsWithName() {
 	store := stores.NewMockStore("", "")
 
 	for _, t := range testData {
-		b, _ := ExistsWithName("argo_uuid", t.schemaName, store)
+		b, _ := ExistsWithName(suite.ctx, "argo_uuid", t.schemaName, store)
 		suite.Equal(t.exists, b, t.msg)
 	}
 }
@@ -648,5 +650,7 @@ func (suite *SchemasTestSuite) TestCheckSchema() {
 }
 
 func TestSchemasTestSuite(t *testing.T) {
-	suite.Run(t, new(SchemasTestSuite))
+	suite.Run(t, &SchemasTestSuite{
+		ctx: context.Background(),
+	})
 }

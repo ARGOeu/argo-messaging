@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"context"
 	"io/ioutil"
 	"strconv"
 	"strings"
@@ -17,9 +18,11 @@ import (
 type MetricsTestSuite struct {
 	suite.Suite
 	cfgStr string
+	ctx    context.Context
 }
 
 func (suite *MetricsTestSuite) SetupTest() {
+	suite.ctx = context.Background()
 	suite.cfgStr = `{
 		"broker_host":"localhost:9092",
 		"store_host":"localhost",
@@ -115,7 +118,7 @@ func (suite *MetricsTestSuite) TestOperational() {
 	APIcfg := config.NewAPICfg()
 	APIcfg.LoadStrJSON(suite.cfgStr)
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
-	ml, _ := GetUsageCpuMem(store)
+	ml, _ := GetUsageCpuMem(suite.ctx, store)
 	outJSON, _ := ml.ExportJSON()
 
 	ts1 := ml.Metrics[0].Timeseries[0].Timestamp
@@ -138,7 +141,7 @@ func (suite *MetricsTestSuite) TestGetTopics() {
 	APIcfg := config.NewAPICfg()
 	APIcfg.LoadStrJSON(suite.cfgStr)
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
-	n, _ := GetProjectTopics("argo_uuid", store)
+	n, _ := GetProjectTopics(suite.ctx, "argo_uuid", store)
 	suite.Equal(int64(4), n)
 
 }
@@ -147,7 +150,7 @@ func (suite *MetricsTestSuite) TestGetTopicsACL() {
 	APIcfg := config.NewAPICfg()
 	APIcfg.LoadStrJSON(suite.cfgStr)
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
-	n, _ := GetProjectTopicsACL("argo_uuid", "uuid1", store)
+	n, _ := GetProjectTopicsACL(suite.ctx, "argo_uuid", "uuid1", store)
 	suite.Equal(int64(2), n)
 
 }
@@ -157,7 +160,7 @@ func (suite *MetricsTestSuite) TestGetSubs() {
 	APIcfg := config.NewAPICfg()
 	APIcfg.LoadStrJSON(suite.cfgStr)
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
-	n, _ := GetProjectSubs("argo_uuid", store)
+	n, _ := GetProjectSubs(suite.ctx, "argo_uuid", store)
 	suite.Equal(int64(4), n)
 
 }
@@ -166,7 +169,7 @@ func (suite *MetricsTestSuite) TestGetSubsACL() {
 	APIcfg := config.NewAPICfg()
 	APIcfg.LoadStrJSON(suite.cfgStr)
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
-	n, _ := GetProjectSubsACL("argo_uuid", "uuid1", store)
+	n, _ := GetProjectSubsACL(suite.ctx, "argo_uuid", "uuid1", store)
 	suite.Equal(int64(3), n)
 
 }
@@ -176,7 +179,7 @@ func (suite *MetricsTestSuite) TestGetSubsByTopic() {
 	APIcfg := config.NewAPICfg()
 	APIcfg.LoadStrJSON(suite.cfgStr)
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
-	n, _ := GetProjectSubsByTopic("argo_uuid", "topic1", store)
+	n, _ := GetProjectSubsByTopic(suite.ctx, "argo_uuid", "topic1", store)
 	suite.Equal(int64(1), n)
 
 }
@@ -247,7 +250,7 @@ func (suite *MetricsTestSuite) TestAggrProjectUserSubTest() {
 	APIcfg := config.NewAPICfg()
 	APIcfg.LoadStrJSON(suite.cfgStr)
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
-	ml, _ := AggrProjectUserSubs("argo_uuid", store)
+	ml, _ := AggrProjectUserSubs(suite.ctx, "argo_uuid", store)
 
 	ts1 := ml.Metrics[0].Timeseries[0].Timestamp
 	ts2 := ml.Metrics[1].Timeseries[0].Timestamp
@@ -331,7 +334,7 @@ func (suite *MetricsTestSuite) TestAggrProjectUserTopicsTest() {
 	APIcfg := config.NewAPICfg()
 	APIcfg.LoadStrJSON(suite.cfgStr)
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
-	ml, _ := AggrProjectUserTopics("argo_uuid", store)
+	ml, _ := AggrProjectUserTopics(suite.ctx, "argo_uuid", store)
 
 	ts1 := ml.Metrics[0].Timeseries[0].Timestamp
 	ts2 := ml.Metrics[0].Timeseries[0].Timestamp
@@ -374,6 +377,7 @@ func (suite *MetricsTestSuite) TestGetProjectsMessageCount() {
 	}
 
 	tmpc, tmpcerr := GenerateVAReport(
+		suite.ctx,
 		[]string{"ARGO"},
 		time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC),
 		time.Date(2018, 10, 4, 0, 0, 0, 0, time.UTC),
@@ -416,6 +420,7 @@ func (suite *MetricsTestSuite) TestGetVAReport() {
 	}
 
 	va, tmpcerr := GetVAReport(
+		suite.ctx,
 		[]string{"ARGO"},
 		time.Date(2007, 10, 1, 0, 0, 0, 0, time.UTC),
 		time.Date(2020, 20, 4, 0, 0, 0, 0, time.UTC),

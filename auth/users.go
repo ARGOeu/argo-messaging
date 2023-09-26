@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -122,9 +123,9 @@ func GetUserFromJSON(input []byte) (User, error) {
 }
 
 // RegisterUser registers a new user to the store
-func RegisterUser(uuid, name, fname, lname, email, org, desc, registeredAt, atkn, status string, str stores.Store) (UserRegistration, error) {
+func RegisterUser(ctx context.Context, uuid, name, fname, lname, email, org, desc, registeredAt, atkn, status string, str stores.Store) (UserRegistration, error) {
 
-	err := str.RegisterUser(uuid, name, fname, lname, email, org, desc, registeredAt, atkn, status)
+	err := str.RegisterUser(ctx, uuid, name, fname, lname, email, org, desc, registeredAt, atkn, status)
 	if err != nil {
 		return UserRegistration{}, err
 	}
@@ -144,13 +145,13 @@ func RegisterUser(uuid, name, fname, lname, email, org, desc, registeredAt, atkn
 }
 
 // DeleteUserRegistration removes the respective registration from the store based on the given uuid
-func DeleteUserRegistration(regUUID string, str stores.Store) error {
-	return str.DeleteRegistration(regUUID)
+func DeleteUserRegistration(ctx context.Context, regUUID string, str stores.Store) error {
+	return str.DeleteRegistration(ctx, regUUID)
 }
 
-func FindUserRegistration(regUUID, status string, str stores.Store) (UserRegistration, error) {
+func FindUserRegistration(ctx context.Context, regUUID, status string, str stores.Store) (UserRegistration, error) {
 
-	q, err := str.QueryRegistrations(regUUID, status, "", "", "", "")
+	q, err := str.QueryRegistrations(ctx, regUUID, status, "", "", "", "")
 	if err != nil {
 		return UserRegistration{}, err
 	}
@@ -161,7 +162,7 @@ func FindUserRegistration(regUUID, status string, str stores.Store) (UserRegistr
 
 	usernameC := ""
 	if q[0].ModifiedBy != "" {
-		usr, err := str.QueryUsers("", q[0].ModifiedBy, "")
+		usr, err := str.QueryUsers(ctx, "", q[0].ModifiedBy, "")
 		if err == nil && len(usr) > 0 {
 			usernameC = usr[0].Name
 
@@ -187,9 +188,9 @@ func FindUserRegistration(regUUID, status string, str stores.Store) (UserRegistr
 	return ur, nil
 }
 
-func FindUserRegistrations(status, activationToken, name, email, org string, str stores.Store) (UserRegistrationsList, error) {
+func FindUserRegistrations(ctx context.Context, status, activationToken, name, email, org string, str stores.Store) (UserRegistrationsList, error) {
 
-	q, err := str.QueryRegistrations("", status, activationToken, name, email, org)
+	q, err := str.QueryRegistrations(ctx, "", status, activationToken, name, email, org)
 	if err != nil {
 		return UserRegistrationsList{}, err
 	}
@@ -202,7 +203,7 @@ func FindUserRegistrations(status, activationToken, name, email, org string, str
 
 		usernameC := ""
 		if ur.ModifiedBy != "" {
-			usr, err := str.QueryUsers("", ur.ModifiedBy, "")
+			usr, err := str.QueryUsers(ctx, "", ur.ModifiedBy, "")
 			if err == nil && len(usr) > 0 {
 				usernameC = usr[0].Name
 
@@ -231,12 +232,12 @@ func FindUserRegistrations(status, activationToken, name, email, org string, str
 	return urList, nil
 }
 
-func UpdateUserRegistration(regUUID, status, declineComment, modifiedBy string, modifiedAt time.Time, refStr stores.Store) error {
+func UpdateUserRegistration(ctx context.Context, regUUID, status, declineComment, modifiedBy string, modifiedAt time.Time, refStr stores.Store) error {
 	// only accept decline comment with the decline status action
 	if status != DeclinedRegistrationStatus {
 		declineComment = ""
 	}
-	return refStr.UpdateRegistration(regUUID, status, declineComment, modifiedBy, modifiedAt.UTC().Format("2006-01-02T15:04:05Z"))
+	return refStr.UpdateRegistration(ctx, regUUID, status, declineComment, modifiedBy, modifiedAt.UTC().Format("2006-01-02T15:04:05Z"))
 }
 
 // NewUser accepts parameters and creates a new user
@@ -259,11 +260,18 @@ func NewUser(uuid string, projects []ProjectRoles, name string, fname string, ln
 }
 
 // GetPushWorker returns a push worker user by token
-func GetPushWorker(pwToken string, store stores.Store) (User, error) {
+func GetPushWorker(ctx context.Context, pwToken string, store stores.Store) (User, error) {
 
-	pw, err := GetUserByToken(pwToken, store)
+	pw, err := GetUserByToken(ctx, pwToken, store)
 	if err != nil {
-		log.Errorf("Could not retrieve push worker user with token %v, %v", pwToken, err.Error())
+		log.WithFields(
+			log.Fields{
+				"trace_id": ctx.Value("trace_id"),
+				"type":     "service_log",
+				"token":    pwToken,
+				"error":    err.Error(),
+			},
+		).Error("Could not retrieve push worker user")
 		return User{}, errors.New("push_500")
 	}
 
@@ -271,10 +279,10 @@ func GetPushWorker(pwToken string, store stores.Store) (User, error) {
 }
 
 // GetUserByToken returns a specific user by his token
-func GetUserByToken(token string, store stores.Store) (User, error) {
+func GetUserByToken(ctx context.Context, token string, store stores.Store) (User, error) {
 	result := User{}
 
-	user, err := store.GetUserFromToken(token)
+	user, err := store.GetUserFromToken(ctx, token)
 
 	if err != nil {
 		return result, err
@@ -282,7 +290,7 @@ func GetUserByToken(token string, store stores.Store) (User, error) {
 
 	usernameC := ""
 	if user.CreatedBy != "" {
-		usr, err := store.QueryUsers("", user.CreatedBy, "")
+		usr, err := store.QueryUsers(ctx, "", user.CreatedBy, "")
 		if err == nil && len(usr) > 0 {
 			usernameC = usr[0].Name
 
@@ -291,16 +299,16 @@ func GetUserByToken(token string, store stores.Store) (User, error) {
 
 	pRoles := []ProjectRoles{}
 	for _, pItem := range user.Projects {
-		prName := projects.GetNameByUUID(pItem.ProjectUUID, store)
+		prName := projects.GetNameByUUID(ctx, pItem.ProjectUUID, store)
 		// Get User topics and subscriptions
 
-		topicList, _ := store.QueryTopicsByACL(pItem.ProjectUUID, user.UUID)
+		topicList, _ := store.QueryTopicsByACL(ctx, pItem.ProjectUUID, user.UUID)
 		topicNames := []string{}
 		for _, tpItem := range topicList {
 			topicNames = append(topicNames, tpItem.Name)
 		}
 
-		subList, _ := store.QuerySubsByACL(pItem.ProjectUUID, user.UUID)
+		subList, _ := store.QuerySubsByACL(ctx, pItem.ProjectUUID, user.UUID)
 		subNames := []string{}
 		for _, sbItem := range subList {
 			subNames = append(subNames, sbItem.Name)
@@ -318,10 +326,10 @@ func GetUserByToken(token string, store stores.Store) (User, error) {
 }
 
 // FindUsers returns a specific user or a list of all available users belonging to a  project in the datastore.
-func FindUsers(projectUUID string, uuid string, name string, priviledged bool, store stores.Store) (Users, error) {
+func FindUsers(ctx context.Context, projectUUID string, uuid string, name string, priviledged bool, store stores.Store) (Users, error) {
 	result := Users{}
 
-	users, err := store.QueryUsers(projectUUID, uuid, name)
+	users, err := store.QueryUsers(ctx, projectUUID, uuid, name)
 
 	for _, item := range users {
 
@@ -335,7 +343,7 @@ func FindUsers(projectUUID string, uuid string, name string, priviledged bool, s
 		// if call made by priviledged user (superuser), show service roles, token and user creator info
 		if priviledged {
 			if item.CreatedBy != "" {
-				usr, err := store.QueryUsers("", item.CreatedBy, "")
+				usr, err := store.QueryUsers(ctx, "", item.CreatedBy, "")
 				if err == nil && len(usr) > 0 {
 					usernameC = usr[0].Name
 
@@ -352,16 +360,16 @@ func FindUsers(projectUUID string, uuid string, name string, priviledged bool, s
 			if !priviledged && pItem.ProjectUUID != projectUUID {
 				continue
 			}
-			prName := projects.GetNameByUUID(pItem.ProjectUUID, store)
+			prName := projects.GetNameByUUID(ctx, pItem.ProjectUUID, store)
 			// Get User topics and subscriptions
 
-			topicList, _ := store.QueryTopicsByACL(pItem.ProjectUUID, item.UUID)
+			topicList, _ := store.QueryTopicsByACL(ctx, pItem.ProjectUUID, item.UUID)
 			topicNames := []string{}
 			for _, tpItem := range topicList {
 				topicNames = append(topicNames, tpItem.Name)
 			}
 
-			subList, _ := store.QuerySubsByACL(pItem.ProjectUUID, item.UUID)
+			subList, _ := store.QuerySubsByACL(ctx, pItem.ProjectUUID, item.UUID)
 			subNames := []string{}
 			for _, sbItem := range subList {
 				subNames = append(subNames, sbItem.Name)
@@ -391,7 +399,7 @@ func FindUsers(projectUUID string, uuid string, name string, priviledged bool, s
 }
 
 // PaginatedFindUsers returns a page of users
-func PaginatedFindUsers(pageToken string, pageSize int64, projectUUID string, privileged, detailedView bool, store stores.Store) (PaginatedUsers, error) {
+func PaginatedFindUsers(ctx context.Context, pageToken string, pageSize int64, projectUUID string, privileged, detailedView bool, store stores.Store) (PaginatedUsers, error) {
 
 	var totalSize int64
 	var nextPageToken string
@@ -401,13 +409,20 @@ func PaginatedFindUsers(pageToken string, pageSize int64, projectUUID string, pr
 
 	// decode the base64 pageToken
 	if pageTokenBytes, err = base64.StdEncoding.DecodeString(pageToken); err != nil {
-		log.Errorf("Page token %v produced an error while being decoded to base64: %v", pageToken, err.Error())
+		log.WithFields(
+			log.Fields{
+				"trace_id":   ctx.Value("trace_id"),
+				"type":       "request_log",
+				"page_token": pageToken,
+				"error":      err.Error(),
+			},
+		).Error("error while decoding to base64")
 		return PaginatedUsers{}, err
 	}
 
 	result := PaginatedUsers{Users: []User{}}
 
-	if users, totalSize, nextPageToken, err = store.PaginatedQueryUsers(string(pageTokenBytes), pageSize, projectUUID); err != nil {
+	if users, totalSize, nextPageToken, err = store.PaginatedQueryUsers(ctx, string(pageTokenBytes), pageSize, projectUUID); err != nil {
 		return result, err
 	}
 
@@ -420,7 +435,7 @@ func PaginatedFindUsers(pageToken string, pageSize int64, projectUUID string, pr
 		// if call made by priviledged user (superuser), show service roles, token and user creator info
 		if privileged {
 			if item.CreatedBy != "" {
-				usr, err := store.QueryUsers("", item.CreatedBy, "")
+				usr, err := store.QueryUsers(ctx, "", item.CreatedBy, "")
 				if err == nil && len(usr) > 0 {
 					usernameC = usr[0].Name
 
@@ -440,16 +455,16 @@ func PaginatedFindUsers(pageToken string, pageSize int64, projectUUID string, pr
 				if !privileged && pItem.ProjectUUID != projectUUID {
 					continue
 				}
-				prName := projects.GetNameByUUID(pItem.ProjectUUID, store)
+				prName := projects.GetNameByUUID(ctx, pItem.ProjectUUID, store)
 
 				// Get User topics and subscriptions
-				topicList, _ := store.QueryTopicsByACL(pItem.ProjectUUID, item.UUID)
+				topicList, _ := store.QueryTopicsByACL(ctx, pItem.ProjectUUID, item.UUID)
 				topicNames := []string{}
 				for _, tpItem := range topicList {
 					topicNames = append(topicNames, tpItem.Name)
 				}
 
-				subList, _ := store.QuerySubsByACL(pItem.ProjectUUID, item.UUID)
+				subList, _ := store.QuerySubsByACL(ctx, pItem.ProjectUUID, item.UUID)
 				subNames := []string{}
 				for _, sbItem := range subList {
 					subNames = append(subNames, sbItem.Name)
@@ -473,15 +488,15 @@ func PaginatedFindUsers(pageToken string, pageSize int64, projectUUID string, pr
 }
 
 // Authenticate based on token
-func Authenticate(projectUUID string, token string, store stores.Store) ([]string, string) {
-	return store.GetUserRoles(projectUUID, token)
+func Authenticate(ctx context.Context, projectUUID string, token string, store stores.Store) ([]string, string) {
+	return store.GetUserRoles(ctx, projectUUID, token)
 }
 
 // ExistsWithName returns true if a user with name exists
-func ExistsWithName(name string, store stores.Store) bool {
+func ExistsWithName(ctx context.Context, name string, store stores.Store) bool {
 	result := false
 
-	users, err := store.QueryUsers("", "", name)
+	users, err := store.QueryUsers(ctx, "", "", name)
 	if len(users) > 0 && err == nil {
 		result = true
 	}
@@ -490,10 +505,10 @@ func ExistsWithName(name string, store stores.Store) bool {
 }
 
 // ExistsWithUUID return true if a user with uuid exists
-func ExistsWithUUID(uuid string, store stores.Store) bool {
+func ExistsWithUUID(ctx context.Context, uuid string, store stores.Store) bool {
 	result := false
 
-	users, err := store.QueryUsers("", uuid, "")
+	users, err := store.QueryUsers(ctx, "", uuid, "")
 	if len(users) > 0 && err == nil {
 		result = true
 	}
@@ -502,9 +517,9 @@ func ExistsWithUUID(uuid string, store stores.Store) bool {
 }
 
 // GetNameByUUID queries user by UUID and returns the user's name. If not found, returns an empty string
-func GetNameByUUID(uuid string, store stores.Store) string {
+func GetNameByUUID(ctx context.Context, uuid string, store stores.Store) string {
 	result := ""
-	users, err := store.QueryUsers("", uuid, "")
+	users, err := store.QueryUsers(ctx, "", uuid, "")
 	if len(users) > 0 && err == nil {
 		result = users[0].Name
 	}
@@ -513,11 +528,11 @@ func GetNameByUUID(uuid string, store stores.Store) string {
 }
 
 // GetUserByUUID returns user information by UUID
-func GetUserByUUID(uuid string, store stores.Store) (User, error) {
+func GetUserByUUID(ctx context.Context, uuid string, store stores.Store) (User, error) {
 
 	var result User
 
-	users, err := store.QueryUsers("", uuid, "")
+	users, err := store.QueryUsers(ctx, "", uuid, "")
 
 	if err != nil {
 		return User{}, err
@@ -537,7 +552,7 @@ func GetUserByUUID(uuid string, store stores.Store) (User, error) {
 	//convert the Quser to User
 	usernameC := ""
 	if user.CreatedBy != "" {
-		usr, err := store.QueryUsers("", user.CreatedBy, "")
+		usr, err := store.QueryUsers(ctx, "", user.CreatedBy, "")
 		if err == nil && len(usr) > 0 {
 			usernameC = usr[0].Name
 
@@ -546,16 +561,16 @@ func GetUserByUUID(uuid string, store stores.Store) (User, error) {
 
 	pRoles := []ProjectRoles{}
 	for _, pItem := range user.Projects {
-		prName := projects.GetNameByUUID(pItem.ProjectUUID, store)
+		prName := projects.GetNameByUUID(ctx, pItem.ProjectUUID, store)
 		// Get User topics and subscriptions
 
-		topicList, _ := store.QueryTopicsByACL(pItem.ProjectUUID, user.UUID)
+		topicList, _ := store.QueryTopicsByACL(ctx, pItem.ProjectUUID, user.UUID)
 		topicNames := []string{}
 		for _, tpItem := range topicList {
 			topicNames = append(topicNames, tpItem.Name)
 		}
 
-		subList, _ := store.QuerySubsByACL(pItem.ProjectUUID, user.UUID)
+		subList, _ := store.QuerySubsByACL(ctx, pItem.ProjectUUID, user.UUID)
 		subNames := []string{}
 		for _, sbItem := range subList {
 			subNames = append(subNames, sbItem.Name)
@@ -574,9 +589,9 @@ func GetUserByUUID(uuid string, store stores.Store) (User, error) {
 }
 
 // GetUUIDByName queries user by name and returns the corresponding UUID
-func GetUUIDByName(name string, store stores.Store) string {
+func GetUUIDByName(ctx context.Context, name string, store stores.Store) string {
 	result := ""
-	users, err := store.QueryUsers("", "", name)
+	users, err := store.QueryUsers(ctx, "", "", name)
 
 	if len(users) > 0 && err == nil {
 		result = users[0].UUID
@@ -586,24 +601,24 @@ func GetUUIDByName(name string, store stores.Store) string {
 }
 
 // UpdateUserToken updates an existing user's token
-func UpdateUserToken(uuid string, token string, store stores.Store) (User, error) {
-	if err := store.UpdateUserToken(uuid, token); err != nil {
+func UpdateUserToken(ctx context.Context, uuid string, token string, store stores.Store) (User, error) {
+	if err := store.UpdateUserToken(ctx, uuid, token); err != nil {
 		return User{}, err
 	}
 	// reflect stored object
-	stored, err := FindUsers("", uuid, "", true, store)
+	stored, err := FindUsers(ctx, "", uuid, "", true, store)
 	return stored.One(), err
 }
 
 // AppendToUserProjects appends a unique project to the user's project list
-func AppendToUserProjects(userUUID string, projectUUID string, store stores.Store, pRoles ...string) error {
+func AppendToUserProjects(ctx context.Context, userUUID string, projectUUID string, store stores.Store, pRoles ...string) error {
 
-	pName := projects.GetNameByUUID(projectUUID, store)
+	pName := projects.GetNameByUUID(ctx, projectUUID, store)
 	if pName == "" {
 		return fmt.Errorf("invalid project %v", projectUUID)
 	}
 
-	validRoles := store.GetAllRoles()
+	validRoles := store.GetAllRoles(ctx)
 
 	for _, role := range pRoles {
 		if !IsRoleValid(role, validRoles) {
@@ -611,7 +626,7 @@ func AppendToUserProjects(userUUID string, projectUUID string, store stores.Stor
 		}
 	}
 
-	err := store.AppendToUserProjects(userUUID, projectUUID, pRoles...)
+	err := store.AppendToUserProjects(ctx, userUUID, projectUUID, pRoles...)
 	if err != nil {
 		return err
 	}
@@ -621,11 +636,11 @@ func AppendToUserProjects(userUUID string, projectUUID string, store stores.Stor
 
 // UpdateUser updates an existing user's information
 // IF the function caller needs to have a view on the updated user object it can set the reflectObj to true
-func UpdateUser(uuid, firstName, lastName, organization, description string, name string, projectList []ProjectRoles, email string, serviceRoles []string, modifiedOn time.Time, reflectObj bool, store stores.Store) (User, error) {
+func UpdateUser(ctx context.Context, uuid, firstName, lastName, organization, description string, name string, projectList []ProjectRoles, email string, serviceRoles []string, modifiedOn time.Time, reflectObj bool, store stores.Store) (User, error) {
 
 	prList := []stores.QProjectRoles{}
 
-	validRoles := store.GetAllRoles()
+	validRoles := store.GetAllRoles(ctx)
 
 	var duplicates []string
 	// Prep project roles for datastore insert
@@ -646,7 +661,7 @@ func UpdateUser(uuid, firstName, lastName, organization, description string, nam
 
 			duplicates = append(duplicates, item.Project)
 
-			prUUID := projects.GetUUIDByName(item.Project, store)
+			prUUID := projects.GetUUIDByName(ctx, item.Project, store)
 			// If project name doesn't reflect a uuid, then is non existent
 			if prUUID == "" {
 				return User{}, errors.New("invalid project: " + item.Project)
@@ -674,13 +689,13 @@ func UpdateUser(uuid, firstName, lastName, organization, description string, nam
 		}
 	}
 
-	if err := store.UpdateUser(uuid, firstName, lastName, organization, description, prList, name, email, serviceRoles, modifiedOn); err != nil {
+	if err := store.UpdateUser(ctx, uuid, firstName, lastName, organization, description, prList, name, email, serviceRoles, modifiedOn); err != nil {
 		return User{}, err
 	}
 
 	// reflect stored object
 	if reflectObj {
-		stored, err := FindUsers("", uuid, "", true, store)
+		stored, err := FindUsers(ctx, "", uuid, "", true, store)
 		return stored.One(), err
 	}
 
@@ -688,13 +703,13 @@ func UpdateUser(uuid, firstName, lastName, organization, description string, nam
 }
 
 // CreateUser creates a new user
-func CreateUser(uuid string, name string, fname string, lname string, org string, desc string, projectList []ProjectRoles, token string, email string, serviceRoles []string, createdOn time.Time, createdBy string, store stores.Store) (User, error) {
+func CreateUser(ctx context.Context, uuid string, name string, fname string, lname string, org string, desc string, projectList []ProjectRoles, token string, email string, serviceRoles []string, createdOn time.Time, createdBy string, store stores.Store) (User, error) {
 	// check if project with the same name exists
-	if ExistsWithName(name, store) {
+	if ExistsWithName(ctx, name, store) {
 		return User{}, errors.New("exists")
 	}
 
-	validRoles := store.GetAllRoles()
+	validRoles := store.GetAllRoles(ctx)
 
 	var duplicates []string
 	// Prep project roles for datastore insert
@@ -717,7 +732,7 @@ func CreateUser(uuid string, name string, fname string, lname string, org string
 		// add project name to duplicate check list
 		duplicates = append(duplicates, item.Project)
 
-		prUUID := projects.GetUUIDByName(item.Project, store)
+		prUUID := projects.GetUUIDByName(ctx, item.Project, store)
 		// If project name doesn't reflect a uuid, then is non existent
 		if prUUID == "" {
 			return User{}, errors.New("invalid project: " + item.Project)
@@ -740,12 +755,12 @@ func CreateUser(uuid string, name string, fname string, lname string, org string
 		}
 	}
 
-	if err := store.InsertUser(uuid, prList, name, fname, lname, org, desc, token, email, serviceRoles, createdOn, createdOn, createdBy); err != nil {
+	if err := store.InsertUser(ctx, uuid, prList, name, fname, lname, org, desc, token, email, serviceRoles, createdOn, createdOn, createdBy); err != nil {
 		return User{}, errors.New("backend error")
 	}
 
 	// reflect stored object
-	stored, err := FindUsers("", "", name, true, store)
+	stored, err := FindUsers(ctx, "", "", name, true, store)
 	return stored.One(), err
 }
 
@@ -827,8 +842,8 @@ func IsAdminViewer(roles []string) bool {
 }
 
 // RemoveUser removes an existing user
-func RemoveUser(uuid string, store stores.Store) error {
-	return store.RemoveUser(uuid)
+func RemoveUser(ctx context.Context, uuid string, store stores.Store) error {
+	return store.RemoveUser(ctx, uuid)
 }
 
 // IsRoleValid checks if a role is a valid against a list of valid roles
@@ -842,8 +857,8 @@ func IsRoleValid(role string, validRoles []string) bool {
 }
 
 // AreValidUsers accepts a user array of usernames and checks if users exist in the store
-func AreValidUsers(projectUUID string, users []string, store stores.Store) (bool, error) {
-	found, notFound := store.HasUsers(projectUUID, users)
+func AreValidUsers(ctx context.Context, projectUUID string, users []string, store stores.Store) (bool, error) {
+	found, notFound := store.HasUsers(ctx, projectUUID, users)
 	if found {
 		return true, nil
 	}
@@ -863,12 +878,17 @@ func AreValidUsers(projectUUID string, users []string, store stores.Store) (bool
 }
 
 // PerResource  (for topics and subscriptions)
-func PerResource(project string, resType string, resName string, userUUID string, store stores.Store) bool {
+func PerResource(ctx context.Context, project string, resType string, resName string, userUUID string, store stores.Store) bool {
 
 	if resType == "topics" || resType == "subscriptions" {
-		err := store.ExistsInACL(project, resType, resName, userUUID)
+		err := store.ExistsInACL(ctx, project, resType, resName, userUUID)
 		if err != nil {
-			log.Errorln(err.Error())
+			log.WithFields(
+				log.Fields{
+					"trace_id": ctx.Value("trace_id"),
+					"type":     "system_log",
+				},
+			).Error(err.Error())
 			return false
 		}
 
@@ -879,7 +899,7 @@ func PerResource(project string, resType string, resName string, userUUID string
 }
 
 // Authorize based on resource and  role information
-func Authorize(resource string, roles []string, store stores.Store) bool {
+func Authorize(ctx context.Context, resource string, roles []string, store stores.Store) bool {
 	// check if _admin_ is in roles
 	for _, role := range roles {
 		if role == "_admin_" {
@@ -887,5 +907,5 @@ func Authorize(resource string, roles []string, store stores.Store) bool {
 		}
 	}
 
-	return store.HasResourceRoles(resource, roles)
+	return store.HasResourceRoles(ctx, resource, roles)
 }

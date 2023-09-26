@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"github.com/ARGOeu/argo-messaging/auth"
 	"github.com/ARGOeu/argo-messaging/brokers"
@@ -191,7 +192,7 @@ func (suite *RegistrationsHandlersTestSuite) TestAcceptRegisterUser() {
 		router.HandleFunc("/v1/registrations/{uuid}:accept", WrapMockAuthConfig(AcceptRegisterUser, cfgKafka, &brk, str, &mgr, pc))
 		router.ServeHTTP(w, req)
 		if t.expectedStatusCode == 200 {
-			u, _ := auth.FindUsers("", "", t.uname, true, str)
+			u, _ := auth.FindUsers(context.Background(), "", "", t.uname, true, str)
 			t.expectedResponse = strings.Replace(t.expectedResponse, "{{UUID}}", u.List[0].UUID, 1)
 			t.expectedResponse = strings.Replace(t.expectedResponse, "{{TOKEN}}", u.List[0].Token, 1)
 			t.expectedResponse = strings.Replace(t.expectedResponse, "{{CON}}", u.List[0].CreatedOn, 1)

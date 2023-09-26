@@ -1,6 +1,7 @@
 package stores
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -78,18 +79,30 @@ func (mong *MongoStore) Initialize() {
 	}
 }
 
+func (mong *MongoStore) logErrorAndCrash(ctx context.Context, funcName string, err error) {
+	log.WithFields(
+		log.Fields{
+			"trace_id":        ctx.Value("trace_id"),
+			"type":            "backend_log",
+			"function":        funcName,
+			"backend_service": "mongo",
+			"backend_hosts":   mong.Server,
+		},
+	).Fatal(err.Error())
+}
+
 // SubscriptionsCount returns the amount of subscriptions created in the given time period
-func (mong *MongoStore) SubscriptionsCount(startDate, endDate time.Time, projectUUIDs []string) (map[string]int64, error) {
-	return mong.getDocCountForCollection(startDate, endDate, "subscriptions", projectUUIDs)
+func (mong *MongoStore) SubscriptionsCount(ctx context.Context, startDate, endDate time.Time, projectUUIDs []string) (map[string]int64, error) {
+	return mong.getDocCountForCollection(ctx, startDate, endDate, "subscriptions", projectUUIDs)
 }
 
 // TopicsCount returns the amount of topics created in the given time period
-func (mong *MongoStore) TopicsCount(startDate, endDate time.Time, projectUUIDs []string) (map[string]int64, error) {
-	return mong.getDocCountForCollection(startDate, endDate, "topics", projectUUIDs)
+func (mong *MongoStore) TopicsCount(ctx context.Context, startDate, endDate time.Time, projectUUIDs []string) (map[string]int64, error) {
+	return mong.getDocCountForCollection(ctx, startDate, endDate, "topics", projectUUIDs)
 }
 
-// UserCount returns the amount of users created in the given time period
-func (mong *MongoStore) UsersCount(startDate, endDate time.Time, projectUUIDs []string) (map[string]int64, error) {
+// UsersCount returns the amount of users created in the given time period
+func (mong *MongoStore) UsersCount(ctx context.Context, startDate, endDate time.Time, projectUUIDs []string) (map[string]int64, error) {
 	var resourceCounts []QProjectResourceCount
 
 	condQuery := []bson.M{
@@ -145,13 +158,7 @@ func (mong *MongoStore) UsersCount(startDate, endDate time.Time, projectUUIDs []
 	c := mong.Session.DB(mong.Database).C("users")
 
 	if err := c.Pipe(query).All(&resourceCounts); err != nil {
-		log.WithFields(
-			log.Fields{
-				"type":            "backend_log",
-				"backend_service": "mongo",
-				"backend_hosts":   mong.Server,
-			},
-		).Fatal(err.Error())
+		mong.logErrorAndCrash(ctx, "UsersCount", err)
 	}
 
 	res := map[string]int64{}
@@ -165,7 +172,7 @@ func (mong *MongoStore) UsersCount(startDate, endDate time.Time, projectUUIDs []
 
 // getDocCountForCollection returns the document count for a collection in a given time period
 // collection should support field created_on
-func (mong *MongoStore) getDocCountForCollection(startDate, endDate time.Time, col string, projectUUIDs []string) (map[string]int64, error) {
+func (mong *MongoStore) getDocCountForCollection(ctx context.Context, startDate, endDate time.Time, col string, projectUUIDs []string) (map[string]int64, error) {
 
 	var resourceCounts []QProjectResourceCount
 
@@ -219,13 +226,7 @@ func (mong *MongoStore) getDocCountForCollection(startDate, endDate time.Time, c
 	c := mong.Session.DB(mong.Database).C(col)
 
 	if err := c.Pipe(query).All(&resourceCounts); err != nil {
-		log.WithFields(
-			log.Fields{
-				"type":            "backend_log",
-				"backend_service": "mongo",
-				"backend_hosts":   mong.Server,
-			},
-		).Fatal(err.Error())
+		mong.logErrorAndCrash(ctx, "getDocCountForCollection", err)
 	}
 
 	res := map[string]int64{}
@@ -238,7 +239,7 @@ func (mong *MongoStore) getDocCountForCollection(startDate, endDate time.Time, c
 }
 
 // QueryProjects queries the database for a specific project or a list of all projects
-func (mong *MongoStore) QueryProjects(uuid string, name string) ([]QProject, error) {
+func (mong *MongoStore) QueryProjects(ctx context.Context, uuid string, name string) ([]QProject, error) {
 
 	query := bson.M{}
 
@@ -255,13 +256,7 @@ func (mong *MongoStore) QueryProjects(uuid string, name string) ([]QProject, err
 	var results []QProject
 	err := c.Find(query).All(&results)
 	if err != nil {
-		log.WithFields(
-			log.Fields{
-				"type":            "backend_log",
-				"backend_service": "mongo",
-				"backend_hosts":   mong.Server,
-			},
-		).Fatal(err.Error())
+		mong.logErrorAndCrash(ctx, "QueryProjects", err)
 	}
 
 	if len(results) > 0 {
@@ -272,12 +267,12 @@ func (mong *MongoStore) QueryProjects(uuid string, name string) ([]QProject, err
 }
 
 // UpdateProject updates project information
-func (mong *MongoStore) UpdateProject(projectUUID string, name string, description string, modifiedOn time.Time) error {
+func (mong *MongoStore) UpdateProject(ctx context.Context, projectUUID string, name string, description string, modifiedOn time.Time) error {
 	db := mong.Session.DB(mong.Database)
 	c := db.C("projects")
 
 	doc := bson.M{"uuid": projectUUID}
-	results, err := mong.QueryProjects(projectUUID, "")
+	results, err := mong.QueryProjects(ctx, projectUUID, "")
 	if err != nil {
 		return err
 	}
@@ -288,7 +283,7 @@ func (mong *MongoStore) UpdateProject(projectUUID string, name string, descripti
 	if name != "" {
 		// Check if name is going to change and if that name already exists
 		if name != curPr.Name {
-			if sameRes, _ := mong.QueryProjects("", name); len(sameRes) > 0 {
+			if sameRes, _ := mong.QueryProjects(ctx, "", name); len(sameRes) > 0 {
 				return errors.New("invalid project name change, name already exists")
 			}
 		}
@@ -303,12 +298,12 @@ func (mong *MongoStore) UpdateProject(projectUUID string, name string, descripti
 
 	err = c.Update(doc, change)
 
-	return err
+	return nil
 
 }
 
 // RegisterUser inserts a new user registration to the database
-func (mong *MongoStore) RegisterUser(uuid, name, firstName, lastName, email, org, desc, registeredAt, atkn, status string) error {
+func (mong *MongoStore) RegisterUser(ctx context.Context, uuid, name, firstName, lastName, email, org, desc, registeredAt, atkn, status string) error {
 
 	ur := QUserRegistration{
 		UUID:            uuid,
@@ -323,15 +318,15 @@ func (mong *MongoStore) RegisterUser(uuid, name, firstName, lastName, email, org
 		Status:          status,
 	}
 
-	return mong.InsertResource("user_registrations", ur)
+	return mong.InsertResource(ctx, "user_registrations", ur)
 }
 
 // DeleteRegistration removes the respective registration from the
-func (mong *MongoStore) DeleteRegistration(uuid string) error {
-	return mong.RemoveResource("user_registrations", bson.M{"uuid": uuid})
+func (mong *MongoStore) DeleteRegistration(ctx context.Context, uuid string) error {
+	return mong.RemoveResource(ctx, "user_registrations", bson.M{"uuid": uuid})
 }
 
-func (mong *MongoStore) QueryRegistrations(regUUID, status, activationToken, name, email, org string) ([]QUserRegistration, error) {
+func (mong *MongoStore) QueryRegistrations(ctx context.Context, regUUID, status, activationToken, name, email, org string) ([]QUserRegistration, error) {
 
 	query := bson.M{}
 
@@ -371,7 +366,7 @@ func (mong *MongoStore) QueryRegistrations(regUUID, status, activationToken, nam
 	return qur, nil
 }
 
-func (mong *MongoStore) UpdateRegistration(regUUID, status, declineComment, modifiedBy, modifiedAt string) error {
+func (mong *MongoStore) UpdateRegistration(ctx context.Context, regUUID, status, declineComment, modifiedBy, modifiedAt string) error {
 
 	db := mong.Session.DB(mong.Database)
 	c := db.C("user_registrations")
@@ -390,7 +385,7 @@ func (mong *MongoStore) UpdateRegistration(regUUID, status, declineComment, modi
 }
 
 // UpdateUserToken updates user's token
-func (mong *MongoStore) UpdateUserToken(uuid string, token string) error {
+func (mong *MongoStore) UpdateUserToken(ctx context.Context, uuid string, token string) error {
 
 	db := mong.Session.DB(mong.Database)
 	c := db.C("users")
@@ -405,7 +400,7 @@ func (mong *MongoStore) UpdateUserToken(uuid string, token string) error {
 }
 
 // AppendToUserProjects appends a new unique project to the user's projects
-func (mong *MongoStore) AppendToUserProjects(userUUID string, projectUUID string, pRoles ...string) error {
+func (mong *MongoStore) AppendToUserProjects(ctx context.Context, userUUID string, projectUUID string, pRoles ...string) error {
 
 	db := mong.Session.DB(mong.Database)
 	c := db.C("users")
@@ -423,25 +418,19 @@ func (mong *MongoStore) AppendToUserProjects(userUUID string, projectUUID string
 	)
 
 	if err != nil {
-		log.WithFields(
-			log.Fields{
-				"type":            "backend_log",
-				"backend_service": "mongo",
-				"backend_hosts":   mong.Server,
-			},
-		).Fatal(err.Error())
+		mong.logErrorAndCrash(ctx, "AppendToUserProjects", err)
 	}
 
 	return nil
 }
 
 // UpdateUser updates user information
-func (mong *MongoStore) UpdateUser(uuid, fname, lname, org, desc string, projects []QProjectRoles, name string, email string, serviceRoles []string, modifiedOn time.Time) error {
+func (mong *MongoStore) UpdateUser(ctx context.Context, uuid, fname, lname, org, desc string, projects []QProjectRoles, name string, email string, serviceRoles []string, modifiedOn time.Time) error {
 	db := mong.Session.DB(mong.Database)
 	c := db.C("users")
 
 	doc := bson.M{"uuid": uuid}
-	results, err := mong.QueryUsers("", uuid, "")
+	results, err := mong.QueryUsers(ctx, "", uuid, "")
 	if err != nil {
 		return err
 	}
@@ -451,7 +440,7 @@ func (mong *MongoStore) UpdateUser(uuid, fname, lname, org, desc string, project
 	if name != "" {
 		// Check if name is going to change and if that name already exists
 		if name != curUsr.Name {
-			if sameRes, _ := mong.QueryUsers("", "", name); len(sameRes) > 0 {
+			if sameRes, _ := mong.QueryUsers(ctx, "", "", name); len(sameRes) > 0 {
 				return errors.New("invalid user name change, name already exists")
 			}
 		}
@@ -497,7 +486,7 @@ func (mong *MongoStore) UpdateUser(uuid, fname, lname, org, desc string, project
 }
 
 // UpdateSubPull updates next offset and sets timestamp for Ack
-func (mong *MongoStore) UpdateSubPull(projectUUID string, name string, nextOff int64, ts string) error {
+func (mong *MongoStore) UpdateSubPull(ctx context.Context, projectUUID string, name string, nextOff int64, ts string) error {
 
 	db := mong.Session.DB(mong.Database)
 	c := db.C("subscriptions")
@@ -506,13 +495,7 @@ func (mong *MongoStore) UpdateSubPull(projectUUID string, name string, nextOff i
 	change := bson.M{"$set": bson.M{"next_offset": nextOff, "pending_ack": ts}}
 	err := c.Update(doc, change)
 	if err != nil && err != mgo.ErrNotFound {
-		log.WithFields(
-			log.Fields{
-				"type":            "backend_log",
-				"backend_service": "mongo",
-				"backend_hosts":   mong.Server,
-			},
-		).Fatal(err.Error())
+		mong.logErrorAndCrash(ctx, "UpdateSubPull", err)
 	}
 
 	return err
@@ -520,7 +503,7 @@ func (mong *MongoStore) UpdateSubPull(projectUUID string, name string, nextOff i
 }
 
 // UpdateSubOffsetAck updates a subscription offset after Ack
-func (mong *MongoStore) UpdateSubOffsetAck(projectUUID string, name string, offset int64, ts string) error {
+func (mong *MongoStore) UpdateSubOffsetAck(ctx context.Context, projectUUID string, name string, offset int64, ts string) error {
 
 	db := mong.Session.DB(mong.Database)
 	c := db.C("subscriptions")
@@ -553,13 +536,7 @@ func (mong *MongoStore) UpdateSubOffsetAck(projectUUID string, name string, offs
 	change := bson.M{"$set": bson.M{"offset": offset, "next_offset": 0, "pending_ack": ""}}
 	err = c.Update(doc, change)
 	if err != nil && err != mgo.ErrNotFound {
-		log.WithFields(
-			log.Fields{
-				"type":            "backend_log",
-				"backend_service": "mongo",
-				"backend_hosts":   mong.Server,
-			},
-		).Fatal(err.Error())
+		mong.logErrorAndCrash(ctx, "UpdateSubOffsetAck", err)
 	}
 
 	return nil
@@ -567,7 +544,7 @@ func (mong *MongoStore) UpdateSubOffsetAck(projectUUID string, name string, offs
 }
 
 // UpdateSubOffset updates a subscription offset
-func (mong *MongoStore) UpdateSubOffset(projectUUID string, name string, offset int64) {
+func (mong *MongoStore) UpdateSubOffset(ctx context.Context, projectUUID string, name string, offset int64) {
 
 	db := mong.Session.DB(mong.Database)
 	c := db.C("subscriptions")
@@ -576,19 +553,13 @@ func (mong *MongoStore) UpdateSubOffset(projectUUID string, name string, offset 
 	change := bson.M{"$set": bson.M{"offset": offset, "next_offset": 0, "pending_ack": ""}}
 	err := c.Update(doc, change)
 	if err != nil && err != mgo.ErrNotFound {
-		log.WithFields(
-			log.Fields{
-				"type":            "backend_log",
-				"backend_service": "mongo",
-				"backend_hosts":   mong.Server,
-			},
-		).Fatal(err.Error())
+		mong.logErrorAndCrash(ctx, "UpdateSubOffset", err)
 	}
 
 }
 
 // HasUsers accepts a user array of usernames and returns the not found
-func (mong *MongoStore) HasUsers(projectUUID string, users []string) (bool, []string) {
+func (mong *MongoStore) HasUsers(ctx context.Context, projectUUID string, users []string) (bool, []string) {
 	db := mong.Session.DB(mong.Database)
 	var results []QUser
 	var notFound []string
@@ -596,13 +567,7 @@ func (mong *MongoStore) HasUsers(projectUUID string, users []string) (bool, []st
 
 	err := c.Find(bson.M{"projects": bson.M{"$elemMatch": bson.M{"project_uuid": projectUUID}}, "name": bson.M{"$in": users}}).All(&results)
 	if err != nil {
-		log.WithFields(
-			log.Fields{
-				"type":            "backend_log",
-				"backend_service": "mongo",
-				"backend_hosts":   mong.Server,
-			},
-		).Fatal(err.Error())
+		mong.logErrorAndCrash(ctx, "HasUsers", err)
 	}
 
 	// for each given username
@@ -625,7 +590,7 @@ func (mong *MongoStore) HasUsers(projectUUID string, users []string) (bool, []st
 }
 
 // QueryACL queries topic or subscription for a list of authorized users
-func (mong *MongoStore) QueryACL(projectUUID string, resource string, name string) (QAcl, error) {
+func (mong *MongoStore) QueryACL(ctx context.Context, projectUUID string, resource string, name string) (QAcl, error) {
 
 	db := mong.Session.DB(mong.Database)
 	var results []QAcl
@@ -639,13 +604,7 @@ func (mong *MongoStore) QueryACL(projectUUID string, resource string, name strin
 	err := c.Find(bson.M{"project_uuid": projectUUID, "name": name}).All(&results)
 
 	if err != nil {
-		log.WithFields(
-			log.Fields{
-				"type":            "backend_log",
-				"backend_service": "mongo",
-				"backend_hosts":   mong.Server,
-			},
-		).Fatal(err.Error())
+		mong.logErrorAndCrash(ctx, "QueryACL", err)
 	}
 
 	if len(results) > 0 {
@@ -656,9 +615,9 @@ func (mong *MongoStore) QueryACL(projectUUID string, resource string, name strin
 }
 
 // QueryUsers queries user(s) information belonging to a project
-func (mong *MongoStore) QueryUsers(projectUUID string, uuid string, name string) ([]QUser, error) {
+func (mong *MongoStore) QueryUsers(ctx context.Context, projectUUID string, uuid string, name string) ([]QUser, error) {
 
-	// By default return all users
+	// By default, return all users
 	query := bson.M{}
 	// If project UUID is given return users that belong to the project
 	if projectUUID != "" {
@@ -684,20 +643,14 @@ func (mong *MongoStore) QueryUsers(projectUUID string, uuid string, name string)
 	err := c.Find(query).All(&results)
 
 	if err != nil {
-		log.WithFields(
-			log.Fields{
-				"type":            "backend_log",
-				"backend_service": "mongo",
-				"backend_hosts":   mong.Server,
-			},
-		).Fatal(err.Error())
+		mong.logErrorAndCrash(ctx, "QueryUsers", err)
 	}
 
 	return results, err
 }
 
 // PaginatedQueryUsers returns a page of users
-func (mong *MongoStore) PaginatedQueryUsers(pageToken string, pageSize int64, projectUUID string) ([]QUser, int64, string, error) {
+func (mong *MongoStore) PaginatedQueryUsers(ctx context.Context, pageToken string, pageSize int64, projectUUID string) ([]QUser, int64, string, error) {
 
 	var qUsers []QUser
 	var totalSize int64
@@ -732,24 +685,19 @@ func (mong *MongoStore) PaginatedQueryUsers(pageToken string, pageSize int64, pr
 
 	// check the total of the users selected by the query not taking into account pagination
 	if size, err = c.Find(query).Count(); err != nil {
-		log.WithFields(
-			log.Fields{
-				"type":            "backend_log",
-				"backend_service": "mongo",
-				"backend_hosts":   mong.Server,
-			},
-		).Fatal(err.Error())
+		mong.logErrorAndCrash(ctx, "PaginatedQueryUsers", err)
 	}
 	totalSize = int64(size)
 
 	// now take into account if pagination is enabled and change the query accordingly
-	// first check if an pageToken is provided and whether or not is a valid bson ID
+	// first check if an pageToken is provided and whether is a valid bson ID
 	if pageToken != "" {
 		if ok = bson.IsObjectIdHex(pageToken); !ok {
 			err = fmt.Errorf("Page token %v is not a valid bson ObjectId", pageToken)
 			log.WithFields(
 				log.Fields{
 					"type":            "backend_log",
+					"trace_id":        ctx.Value("trace_id"),
 					"backend_service": "mongo",
 					"page_token":      pageToken,
 				},
@@ -784,13 +732,7 @@ func (mong *MongoStore) PaginatedQueryUsers(pageToken string, pageSize int64, pr
 	}
 
 	if err = c.Find(query).Sort("-_id").Limit(int(limit)).All(&qUsers); err != nil {
-		log.WithFields(
-			log.Fields{
-				"type":            "backend_log",
-				"backend_service": "mongo",
-				"backend_hosts":   mong.Server,
-			},
-		).Fatal(err.Error())
+		mong.logErrorAndCrash(ctx, "PaginatedQueryUsers-2", err)
 	}
 
 	// if the amount of users that were found was equal to the limit, its a sign that there are users to populate the next page
@@ -805,9 +747,9 @@ func (mong *MongoStore) PaginatedQueryUsers(pageToken string, pageSize int64, pr
 	return qUsers, totalSize, nextPageToken, err
 }
 
-//QuerySubsByTopic returns subscriptions of a specific topic
-func (mong *MongoStore) QuerySubsByTopic(projectUUID, topic string) ([]QSub, error) {
-	// By default return all subs of a given project
+// QuerySubsByTopic returns subscriptions of a specific topic
+func (mong *MongoStore) QuerySubsByTopic(ctx context.Context, projectUUID, topic string) ([]QSub, error) {
+	// By default, return all subs of a given project
 	query := bson.M{"project_uuid": projectUUID}
 
 	// If topic is given return only the specific topic
@@ -820,21 +762,15 @@ func (mong *MongoStore) QuerySubsByTopic(projectUUID, topic string) ([]QSub, err
 	err := c.Find(query).All(&results)
 
 	if err != nil {
-		log.WithFields(
-			log.Fields{
-				"type":            "backend_log",
-				"backend_service": "mongo",
-				"backend_hosts":   mong.Server,
-			},
-		).Fatal(err.Error())
+		mong.logErrorAndCrash(ctx, "QuerySubsByTopic", err)
 	}
 
 	return results, err
 }
 
-//QuerySubsByACL returns subscriptions that a specific username has access to
-func (mong *MongoStore) QuerySubsByACL(projectUUID, user string) ([]QSub, error) {
-	// By default return all subs of a given project
+// QuerySubsByACL returns subscriptions that a specific username has access to
+func (mong *MongoStore) QuerySubsByACL(ctx context.Context, projectUUID, user string) ([]QSub, error) {
+	// By default, return all subs of a given project
 	query := bson.M{"project_uuid": projectUUID}
 
 	// If name is given return only the specific topic
@@ -847,21 +783,15 @@ func (mong *MongoStore) QuerySubsByACL(projectUUID, user string) ([]QSub, error)
 	err := c.Find(query).All(&results)
 
 	if err != nil {
-		log.WithFields(
-			log.Fields{
-				"type":            "backend_log",
-				"backend_service": "mongo",
-				"backend_hosts":   mong.Server,
-			},
-		).Fatal(err.Error())
+		mong.logErrorAndCrash(ctx, "QuerySubsByACL", err)
 	}
 
 	return results, err
 }
 
-//QueryTopicsByACL returns topics that a specific username has access to
-func (mong *MongoStore) QueryTopicsByACL(projectUUID, user string) ([]QTopic, error) {
-	// By default return all topics of a given project
+// QueryTopicsByACL returns topics that a specific username has access to
+func (mong *MongoStore) QueryTopicsByACL(ctx context.Context, projectUUID, user string) ([]QTopic, error) {
+	// By default, return all topics of a given project
 	query := bson.M{"project_uuid": projectUUID}
 
 	// If name is given return only the specific topic
@@ -874,20 +804,14 @@ func (mong *MongoStore) QueryTopicsByACL(projectUUID, user string) ([]QTopic, er
 	err := c.Find(query).All(&results)
 
 	if err != nil {
-		log.WithFields(
-			log.Fields{
-				"type":            "backend_log",
-				"backend_service": "mongo",
-				"backend_hosts":   mong.Server,
-			},
-		).Fatal(err.Error())
+		mong.logErrorAndCrash(ctx, "QueryTopicsByACL", err)
 	}
 
 	return results, err
 }
 
 // QueryTopics Query Subscription info from store
-func (mong *MongoStore) QueryTopics(projectUUID, userUUID, name, pageToken string, pageSize int64) ([]QTopic, int64, string, error) {
+func (mong *MongoStore) QueryTopics(ctx context.Context, projectUUID, userUUID, name, pageToken string, pageSize int64) ([]QTopic, int64, string, error) {
 
 	var err error
 	var totalSize int64
@@ -920,6 +844,7 @@ func (mong *MongoStore) QueryTopics(projectUUID, userUUID, name, pageToken strin
 			log.WithFields(
 				log.Fields{
 					"type":            "backend_log",
+					"trace_id":        ctx.Value("trace_id"),
 					"backend_service": "mongo",
 					"page_token":      pageToken,
 				},
@@ -940,13 +865,7 @@ func (mong *MongoStore) QueryTopics(projectUUID, userUUID, name, pageToken strin
 	c := db.C("topics")
 
 	if err = c.Find(query).Sort("-_id").Limit(int(limit)).All(&qTopics); err != nil {
-		log.WithFields(
-			log.Fields{
-				"type":            "backend_log",
-				"backend_service": "mongo",
-				"backend_hosts":   mong.Server,
-			},
-		).Fatal(err.Error())
+		mong.logErrorAndCrash(ctx, "QueryTopics", err)
 	}
 
 	if name == "" {
@@ -957,13 +876,8 @@ func (mong *MongoStore) QueryTopics(projectUUID, userUUID, name, pageToken strin
 		}
 
 		if size, err = c.Find(countQuery).Count(); err != nil {
-			log.WithFields(
-				log.Fields{
-					"type":            "backend_log",
-					"backend_service": "mongo",
-					"backend_hosts":   mong.Server,
-				},
-			).Fatal(err.Error())
+			mong.logErrorAndCrash(ctx, "QueryTopics-2", err)
+
 		}
 
 		totalSize = int64(size)
@@ -983,7 +897,7 @@ func (mong *MongoStore) QueryTopics(projectUUID, userUUID, name, pageToken strin
 }
 
 // UpdateTopicLatestPublish updates the topic's latest publish time
-func (mong *MongoStore) UpdateTopicLatestPublish(projectUUID string, name string, date time.Time) error {
+func (mong *MongoStore) UpdateTopicLatestPublish(ctx context.Context, projectUUID string, name string, date time.Time) error {
 
 	db := mong.Session.DB(mong.Database)
 	c := db.C("topics")
@@ -1003,7 +917,7 @@ func (mong *MongoStore) UpdateTopicLatestPublish(projectUUID string, name string
 }
 
 // UpdateTopicPublishRate updates the topic's publishing rate
-func (mong *MongoStore) UpdateTopicPublishRate(projectUUID string, name string, rate float64) error {
+func (mong *MongoStore) UpdateTopicPublishRate(ctx context.Context, projectUUID string, name string, rate float64) error {
 
 	db := mong.Session.DB(mong.Database)
 	c := db.C("topics")
@@ -1023,7 +937,7 @@ func (mong *MongoStore) UpdateTopicPublishRate(projectUUID string, name string, 
 }
 
 // UpdateSubLatestConsume updates the subscription's latest consume time
-func (mong *MongoStore) UpdateSubLatestConsume(projectUUID string, name string, date time.Time) error {
+func (mong *MongoStore) UpdateSubLatestConsume(ctx context.Context, projectUUID string, name string, date time.Time) error {
 
 	db := mong.Session.DB(mong.Database)
 	c := db.C("subscriptions")
@@ -1043,7 +957,7 @@ func (mong *MongoStore) UpdateSubLatestConsume(projectUUID string, name string, 
 }
 
 // UpdateSubConsumeRate updates the subscription's consume rate
-func (mong *MongoStore) UpdateSubConsumeRate(projectUUID string, name string, rate float64) error {
+func (mong *MongoStore) UpdateSubConsumeRate(ctx context.Context, projectUUID string, name string, rate float64) error {
 
 	db := mong.Session.DB(mong.Database)
 	c := db.C("subscriptions")
@@ -1063,7 +977,7 @@ func (mong *MongoStore) UpdateSubConsumeRate(projectUUID string, name string, ra
 }
 
 // QueryDailyTopicMsgCount returns results regarding the number of messages published to a topic
-func (mong *MongoStore) QueryDailyTopicMsgCount(projectUUID string, topicName string, date time.Time) ([]QDailyTopicMsgCount, error) {
+func (mong *MongoStore) QueryDailyTopicMsgCount(ctx context.Context, projectUUID string, topicName string, date time.Time) ([]QDailyTopicMsgCount, error) {
 
 	var err error
 	var qDailyTopicMsgCount []QDailyTopicMsgCount
@@ -1089,20 +1003,14 @@ func (mong *MongoStore) QueryDailyTopicMsgCount(projectUUID string, topicName st
 	err = c.Find(query).Sort("-date").Limit(30).All(&qDailyTopicMsgCount)
 
 	if err != nil {
-		log.WithFields(
-			log.Fields{
-				"type":            "backend_log",
-				"backend_service": "mongo",
-				"backend_hosts":   mong.Server,
-			},
-		).Fatal(err.Error())
+		mong.logErrorAndCrash(ctx, "QueryDailyTopicMsgCount", err)
 	}
 
 	return qDailyTopicMsgCount, err
 }
 
 // IncrementTopicMsgNum increments the number of messages published in a topic
-func (mong *MongoStore) IncrementTopicMsgNum(projectUUID string, name string, num int64) error {
+func (mong *MongoStore) IncrementTopicMsgNum(ctx context.Context, projectUUID string, name string, num int64) error {
 
 	db := mong.Session.DB(mong.Database)
 	c := db.C("topics")
@@ -1117,7 +1025,7 @@ func (mong *MongoStore) IncrementTopicMsgNum(projectUUID string, name string, nu
 }
 
 // IncrementDailyTopicMsgCount increments the daily count of published messages to a specific topic
-func (mong *MongoStore) IncrementDailyTopicMsgCount(projectUUID string, topicName string, num int64, date time.Time) error {
+func (mong *MongoStore) IncrementDailyTopicMsgCount(ctx context.Context, projectUUID string, topicName string, num int64, date time.Time) error {
 
 	db := mong.Session.DB(mong.Database)
 	c := db.C("daily_topic_msg_count")
@@ -1131,8 +1039,8 @@ func (mong *MongoStore) IncrementDailyTopicMsgCount(projectUUID string, topicNam
 
 }
 
-//IncrementTopicBytes increases the total number of bytes published in a topic
-func (mong *MongoStore) IncrementTopicBytes(projectUUID string, name string, totalBytes int64) error {
+// IncrementTopicBytes increases the total number of bytes published in a topic
+func (mong *MongoStore) IncrementTopicBytes(ctx context.Context, projectUUID string, name string, totalBytes int64) error {
 	db := mong.Session.DB(mong.Database)
 	c := db.C("topics")
 
@@ -1145,7 +1053,7 @@ func (mong *MongoStore) IncrementTopicBytes(projectUUID string, name string, tot
 }
 
 // IncrementSubMsgNum increments the number of messages pulled in a subscription
-func (mong *MongoStore) IncrementSubMsgNum(projectUUID string, name string, num int64) error {
+func (mong *MongoStore) IncrementSubMsgNum(ctx context.Context, projectUUID string, name string, num int64) error {
 
 	db := mong.Session.DB(mong.Database)
 	c := db.C("subscriptions")
@@ -1159,8 +1067,8 @@ func (mong *MongoStore) IncrementSubMsgNum(projectUUID string, name string, num 
 
 }
 
-//IncrementSubBytes increases the total number of bytes consumed from a subscripion
-func (mong *MongoStore) IncrementSubBytes(projectUUID string, name string, totalBytes int64) error {
+// IncrementSubBytes increases the total number of bytes consumed from a subscription
+func (mong *MongoStore) IncrementSubBytes(ctx context.Context, projectUUID string, name string, totalBytes int64) error {
 	db := mong.Session.DB(mong.Database)
 	c := db.C("subscriptions")
 
@@ -1172,21 +1080,15 @@ func (mong *MongoStore) IncrementSubBytes(projectUUID string, name string, total
 	return err
 }
 
-//HasResourceRoles returns the roles of a user in a project
-func (mong *MongoStore) HasResourceRoles(resource string, roles []string) bool {
+// HasResourceRoles returns the roles of a user in a project
+func (mong *MongoStore) HasResourceRoles(ctx context.Context, resource string, roles []string) bool {
 
 	db := mong.Session.DB(mong.Database)
 	c := db.C("roles")
 	var results []QRole
 	err := c.Find(bson.M{"resource": resource, "roles": bson.M{"$in": roles}}).All(&results)
 	if err != nil {
-		log.WithFields(
-			log.Fields{
-				"type":            "backend_log",
-				"backend_service": "mongo",
-				"backend_hosts":   mong.Server,
-			},
-		).Fatal(err.Error())
+		mong.logErrorAndCrash(ctx, "HasResourceRoles", err)
 	}
 
 	if len(results) > 0 {
@@ -1197,27 +1099,21 @@ func (mong *MongoStore) HasResourceRoles(resource string, roles []string) bool {
 
 }
 
-//GetAllRoles returns a list of all available roles
-func (mong *MongoStore) GetAllRoles() []string {
+// GetAllRoles returns a list of all available roles
+func (mong *MongoStore) GetAllRoles(ctx context.Context) []string {
 
 	db := mong.Session.DB(mong.Database)
 	c := db.C("roles")
 	var results []string
 	err := c.Find(nil).Distinct("roles", &results)
 	if err != nil {
-		log.WithFields(
-			log.Fields{
-				"type":            "backend_log",
-				"backend_service": "mongo",
-				"backend_hosts":   mong.Server,
-			},
-		).Fatal(err.Error())
+		mong.logErrorAndCrash(ctx, "GetAllRoles", err)
 	}
 	return results
 }
 
-//GetOpMetrics returns the operational metrics from datastore
-func (mong *MongoStore) GetOpMetrics() []QopMetric {
+// GetOpMetrics returns the operational metrics from datastore
+func (mong *MongoStore) GetOpMetrics(ctx context.Context) []QopMetric {
 
 	db := mong.Session.DB(mong.Database)
 	c := db.C("op_metrics")
@@ -1226,21 +1122,15 @@ func (mong *MongoStore) GetOpMetrics() []QopMetric {
 	err := c.Find(bson.M{}).All(&results)
 
 	if err != nil {
-		log.WithFields(
-			log.Fields{
-				"type":            "backend_log",
-				"backend_service": "mongo",
-				"backend_hosts":   mong.Server,
-			},
-		).Fatal(err.Error())
+		mong.logErrorAndCrash(ctx, "GetOpMetrics", err)
 	}
 
 	return results
 
 }
 
-//GetUserRoles returns the roles of a user in a project
-func (mong *MongoStore) GetUserRoles(projectUUID string, token string) ([]string, string) {
+// GetUserRoles returns the roles of a user in a project
+func (mong *MongoStore) GetUserRoles(ctx context.Context, projectUUID string, token string) ([]string, string) {
 
 	db := mong.Session.DB(mong.Database)
 	c := db.C("users")
@@ -1249,13 +1139,7 @@ func (mong *MongoStore) GetUserRoles(projectUUID string, token string) ([]string
 	err := c.Find(bson.M{"token": token}).All(&results)
 
 	if err != nil {
-		log.WithFields(
-			log.Fields{
-				"type":            "backend_log",
-				"backend_service": "mongo",
-				"backend_hosts":   mong.Server,
-			},
-		).Fatal(err.Error())
+		mong.logErrorAndCrash(ctx, "GetUserRoles", err)
 	}
 
 	if len(results) == 0 {
@@ -1266,6 +1150,7 @@ func (mong *MongoStore) GetUserRoles(projectUUID string, token string) ([]string
 		log.WithFields(
 			log.Fields{
 				"type":            "backend_log",
+				"trace_id":        ctx.Value("trace_id"),
 				"token":           token,
 				"backend_service": "mongo",
 				"backend_hosts":   mong.Server,
@@ -1278,8 +1163,8 @@ func (mong *MongoStore) GetUserRoles(projectUUID string, token string) ([]string
 
 }
 
-//GetUserFromToken returns user information from a specific token
-func (mong *MongoStore) GetUserFromToken(token string) (QUser, error) {
+// GetUserFromToken returns user information from a specific token
+func (mong *MongoStore) GetUserFromToken(ctx context.Context, token string) (QUser, error) {
 
 	db := mong.Session.DB(mong.Database)
 	c := db.C("users")
@@ -1288,13 +1173,8 @@ func (mong *MongoStore) GetUserFromToken(token string) (QUser, error) {
 	err := c.Find(bson.M{"token": token}).All(&results)
 
 	if err != nil {
-		log.WithFields(
-			log.Fields{
-				"type":            "backend_log",
-				"backend_service": "mongo",
-				"backend_hosts":   mong.Server,
-			},
-		).Fatal(err.Error())
+		mong.logErrorAndCrash(ctx, "GetUserFromToken", err)
+
 	}
 
 	if len(results) == 0 {
@@ -1305,6 +1185,7 @@ func (mong *MongoStore) GetUserFromToken(token string) (QUser, error) {
 		log.WithFields(
 			log.Fields{
 				"type":            "backend_log",
+				"trace_id":        ctx.Value("trace_id"),
 				"token":           token,
 				"backend_service": "mongo",
 				"backend_hosts":   mong.Server,
@@ -1318,20 +1199,15 @@ func (mong *MongoStore) GetUserFromToken(token string) (QUser, error) {
 }
 
 // QueryOneSub queries and returns specific sub of project
-func (mong *MongoStore) QueryOneSub(projectUUID string, name string) (QSub, error) {
+func (mong *MongoStore) QueryOneSub(ctx context.Context, projectUUID string, name string) (QSub, error) {
 
 	db := mong.Session.DB(mong.Database)
 	c := db.C("subscriptions")
 	var results []QSub
 	err := c.Find(bson.M{"project_uuid": projectUUID, "name": name}).All(&results)
 	if err != nil {
-		log.WithFields(
-			log.Fields{
-				"type":            "backend_log",
-				"backend_service": "mongo",
-				"backend_hosts":   mong.Server,
-			},
-		).Fatal(err.Error())
+		mong.logErrorAndCrash(ctx, "QueryOneSub", err)
+
 	}
 
 	if len(results) > 0 {
@@ -1342,20 +1218,15 @@ func (mong *MongoStore) QueryOneSub(projectUUID string, name string) (QSub, erro
 }
 
 // HasProject Returns true if project exists
-func (mong *MongoStore) HasProject(name string) bool {
+func (mong *MongoStore) HasProject(ctx context.Context, name string) bool {
 
 	db := mong.Session.DB(mong.Database)
 	c := db.C("projects")
 	var results []QProject
 	err := c.Find(bson.M{"name": name}).All(&results)
 	if err != nil {
-		log.WithFields(
-			log.Fields{
-				"type":            "backend_log",
-				"backend_service": "mongo",
-				"backend_hosts":   mong.Server,
-			},
-		).Fatal(err.Error())
+		mong.logErrorAndCrash(ctx, "HasProject", err)
+
 	}
 
 	if len(results) > 0 {
@@ -1365,7 +1236,7 @@ func (mong *MongoStore) HasProject(name string) bool {
 }
 
 // InsertTopic inserts a topic to the store
-func (mong *MongoStore) InsertTopic(projectUUID string, name string, schemaUUID string, createdOn time.Time) error {
+func (mong *MongoStore) InsertTopic(ctx context.Context, projectUUID string, name string, schemaUUID string, createdOn time.Time) error {
 
 	topic := QTopic{
 		ProjectUUID:   projectUUID,
@@ -1379,30 +1250,25 @@ func (mong *MongoStore) InsertTopic(projectUUID string, name string, schemaUUID 
 		ACL:           []string{},
 	}
 
-	return mong.InsertResource("topics", topic)
+	return mong.InsertResource(ctx, "topics", topic)
 }
 
 // LinkTopicSchema links the topic with a schema
-func (mong *MongoStore) LinkTopicSchema(projectUUID, name, schemaUUID string) error {
+func (mong *MongoStore) LinkTopicSchema(ctx context.Context, projectUUID, name, schemaUUID string) error {
 
 	db := mong.Session.DB(mong.Database)
 	c := db.C("topics")
 
 	err := c.Update(bson.M{"project_uuid": projectUUID, "name": name}, bson.M{"$set": bson.M{"schema_uuid": schemaUUID}})
 	if err != nil {
-		log.WithFields(
-			log.Fields{
-				"type":            "backend_log",
-				"backend_service": "mongo",
-				"backend_hosts":   mong.Server,
-			},
-		).Fatal(err.Error())
+		mong.logErrorAndCrash(ctx, "LinkTopicSchema", err)
+
 	}
 	return nil
 }
 
 // InsertOpMetric inserts an operational metric
-func (mong *MongoStore) InsertOpMetric(hostname string, cpu float64, mem float64) error {
+func (mong *MongoStore) InsertOpMetric(ctx context.Context, hostname string, cpu float64, mem float64) error {
 	opMetric := QopMetric{Hostname: hostname, CPU: cpu, MEM: mem}
 	db := mong.Session.DB(mong.Database)
 	c := db.C("op_metrics")
@@ -1411,20 +1277,15 @@ func (mong *MongoStore) InsertOpMetric(hostname string, cpu float64, mem float64
 
 	_, err := c.UpsertId(opMetric.Hostname, upsertdata)
 	if err != nil {
-		log.WithFields(
-			log.Fields{
-				"type":            "backend_log",
-				"backend_service": "mongo",
-				"backend_hosts":   mong.Server,
-			},
-		).Error(err.Error())
+		mong.logErrorAndCrash(ctx, "InsertOpMetric", err)
+
 	}
 
 	return err
 }
 
 // InsertUser inserts a new user to the store
-func (mong *MongoStore) InsertUser(uuid string, projects []QProjectRoles, name string, fname string, lname string, org string, desc string, token string, email string, serviceRoles []string, createdOn time.Time, modifiedOn time.Time, createdBy string) error {
+func (mong *MongoStore) InsertUser(ctx context.Context, uuid string, projects []QProjectRoles, name string, fname string, lname string, org string, desc string, token string, email string, serviceRoles []string, createdOn time.Time, modifiedOn time.Time, createdBy string) error {
 	user := QUser{
 		UUID:         uuid,
 		Name:         name,
@@ -1440,17 +1301,17 @@ func (mong *MongoStore) InsertUser(uuid string, projects []QProjectRoles, name s
 		ModifiedOn:   modifiedOn,
 		CreatedBy:    createdBy,
 	}
-	return mong.InsertResource("users", user)
+	return mong.InsertResource(ctx, "users", user)
 }
 
 // InsertProject inserts a project to the store
-func (mong *MongoStore) InsertProject(uuid string, name string, createdOn time.Time, modifiedOn time.Time, createdBy string, description string) error {
+func (mong *MongoStore) InsertProject(ctx context.Context, uuid string, name string, createdOn time.Time, modifiedOn time.Time, createdBy string, description string) error {
 	project := QProject{UUID: uuid, Name: name, CreatedOn: createdOn, ModifiedOn: modifiedOn, CreatedBy: createdBy, Description: description}
-	return mong.InsertResource("projects", project)
+	return mong.InsertResource(ctx, "projects", project)
 }
 
 // InsertSub inserts a subscription to the store
-func (mong *MongoStore) InsertSub(projectUUID string, name string, topic string,
+func (mong *MongoStore) InsertSub(ctx context.Context, projectUUID string, name string, topic string,
 	offset int64, ack int, pushCfg QPushConfig, createdOn time.Time) error {
 	sub := QSub{
 		ProjectUUID:         projectUUID,
@@ -1478,28 +1339,28 @@ func (mong *MongoStore) InsertSub(projectUUID string, name string, topic string,
 		CreatedOn:           createdOn,
 		ACL:                 []string{},
 	}
-	return mong.InsertResource("subscriptions", sub)
+	return mong.InsertResource(ctx, "subscriptions", sub)
 }
 
 // RemoveProjectTopics removes all topics related to a project UUID
-func (mong *MongoStore) RemoveProjectTopics(projectUUID string) error {
+func (mong *MongoStore) RemoveProjectTopics(ctx context.Context, projectUUID string) error {
 	topicMatch := bson.M{"project_uuid": projectUUID}
-	return mong.RemoveAll("topics", topicMatch)
+	return mong.RemoveAll(ctx, "topics", topicMatch)
 }
 
 // RemoveProjectSubs removes all subscriptions related to a project UUID
-func (mong *MongoStore) RemoveProjectSubs(projectUUID string) error {
+func (mong *MongoStore) RemoveProjectSubs(ctx context.Context, projectUUID string) error {
 	subMatch := bson.M{"project_uuid": projectUUID}
-	return mong.RemoveAll("subscriptions", subMatch)
+	return mong.RemoveAll(ctx, "subscriptions", subMatch)
 }
 
-// RemoveProjectDailyMessageCount removes all message counts related to a project UUID
-func (mong *MongoStore) RemoveProjectDailyMessageCounters(projectUUID string) error {
-	return mong.RemoveAll("daily_topic_msg_count", bson.M{"project_uuid": projectUUID})
+// RemoveProjectDailyMessageCounters removes all message counts related to a project UUID
+func (mong *MongoStore) RemoveProjectDailyMessageCounters(ctx context.Context, projectUUID string) error {
+	return mong.RemoveAll(ctx, "daily_topic_msg_count", bson.M{"project_uuid": projectUUID})
 }
 
 // QueryTotalMessagesPerProject returns the total amount of messages per project for the given time window
-func (mong *MongoStore) QueryTotalMessagesPerProject(projectUUIDs []string, startDate time.Time, endDate time.Time) ([]QProjectMessageCount, error) {
+func (mong *MongoStore) QueryTotalMessagesPerProject(ctx context.Context, projectUUIDs []string, startDate time.Time, endDate time.Time) ([]QProjectMessageCount, error) {
 
 	var err error
 	var qdp []QProjectMessageCount
@@ -1569,20 +1430,14 @@ func (mong *MongoStore) QueryTotalMessagesPerProject(projectUUIDs []string, star
 	}
 
 	if err = c.Pipe(query).All(&qdp); err != nil {
-		log.WithFields(
-			log.Fields{
-				"type":            "backend_log",
-				"backend_service": "mongo",
-				"backend_hosts":   mong.Server,
-			},
-		).Fatal(err.Error())
+		mong.logErrorAndCrash(ctx, "QueryTotalMessagesPerProject", err)
 	}
 
 	return qdp, err
 }
 
 // QueryDailyProjectMsgCount queries the total messages per day for a given project
-func (mong *MongoStore) QueryDailyProjectMsgCount(projectUUID string) ([]QDailyProjectMsgCount, error) {
+func (mong *MongoStore) QueryDailyProjectMsgCount(ctx context.Context, projectUUID string) ([]QDailyProjectMsgCount, error) {
 
 	var err error
 	var qdp []QDailyProjectMsgCount
@@ -1625,13 +1480,7 @@ func (mong *MongoStore) QueryDailyProjectMsgCount(projectUUID string) ([]QDailyP
 	fmt.Println(query)
 	fmt.Println("2")
 	if err = c.Pipe(query).All(&qdp); err != nil {
-		log.WithFields(
-			log.Fields{
-				"type":            "backend_log",
-				"backend_service": "mongo",
-				"backend_hosts":   mong.Server,
-			},
-		).Fatal(err.Error())
+		mong.logErrorAndCrash(ctx, "QueryDailyProjectMsgCount", err)
 	}
 
 	return qdp, err
@@ -1639,31 +1488,31 @@ func (mong *MongoStore) QueryDailyProjectMsgCount(projectUUID string) ([]QDailyP
 }
 
 // RemoveProject removes a project from the store
-func (mong *MongoStore) RemoveProject(uuid string) error {
+func (mong *MongoStore) RemoveProject(ctx context.Context, uuid string) error {
 	project := bson.M{"uuid": uuid}
-	return mong.RemoveResource("projects", project)
+	return mong.RemoveResource(ctx, "projects", project)
 }
 
 // RemoveTopic removes a topic from the store
-func (mong *MongoStore) RemoveTopic(projectUUID string, name string) error {
+func (mong *MongoStore) RemoveTopic(ctx context.Context, projectUUID string, name string) error {
 	topic := bson.M{"project_uuid": projectUUID, "name": name}
-	return mong.RemoveResource("topics", topic)
+	return mong.RemoveResource(ctx, "topics", topic)
 }
 
 // RemoveUser removes a user entry from the store
-func (mong *MongoStore) RemoveUser(uuid string) error {
+func (mong *MongoStore) RemoveUser(ctx context.Context, uuid string) error {
 	user := bson.M{"uuid": uuid}
-	return mong.RemoveResource("users", user)
+	return mong.RemoveResource(ctx, "users", user)
 }
 
 // RemoveSub removes a subscription from the store
-func (mong *MongoStore) RemoveSub(projectUUID string, name string) error {
+func (mong *MongoStore) RemoveSub(ctx context.Context, projectUUID string, name string) error {
 	sub := bson.M{"project_uuid": projectUUID, "name": name}
-	return mong.RemoveResource("subscriptions", sub)
+	return mong.RemoveResource(ctx, "subscriptions", sub)
 }
 
 // ExistsInACL checks if a user is part of a topic's or sub's acl
-func (mong *MongoStore) ExistsInACL(projectUUID string, resource string, resourceName string, userUUID string) error {
+func (mong *MongoStore) ExistsInACL(ctx context.Context, projectUUID string, resource string, resourceName string, userUUID string) error {
 
 	db := mong.Session.DB(mong.Database)
 
@@ -1686,7 +1535,7 @@ func (mong *MongoStore) ExistsInACL(projectUUID string, resource string, resourc
 }
 
 // ModACL modifies the push configuration
-func (mong *MongoStore) ModACL(projectUUID string, resource string, name string, acl []string) error {
+func (mong *MongoStore) ModACL(ctx context.Context, projectUUID string, resource string, name string, acl []string) error {
 	db := mong.Session.DB(mong.Database)
 
 	if resource != "topics" && resource != "subscriptions" {
@@ -1700,7 +1549,7 @@ func (mong *MongoStore) ModACL(projectUUID string, resource string, name string,
 }
 
 // AppendToACL adds additional users to an existing ACL
-func (mong *MongoStore) AppendToACL(projectUUID string, resource string, name string, acl []string) error {
+func (mong *MongoStore) AppendToACL(ctx context.Context, projectUUID string, resource string, name string, acl []string) error {
 
 	db := mong.Session.DB(mong.Database)
 
@@ -1725,7 +1574,7 @@ func (mong *MongoStore) AppendToACL(projectUUID string, resource string, name st
 }
 
 // RemoveFromACL removes users for a given ACL
-func (mong *MongoStore) RemoveFromACL(projectUUID string, resource string, name string, acl []string) error {
+func (mong *MongoStore) RemoveFromACL(ctx context.Context, projectUUID string, resource string, name string, acl []string) error {
 
 	db := mong.Session.DB(mong.Database)
 
@@ -1750,8 +1599,7 @@ func (mong *MongoStore) RemoveFromACL(projectUUID string, resource string, name 
 }
 
 // ModAck modifies the subscription's ack timeout field in mongodb
-func (mong *MongoStore) ModAck(projectUUID string, name string, ack int) error {
-	log.Info("Modifying Ack Deadline", ack)
+func (mong *MongoStore) ModAck(ctx context.Context, projectUUID string, name string, ack int) error {
 	db := mong.Session.DB(mong.Database)
 	c := db.C("subscriptions")
 	err := c.Update(bson.M{"project_uuid": projectUUID, "name": name}, bson.M{"$set": bson.M{"ack": ack}})
@@ -1759,7 +1607,7 @@ func (mong *MongoStore) ModAck(projectUUID string, name string, ack int) error {
 }
 
 // ModSubPush modifies the push configuration
-func (mong *MongoStore) ModSubPush(projectUUID string, name string, pushCfg QPushConfig) error {
+func (mong *MongoStore) ModSubPush(ctx context.Context, projectUUID string, name string, pushCfg QPushConfig) error {
 	db := mong.Session.DB(mong.Database)
 	c := db.C("subscriptions")
 
@@ -1787,7 +1635,7 @@ func (mong *MongoStore) ModSubPush(projectUUID string, name string, pushCfg QPus
 }
 
 // InsertResource inserts a new topic object to the datastore
-func (mong *MongoStore) InsertResource(col string, res interface{}) error {
+func (mong *MongoStore) InsertResource(ctx context.Context, col string, res interface{}) error {
 
 	db := mong.Session.DB(mong.Database)
 	c := db.C(col)
@@ -1801,7 +1649,7 @@ func (mong *MongoStore) InsertResource(col string, res interface{}) error {
 }
 
 // RemoveAll removes all occurrences matched with a resource from the store
-func (mong *MongoStore) RemoveAll(col string, res interface{}) error {
+func (mong *MongoStore) RemoveAll(ctx context.Context, col string, res interface{}) error {
 	db := mong.Session.DB(mong.Database)
 	c := db.C(col)
 
@@ -1811,7 +1659,7 @@ func (mong *MongoStore) RemoveAll(col string, res interface{}) error {
 }
 
 // RemoveResource removes a resource from the store
-func (mong *MongoStore) RemoveResource(col string, res interface{}) error {
+func (mong *MongoStore) RemoveResource(ctx context.Context, col string, res interface{}) error {
 
 	db := mong.Session.DB(mong.Database)
 	c := db.C(col)
@@ -1822,7 +1670,7 @@ func (mong *MongoStore) RemoveResource(col string, res interface{}) error {
 }
 
 // QuerySubs Query Subscription info from store
-func (mong *MongoStore) QuerySubs(projectUUID, userUUID, name, pageToken string, pageSize int64) ([]QSub, int64, string, error) {
+func (mong *MongoStore) QuerySubs(ctx context.Context, projectUUID, userUUID, name, pageToken string, pageSize int64) ([]QSub, int64, string, error) {
 
 	var err error
 	var totalSize int64
@@ -1832,7 +1680,7 @@ func (mong *MongoStore) QuerySubs(projectUUID, userUUID, name, pageToken string,
 	var ok bool
 	var size int
 
-	// By default return all subs of a given project
+	// By default, return all subs of a given project
 	query := bson.M{"project_uuid": projectUUID}
 
 	// find all the subscriptions for a specific user
@@ -1848,13 +1696,14 @@ func (mong *MongoStore) QuerySubs(projectUUID, userUUID, name, pageToken string,
 
 	}
 
-	// first check if an pageToken is provided and whether or not is a valid bson ID
+	// first check if an pageToken is provided and whether is a valid bson ID
 	if pageToken != "" {
 		if ok = bson.IsObjectIdHex(pageToken); !ok {
 			err = fmt.Errorf("Page token %v is not a valid bson ObjectId", pageToken)
 			log.WithFields(
 				log.Fields{
 					"type":            "backend_log",
+					"trace_id":        ctx.Value("trace_id"),
 					"backend_service": "mongo",
 					"page_token":      pageToken,
 				},
@@ -1875,13 +1724,7 @@ func (mong *MongoStore) QuerySubs(projectUUID, userUUID, name, pageToken string,
 	c := db.C("subscriptions")
 
 	if err = c.Find(query).Sort("-_id").Limit(int(limit)).All(&qSubs); err != nil {
-		log.WithFields(
-			log.Fields{
-				"type":            "backend_log",
-				"backend_service": "mongo",
-				"backend_hosts":   mong.Server,
-			},
-		).Fatal(err.Error())
+		mong.logErrorAndCrash(ctx, "QuerySubs", err)
 	}
 
 	if name == "" {
@@ -1892,13 +1735,8 @@ func (mong *MongoStore) QuerySubs(projectUUID, userUUID, name, pageToken string,
 		}
 
 		if size, err = c.Find(countQuery).Count(); err != nil {
-			log.WithFields(
-				log.Fields{
-					"type":            "backend_log",
-					"backend_service": "mongo",
-					"backend_hosts":   mong.Server,
-				},
-			).Fatal(err.Error())
+			mong.logErrorAndCrash(ctx, "QuerySubs-2", err)
+
 		}
 
 		totalSize = int64(size)
@@ -1918,26 +1756,21 @@ func (mong *MongoStore) QuerySubs(projectUUID, userUUID, name, pageToken string,
 }
 
 // QueryPushSubs retrieves subscriptions that have a push_endpoint defined
-func (mong *MongoStore) QueryPushSubs() []QSub {
+func (mong *MongoStore) QueryPushSubs(ctx context.Context) []QSub {
 
 	db := mong.Session.DB(mong.Database)
 	c := db.C("subscriptions")
 	var results []QSub
 	err := c.Find(bson.M{"push_endpoint": bson.M{"$ne": ""}}).All(&results)
 	if err != nil {
-		log.WithFields(
-			log.Fields{
-				"type":            "backend_log",
-				"backend_service": "mongo",
-				"backend_hosts":   mong.Server,
-			},
-		).Fatal(err.Error())
+		mong.logErrorAndCrash(ctx, "QueryPushSubs", err)
+
 	}
 	return results
 
 }
 
-func (mong *MongoStore) InsertSchema(projectUUID, schemaUUID, name, schemaType, rawSchemaString string) error {
+func (mong *MongoStore) InsertSchema(ctx context.Context, projectUUID, schemaUUID, name, schemaType, rawSchemaString string) error {
 	sub := QSchema{
 		ProjectUUID: projectUUID,
 		UUID:        schemaUUID,
@@ -1945,10 +1778,10 @@ func (mong *MongoStore) InsertSchema(projectUUID, schemaUUID, name, schemaType, 
 		Type:        schemaType,
 		RawSchema:   rawSchemaString,
 	}
-	return mong.InsertResource("schemas", sub)
+	return mong.InsertResource(ctx, "schemas", sub)
 }
 
-func (mong *MongoStore) QuerySchemas(projectUUID, schemaUUID, name string) ([]QSchema, error) {
+func (mong *MongoStore) QuerySchemas(ctx context.Context, projectUUID, schemaUUID, name string) ([]QSchema, error) {
 
 	db := mong.Session.DB(mong.Database)
 	c := db.C("schemas")
@@ -1967,20 +1800,15 @@ func (mong *MongoStore) QuerySchemas(projectUUID, schemaUUID, name string) ([]QS
 
 	err := c.Find(query).All(&results)
 	if err != nil {
-		log.WithFields(
-			log.Fields{
-				"type":            "backend_log",
-				"backend_service": "mongo",
-				"backend_hosts":   mong.Server,
-			},
-		).Fatal(err.Error())
+		mong.logErrorAndCrash(ctx, "QuerySchemas", err)
+
 	}
 
 	return results, nil
 }
 
 // UpdateSchema updates the fields of a schema
-func (mong *MongoStore) UpdateSchema(schemaUUID, name, schemaType, rawSchemaString string) error {
+func (mong *MongoStore) UpdateSchema(ctx context.Context, schemaUUID, name, schemaType, rawSchemaString string) error {
 
 	db := mong.Session.DB(mong.Database)
 	c := db.C("schemas")
@@ -2008,7 +1836,7 @@ func (mong *MongoStore) UpdateSchema(schemaUUID, name, schemaType, rawSchemaStri
 
 // DeleteSchema removes the schema from the store
 // It also clears all the respective topics from the schema_uuid of the deleted schema
-func (mong *MongoStore) DeleteSchema(schemaUUID string) error {
+func (mong *MongoStore) DeleteSchema(ctx context.Context, schemaUUID string) error {
 
 	db := mong.Session.DB(mong.Database)
 	c := db.C("schemas")
@@ -2018,13 +1846,8 @@ func (mong *MongoStore) DeleteSchema(schemaUUID string) error {
 	err := c.Remove(selector)
 
 	if err != nil {
-		log.WithFields(
-			log.Fields{
-				"type":            "backend_log",
-				"backend_service": "mongo",
-				"backend_hosts":   mong.Server,
-			},
-		).Fatal(err.Error())
+		mong.logErrorAndCrash(ctx, "DeleteSchema", err)
+
 	}
 
 	topics := db.C("topics")
@@ -2035,16 +1858,10 @@ func (mong *MongoStore) DeleteSchema(schemaUUID string) error {
 			"schema_uuid": "",
 		},
 	}
-	topics.UpdateAll(topicSelector, change)
-
+	_, err = topics.UpdateAll(topicSelector, change)
 	if err != nil {
-		log.WithFields(
-			log.Fields{
-				"type":            "backend_log",
-				"backend_service": "mongo",
-				"backend_hosts":   mong.Server,
-			},
-		).Fatal(err.Error())
+		mong.logErrorAndCrash(ctx, "DeleteSchema-2", err)
+
 	}
 
 	return nil
