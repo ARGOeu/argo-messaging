@@ -1099,6 +1099,20 @@ func (mong *MongoStore) HasResourceRoles(ctx context.Context, resource string, r
 
 }
 
+func (mong *MongoStore) InsertResourceRoles(ctx context.Context, resource string, roles []string) error {
+	db := mong.Session.DB(mong.Database)
+	c := db.C("roles")
+	role := QRole{
+		Name:  resource,
+		Roles: roles,
+	}
+	err := c.Insert(role)
+	if err != nil {
+		mong.logErrorAndCrash(ctx, "InsertResourceRoles", err)
+	}
+	return nil
+}
+
 // GetAllRoles returns a list of all available roles
 func (mong *MongoStore) GetAllRoles(ctx context.Context) []string {
 

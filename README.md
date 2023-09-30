@@ -69,6 +69,20 @@ resides in two possible locations:
 - `auth_option` - (`key`|`header`|`both`), where should the service look for the access token.
 - `proxy_hostname` - The FQDN of any proxy or load balancer that might serve request in place of the AMS
 
+#### Run the tests
+
+Inside the project's root directory issue the command:
+
+```bash
+go test ./...
+```
+
+For the db store integration test suite,
+you can issue the command:
+```bash
+go test ./... -tags integration
+```
+
 #### Build & Run the service
 
 In order to build the service, inside the AMS repo issue the command:
