@@ -1491,8 +1491,6 @@ func (mong *MongoStore) QueryDailyProjectMsgCount(ctx context.Context, projectUU
 		},
 	}
 
-	fmt.Println(query)
-	fmt.Println("2")
 	if err = c.Pipe(query).All(&qdp); err != nil {
 		mong.logErrorAndCrash(ctx, "QueryDailyProjectMsgCount", err)
 	}
@@ -1861,7 +1859,6 @@ func (mong *MongoStore) DeleteSchema(ctx context.Context, schemaUUID string) err
 
 	if err != nil {
 		mong.logErrorAndCrash(ctx, "DeleteSchema", err)
-
 	}
 
 	topics := db.C("topics")

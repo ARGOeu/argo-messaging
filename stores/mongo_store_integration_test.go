@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/suite"
 	"github.com/testcontainers/testcontainers-go"
-	"gopkg.in/mgo.v2/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"testing"
 	"time"
 )
@@ -70,7 +70,7 @@ func (suite *QListReverser[T]) reverse(s []T) []T {
 }
 
 func (suite *MongoStoreIntegrationTestSuite) assertSchemasEqual(expected []QSchema, actual []QSchema) {
-	suite.True(len(actual) == len(expected))
+	suite.Equal(len(expected), len(actual))
 	for idx, schema := range expected {
 		suite.Equal(schema.UUID, actual[idx].UUID, schema.Name)
 		suite.Equal(schema.Name, actual[idx].Name, schema.Name)
@@ -81,7 +81,7 @@ func (suite *MongoStoreIntegrationTestSuite) assertSchemasEqual(expected []QSche
 }
 
 func (suite *MongoStoreIntegrationTestSuite) assertUsersEqual(expected []QUser, actual []QUser) {
-	suite.True(len(actual) == len(expected))
+	suite.Equal(len(expected), len(actual))
 	for idx, user := range expected {
 		suite.Equal(user.UUID, actual[idx].UUID, user.Name)
 		suite.Equal(user.Name, actual[idx].Name, user.Name)
@@ -96,12 +96,13 @@ func (suite *MongoStoreIntegrationTestSuite) assertUsersEqual(expected []QUser, 
 		suite.Equal(user.CreatedOn, actual[idx].CreatedOn, user.Name)
 		suite.Equal(user.ModifiedOn, actual[idx].ModifiedOn, user.Name)
 		suite.Equal(user.Token, actual[idx].Token, user.Name)
-		suite.True((actual[idx].ID.(bson.ObjectId)).Valid(), user.Name)
+		_, isObjectId := actual[idx].ID.(primitive.ObjectID)
+		suite.True(isObjectId, user.Name)
 	}
 }
 
 func (suite *MongoStoreIntegrationTestSuite) assertTopicsEqual(expected []QTopic, actual []QTopic) {
-	suite.True(len(actual) == len(expected))
+	suite.Equal(len(expected), len(actual))
 	for idx, topic := range expected {
 		suite.Equal(topic.Name, actual[idx].Name, topic.Name)
 		suite.Equal(topic.ProjectUUID, actual[idx].ProjectUUID, topic.Name)
@@ -112,12 +113,13 @@ func (suite *MongoStoreIntegrationTestSuite) assertTopicsEqual(expected []QTopic
 		suite.Equal(topic.MsgNum, actual[idx].MsgNum, topic.Name)
 		suite.Equal(topic.TotalBytes, actual[idx].TotalBytes, topic.Name)
 		suite.Equal(topic.ACL, actual[idx].ACL, topic.Name)
-		suite.True((actual[idx].ID.(bson.ObjectId)).Valid(), topic.Name)
+		_, isObjectId := actual[idx].ID.(primitive.ObjectID)
+		suite.True(isObjectId, topic.Name)
 	}
 }
 
 func (suite *MongoStoreIntegrationTestSuite) assertSubsEqual(expected []QSub, actual []QSub) {
-	suite.True(len(actual) == len(expected))
+	suite.Equal(len(expected), len(actual))
 	for idx, sub := range expected {
 		suite.Equal(sub.Name, actual[idx].Name, sub.Name)
 		suite.Equal(sub.ProjectUUID, actual[idx].ProjectUUID, sub.Name)
@@ -130,7 +132,8 @@ func (suite *MongoStoreIntegrationTestSuite) assertSubsEqual(expected []QSub, ac
 		suite.Equal(sub.MsgNum, actual[idx].MsgNum, sub.Name)
 		suite.Equal(sub.TotalBytes, actual[idx].TotalBytes, sub.Name)
 		suite.Equal(sub.ACL, actual[idx].ACL, sub.Name)
-		suite.True((actual[idx].ID.(bson.ObjectId)).Valid(), sub.Name)
+		_, isObjectId := actual[idx].ID.(primitive.ObjectID)
+		suite.True(isObjectId, sub.Name)
 		suite.Equal(sub.PushType, actual[idx].PushType, sub.Name)
 		suite.Equal(sub.PushEndpoint, actual[idx].PushEndpoint, sub.Name)
 		suite.Equal(sub.AuthorizationType, actual[idx].AuthorizationType, sub.Name)
@@ -146,8 +149,8 @@ func (suite *MongoStoreIntegrationTestSuite) assertSubsEqual(expected []QSub, ac
 
 func (suite *MongoStoreIntegrationTestSuite) initDB() {
 
-	created := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.Local)
-	modified := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.Local)
+	created := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
+	modified := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
 
 	// populate Projects
 	qPr := QProject{
@@ -201,10 +204,10 @@ func (suite *MongoStoreIntegrationTestSuite) initDB() {
 		Name:          "topic4",
 		MsgNum:        0,
 		TotalBytes:    0,
-		LatestPublish: time.Date(1970, time.January, 1, 2, 0, 0, 0, time.Local),
+		LatestPublish: time.Date(1970, time.January, 1, 2, 0, 0, 0, time.UTC),
 		PublishRate:   0,
 		SchemaUUID:    "",
-		CreatedOn:     time.Date(2020, 11, 19, 0, 0, 0, 0, time.Local),
+		CreatedOn:     time.Date(2020, 11, 19, 0, 0, 0, 0, time.UTC),
 		ACL:           []string{},
 	}
 	qtop3 := QTopic{
@@ -212,10 +215,10 @@ func (suite *MongoStoreIntegrationTestSuite) initDB() {
 		Name:          "topic3",
 		MsgNum:        0,
 		TotalBytes:    0,
-		LatestPublish: time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local),
+		LatestPublish: time.Date(2019, 5, 7, 0, 0, 0, 0, time.UTC),
 		PublishRate:   8.99,
 		SchemaUUID:    "schema_uuid_3",
-		CreatedOn:     time.Date(2020, 11, 20, 0, 0, 0, 0, time.Local),
+		CreatedOn:     time.Date(2020, 11, 20, 0, 0, 0, 0, time.UTC),
 		ACL:           qTopicACL03.ACL,
 	}
 	qtop2 := QTopic{
@@ -223,10 +226,10 @@ func (suite *MongoStoreIntegrationTestSuite) initDB() {
 		Name:          "topic2",
 		MsgNum:        0,
 		TotalBytes:    0,
-		LatestPublish: time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local),
+		LatestPublish: time.Date(2019, 5, 8, 0, 0, 0, 0, time.UTC),
 		PublishRate:   5.45,
 		SchemaUUID:    "schema_uuid_1",
-		CreatedOn:     time.Date(2020, 11, 21, 0, 0, 0, 0, time.Local),
+		CreatedOn:     time.Date(2020, 11, 21, 0, 0, 0, 0, time.UTC),
 		ACL:           qTopicACL02.ACL,
 	}
 	qtop1 := QTopic{
@@ -234,10 +237,10 @@ func (suite *MongoStoreIntegrationTestSuite) initDB() {
 		Name:          "topic1",
 		MsgNum:        0,
 		TotalBytes:    0,
-		LatestPublish: time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local),
+		LatestPublish: time.Date(2019, 5, 6, 0, 0, 0, 0, time.UTC),
 		PublishRate:   10,
 		SchemaUUID:    "",
-		CreatedOn:     time.Date(2020, 11, 22, 0, 0, 0, 0, time.Local),
+		CreatedOn:     time.Date(2020, 11, 22, 0, 0, 0, 0, time.UTC),
 		ACL:           qTopicACL01.ACL,
 	}
 	suite.TopicList = append(suite.TopicList, qtop1)
@@ -282,9 +285,9 @@ func (suite *MongoStoreIntegrationTestSuite) initDB() {
 		Name:          "sub1",
 		Topic:         "topic1",
 		Ack:           10,
-		LatestConsume: time.Date(2019, 5, 6, 0, 0, 0, 0, time.Local),
+		LatestConsume: time.Date(2019, 5, 6, 0, 0, 0, 0, time.UTC),
 		ConsumeRate:   10,
-		CreatedOn:     time.Date(2020, 11, 19, 0, 0, 0, 0, time.Local),
+		CreatedOn:     time.Date(2020, 11, 19, 0, 0, 0, 0, time.UTC),
 		ACL:           qSubACL01.ACL,
 	}
 
@@ -294,9 +297,9 @@ func (suite *MongoStoreIntegrationTestSuite) initDB() {
 		Name:          "sub2",
 		Topic:         "topic2",
 		Ack:           10,
-		LatestConsume: time.Date(2019, 5, 7, 0, 0, 0, 0, time.Local),
+		LatestConsume: time.Date(2019, 5, 7, 0, 0, 0, 0, time.UTC),
 		ConsumeRate:   8.99,
-		CreatedOn:     time.Date(2020, 11, 20, 0, 0, 0, 0, time.Local),
+		CreatedOn:     time.Date(2020, 11, 20, 0, 0, 0, 0, time.UTC),
 		ACL:           qSubACL02.ACL,
 	}
 
@@ -306,9 +309,9 @@ func (suite *MongoStoreIntegrationTestSuite) initDB() {
 		Name:          "sub3",
 		Topic:         "topic3",
 		Ack:           10,
-		LatestConsume: time.Date(2019, 5, 8, 0, 0, 0, 0, time.Local),
+		LatestConsume: time.Date(2019, 5, 8, 0, 0, 0, 0, time.UTC),
 		ConsumeRate:   5.45,
-		CreatedOn:     time.Date(2020, 11, 21, 0, 0, 0, 0, time.Local),
+		CreatedOn:     time.Date(2020, 11, 21, 0, 0, 0, 0, time.UTC),
 		ACL:           qSubACL03.ACL,
 	}
 
@@ -328,7 +331,7 @@ func (suite *MongoStoreIntegrationTestSuite) initDB() {
 		VerificationHash:    "push-id-1",
 		Verified:            true,
 		Base64Decode:        true,
-		CreatedOn:           time.Date(2020, 11, 22, 0, 0, 0, 0, time.Local),
+		CreatedOn:           time.Date(2020, 11, 22, 0, 0, 0, 0, time.UTC),
 		ACL:                 qSubACL04.ACL,
 	}
 
@@ -433,25 +436,25 @@ func (suite *MongoStoreIntegrationTestSuite) initDB() {
 
 	// populate daily msg count for topics
 	dc1 := QDailyTopicMsgCount{
-		Date:             time.Date(2018, 10, 1, 0, 0, 0, 0, time.Local),
+		Date:             time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC),
 		ProjectUUID:      "argo_uuid",
 		TopicName:        "topic1",
 		NumberOfMessages: 40,
 	}
 	dc2 := QDailyTopicMsgCount{
-		Date:             time.Date(2018, 10, 2, 0, 0, 0, 0, time.Local),
+		Date:             time.Date(2018, 10, 2, 0, 0, 0, 0, time.UTC),
 		ProjectUUID:      "argo_uuid",
 		TopicName:        "topic1",
 		NumberOfMessages: 30,
 	}
 	dc3 := QDailyTopicMsgCount{
-		Date:             time.Date(2018, 10, 1, 0, 0, 0, 0, time.Local),
+		Date:             time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC),
 		ProjectUUID:      "argo_uuid",
 		TopicName:        "topic2",
 		NumberOfMessages: 70,
 	}
 	dc4 := QDailyTopicMsgCount{
-		Date:        time.Date(2018, 10, 1, 0, 0, 0, 0, time.Local),
+		Date:        time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC),
 		ProjectUUID: "argo_uuid",
 		TopicName:   "topic3",
 	}
@@ -633,6 +636,46 @@ func (suite *MongoStoreIntegrationTestSuite) initDB() {
 
 }
 
+func (suite *MongoStoreIntegrationTestSuite) TestQuerySubsByACL() {
+	eSubList1 := []QSub{suite.SubList[0], suite.SubList[1], suite.SubList[2]}
+	subList, _ := suite.store.QuerySubsByACL(suite.ctx, "argo_uuid", "uuid1")
+	suite.assertSubsEqual(eSubList1, subList)
+}
+
+func (suite *MongoStoreIntegrationTestSuite) TestIncrementSubBytes() {
+	_ = suite.store.IncrementSubBytes(suite.ctx, "argo_uuid", "sub1", 50)
+	sub, _ := suite.store.QueryOneSub(suite.ctx, "argo_uuid", "sub1")
+	suite.Equal(int64(50), sub.TotalBytes)
+	_ = suite.store.IncrementSubBytes(suite.ctx, "argo_uuid", "sub1", -50)
+}
+
+func (suite *MongoStoreIntegrationTestSuite) TestIncrementSubMsgNum() {
+	_ = suite.store.IncrementSubMsgNum(suite.ctx, "argo_uuid", "sub1", 50)
+	sub, _ := suite.store.QueryOneSub(suite.ctx, "argo_uuid", "sub1")
+	suite.Equal(int64(50), sub.MsgNum)
+	_ = suite.store.IncrementSubMsgNum(suite.ctx, "argo_uuid", "sub1", -50)
+}
+
+func (suite *MongoStoreIntegrationTestSuite) TestQueryTopicsByACL() {
+	eTopList1st1 := []QTopic{suite.TopicList[0], suite.TopicList[1]}
+	tpList, _ := suite.store.QueryTopicsByACL(suite.ctx, "argo_uuid", "uuid1")
+	suite.assertTopicsEqual(eTopList1st1, tpList)
+}
+
+func (suite *MongoStoreIntegrationTestSuite) TestIncrementTopicBytes() {
+	_ = suite.store.IncrementTopicBytes(suite.ctx, "argo_uuid", "topic1", 50)
+	tpList4, _, _, _ := suite.store.QueryTopics(suite.ctx, "argo_uuid", "", "topic1", "", 0)
+	suite.Equal(int64(50), tpList4[0].TotalBytes)
+	_ = suite.store.IncrementTopicBytes(suite.ctx, "argo_uuid", "topic1", -50)
+}
+
+func (suite *MongoStoreIntegrationTestSuite) TestIncrementTopicMsgNum() {
+	_ = suite.store.IncrementTopicMsgNum(suite.ctx, "argo_uuid", "topic1", 50)
+	tpList4, _, _, _ := suite.store.QueryTopics(suite.ctx, "argo_uuid", "", "topic1", "", 0)
+	suite.Equal(int64(50), tpList4[0].MsgNum)
+	_ = suite.store.IncrementTopicMsgNum(suite.ctx, "argo_uuid", "topic1", -50)
+}
+
 func (suite *MongoStoreIntegrationTestSuite) TestQueryTopics() {
 
 	qTopicListReverser := QListReverser[QTopic]{}
@@ -648,14 +691,14 @@ func (suite *MongoStoreIntegrationTestSuite) TestQueryTopics() {
 	tpList2, ts2, pg2, _ := suite.store.QueryTopics(suite.ctx, "argo_uuid", "", "", "", 2)
 	suite.assertTopicsEqual(eTopList1st2, tpList2)
 	suite.Equal(int64(4), ts2)
-	suite.True(bson.IsObjectIdHex(pg2))
+	suite.True(primitive.IsValidObjectID(pg2))
 
 	// retrieve the next one
 	eTopList3 := []QTopic{suite.TopicList[1]}
 	tpList3, ts3, pg3, _ := suite.store.QueryTopics(suite.ctx, "argo_uuid", "", "", pg2, 1)
 	suite.assertTopicsEqual(eTopList3, tpList3)
 	suite.Equal(int64(4), ts3)
-	suite.True(bson.IsObjectIdHex(pg3))
+	suite.True(primitive.IsValidObjectID(pg3))
 
 	// retrieve a single topic
 	eTopList4 := []QTopic{suite.TopicList[0]}
@@ -676,7 +719,7 @@ func (suite *MongoStoreIntegrationTestSuite) TestQueryTopics() {
 	tpList6, ts6, pg6, _ := suite.store.QueryTopics(suite.ctx, "argo_uuid", "uuid1", "", "", 1)
 	suite.assertTopicsEqual(eTopList6, tpList6)
 	suite.Equal(int64(2), ts6)
-	suite.True(bson.IsObjectIdHex(pg6))
+	suite.True(primitive.IsValidObjectID(pg6))
 }
 
 func (suite *MongoStoreIntegrationTestSuite) TestQuerySubs() {
@@ -696,7 +739,7 @@ func (suite *MongoStoreIntegrationTestSuite) TestQuerySubs() {
 	subList2, ts2, pg2, err2 := suite.store.QuerySubs(suite.ctx, "argo_uuid", "", "", "", 2)
 	suite.assertSubsEqual(eSubListFirstPage, subList2)
 	suite.Equal(int64(4), ts2)
-	suite.True(bson.IsObjectIdHex(pg2))
+	suite.True(primitive.IsValidObjectID(pg2))
 
 	// retrieve next 2 subs
 	eSubListNextPage := []QSub{
@@ -718,9 +761,9 @@ func (suite *MongoStoreIntegrationTestSuite) TestQuerySubs() {
 
 	subList4, ts4, pg4, err4 := suite.store.QuerySubs(suite.ctx, "argo_uuid", "uuid1", "", "", 0)
 
+	suite.assertSubsEqual(eSubList4, subList4)
 	suite.Equal(int64(3), ts4)
 	suite.Equal("", pg4)
-	suite.assertSubsEqual(eSubList4, subList4)
 
 	// retrieve user's subs
 	eSubList5 := []QSub{
@@ -730,7 +773,7 @@ func (suite *MongoStoreIntegrationTestSuite) TestQuerySubs() {
 	subList5, ts5, pg5, err5 := suite.store.QuerySubs(suite.ctx, "argo_uuid", "uuid1", "", "", 2)
 
 	suite.Equal(int64(3), ts5)
-	suite.True(bson.IsObjectIdHex(pg5))
+	suite.True(primitive.IsValidObjectID(pg5))
 	suite.assertSubsEqual(eSubList5, subList5)
 
 	suite.Nil(err1)
@@ -756,13 +799,17 @@ func (suite *MongoStoreIntegrationTestSuite) TestDailyTopicMsgCount() {
 	suite.Equal(suite.DailyTopicMsgCount, qdsAll)
 
 	// test daily count
-	_ = suite.store.IncrementDailyTopicMsgCount(suite.ctx, "argo_uuid", "topic1", 40, time.Date(2018, 10, 1, 0, 0, 0, 0, time.Local))
-	qds, _ := suite.store.QueryDailyTopicMsgCount(suite.ctx, "argo_uuid", "topic1", time.Date(2018, 10, 1, 0, 0, 0, 0, time.Local))
-	suite.Equal(int64(80), qds[0].NumberOfMessages)
+	_ = suite.store.IncrementDailyTopicMsgCount(suite.ctx, "argo_uuid_2", "topic1",
+		40, time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC))
+	qds, _ := suite.store.QueryDailyTopicMsgCount(suite.ctx, "argo_uuid_2", "topic1",
+		time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC))
+	suite.Equal(int64(40), qds[0].NumberOfMessages)
 
 	// check if it was inserted since it wasn't present
-	_ = suite.store.IncrementDailyTopicMsgCount(suite.ctx, "argo_uuid", "some_other_topic", 70, time.Date(2018, 10, 1, 0, 0, 0, 0, time.Local))
-	qds2, _ := suite.store.QueryDailyTopicMsgCount(suite.ctx, "argo_uuid", "some_other_topic", time.Date(2018, 10, 1, 0, 0, 0, 0, time.Local))
+	_ = suite.store.IncrementDailyTopicMsgCount(suite.ctx, "argo_uuid_2", "some_other_topic",
+		70, time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC))
+	qds2, _ := suite.store.QueryDailyTopicMsgCount(suite.ctx, "argo_uuid_2",
+		"some_other_topic", time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC))
 	suite.Equal(int64(70), qds2[0].NumberOfMessages)
 }
 
@@ -778,6 +825,11 @@ func (suite *MongoStoreIntegrationTestSuite) TestHasResourceRoles() {
 
 }
 
+func (suite *MongoStoreIntegrationTestSuite) TestGetAllRoles() {
+	roles := suite.store.GetAllRoles(suite.ctx)
+	suite.Equal([]string{"admin", "publisher", "reader"}, roles)
+}
+
 func (suite *MongoStoreIntegrationTestSuite) TestHasProject() {
 	suite.True(suite.store.HasProject(suite.ctx, "ARGO"))
 	suite.False(suite.store.HasProject(suite.ctx, "FOO"))
@@ -791,7 +843,7 @@ func (suite *MongoStoreIntegrationTestSuite) TestGetUserRoles() {
 }
 
 func (suite *MongoStoreIntegrationTestSuite) TestRemoveSub() {
-	_ = suite.store.InsertSub(suite.ctx, "argo_uuid", "subFresh", "topicFresh", 0, 10, QPushConfig{}, time.Date(2020, 12, 19, 0, 0, 0, 0, time.Local))
+	_ = suite.store.InsertSub(suite.ctx, "argo_uuid", "subFresh", "topicFresh", 0, 10, QPushConfig{}, time.Date(2020, 12, 19, 0, 0, 0, 0, time.UTC))
 	err := suite.store.RemoveSub(suite.ctx, "argo_uuid", "subFresh")
 	suite.Equal(nil, err)
 	subList, _, _, _ := suite.store.QuerySubs(suite.ctx, "argo_uuid", "", "", "", 0)
@@ -801,7 +853,7 @@ func (suite *MongoStoreIntegrationTestSuite) TestRemoveSub() {
 }
 
 func (suite *MongoStoreIntegrationTestSuite) TestRemoveTopic() {
-	_ = suite.store.InsertTopic(suite.ctx, "argo_uuid", "topicFresh", "", time.Date(2020, 9, 11, 0, 0, 0, 0, time.Local))
+	_ = suite.store.InsertTopic(suite.ctx, "argo_uuid", "topicFresh", "", time.Date(2020, 9, 11, 0, 0, 0, 0, time.UTC))
 	err := suite.store.RemoveTopic(suite.ctx, "argo_uuid", "topicFresh")
 	suite.Equal(nil, err)
 	qTopicListReverser := QListReverser[QTopic]{}
@@ -817,8 +869,70 @@ func (suite *MongoStoreIntegrationTestSuite) TestModAck() {
 	suite.Equal(66, subAck.Ack)
 }
 
+func (suite *MongoStoreIntegrationTestSuite) TestUpdateSubOffset() {
+	_ = suite.store.InsertSub(suite.ctx, "argo_uuid", "subFresh", "topicFresh", 0, 1000,
+		QPushConfig{}, time.Date(2020, 12, 19, 0, 0, 0, 0, time.UTC))
+	zSec := "2006-01-02T15:04:05Z"
+	t := time.Now().UTC()
+	ts := t.Format(zSec)
+	_ = suite.store.UpdateSubPull(suite.ctx, "argo_uuid", "subFresh", 99, ts)
+	sub, _ := suite.store.QueryOneSub(suite.ctx, "argo_uuid", "subFresh")
+	suite.Equal(int64(99), sub.NextOffset)
+	suite.Equal(ts, sub.PendingAck)
+	suite.Equal(int64(0), sub.Offset)
+
+	suite.store.UpdateSubOffset(suite.ctx, "argo_uuid", "subFresh", 99)
+	sub, _ = suite.store.QueryOneSub(suite.ctx, "argo_uuid", "subFresh")
+	suite.Equal(int64(0), sub.NextOffset)
+	suite.Equal("", sub.PendingAck)
+	suite.Equal(int64(99), sub.Offset)
+
+	// clear state
+	_ = suite.store.RemoveSub(suite.ctx, "argo_uuid", "subFresh")
+}
+
+func (suite *MongoStoreIntegrationTestSuite) TestUpdateSubOffsetAck() {
+	_ = suite.store.InsertSub(suite.ctx, "argo_uuid", "subFresh", "topicFresh", 0, 1000,
+		QPushConfig{}, time.Date(2020, 12, 19, 0, 0, 0, 0, time.UTC))
+	zSec := "2006-01-02T15:04:05Z"
+
+	err := suite.store.UpdateSubOffsetAck(suite.ctx, "argo_uuid", "subFresh", 99, "")
+	suite.Equal("no ack pending", err.Error())
+
+	t := time.Now().UTC()
+
+	// time stamp which is ahead of t combined with the appropriate ack deadline
+	tErr := t.Add(1200 * 1000 * 1000 * 1000).Format(zSec)
+	ts := t.Format(zSec)
+	tComplete := t.Add(1000).Format(zSec)
+	_ = suite.store.UpdateSubPull(suite.ctx, "argo_uuid", "subFresh", 99, ts)
+	sub, _ := suite.store.QueryOneSub(suite.ctx, "argo_uuid", "subFresh")
+	suite.Equal(int64(99), sub.NextOffset)
+	suite.Equal(ts, sub.PendingAck)
+	suite.Equal(int64(0), sub.Offset)
+
+	err2 := suite.store.UpdateSubOffsetAck(suite.ctx, "argo_uuid", "subFresh", -1, "")
+	suite.Equal("wrong ack", err2.Error())
+
+	err3 := suite.store.UpdateSubOffsetAck(suite.ctx, "argo_uuid", "subFresh", 100, "")
+	suite.Equal("wrong ack", err3.Error())
+
+	err4 := suite.store.UpdateSubOffsetAck(suite.ctx, "argo_uuid", "subFresh", 88, tErr)
+	suite.Equal("ack timeout", err4.Error())
+
+	err5 := suite.store.UpdateSubOffsetAck(suite.ctx, "argo_uuid", "subFresh", 88, tComplete)
+	sub2, _ := suite.store.QueryOneSub(suite.ctx, "argo_uuid", "subFresh")
+	suite.Nil(err5)
+	suite.Equal(int64(88), sub2.Offset)
+	suite.Equal("", sub2.PendingAck)
+	suite.Equal(int64(99), sub.NextOffset)
+
+	// clear state
+	_ = suite.store.RemoveSub(suite.ctx, "argo_uuid", "subFresh")
+}
+
 func (suite *MongoStoreIntegrationTestSuite) TestModPushSub() {
-	_ = suite.store.InsertSub(suite.ctx, "argo_uuid", "subFresh", "topicFresh", 0, 10, QPushConfig{}, time.Date(2020, 12, 19, 0, 0, 0, 0, time.Local))
+	_ = suite.store.InsertSub(suite.ctx, "argo_uuid", "subFresh", "topicFresh", 0, 10, QPushConfig{}, time.Date(2020, 12, 19, 0, 0, 0, 0, time.UTC))
 	qCfg := QPushConfig{
 		Type:                "http_endpoint",
 		PushEndpoint:        "example.com",
@@ -899,12 +1013,12 @@ func (suite *MongoStoreIntegrationTestSuite) TestQueryACL() {
 
 	QAcl09, err09 := suite.store.QueryACL(suite.ctx, "argo_uuid", "subscriptions", "sub4ss")
 	suite.Equal(QAcl{}, QAcl09)
-	suite.Equal(errors.New("not found"), err09)
+	suite.Equal(DocNotFound{}, err09)
 }
 
 func (suite *MongoStoreIntegrationTestSuite) TestUpdateUser() {
-	created := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.Local)
-	modified := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.Local)
+	created := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
+	modified := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
 	qRoles := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"admin"}}, QProjectRoles{"argo_uuid2", []string{"admin", "viewer"}}}
 	_ = suite.store.InsertUser(suite.ctx, "user_uuid11", qRoles, "newUser2", "", "", "", "", "BX312Z34NLQ", "fake@email.com", []string{}, created, modified, "uuid1")
 	usrUpdated := QUser{UUID: "user_uuid11", Projects: qRoles, Name: "updated_name", Token: "BX312Z34NLQ", Email: "fake@email.com", ServiceRoles: []string{"service_admin"}, CreatedOn: created, ModifiedOn: modified, CreatedBy: "uuid1"}
@@ -941,6 +1055,15 @@ func (suite *MongoStoreIntegrationTestSuite) TestGetUserFromToken() {
 	suite.assertUsersEqual([]QUser{suite.UserList[0]}, []QUser{usrGet})
 }
 
+func (suite *MongoStoreIntegrationTestSuite) TestUpdateUserFromToken() {
+	_ = suite.store.UpdateUserToken(suite.ctx, suite.UserList[0].UUID, "S3CR3T-v2")
+	_, e1 := suite.store.GetUserFromToken(suite.ctx, "S3CR3T")
+	suite.Equal("not found", e1.Error())
+	usrGet, _ := suite.store.GetUserFromToken(suite.ctx, "S3CR3T-v2")
+	suite.Equal(suite.UserList[0].UUID, usrGet.UUID)
+	_ = suite.store.UpdateUserToken(suite.ctx, suite.UserList[0].UUID, "S3CR3T")
+}
+
 func (suite *MongoStoreIntegrationTestSuite) TestPaginatedQueryUsers() {
 
 	reverser := QListReverser[QUser]{}
@@ -962,7 +1085,7 @@ func (suite *MongoStoreIntegrationTestSuite) TestPaginatedQueryUsers() {
 	suite.Equal(int64(9), ts1)
 
 	suite.assertUsersEqual([]QUser{suite.UserList[8], suite.UserList[7]}, qUsers2)
-	suite.True(bson.IsObjectIdHex(pg2))
+	suite.True(primitive.IsValidObjectID(pg2))
 	suite.Equal(int64(9), ts2)
 
 	suite.Equal(0, len(qUsers3))
@@ -970,14 +1093,14 @@ func (suite *MongoStoreIntegrationTestSuite) TestPaginatedQueryUsers() {
 	suite.Equal(int64(0), ts3)
 
 	suite.assertUsersEqual([]QUser{suite.UserList[6], suite.UserList[5]}, qUsers4)
-	suite.True(bson.IsObjectIdHex(pg4))
+	suite.True(primitive.IsValidObjectID(pg4))
 	suite.Equal(int64(9), ts4)
 }
 
 func (suite *MongoStoreIntegrationTestSuite) TestACLModificationActions() {
 
-	_ = suite.store.InsertSub(suite.ctx, "argo_uuid", "subFresh", "topicFresh", 0, 10, QPushConfig{}, time.Date(2020, 12, 19, 0, 0, 0, 0, time.Local))
-	_ = suite.store.InsertTopic(suite.ctx, "argo_uuid", "topicFresh", "", time.Date(2020, 9, 11, 0, 0, 0, 0, time.Local))
+	_ = suite.store.InsertSub(suite.ctx, "argo_uuid", "subFresh", "topicFresh", 0, 10, QPushConfig{}, time.Date(2020, 12, 19, 0, 0, 0, 0, time.UTC))
+	_ = suite.store.InsertTopic(suite.ctx, "argo_uuid", "topicFresh", "", time.Date(2020, 9, 11, 0, 0, 0, 0, time.UTC))
 
 	// test mod acl
 	ExpectedACL01 := QAcl{[]string{"uuid1", "uuid2"}}
@@ -1068,10 +1191,10 @@ func (suite *MongoStoreIntegrationTestSuite) TestCRUDProjects() {
 	suite.Equal(expProj4, projectOut8)
 	suite.Equal(errors.New("not found"), err)
 
-	created := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.Local)
-	modified := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.Local)
+	created := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
+	modified := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
 	_ = suite.store.InsertProject(suite.ctx, "argo_uuid3", "ARGO3", created, modified, "uuid1", "simple project")
-	modified = time.Date(2010, time.November, 10, 23, 0, 0, 0, time.Local)
+	modified = time.Date(2010, time.November, 10, 23, 0, 0, 0, time.UTC)
 	expPr1 := QProject{UUID: "argo_uuid3", Name: "ARGO3", CreatedOn: created, ModifiedOn: modified, CreatedBy: "uuid1", Description: "a modified description"}
 	_ = suite.store.UpdateProject(suite.ctx, "argo_uuid3", "", "a modified description", modified)
 	prUp1, _ := suite.store.QueryProjects(suite.ctx, "argo_uuid3", "")
@@ -1084,17 +1207,36 @@ func (suite *MongoStoreIntegrationTestSuite) TestCRUDProjects() {
 	_ = suite.store.UpdateProject(suite.ctx, "argo_uuid3", "ARGO_3", "a newly modified description", modified)
 	prUp3, _ := suite.store.QueryProjects(suite.ctx, "argo_uuid3", "")
 	suite.Equal(expPr3, prUp3[0])
-	// Test RemoveProject
+
+	// Test RemoveProject and all its related resources
+	t := time.Now()
+	_ = suite.store.InsertSub(suite.ctx, "argo_uuid3", "subDel", "topicFresh", 0, 10, QPushConfig{}, time.Date(2020, 12, 19, 0, 0, 0, 0, time.UTC))
+	_ = suite.store.InsertTopic(suite.ctx, "argo_uuid3", "topicDel", "", time.Now().UTC())
+	_ = suite.store.IncrementDailyTopicMsgCount(suite.ctx, "argo_uuid3", "topicDel", 100, t)
+	r, _ := suite.store.QueryDailyProjectMsgCount(suite.ctx, "argo_uuid3")
+	suite.Equal(
+		1,
+		len(r),
+	)
+	suite.Equal(t.Day(), r[0].Date.Day())
 	_ = suite.store.RemoveProject(suite.ctx, "argo_uuid3")
+	_ = suite.store.RemoveProjectTopics(suite.ctx, "argo_uuid3")
+	_ = suite.store.RemoveProjectSubs(suite.ctx, "argo_uuid3")
+	_ = suite.store.RemoveProjectDailyMessageCounters(suite.ctx, "argo_uuid3")
 	_, err = suite.store.QueryProjects(suite.ctx, "argo_uuid3", "")
+	r2, _ := suite.store.QueryDailyProjectMsgCount(suite.ctx, "argo_uuid3")
+	suite.Empty(r2)
 	suite.Equal(errors.New("not found"), err)
 }
 
 func (suite *MongoStoreIntegrationTestSuite) TestQueryTotalMessagesPerProject() {
 	expectedQpmc := []QProjectMessageCount{
-		{ProjectUUID: "argo_uuid", NumberOfMessages: 30, AverageDailyMessages: 7.5},
+		{ProjectUUID: "argo_uuid", NumberOfMessages: 140, AverageDailyMessages: 35},
 	}
-	qpmc, qpmcerr1 := suite.store.QueryTotalMessagesPerProject(suite.ctx, []string{"argo_uuid"}, time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC), time.Date(2018, 10, 4, 0, 0, 0, 0, time.UTC))
+	qpmc, qpmcerr1 := suite.store.QueryTotalMessagesPerProject(suite.ctx, []string{"argo_uuid"},
+		time.Date(2018, 10, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2018, 10, 4, 0, 0, 0, 0, time.UTC),
+	)
 	suite.Equal(expectedQpmc, qpmc)
 	suite.Nil(qpmcerr1)
 }
@@ -1127,7 +1269,7 @@ func (suite *MongoStoreIntegrationTestSuite) TestCRUDSchemas() {
 	suite.Nil(eis)
 
 	// test update schema
-	_ = suite.store.InsertTopic(suite.ctx, "argo_uuid", "topicFresh", "", time.Date(2020, 9, 11, 0, 0, 0, 0, time.Local))
+	_ = suite.store.InsertTopic(suite.ctx, "argo_uuid", "topicFresh", "", time.Date(2020, 9, 11, 0, 0, 0, 0, time.UTC))
 	_ = suite.store.UpdateSchema(suite.ctx, "uuid1", "new-name", "new-type", "new-raw-schema")
 	eus := QSchema{UUID: "uuid1", ProjectUUID: "argo_uuid", Type: "new-type", Name: "new-name", RawSchema: "new-raw-schema"}
 	qus, _ := suite.store.QuerySchemas(suite.ctx, "argo_uuid", "uuid1", "")
@@ -1210,6 +1352,24 @@ func (suite *MongoStoreIntegrationTestSuite) TestResourcesCounters() {
 	suite.Equal(map[string]int64{"argo_uuid": 7, "argo_uuid2": 1}, uc)
 }
 
+func (suite *MongoStoreIntegrationTestSuite) TestOpMetrics() {
+	_ = suite.store.InsertOpMetric(suite.ctx, "host1", 1.1, 0.8)
+	_ = suite.store.InsertOpMetric(suite.ctx, "host2", 1.2, 1.3)
+	expectedOpMetrics := []QopMetric{
+		{
+			Hostname: "host1",
+			CPU:      1.1,
+			MEM:      0.8,
+		},
+		{
+			Hostname: "host2",
+			CPU:      1.2,
+			MEM:      1.3,
+		},
+	}
+	suite.Equal(expectedOpMetrics, suite.store.GetOpMetrics(suite.ctx))
+}
+
 func (suite *MongoStoreIntegrationTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
 	suite.store.Initialize()
@@ -1229,12 +1389,13 @@ func TestMongoStoreIntegrationTestSuite(t *testing.T) {
 
 	p, _ := container.MappedPort(context.Background(), "27017/tcp")
 
-	mongoDBUri := fmt.Sprintf("mongodb://localhost:%s", p.Port())
+	mongoDBUri := fmt.Sprintf("localhost:%s", p.Port())
+	mongoDatabase := "argo_ams"
 
-	mongoStore := &MongoStore{
-		Server:   mongoDBUri,
-		Database: "argo_ams",
-	}
+	mongoStore := NewMongoStoreWithOfficialDriver(
+		mongoDBUri,
+		mongoDatabase,
+	)
 	suite.Run(t, &MongoStoreIntegrationTestSuite{
 		store: mongoStore,
 		ctx:   context.Background(),

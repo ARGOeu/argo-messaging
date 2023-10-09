@@ -90,12 +90,10 @@ func WrapMockAuthConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Br
 func WrapConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *oldPush.Manager, c push.Client) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		nStr := str.Clone()
-		defer nStr.Close()
 		traceId := uuid.NewV4().String()
 		gorillaContext.Set(r, "trace_id", traceId)
 		gorillaContext.Set(r, "brk", brk)
-		gorillaContext.Set(r, "str", nStr)
+		gorillaContext.Set(r, "str", str)
 		gorillaContext.Set(r, "mgr", mgr)
 		gorillaContext.Set(r, "apsc", c)
 		gorillaContext.Set(r, "authOption", cfg.AuthOption())
