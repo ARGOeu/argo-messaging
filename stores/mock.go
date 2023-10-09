@@ -1008,6 +1008,11 @@ func (mk *MockStore) Initialize() {
 	mk.UserRegistrations = append(mk.UserRegistrations, ur1)
 }
 
+func (mk *MockStore) InsertResourceRoles(ctx context.Context, resource string, roles []string) error {
+	mk.RoleList = append(mk.RoleList, QRole{Name: resource, Roles: roles})
+	return nil
+}
+
 func (mk *MockStore) QueryTotalMessagesPerProject(ctx context.Context, projectUUIDs []string, startDate time.Time, endDate time.Time) ([]QProjectMessageCount, error) {
 
 	projectCount := make(map[string]int64)

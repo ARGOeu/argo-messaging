@@ -562,13 +562,13 @@ func (suite *StoreTestSuite) TestMockStore() {
 	tpc2, _, _, _ := store2.QueryTopics(ctx, "argo_uuid", "", "topic1", "", 0)
 	suite.Equal(8.44, tpc2[0].PublishRate)
 
-	// test update topic latest publish time
+	// test update sub latest consume time
 	scre1 := store2.UpdateSubLatestConsume(ctx, "argo_uuid", "sub1", time.Date(2019, 8, 8, 0, 0, 0, 0, time.UTC))
 	suite.Nil(scre1)
 	spc, _, _, _ := store2.QuerySubs(ctx, "argo_uuid", "", "sub1", "", 0)
 	suite.Equal(time.Date(2019, 8, 8, 0, 0, 0, 0, time.UTC), spc[0].LatestConsume)
 
-	// test update topic publishing rate
+	// test update sub consume rate
 	scre2 := store2.UpdateSubConsumeRate(ctx, "argo_uuid", "sub1", 8.44)
 	suite.Nil(scre2)
 	spc2, _, _, _ := store2.QuerySubs(ctx, "argo_uuid", "", "sub1", "", 0)
@@ -610,7 +610,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal(expectedSchemas[0], qqs3[0])
 
 	// test update schema
-	store2.UpdateSchema(ctx, "schema_uuid_1", "new-name", "new-type", "new-raw-schema")
+	_ = store2.UpdateSchema(ctx, "schema_uuid_1", "new-name", "new-type", "new-raw-schema")
 	eus := QSchema{UUID: "schema_uuid_1", ProjectUUID: "argo_uuid", Type: "new-type", Name: "new-name", RawSchema: "new-raw-schema"}
 	qus, _ := store2.QuerySchemas(ctx, "argo_uuid", "schema_uuid_1", "")
 	suite.Equal(eus, qus[0])
@@ -627,7 +627,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Nil(ed)
 
 	// test user registration
-	store.RegisterUser(ctx, "ruuid1", "n1", "f1", "l1", "e1", "o1", "d1", "time", "atkn", "pending")
+	_ = store.RegisterUser(ctx, "ruuid1", "n1", "f1", "l1", "e1", "o1", "d1", "time", "atkn", "pending")
 	expur1 := []QUserRegistration{{
 		UUID:            "ruuid1",
 		Name:            "n1",
@@ -661,7 +661,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 		ModifiedBy:      "uuid1",
 		ModifiedAt:      "2020-05-17T22:26:58Z",
 	}}
-	store.UpdateRegistration(ctx, "ur-uuid1", "accepted", "", "uuid1", "2020-05-17T22:26:58Z")
+	_ = store.UpdateRegistration(ctx, "ur-uuid1", "accepted", "", "uuid1", "2020-05-17T22:26:58Z")
 	ur2, _ := store.QueryRegistrations(ctx, "ur-uuid1", "accepted", "", "", "", "")
 	suite.Equal(expur2, ur2)
 

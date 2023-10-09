@@ -54,6 +54,7 @@ type Store interface {
 	QueryOneSub(ctx context.Context, projectUUID string, name string) (QSub, error)
 	QueryPushSubs(ctx context.Context) []QSub
 	HasResourceRoles(ctx context.Context, resource string, roles []string) bool
+	InsertResourceRoles(ctx context.Context, resource string, roles []string) error
 	GetOpMetrics(ctx context.Context) []QopMetric
 	GetUserRoles(ctx context.Context, projectUUID string, token string) ([]string, string)
 	GetUserFromToken(ctx context.Context, token string) (QUser, error)
