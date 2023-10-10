@@ -34,12 +34,11 @@ func main() {
 	cfg := config.NewAPICfg("LOAD")
 
 	// create the store
-	store := stores.NewMongoStore(cfg.StoreHost, cfg.StoreDB)
+	store := stores.NewMongoStoreWithOfficialDriver(cfg.StoreHost, cfg.StoreDB)
 	store.Initialize()
 
 	// create and initialize broker based on configuration
 	broker := brokers.NewKafkaBroker(cfg.GetBrokerInfo())
-	defer broker.CloseConnections()
 
 	mgr := &oldPush.Manager{}
 
@@ -56,7 +55,11 @@ func main() {
 		).Error(err.Error())
 	}
 
-	defer pushClient.Close()
+	defer func() {
+		store.Close()
+		broker.CloseConnections()
+		pushClient.Close()
+	}()
 
 	// create and initialize API routing object
 	API := NewRouting(cfg, broker, store, mgr, pushClient, defaultRoutes)
