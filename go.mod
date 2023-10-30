@@ -5,8 +5,8 @@ go 1.19
 require (
 	github.com/Shopify/sarama v1.22.1
 	github.com/golang/protobuf v1.5.3
-	github.com/gorilla/context v0.0.0-20150820051245-1c83b3eabd45
-	github.com/gorilla/handlers v0.0.0-20160816184729-a5775781a543
+	github.com/gorilla/context v1.1.1
+	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.0
 	github.com/linkedin/goavro v2.1.0+incompatible
 	github.com/samuel/go-zookeeper v0.0.0-20160616024954-e64db453f351
@@ -39,6 +39,7 @@ require (
 	github.com/eapache/go-resiliency v1.1.0 // indirect
 	github.com/eapache/go-xerial-snappy v0.0.0-20180814174437-776d5712da21 // indirect
 	github.com/eapache/queue v1.1.0 // indirect
+	github.com/felixge/httpsnoop v1.0.3 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
