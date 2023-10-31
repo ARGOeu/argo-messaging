@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/Shopify/sarama v1.22.1
-	github.com/golang/protobuf v1.4.2
+	github.com/golang/protobuf v1.5.3
 	github.com/gorilla/context v0.0.0-20150820051245-1c83b3eabd45
 	github.com/gorilla/handlers v0.0.0-20160816184729-a5775781a543
 	github.com/gorilla/mux v0.0.0-20150908165839-49c024275504
@@ -16,7 +16,7 @@ require (
 	github.com/stretchr/testify v1.3.0
 	github.com/twinj/uuid v0.0.0-20150629100731-70cac2bcd273
 	github.com/xeipuuv/gojsonschema v1.2.0
-	google.golang.org/grpc v1.17.0
+	google.golang.org/grpc v1.56.3
 	gopkg.in/mgo.v2 v2.0.0-20160818020120-3f83fa500528
 )
 
@@ -42,11 +42,11 @@ require (
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	golang.org/x/crypto v0.0.0-20190404164418-38d8ce5564a5 // indirect
-	golang.org/x/net v0.0.0-20200520004742-59133d7f0dd7 // indirect
-	golang.org/x/sys v0.5.0 // indirect
-	golang.org/x/text v0.3.2 // indirect
-	google.golang.org/genproto v0.0.0-20181219182458-5a97ab628bfb // indirect
-	google.golang.org/protobuf v1.23.0 // indirect
+	golang.org/x/net v0.9.0 // indirect
+	golang.org/x/sys v0.7.0 // indirect
+	golang.org/x/text v0.9.0 // indirect
+	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1 // indirect
+	google.golang.org/protobuf v1.30.0 // indirect
 	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect
 	gopkg.in/gemnasium/logrus-airbrake-hook.v2 v2.1.2 // indirect
 	gopkg.in/linkedin/goavro.v1 v1.0.5 // indirect
