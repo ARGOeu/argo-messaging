@@ -234,7 +234,6 @@ This request triggers the process of verifying the ownership of a registered pus
 curl -X POST "https://{URL}/v1/projects/BRAND_NEW/subscriptions/alert_engine:verifyPushEndpoint?key=S3CR3T"`
 ```
 
-### Push Enabled Subscriptions
 Whenever a subscription is created with a valid push configuration, the service will also generate a unique hash that
 should be later used to validate the ownership of the registered push endpoint, and will mark the subscription as 
 unverified.
