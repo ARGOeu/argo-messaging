@@ -18,7 +18,7 @@ require (
 	github.com/twinj/uuid v0.0.0-20150629100731-70cac2bcd273
 	github.com/xeipuuv/gojsonschema v1.2.0
 	go.mongodb.org/mongo-driver v1.12.1
-	google.golang.org/grpc v1.57.0
+	google.golang.org/grpc v1.57.1
 	gopkg.in/mgo.v2 v2.0.0-20160818020120-3f83fa500528
 )
 
