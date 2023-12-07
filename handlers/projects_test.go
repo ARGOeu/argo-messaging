@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"github.com/ARGOeu/argo-messaging/auth"
 	"github.com/ARGOeu/argo-messaging/brokers"
@@ -717,7 +718,7 @@ func (suite *ProjectsHandlersTestSuite) TestProjectUserCreate() {
 		router.HandleFunc("/v1/projects/{project}/members/{user}", WrapMockAuthConfig(ProjectUserCreate, cfgKafka, &brk, str, &mgr, pc))
 		router.ServeHTTP(w, req)
 		if t.expectedStatusCode == 200 {
-			u, _ := auth.FindUsers("argo_uuid", "", t.user, true, str)
+			u, _ := auth.FindUsers(context.Background(), "argo_uuid", "", t.user, true, str)
 			t.expectedResponse = strings.Replace(t.expectedResponse, "{{UUID}}", u.List[0].UUID, 1)
 			t.expectedResponse = strings.Replace(t.expectedResponse, "{{TOKEN}}", u.List[0].Token, 1)
 			t.expectedResponse = strings.Replace(t.expectedResponse, "{{CON}}", u.List[0].CreatedOn, 1)
@@ -936,7 +937,7 @@ func (suite *ProjectsHandlersTestSuite) TestProjectUserUpdate() {
 		router.HandleFunc("/v1/projects/{project}/members/{user}", WrapMockAuthConfig(ProjectUserUpdate, cfgKafka, &brk, str, &mgr, pc, t.authRole))
 		router.ServeHTTP(w, req)
 		if t.expectedStatusCode == 200 {
-			u, _ := auth.FindUsers("argo_uuid", "", t.user, true, str)
+			u, _ := auth.FindUsers(context.Background(), "argo_uuid", "", t.user, true, str)
 			t.expectedResponse = strings.Replace(t.expectedResponse, "{{UUID}}", u.List[0].UUID, 1)
 			t.expectedResponse = strings.Replace(t.expectedResponse, "{{TOKEN}}", u.List[0].Token, 1)
 			t.expectedResponse = strings.Replace(t.expectedResponse, "{{CON}}", u.List[0].CreatedOn, 1)
@@ -1170,7 +1171,7 @@ func (suite *ProjectsHandlersTestSuite) TestProjectUserAdd() {
 		router.HandleFunc("/v1/projects/{project}/members/{user}:add", WrapMockAuthConfig(ProjectUserAdd, cfgKafka, &brk, str, &mgr, pc, t.authRole))
 		router.ServeHTTP(w, req)
 		if t.expectedStatusCode == 200 {
-			u, _ := auth.FindUsers("argo_uuid", "", t.user, true, str)
+			u, _ := auth.FindUsers(context.Background(), "argo_uuid", "", t.user, true, str)
 			t.expectedResponse = strings.Replace(t.expectedResponse, "{{UUID}}", u.List[0].UUID, 1)
 			t.expectedResponse = strings.Replace(t.expectedResponse, "{{TOKEN}}", u.List[0].Token, 1)
 			t.expectedResponse = strings.Replace(t.expectedResponse, "{{CON}}", u.List[0].CreatedOn, 1)

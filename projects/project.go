@@ -1,6 +1,7 @@
 package projects
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 
@@ -9,7 +10,7 @@ import (
 	"github.com/ARGOeu/argo-messaging/stores"
 )
 
-// ProjectUUID is the struct that holds ProjectUUID information
+// Project is the struct that holds ProjectUUID information
 type Project struct {
 	UUID        string `json:"-"`
 	Name        string `json:"name,omitempty"`
@@ -67,16 +68,16 @@ func NewProject(uuid string, name string, createdOn time.Time, modifiedOn time.T
 
 // Find returns a specific project or a list of all available projects in the datastore.
 // To return all projects use an empty project string parameter
-func Find(uuid string, name string, store stores.Store) (Projects, error) {
+func Find(ctx context.Context, uuid string, name string, store stores.Store) (Projects, error) {
 	result := Projects{}
 	// if project string empty, returns all projects
-	projects, err := store.QueryProjects(uuid, name)
+	projects, err := store.QueryProjects(ctx, uuid, name)
 
 	for _, item := range projects {
 		// Get Username from user uuid
 		username := ""
 		if item.CreatedBy != "" {
-			usr, err := store.QueryUsers("", item.CreatedBy, "")
+			usr, err := store.QueryUsers(ctx, "", item.CreatedBy, "")
 			if err == nil && len(usr) > 0 {
 				username = usr[0].Name
 			}
@@ -89,11 +90,11 @@ func Find(uuid string, name string, store stores.Store) (Projects, error) {
 }
 
 // GetNameByUUID queries projects by UUID and returns the project name. If not found, returns an empty string
-func GetNameByUUID(uuid string, store stores.Store) string {
+func GetNameByUUID(ctx context.Context, uuid string, store stores.Store) string {
 	result := ""
 
 	if uuid != "" {
-		projects, err := store.QueryProjects(uuid, "")
+		projects, err := store.QueryProjects(ctx, uuid, "")
 		if len(projects) > 0 && err == nil {
 			result = projects[0].Name
 		}
@@ -103,11 +104,11 @@ func GetNameByUUID(uuid string, store stores.Store) string {
 }
 
 // GetUUIDByName queries project by name and returns the corresponding UUID
-func GetUUIDByName(name string, store stores.Store) string {
+func GetUUIDByName(ctx context.Context, name string, store stores.Store) string {
 	result := ""
 
 	if name != "" {
-		projects, err := store.QueryProjects("", name)
+		projects, err := store.QueryProjects(ctx, "", name)
 		if len(projects) > 0 && err == nil {
 			result = projects[0].UUID
 		}
@@ -117,14 +118,14 @@ func GetUUIDByName(name string, store stores.Store) string {
 }
 
 // ExistsWithName returns true if a project with name exists
-func ExistsWithName(name string, store stores.Store) bool {
+func ExistsWithName(ctx context.Context, name string, store stores.Store) bool {
 	if name == "" {
 		return false
 	}
 
 	result := false
 
-	projects, err := store.QueryProjects("", name)
+	projects, err := store.QueryProjects(ctx, "", name)
 	if len(projects) > 0 && err == nil {
 		result = true
 	}
@@ -134,14 +135,14 @@ func ExistsWithName(name string, store stores.Store) bool {
 }
 
 // ExistsWithUUID return true if a project with uuid exists
-func ExistsWithUUID(uuid string, store stores.Store) bool {
+func ExistsWithUUID(ctx context.Context, uuid string, store stores.Store) bool {
 	if uuid == "" {
 		return false
 	}
 
 	result := false
 
-	projects, err := store.QueryProjects(uuid, "")
+	projects, err := store.QueryProjects(ctx, uuid, "")
 	if len(projects) > 0 && err == nil {
 		result = true
 	}
@@ -150,59 +151,59 @@ func ExistsWithUUID(uuid string, store stores.Store) bool {
 }
 
 // HasProject if store contains a project with the specific name
-func HasProject(name string, store stores.Store) bool {
-	projects, _ := store.QueryProjects("", name)
+func HasProject(ctx context.Context, name string, store stores.Store) bool {
+	projects, _ := store.QueryProjects(ctx, "", name)
 
 	return len(projects) > 0
 
 }
 
 // CreateProject creates a new project
-func CreateProject(uuid string, name string, createdOn time.Time, createdBy string, description string, store stores.Store) (Project, error) {
+func CreateProject(ctx context.Context, uuid string, name string, createdOn time.Time, createdBy string, description string, store stores.Store) (Project, error) {
 	// check if project with the same name exists
-	if ExistsWithName(name, store) {
+	if ExistsWithName(ctx, name, store) {
 		return Project{}, errors.New("exists")
 	}
 
-	if err := store.InsertProject(uuid, name, createdOn, createdOn, createdBy, description); err != nil {
+	if err := store.InsertProject(ctx, uuid, name, createdOn, createdOn, createdBy, description); err != nil {
 		return Project{}, errors.New("backend error")
 	}
 
 	// reflect stored object
-	stored, err := Find("", name, store)
+	stored, err := Find(ctx, "", name, store)
 
 	return stored.One(), err
 }
 
 // UpdateProject creates a new project
-func UpdateProject(uuid string, name string, description string, modifiedOn time.Time, store stores.Store) (Project, error) {
+func UpdateProject(ctx context.Context, uuid string, name string, description string, modifiedOn time.Time, store stores.Store) (Project, error) {
 	// ProjectUUID with uuid should exist to be updated
 
 	// check if project with the same name exists
-	if ExistsWithUUID(uuid, store) == false {
+	if ExistsWithUUID(ctx, uuid, store) == false {
 		return Project{}, errors.New("not found")
 	}
 
-	if err := store.UpdateProject(uuid, name, description, modifiedOn); err != nil {
+	if err := store.UpdateProject(ctx, uuid, name, description, modifiedOn); err != nil {
 		return Project{}, err
 	}
 
 	// reflect stored object
-	stored, err := Find(uuid, name, store)
+	stored, err := Find(ctx, uuid, name, store)
 	return stored.One(), err
 }
 
 // RemoveProject removes project
-func RemoveProject(uuid string, store stores.Store) error {
+func RemoveProject(ctx context.Context, uuid string, store stores.Store) error {
 	// ProjectUUID with uuid should exist to be updated
 
 	// check if project with the same name exists
-	if ExistsWithUUID(uuid, store) == false {
+	if ExistsWithUUID(ctx, uuid, store) == false {
 		return errors.New("not found")
 	}
 
 	// Remove project it self
-	if err := store.RemoveProject(uuid); err != nil {
+	if err := store.RemoveProject(ctx, uuid); err != nil {
 
 		if err.Error() == "not found" {
 			return err
@@ -212,7 +213,7 @@ func RemoveProject(uuid string, store stores.Store) error {
 	}
 
 	// Remove topics attached to this project
-	if err := store.RemoveProjectTopics(uuid); err != nil {
+	if err := store.RemoveProjectTopics(ctx, uuid); err != nil {
 
 		if err.Error() == "not found" {
 			return err
@@ -222,7 +223,7 @@ func RemoveProject(uuid string, store stores.Store) error {
 	}
 
 	// Remove subscriptions attached to this project
-	if err := store.RemoveProjectSubs(uuid); err != nil {
+	if err := store.RemoveProjectSubs(ctx, uuid); err != nil {
 
 		if err.Error() == "not found" {
 			return err
@@ -231,7 +232,7 @@ func RemoveProject(uuid string, store stores.Store) error {
 		return errors.New("backend error")
 	}
 
-	if err := store.RemoveProjectDailyMessageCounters(uuid); err != nil {
+	if err := store.RemoveProjectDailyMessageCounters(ctx, uuid); err != nil {
 		if err.Error() == "not found" {
 			return err
 		}

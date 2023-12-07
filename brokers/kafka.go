@@ -176,9 +176,9 @@ func (b *KafkaBroker) init(peers []string) error {
 }
 
 // Publish function publish a message to the broker
-func (b *KafkaBroker) Publish(topic string, msg messages.Message) (string, string, int, int64, error) {
+func (b *KafkaBroker) Publish(ctx context.Context, topic string, msg messages.Message) (string, string, int, int64, error) {
 
-	off := b.GetMaxOffset(topic)
+	off := b.GetMaxOffset(ctx, topic)
 	msg.ID = strconv.FormatInt(off, 10)
 	// Stamp time to UTC Z to nanoseconds
 	zNano := "2006-01-02T15:04:05.999999999Z"
@@ -202,6 +202,7 @@ func (b *KafkaBroker) Publish(topic string, msg messages.Message) (string, strin
 				"backend_service": "kafka",
 				"topic":           topic,
 				"error":           err.Error(),
+				"trace_id":        ctx.Value("trace_id"),
 			},
 		).Errorf("Could not publish message to topic")
 
@@ -212,8 +213,8 @@ func (b *KafkaBroker) Publish(topic string, msg messages.Message) (string, strin
 
 }
 
-// GetOffset returns a current topic's offset
-func (b *KafkaBroker) GetMaxOffset(topic string) int64 {
+// GetMaxOffset returns a current topic's offset
+func (b *KafkaBroker) GetMaxOffset(ctx context.Context, topic string) int64 {
 	// Fetch offset
 	loff, err := b.Client.GetOffset(topic, 0, sarama.OffsetNewest)
 	if err != nil {
@@ -223,14 +224,15 @@ func (b *KafkaBroker) GetMaxOffset(topic string) int64 {
 				"backend_service": "kafka",
 				"backend_hosts":   b.Servers,
 				"error":           err.Error(),
+				"trace_id":        ctx.Value("trace_id"),
 			},
 		).Errorf("Could not retrieve max offset")
 	}
 	return loff
 }
 
-// GetOffset returns a current topic's offset
-func (b *KafkaBroker) GetMinOffset(topic string) int64 {
+// GetMinOffset returns a current topic's offset
+func (b *KafkaBroker) GetMinOffset(ctx context.Context, topic string) int64 {
 	// Fetch offset
 	loff, err := b.Client.GetOffset(topic, 0, sarama.OffsetOldest)
 	if err != nil {
@@ -240,6 +242,7 @@ func (b *KafkaBroker) GetMinOffset(topic string) int64 {
 				"backend_service": "kafka",
 				"backend_hosts":   b.Servers,
 				"error":           err.Error(),
+				"trace_id":        ctx.Value("trace_id"),
 			},
 		).Errorf("Could not retrieve min offset")
 	}
@@ -248,12 +251,12 @@ func (b *KafkaBroker) GetMinOffset(topic string) int64 {
 
 // TimeToOffset returns the offset of the first message with a timestamp equal or
 // greater than the time given.
-func (b *KafkaBroker) TimeToOffset(topic string, t time.Time) (int64, error) {
+func (b *KafkaBroker) TimeToOffset(ctx context.Context, topic string, t time.Time) (int64, error) {
 	return b.Client.GetOffset(topic, 0, t.UnixNano()/int64(time.Millisecond))
 }
 
 // DeleteTopic deletes the topic from the Kafka cluster
-func (b *KafkaBroker) DeleteTopic(topic string) error {
+func (b *KafkaBroker) DeleteTopic(ctx context.Context, topic string) error {
 
 	var err error
 
@@ -292,6 +295,7 @@ func (b *KafkaBroker) Consume(ctx context.Context, topic string, offset int64, i
 
 	log.WithFields(
 		log.Fields{
+			"trace_id":        ctx.Value("trace_id"),
 			"type":            "backend_log",
 			"backend_service": "kafka",
 			"topic":           topic,
@@ -310,6 +314,7 @@ func (b *KafkaBroker) Consume(ctx context.Context, topic string, offset int64, i
 	if offset < oldOff {
 		log.WithFields(
 			log.Fields{
+				"trace_id":        ctx.Value("trace_id"),
 				"type":            "backend_log",
 				"backend_service": "kafka",
 				"topic":           topic,
@@ -325,6 +330,7 @@ func (b *KafkaBroker) Consume(ctx context.Context, topic string, offset int64, i
 	if err != nil {
 		log.WithFields(
 			log.Fields{
+				"trace_id":        ctx.Value("trace_id"),
 				"type":            "backend_log",
 				"backend_service": "kafka",
 				"topic":           topic,
@@ -338,6 +344,7 @@ func (b *KafkaBroker) Consume(ctx context.Context, topic string, offset int64, i
 		if err := partitionConsumer.Close(); err != nil {
 			log.WithFields(
 				log.Fields{
+					"trace_id":        ctx.Value("trace_id"),
 					"type":            "backend_log",
 					"backend_service": "kafka",
 					"topic":           topic,
@@ -374,6 +381,7 @@ ConsumerLoop:
 
 			log.WithFields(
 				log.Fields{
+					"trace_id":        ctx.Value("trace_id"),
 					"type":            "backend_log",
 					"backend_service": "kafka",
 					"topic":           topic,

@@ -97,7 +97,7 @@ func (p *Pusher) push(brk brokers.Broker, store stores.Store) {
 	log.Debug("pid ", p.id, "pushing")
 	// update sub details
 
-	subs, err := subscriptions.Find(p.sub.ProjectUUID, "", p.sub.Name, "", 0, store)
+	subs, err := subscriptions.Find(context.Background(), p.sub.ProjectUUID, "", p.sub.Name, "", 0, store)
 
 	// If subscription doesn't exist in store stop and remove it from manager
 	if err == nil && len(subs.Subscriptions) == 0 {
@@ -113,7 +113,7 @@ func (p *Pusher) push(brk brokers.Broker, store stores.Store) {
 		// If tracked offset is off, update it to the latest min offset
 		if err == brokers.ErrOffsetOff {
 			// Get Current Min Offset and advanced tracked one
-			p.sub.Offset = brk.GetMinOffset(fullTopic)
+			p.sub.Offset = brk.GetMinOffset(context.Background(), fullTopic)
 			msgs, err = brk.Consume(context.Background(), fullTopic, p.sub.Offset, true, 1)
 			if err != nil {
 				log.Error("Unable to consume after updating offset")
@@ -132,10 +132,10 @@ func (p *Pusher) push(brk brokers.Broker, store stores.Store) {
 
 		if err == nil {
 			// Advance the offset
-			store.UpdateSubOffset(p.sub.ProjectUUID, p.sub.Name, 1+p.sub.Offset)
+			store.UpdateSubOffset(context.Background(), p.sub.ProjectUUID, p.sub.Name, 1+p.sub.Offset)
 			// Update subscription's metrics
-			store.IncrementSubMsgNum(p.sub.ProjectUUID, p.sub.Name, int64(1))
-			store.IncrementSubBytes(p.sub.ProjectUUID, p.sub.Name, pMsg.Msg.Size())
+			store.IncrementSubMsgNum(context.Background(), p.sub.ProjectUUID, p.sub.Name, int64(1))
+			store.IncrementSubBytes(context.Background(), p.sub.ProjectUUID, p.sub.Name, pMsg.Msg.Size())
 			log.Debug("offset updated")
 		}
 	} else {
@@ -252,7 +252,7 @@ func (mgr *Manager) Refresh(projectUUID string, sub string) error {
 
 	if p, err := mgr.Get(projectUUID + "/" + sub); err == nil {
 
-		subs, err := subscriptions.Find(projectUUID, "", sub, "", 0, mgr.store)
+		subs, err := subscriptions.Find(context.Background(), projectUUID, "", sub, "", 0, mgr.store)
 
 		if err != nil {
 			return errors.New("backend error")
@@ -279,7 +279,7 @@ func (mgr *Manager) Add(projectUUID string, subName string) error {
 		return errors.New("Push Manager not set")
 	}
 	// Check if subscription exists
-	subs, err := subscriptions.Find(projectUUID, "", subName, "", 0, mgr.store)
+	subs, err := subscriptions.Find(context.Background(), projectUUID, "", subName, "", 0, mgr.store)
 
 	if err != nil {
 		return errors.New("Backend error")
@@ -341,7 +341,7 @@ func (p *Pusher) launch(brk brokers.Broker, store stores.Store) {
 
 }
 
-//LinearActivity implements a linear retry push
+// LinearActivity implements a linear retry push
 func LinearActivity(p *Pusher, brk brokers.Broker, store stores.Store) error {
 
 	defer store.Close()

@@ -16,6 +16,7 @@ import (
 	gorillaContext "github.com/gorilla/context"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
+	"github.com/twinj/uuid"
 	"net/http"
 	"sort"
 	"time"
@@ -24,7 +25,8 @@ import (
 // WrapValidate handles validation
 func WrapValidate(hfn http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
+		traceId := gorillaContext.Get(r, "trace_id").(string)
+		rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 		urlVars := mux.Vars(r)
 
 		// sort keys
@@ -38,7 +40,7 @@ func WrapValidate(hfn http.HandlerFunc) http.HandlerFunc {
 		for _, key := range keys {
 			if validation.ValidName(urlVars[key]) == false {
 				err := APIErrorInvalidName(key)
-				respondErr(w, err)
+				respondErr(rCTX, w, err)
 				return
 			}
 		}
@@ -61,7 +63,11 @@ func WrapMockAuthConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Br
 		nStr := str.Clone()
 		defer nStr.Close()
 
-		projectUUID := projects.GetUUIDByName(urlVars["project"], nStr)
+		traceId := uuid.NewV4().String()
+		gorillaContext.Set(r, "trace_id", traceId)
+
+		projectUUID := projects.GetUUIDByName(context.WithValue(context.Background(), "trace_id", traceId),
+			urlVars["project"], nStr)
 		gorillaContext.Set(r, "auth_project_uuid", projectUUID)
 		gorillaContext.Set(r, "brk", brk)
 		gorillaContext.Set(r, "str", nStr)
@@ -84,10 +90,10 @@ func WrapMockAuthConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Br
 func WrapConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *oldPush.Manager, c push.Client) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		nStr := str.Clone()
-		defer nStr.Close()
+		traceId := uuid.NewV4().String()
+		gorillaContext.Set(r, "trace_id", traceId)
 		gorillaContext.Set(r, "brk", brk)
-		gorillaContext.Set(r, "str", nStr)
+		gorillaContext.Set(r, "str", str)
 		gorillaContext.Set(r, "mgr", mgr)
 		gorillaContext.Set(r, "apsc", c)
 		gorillaContext.Set(r, "authOption", cfg.AuthOption())
@@ -107,6 +113,17 @@ func WrapLog(hfn http.Handler, name string) http.HandlerFunc {
 
 		start := time.Now()
 
+		log.WithFields(
+			log.Fields{
+				"type":      "request_log",
+				"method":    r.Method,
+				"path":      r.URL.Path,
+				"action":    name,
+				"requester": gorillaContext.Get(r, "auth_user_uuid"),
+				"trace_id":  gorillaContext.Get(r, "trace_id"),
+			},
+		).Info("New Request accepted . . .")
+
 		hfn.ServeHTTP(w, r)
 
 		log.WithFields(
@@ -117,6 +134,7 @@ func WrapLog(hfn http.Handler, name string) http.HandlerFunc {
 				"action":          name,
 				"requester":       gorillaContext.Get(r, "auth_user_uuid"),
 				"processing_time": time.Since(start).String(),
+				"trace_id":        gorillaContext.Get(r, "trace_id"),
 			},
 		).Info("")
 	})
@@ -125,6 +143,8 @@ func WrapLog(hfn http.Handler, name string) http.HandlerFunc {
 // WrapAuthenticate handle wrapper to apply authentication
 func WrapAuthenticate(hfn http.Handler, extractToken RequestTokenExtractStrategy) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		traceId := gorillaContext.Get(r, "trace_id").(string)
+		rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 		urlVars := mux.Vars(r)
 
@@ -133,7 +153,7 @@ func WrapAuthenticate(hfn http.Handler, extractToken RequestTokenExtractStrategy
 		// if the url parameter 'key' is empty or absent, end the request with an unauthorized response
 		if apiKey == "" {
 			err := APIErrorUnauthorized()
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 
@@ -141,14 +161,14 @@ func WrapAuthenticate(hfn http.Handler, extractToken RequestTokenExtractStrategy
 		serviceToken := gorillaContext.Get(r, "auth_service_token").(string)
 
 		projectName := urlVars["project"]
-		projectUUID := projects.GetUUIDByName(urlVars["project"], refStr)
+		projectUUID := projects.GetUUIDByName(rCTX, urlVars["project"], refStr)
 
 		// In all cases instead of project create
 		if "projects:create" != mux.CurrentRoute(r).GetName() {
 			// Check if given a project name the project wasn't found
 			if projectName != "" && projectUUID == "" {
 				apiErr := APIErrorNotFound("project")
-				respondErr(w, apiErr)
+				respondErr(rCTX, w, apiErr)
 				return
 			}
 		}
@@ -163,10 +183,10 @@ func WrapAuthenticate(hfn http.Handler, extractToken RequestTokenExtractStrategy
 			return
 		}
 
-		roles, user := auth.Authenticate(projectUUID, apiKey, refStr)
+		roles, user := auth.Authenticate(rCTX, projectUUID, apiKey, refStr)
 
 		if len(roles) > 0 {
-			userUUID := auth.GetUUIDByName(user, refStr)
+			userUUID := auth.GetUUIDByName(rCTX, user, refStr)
 			gorillaContext.Set(r, "auth_roles", roles)
 			gorillaContext.Set(r, "auth_user", user)
 			gorillaContext.Set(r, "auth_user_uuid", userUUID)
@@ -174,7 +194,7 @@ func WrapAuthenticate(hfn http.Handler, extractToken RequestTokenExtractStrategy
 			hfn.ServeHTTP(w, r)
 		} else {
 			err := APIErrorUnauthorized()
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 		}
 
 	})
@@ -183,6 +203,8 @@ func WrapAuthenticate(hfn http.Handler, extractToken RequestTokenExtractStrategy
 // WrapAuthorize handle wrapper to apply authorization
 func WrapAuthorize(hfn http.Handler, routeName string, extractToken RequestTokenExtractStrategy) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		traceId := gorillaContext.Get(r, "trace_id").(string)
+		rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 		refStr := gorillaContext.Get(r, "str").(stores.Store)
 		refRoles := gorillaContext.Get(r, "auth_roles").([]string)
@@ -195,17 +217,19 @@ func WrapAuthorize(hfn http.Handler, routeName string, extractToken RequestToken
 			return
 		}
 
-		if auth.Authorize(routeName, refRoles, refStr) {
+		if auth.Authorize(rCTX, routeName, refRoles, refStr) {
 			hfn.ServeHTTP(w, r)
 		} else {
 			err := APIErrorForbidden()
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 		}
 	})
 }
 
 // HealthCheck returns an ok message to make sure the service is up and running
 func HealthCheck(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	var err error
 	var bytes []byte
@@ -235,16 +259,16 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 		tokenExtractStrategy := GetRequestTokenExtractStrategy(authOption)
 		token := tokenExtractStrategy(r)
 
-		user, _ := auth.GetUserByToken(token, refStr)
+		user, _ := auth.GetUserByToken(rCTX, token, refStr)
 
 		// if the user has a name, the token is valid
 		if user.Name == "" {
-			respondErr(w, APIErrorForbidden())
+			respondErr(rCTX, w, APIErrorForbidden())
 			return
 		}
 
 		if !auth.IsAdminViewer(user.ServiceRoles) && !auth.IsServiceAdmin(user.ServiceRoles) {
-			respondErr(w, APIErrorUnauthorized())
+			respondErr(rCTX, w, APIErrorUnauthorized())
 			return
 		}
 
@@ -255,7 +279,7 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if pushEnabled {
-		_, err := auth.GetPushWorker(pwToken, refStr)
+		_, err := auth.GetPushWorker(rCTX, pwToken, refStr)
 		if err != nil {
 			healthMsg.Status = "warning"
 		}
@@ -273,7 +297,7 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 
 	if bytes, err = json.MarshalIndent(healthMsg, "", " "); err != nil {
 		err := APIErrGenericInternal(err.Error())
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -282,6 +306,8 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 
 // ListVersion displays version information about the service
 func ListVersion(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -307,7 +333,7 @@ func ListVersion(w http.ResponseWriter, r *http.Request) {
 	token := tokenExtractStrategy(r)
 
 	if token != "" {
-		user, _ := auth.GetUserByToken(token, refStr)
+		user, _ := auth.GetUserByToken(rCTX, token, refStr)
 
 		// set uuid for logging
 		gorillaContext.Set(r, "auth_user_uuid", user.UUID)
@@ -323,7 +349,7 @@ func ListVersion(w http.ResponseWriter, r *http.Request) {
 	output, err := json.MarshalIndent(v, "", " ")
 	if err != nil {
 		err := APIErrGenericInternal(err.Error())
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -337,9 +363,10 @@ func respondOK(w http.ResponseWriter, output []byte) {
 }
 
 // respondErr is used to finalize response writer with proper error codes and error output
-func respondErr(w http.ResponseWriter, apiErr APIErrorRoot) {
+func respondErr(ctx context.Context, w http.ResponseWriter, apiErr APIErrorRoot) {
 	log.WithFields(
 		log.Fields{
+			"trace_id":    ctx.Value("trace_id"),
 			"type":        "service_log",
 			"status_code": apiErr.Body.Code,
 		},
@@ -350,7 +377,8 @@ func respondErr(w http.ResponseWriter, apiErr APIErrorRoot) {
 	w.Write(output)
 }
 
-// A function type that refers to all the functions that can extract an api access token from the request
+// RequestTokenExtractStrategy is a function type that refers to all the functions
+// that can extract an api access token from the request
 type RequestTokenExtractStrategy func(r *http.Request) string
 
 // UrlKeyExtract extracts the api access token from the url parameter key

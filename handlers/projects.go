@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/ARGOeu/argo-messaging/auth"
@@ -19,6 +20,8 @@ import (
 
 // ProjectDelete (DEL) deletes an existing project (also removes it's topics and subscriptions)
 func ProjectDelete(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	// Init output
 	output := []byte("")
@@ -35,15 +38,15 @@ func ProjectDelete(w http.ResponseWriter, r *http.Request) {
 	// Get project UUID First to use as reference
 	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 	// RemoveProject removes also attached subs and topics from the datastore
-	err := projects.RemoveProject(projectUUID, refStr)
+	err := projects.RemoveProject(rCTX, projectUUID, refStr)
 	if err != nil {
 		if err.Error() == "not found" {
 			err := APIErrorNotFound("ProjectUUID")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 		err := APIErrGenericInternal(err.Error())
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -53,6 +56,8 @@ func ProjectDelete(w http.ResponseWriter, r *http.Request) {
 
 // ProjectUpdate (PUT) updates the name or the description of an existing project
 func ProjectUpdate(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	// Init output
 	output := []byte("")
@@ -69,7 +74,7 @@ func ProjectUpdate(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		err := APIErrorInvalidRequestBody()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -77,31 +82,30 @@ func ProjectUpdate(w http.ResponseWriter, r *http.Request) {
 	postBody, err := projects.GetFromJSON(body)
 	if err != nil {
 		err := APIErrorInvalidRequestBody()
-		respondErr(w, err)
-		log.Error(string(body[:]))
+		respondErr(rCTX, w, err)
 		return
 	}
 
 	modified := time.Now().UTC()
 	// Get Result Object
 
-	res, err := projects.UpdateProject(projectUUID, postBody.Name, postBody.Description, modified, refStr)
+	res, err := projects.UpdateProject(rCTX, projectUUID, postBody.Name, postBody.Description, modified, refStr)
 
 	if err != nil {
 		if err.Error() == "not found" {
 			err := APIErrorNotFound("ProjectUUID")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 
 		if strings.HasPrefix(err.Error(), "invalid") {
 			err := APIErrorInvalidData(err.Error())
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 
 		err := APIErrGenericInternal(err.Error())
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -109,7 +113,7 @@ func ProjectUpdate(w http.ResponseWriter, r *http.Request) {
 	resJSON, err := res.ExportJSON()
 	if err != nil {
 		err := APIErrExportJSON()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -120,6 +124,8 @@ func ProjectUpdate(w http.ResponseWriter, r *http.Request) {
 
 // ProjectCreate (POST) creates a new project
 func ProjectCreate(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	// Init output
 	output := []byte("")
@@ -141,7 +147,7 @@ func ProjectCreate(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		err := APIErrorInvalidRequestBody()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -149,7 +155,7 @@ func ProjectCreate(w http.ResponseWriter, r *http.Request) {
 	postBody, err := projects.GetFromJSON(body)
 	if err != nil {
 		err := APIErrorInvalidArgument("Project")
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -157,16 +163,16 @@ func ProjectCreate(w http.ResponseWriter, r *http.Request) {
 	created := time.Now().UTC()
 	// Get Result Object
 
-	res, err := projects.CreateProject(uuid, urlProject, created, refUserUUID, postBody.Description, refStr)
+	res, err := projects.CreateProject(rCTX, uuid, urlProject, created, refUserUUID, postBody.Description, refStr)
 
 	if err != nil {
 		if err.Error() == "exists" {
 			err := APIErrorConflict("Project")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 		err := APIErrGenericInternal(err.Error())
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -174,7 +180,7 @@ func ProjectCreate(w http.ResponseWriter, r *http.Request) {
 	resJSON, err := res.ExportJSON()
 	if err != nil {
 		err := APIErrExportJSON()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -185,6 +191,8 @@ func ProjectCreate(w http.ResponseWriter, r *http.Request) {
 
 // ProjectListAll (GET) all projects
 func ProjectListAll(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	// Init output
 	output := []byte("")
@@ -199,11 +207,11 @@ func ProjectListAll(w http.ResponseWriter, r *http.Request) {
 
 	// Get Results Object
 
-	res, err := projects.Find("", "", refStr)
+	res, err := projects.Find(rCTX, "", "", refStr)
 
 	if err != nil && err.Error() != "not found" {
 		err := APIErrQueryDatastore()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -212,7 +220,7 @@ func ProjectListAll(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		err := APIErrExportJSON()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -223,6 +231,8 @@ func ProjectListAll(w http.ResponseWriter, r *http.Request) {
 
 // ProjectListOne (GET) one project
 func ProjectListOne(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	// Init output
 	output := []byte("")
@@ -240,17 +250,17 @@ func ProjectListOne(w http.ResponseWriter, r *http.Request) {
 	refStr := gorillaContext.Get(r, "str").(stores.Store)
 
 	// Get Results Object
-	results, err := projects.Find("", urlProject, refStr)
+	results, err := projects.Find(rCTX, "", urlProject, refStr)
 
 	if err != nil {
 
 		if err.Error() == "not found" {
 			err := APIErrorNotFound("ProjectUUID")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 		err := APIErrQueryDatastore()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -260,7 +270,7 @@ func ProjectListOne(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		err := APIErrExportJSON()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -271,6 +281,8 @@ func ProjectListOne(w http.ResponseWriter, r *http.Request) {
 
 // ProjectUserListOne (GET) one user member of a specific project
 func ProjectUserListOne(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	// Init output
 	output := []byte("")
@@ -293,17 +305,17 @@ func ProjectUserListOne(w http.ResponseWriter, r *http.Request) {
 	priviledged := auth.IsServiceAdmin(refRoles)
 
 	// Get Results Object
-	results, err := auth.FindUsers(projectUUID, "", urlUser, priviledged, refStr)
+	results, err := auth.FindUsers(rCTX, projectUUID, "", urlUser, priviledged, refStr)
 
 	if err != nil {
 		if err.Error() == "not found" {
 			err := APIErrorNotFound("User")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 
 		err := APIErrQueryDatastore()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -314,7 +326,7 @@ func ProjectUserListOne(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		err := APIErrExportJSON()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -325,6 +337,8 @@ func ProjectUserListOne(w http.ResponseWriter, r *http.Request) {
 
 // ProjectUserCreate (POST) creates a user under the respective project by the project's admin
 func ProjectUserCreate(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	// Init output
 	output := []byte("")
@@ -347,7 +361,7 @@ func ProjectUserCreate(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		err := APIErrorInvalidRequestBody()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -355,8 +369,7 @@ func ProjectUserCreate(w http.ResponseWriter, r *http.Request) {
 	postBody, err := auth.GetUserFromJSON(body)
 	if err != nil {
 		err := APIErrorInvalidArgument("User")
-		respondErr(w, err)
-		log.Error(string(body[:]))
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -364,10 +377,10 @@ func ProjectUserCreate(w http.ResponseWriter, r *http.Request) {
 	postBody.ServiceRoles = []string{}
 
 	// allow the user to be created to only have reference to the project under which is being created
-	prName := projects.GetNameByUUID(refProjUUID, refStr)
+	prName := projects.GetNameByUUID(rCTX, refProjUUID, refStr)
 	if prName == "" {
 		err := APIErrGenericInternal("Internal Error")
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -395,29 +408,29 @@ func ProjectUserCreate(w http.ResponseWriter, r *http.Request) {
 	created := time.Now().UTC()
 
 	// Get Result Object
-	res, err := auth.CreateUser(uuid, urlUser, "", "", "", "", postBody.Projects, token, postBody.Email, postBody.ServiceRoles, created, refUserUUID, refStr)
+	res, err := auth.CreateUser(rCTX, uuid, urlUser, "", "", "", "", postBody.Projects, token, postBody.Email, postBody.ServiceRoles, created, refUserUUID, refStr)
 
 	if err != nil {
 		if err.Error() == "exists" {
 			err := APIErrorConflict("User")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 
 		if strings.HasPrefix(err.Error(), "invalid") {
 			err := APIErrorInvalidData(err.Error())
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 
 		if strings.HasPrefix(err.Error(), "duplicate") {
 			err := APIErrorInvalidData(err.Error())
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 
 		err := APIErrGenericInternal(err.Error())
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -425,7 +438,7 @@ func ProjectUserCreate(w http.ResponseWriter, r *http.Request) {
 	resJSON, err := res.ExportJSON()
 	if err != nil {
 		err := APIErrExportJSON()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -436,6 +449,8 @@ func ProjectUserCreate(w http.ResponseWriter, r *http.Request) {
 
 // ProjectUserUpdate (PUT) updates a user under the respective project by the project's admin
 func ProjectUserUpdate(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	// Init output
 	output := []byte("")
@@ -455,10 +470,10 @@ func ProjectUserUpdate(w http.ResponseWriter, r *http.Request) {
 	refRoles := gorillaContext.Get(r, "auth_roles").([]string)
 
 	// allow the user to be updated to only have reference to the project under which is being updated
-	prName := projects.GetNameByUUID(refProjUUID, refStr)
+	prName := projects.GetNameByUUID(rCTX, refProjUUID, refStr)
 	if prName == "" {
 		err := APIErrGenericInternal("Internal Error")
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -466,7 +481,7 @@ func ProjectUserUpdate(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		err := APIErrorInvalidRequestBody()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -474,20 +489,20 @@ func ProjectUserUpdate(w http.ResponseWriter, r *http.Request) {
 	postBody, err := auth.GetUserFromJSON(body)
 	if err != nil {
 		err := APIErrorInvalidArgument("User")
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
-	u, err := auth.FindUsers("", "", urlUser, true, refStr)
+	u, err := auth.FindUsers(rCTX, "", "", urlUser, true, refStr)
 	if err != nil {
 		if err.Error() == "not found" {
 			err := APIErrorNotFound("User")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 
 		err := APIErrQueryDatastore()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -518,7 +533,7 @@ func ProjectUserUpdate(w http.ResponseWriter, r *http.Request) {
 
 	if !found {
 		err := APIErrorForbiddenWithMsg("User is not a member of the project")
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -537,46 +552,46 @@ func ProjectUserUpdate(w http.ResponseWriter, r *http.Request) {
 	userOrg := u.One().Organization
 	userDesc := u.One().Description
 
-	_, err = auth.UpdateUser(userUUID, userFN, userLN, userOrg, userDesc, userName, userProjects, userEmail, userSRoles, modified, false, refStr)
+	_, err = auth.UpdateUser(rCTX, userUUID, userFN, userLN, userOrg, userDesc, userName, userProjects, userEmail, userSRoles, modified, false, refStr)
 
 	if err != nil {
 
 		// In case of invalid project or role in post body
 		if err.Error() == "not found" {
 			err := APIErrorNotFound("User")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 
 		if strings.HasPrefix(err.Error(), "invalid") {
 			err := APIErrorInvalidData(err.Error())
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 
 		if strings.HasPrefix(err.Error(), "duplicate") {
 			err := APIErrorInvalidData(err.Error())
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 
 		err := APIErrGenericInternal(err.Error())
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
-	stored, err := auth.FindUsers(refProjUUID, userUUID, urlUser, privileged, refStr)
+	stored, err := auth.FindUsers(rCTX, refProjUUID, userUUID, urlUser, privileged, refStr)
 
 	if err != nil {
 
 		if err.Error() == "not found" {
 			err := APIErrorNotFound("User")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 
 		err := APIErrGenericInternal(err.Error())
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -584,7 +599,7 @@ func ProjectUserUpdate(w http.ResponseWriter, r *http.Request) {
 	resJSON, err := json.MarshalIndent(stored.One(), "", "   ")
 	if err != nil {
 		err := APIErrExportJSON()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -595,6 +610,8 @@ func ProjectUserUpdate(w http.ResponseWriter, r *http.Request) {
 
 // ProjectUserRemove (POST) removes a user from the respective project
 func ProjectUserRemove(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -609,18 +626,18 @@ func ProjectUserRemove(w http.ResponseWriter, r *http.Request) {
 	refStr := gorillaContext.Get(r, "str").(stores.Store)
 	refProjUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 
-	projName := projects.GetNameByUUID(refProjUUID, refStr)
+	projName := projects.GetNameByUUID(rCTX, refProjUUID, refStr)
 
-	u, err := auth.FindUsers("", "", urlUser, true, refStr)
+	u, err := auth.FindUsers(rCTX, "", "", urlUser, true, refStr)
 	if err != nil {
 		if err.Error() == "not found" {
 			err := APIErrorNotFound("User")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 
 		err := APIErrQueryDatastore()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -639,7 +656,7 @@ func ProjectUserRemove(w http.ResponseWriter, r *http.Request) {
 
 	if !found {
 		err := APIErrorForbiddenWithMsg("User is not a member of the project")
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -654,19 +671,19 @@ func ProjectUserRemove(w http.ResponseWriter, r *http.Request) {
 	userOrg := u.One().Organization
 	userDesc := u.One().Description
 
-	_, err = auth.UpdateUser(userUUID, userFN, userLN, userOrg, userDesc, userName, userProjects, userEmail, userSRoles, modified, false, refStr)
+	_, err = auth.UpdateUser(rCTX, userUUID, userFN, userLN, userOrg, userDesc, userName, userProjects, userEmail, userSRoles, modified, false, refStr)
 
 	if err != nil {
 
 		// In case of invalid project or role in post body
 		if err.Error() == "not found" {
 			err := APIErrorNotFound("User")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 
 		err := APIErrGenericInternal(err.Error())
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -676,6 +693,8 @@ func ProjectUserRemove(w http.ResponseWriter, r *http.Request) {
 
 // ProjectUserAdd (POST) adds a user to the respective project
 func ProjectUserAdd(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -691,18 +710,18 @@ func ProjectUserAdd(w http.ResponseWriter, r *http.Request) {
 	refProjUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 	refRoles := gorillaContext.Get(r, "auth_roles").([]string)
 
-	projName := projects.GetNameByUUID(refProjUUID, refStr)
+	projName := projects.GetNameByUUID(rCTX, refProjUUID, refStr)
 
-	u, err := auth.FindUsers("", "", urlUser, true, refStr)
+	u, err := auth.FindUsers(rCTX, "", "", urlUser, true, refStr)
 	if err != nil {
 		if err.Error() == "not found" {
 			err := APIErrorNotFound("User")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 
 		err := APIErrQueryDatastore()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -710,7 +729,7 @@ func ProjectUserAdd(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		err := APIErrorInvalidRequestBody()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -719,7 +738,7 @@ func ProjectUserAdd(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(body, &data)
 	if err != nil {
 		err := APIErrorInvalidRequestBody()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -734,7 +753,7 @@ func ProjectUserAdd(w http.ResponseWriter, r *http.Request) {
 
 	if found {
 		err := APIErrorGenericConflict("User is already a member of the project")
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -755,42 +774,42 @@ func ProjectUserAdd(w http.ResponseWriter, r *http.Request) {
 		Roles:   data.Roles,
 	})
 
-	_, err = auth.UpdateUser(userUUID, userFN, userLN, userOrg, userDesc, userName, userProjects, userEmail, userSRoles, modified, false, refStr)
+	_, err = auth.UpdateUser(rCTX, userUUID, userFN, userLN, userOrg, userDesc, userName, userProjects, userEmail, userSRoles, modified, false, refStr)
 
 	if err != nil {
 
 		// In case of invalid project or role in post body
 		if err.Error() == "not found" {
 			err := APIErrorNotFound("User")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 
 		if strings.HasPrefix(err.Error(), "invalid") {
 			err := APIErrorInvalidData(err.Error())
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 
 		err := APIErrGenericInternal(err.Error())
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
 	// Write response
 	privileged := auth.IsServiceAdmin(refRoles)
 	fmt.Println(privileged)
-	results, err := auth.FindUsers(refProjUUID, "", urlUser, privileged, refStr)
+	results, err := auth.FindUsers(rCTX, refProjUUID, "", urlUser, privileged, refStr)
 
 	if err != nil {
 		if err.Error() == "not found" {
 			err := APIErrorNotFound("User")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 
 		err := APIErrQueryDatastore()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -801,7 +820,7 @@ func ProjectUserAdd(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		err := APIErrExportJSON()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -811,6 +830,8 @@ func ProjectUserAdd(w http.ResponseWriter, r *http.Request) {
 
 // ProjectListUsers (GET) all users belonging to a project
 func ProjectListUsers(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	var err error
 	var pageSize int
@@ -842,9 +863,16 @@ func ProjectListUsers(w http.ResponseWriter, r *http.Request) {
 
 	if strPageSize != "" {
 		if pageSize, err = strconv.Atoi(strPageSize); err != nil {
-			log.Errorf("Pagesize %v produced an error  while being converted to int: %v", strPageSize, err.Error())
+			log.WithFields(
+				log.Fields{
+					"trace_id":  rCTX.Value("trace_id"),
+					"type":      "request_log",
+					"page_size": pageSize,
+					"error":     err.Error(),
+				},
+			).Error("error while converting page size to int")
 			err := APIErrorInvalidData("Invalid page size")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 	}
@@ -854,11 +882,11 @@ func ProjectListUsers(w http.ResponseWriter, r *http.Request) {
 
 	// Get Results Object - call is always privileged because this handler is only accessible by service admins
 	paginatedUsers, err =
-		auth.PaginatedFindUsers(pageToken, int64(pageSize), projectUUID, privileged, usersDetailedView, refStr)
+		auth.PaginatedFindUsers(rCTX, pageToken, int64(pageSize), projectUUID, privileged, usersDetailedView, refStr)
 
 	if err != nil {
 		err := APIErrorInvalidData("Invalid page token")
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -867,7 +895,7 @@ func ProjectListUsers(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		err := APIErrExportJSON()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 

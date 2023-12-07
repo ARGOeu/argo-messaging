@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/ARGOeu/argo-messaging/auth"
@@ -21,6 +22,8 @@ import (
 
 // TopicDelete (DEL) deletes an existing topic
 func TopicDelete(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	// Init output
 	output := []byte("")
@@ -40,22 +43,29 @@ func TopicDelete(w http.ResponseWriter, r *http.Request) {
 
 	// Get Result Object
 
-	err := topics.RemoveTopic(projectUUID, urlVars["topic"], refStr)
+	err := topics.RemoveTopic(rCTX, projectUUID, urlVars["topic"], refStr)
 	if err != nil {
 		if err.Error() == "not found" {
 			err := APIErrorNotFound("Topic")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 		err := APIErrGenericInternal(err.Error())
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
 	fullTopic := projectUUID + "." + urlVars["topic"]
-	err = refBrk.DeleteTopic(fullTopic)
+	err = refBrk.DeleteTopic(rCTX, fullTopic)
 	if err != nil {
-		log.Errorf("Couldn't delete topic %v from broker, %v", fullTopic, err.Error())
+		log.WithFields(
+			log.Fields{
+				"trace_id": rCTX.Value("trace_id"),
+				"type":     "service_log",
+				"topic":    fullTopic,
+				"error":    err.Error(),
+			},
+		).Error("Couldn't delete topic from broker")
 	}
 
 	// Write empty response if anything ok
@@ -64,6 +74,8 @@ func TopicDelete(w http.ResponseWriter, r *http.Request) {
 
 // TopicModACL (PUT) modifies the ACL
 func TopicModACL(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	// Init output
 	output := []byte("")
@@ -82,7 +94,7 @@ func TopicModACL(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		err := APIErrorInvalidRequestBody()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -90,8 +102,7 @@ func TopicModACL(w http.ResponseWriter, r *http.Request) {
 	postBody, err := auth.GetACLFromJSON(body)
 	if err != nil {
 		err := APIErrorInvalidArgument("Topic ACL")
-		respondErr(w, err)
-		log.Error(string(body[:]))
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -101,24 +112,24 @@ func TopicModACL(w http.ResponseWriter, r *http.Request) {
 	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 
 	// check if user list contain valid users for the given project
-	_, err = auth.AreValidUsers(projectUUID, postBody.AuthUsers, refStr)
+	_, err = auth.AreValidUsers(rCTX, projectUUID, postBody.AuthUsers, refStr)
 	if err != nil {
 		err := APIErrorRoot{Body: APIErrorBody{Code: http.StatusNotFound, Message: err.Error(), Status: "NOT_FOUND"}}
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
-	err = auth.ModACL(projectUUID, "topics", urlTopic, postBody.AuthUsers, refStr)
+	err = auth.ModACL(rCTX, projectUUID, "topics", urlTopic, postBody.AuthUsers, refStr)
 
 	if err != nil {
 
 		if err.Error() == "not found" {
 			err := APIErrorNotFound("Topic")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 		err := APIErrGenericInternal(err.Error())
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -128,6 +139,8 @@ func TopicModACL(w http.ResponseWriter, r *http.Request) {
 
 // TopicCreate (PUT) creates a new  topic
 func TopicCreate(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	// Init output
 	output := []byte("")
@@ -154,7 +167,7 @@ func TopicCreate(w http.ResponseWriter, r *http.Request) {
 
 		if err != nil {
 			err := APIErrorInvalidRequestBody()
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 		defer r.Body.Close()
@@ -163,7 +176,7 @@ func TopicCreate(w http.ResponseWriter, r *http.Request) {
 			err = json.Unmarshal(b, &postBody)
 			if err != nil {
 				err := APIErrorInvalidRequestBody()
-				respondErr(w, err)
+				respondErr(rCTX, w, err)
 				return
 			}
 
@@ -174,19 +187,19 @@ func TopicCreate(w http.ResponseWriter, r *http.Request) {
 				_, schemaName, err := schemas.ExtractSchema(schemaRef)
 				if err != nil {
 					err := APIErrorInvalidData(err.Error())
-					respondErr(w, err)
+					respondErr(rCTX, w, err)
 					return
 				}
-				sl, err := schemas.Find(projectUUID, "", schemaName, refStr)
+				sl, err := schemas.Find(rCTX, projectUUID, "", schemaName, refStr)
 				if err != nil {
 					err := APIErrGenericInternal(err.Error())
-					respondErr(w, err)
+					respondErr(rCTX, w, err)
 					return
 				}
 
 				if sl.Empty() {
 					err := APIErrorNotFound("Schema")
-					respondErr(w, err)
+					respondErr(rCTX, w, err)
 					return
 				}
 
@@ -198,22 +211,22 @@ func TopicCreate(w http.ResponseWriter, r *http.Request) {
 	created := time.Now().UTC()
 
 	// Get Result Object
-	res, err := topics.CreateTopic(projectUUID, urlVars["topic"], schemaUUID, created, refStr)
+	res, err := topics.CreateTopic(rCTX, projectUUID, urlVars["topic"], schemaUUID, created, refStr)
 	if err != nil {
 		if err.Error() == "exists" {
 			err := APIErrorConflict("Topic")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 		err := APIErrGenericInternal(err.Error())
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 	}
 
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
 	if err != nil {
 		err := APIErrExportJSON()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -224,6 +237,8 @@ func TopicCreate(w http.ResponseWriter, r *http.Request) {
 
 // TopicAttachSchema (POST) attaches an already created schema to the given topic
 func TopicAttachSchema(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	// Init output
 	output := []byte("")
@@ -243,18 +258,18 @@ func TopicAttachSchema(w http.ResponseWriter, r *http.Request) {
 	postBody := map[string]string{}
 	schemaUUID := ""
 
-	results, err := topics.Find(projectUUID, "", urlVars["topic"], "", 0, refStr)
+	results, err := topics.Find(rCTX, projectUUID, "", urlVars["topic"], "", 0, refStr)
 
 	if err != nil {
 		err := APIErrGenericBackend()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
 	// If not found
 	if results.Empty() {
 		err := APIErrorNotFound("Topic")
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -265,7 +280,7 @@ func TopicAttachSchema(w http.ResponseWriter, r *http.Request) {
 
 		if err != nil {
 			err := APIErrorInvalidRequestBody()
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 		defer r.Body.Close()
@@ -274,7 +289,7 @@ func TopicAttachSchema(w http.ResponseWriter, r *http.Request) {
 			err = json.Unmarshal(b, &postBody)
 			if err != nil {
 				err := APIErrorInvalidRequestBody()
-				respondErr(w, err)
+				respondErr(rCTX, w, err)
 				return
 			}
 
@@ -285,19 +300,19 @@ func TopicAttachSchema(w http.ResponseWriter, r *http.Request) {
 				_, schemaName, err := schemas.ExtractSchema(schemaRef)
 				if err != nil {
 					err := APIErrorInvalidData(err.Error())
-					respondErr(w, err)
+					respondErr(rCTX, w, err)
 					return
 				}
-				sl, err := schemas.Find(projectUUID, "", schemaName, refStr)
+				sl, err := schemas.Find(rCTX, projectUUID, "", schemaName, refStr)
 				if err != nil {
 					err := APIErrGenericInternal(err.Error())
-					respondErr(w, err)
+					respondErr(rCTX, w, err)
 					return
 				}
 
 				if sl.Empty() {
 					err := APIErrorNotFound("Schema")
-					respondErr(w, err)
+					respondErr(rCTX, w, err)
 					return
 				}
 
@@ -306,10 +321,10 @@ func TopicAttachSchema(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	err = topics.AttachSchemaToTopic(projectUUID, urlVars["topic"], schemaUUID, refStr)
+	err = topics.AttachSchemaToTopic(rCTX, projectUUID, urlVars["topic"], schemaUUID, refStr)
 	if err != nil {
 		err := APIErrGenericInternal(err.Error())
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 	}
 
 	// Write response
@@ -319,6 +334,8 @@ func TopicAttachSchema(w http.ResponseWriter, r *http.Request) {
 
 // TopicDetachSchema (POST) removes the schema from the given topic
 func TopicDetachSchema(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	// Init output
 	output := []byte("")
@@ -335,25 +352,25 @@ func TopicDetachSchema(w http.ResponseWriter, r *http.Request) {
 	refStr := gorillaContext.Get(r, "str").(stores.Store)
 	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 
-	results, err := topics.Find(projectUUID, "", urlVars["topic"], "", 0, refStr)
+	results, err := topics.Find(rCTX, projectUUID, "", urlVars["topic"], "", 0, refStr)
 
 	if err != nil {
 		err := APIErrGenericBackend()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
 	// If not found
 	if results.Empty() {
 		err := APIErrorNotFound("Topic")
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
-	err = topics.DetachSchemaFromTopic(projectUUID, urlVars["topic"], refStr)
+	err = topics.DetachSchemaFromTopic(rCTX, projectUUID, urlVars["topic"], refStr)
 	if err != nil {
 		err := APIErrGenericInternal(err.Error())
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 	}
 
 	// Write response
@@ -363,6 +380,8 @@ func TopicDetachSchema(w http.ResponseWriter, r *http.Request) {
 
 // TopicListOne (GET) one topic
 func TopicListOne(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	// Init output
 	output := []byte("")
@@ -379,18 +398,18 @@ func TopicListOne(w http.ResponseWriter, r *http.Request) {
 	refStr := gorillaContext.Get(r, "str").(stores.Store)
 	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 
-	results, err := topics.Find(projectUUID, "", urlVars["topic"], "", 0, refStr)
+	results, err := topics.Find(rCTX, projectUUID, "", urlVars["topic"], "", 0, refStr)
 
 	if err != nil {
 		err := APIErrGenericBackend()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
 	// If not found
 	if results.Empty() {
 		err := APIErrorNotFound("Topic")
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -400,7 +419,7 @@ func TopicListOne(w http.ResponseWriter, r *http.Request) {
 	resJSON, err := res.ExportJSON()
 	if err != nil {
 		err := APIErrExportJSON()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -411,6 +430,8 @@ func TopicListOne(w http.ResponseWriter, r *http.Request) {
 
 // ListSubsByTopic (GET) lists all subscriptions associated with the given topic
 func ListSubsByTopic(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -424,25 +445,25 @@ func ListSubsByTopic(w http.ResponseWriter, r *http.Request) {
 	refStr := gorillaContext.Get(r, "str").(stores.Store)
 	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 
-	results, err := topics.Find(projectUUID, "", urlVars["topic"], "", 0, refStr)
+	results, err := topics.Find(rCTX, projectUUID, "", urlVars["topic"], "", 0, refStr)
 
 	if err != nil {
 		err := APIErrGenericBackend()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
 	// If not found
 	if results.Empty() {
 		err := APIErrorNotFound("Topic")
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
-	subs, err := subscriptions.FindByTopic(projectUUID, results.Topics[0].Name, refStr)
+	subs, err := subscriptions.FindByTopic(rCTX, projectUUID, results.Topics[0].Name, refStr)
 	if err != nil {
 		err := APIErrGenericBackend()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 
 	}
@@ -450,7 +471,7 @@ func ListSubsByTopic(w http.ResponseWriter, r *http.Request) {
 	resJSON, err := json.Marshal(subs)
 	if err != nil {
 		err := APIErrExportJSON()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -459,6 +480,8 @@ func ListSubsByTopic(w http.ResponseWriter, r *http.Request) {
 
 // TopicACL (GET) one topic's authorized users
 func TopicACL(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	// Init output
 	output := []byte("")
@@ -477,12 +500,12 @@ func TopicACL(w http.ResponseWriter, r *http.Request) {
 
 	// Get project UUID First to use as reference
 	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
-	res, err := auth.GetACL(projectUUID, "topics", urlTopic, refStr)
+	res, err := auth.GetACL(rCTX, projectUUID, "topics", urlTopic, refStr)
 
 	// If not found
 	if err != nil {
 		err := APIErrorNotFound("Topic")
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -490,7 +513,7 @@ func TopicACL(w http.ResponseWriter, r *http.Request) {
 	resJSON, err := res.ExportJSON()
 	if err != nil {
 		err := APIErrExportJSON()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -501,6 +524,8 @@ func TopicACL(w http.ResponseWriter, r *http.Request) {
 
 // TopicListAll (GET) all topics
 func TopicListAll(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 
 	var err error
 	var strPageSize string
@@ -533,23 +558,30 @@ func TopicListAll(w http.ResponseWriter, r *http.Request) {
 
 	if strPageSize != "" {
 		if pageSize, err = strconv.Atoi(strPageSize); err != nil {
-			log.Errorf("Pagesize %v produced an error  while being converted to int: %v", strPageSize, err.Error())
+			log.WithFields(
+				log.Fields{
+					"trace_id":  rCTX.Value("trace_id"),
+					"type":      "request_log",
+					"page_size": pageSize,
+					"error":     err.Error(),
+				},
+			).Error("error while converting page size to int")
 			err := APIErrorInvalidData("Invalid page size")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 	}
 
-	if res, err = topics.Find(projectUUID, userUUID, "", pageToken, int64(pageSize), refStr); err != nil {
+	if res, err = topics.Find(rCTX, projectUUID, userUUID, "", pageToken, int64(pageSize), refStr); err != nil {
 		err := APIErrorInvalidData("Invalid page token")
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
 	if err != nil {
 		err := APIErrExportJSON()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -560,6 +592,8 @@ func TopicListAll(w http.ResponseWriter, r *http.Request) {
 
 // TopicPublish (POST) publish messages to a topic
 func TopicPublish(w http.ResponseWriter, r *http.Request) {
+	traceId := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
 	// Init output
 	output := []byte("")
 
@@ -582,18 +616,18 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 	// Get project UUID First to use as reference
 	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 
-	results, err := topics.Find(projectUUID, "", urlVars["topic"], "", 0, refStr)
+	results, err := topics.Find(rCTX, projectUUID, "", urlVars["topic"], "", 0, refStr)
 
 	if err != nil {
 		err := APIErrGenericBackend()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
 	// If not found
 	if results.Empty() {
 		err := APIErrorNotFound("Topic")
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -605,9 +639,9 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 
 	if refAuthResource && auth.IsPublisher(refRoles) {
 
-		if auth.PerResource(projectUUID, "topics", urlTopic, refUserUUID, refStr) == false {
+		if auth.PerResource(rCTX, projectUUID, "topics", urlTopic, refUserUUID, refStr) == false {
 			err := APIErrorForbidden()
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 	}
@@ -616,7 +650,7 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		err := APIErrorInvalidRequestBody()
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -624,7 +658,7 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 	msgList, err := messages.LoadMsgListJSON(body)
 	if err != nil {
 		err := APIErrorInvalidArgument("Message")
-		respondErr(w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
@@ -636,6 +670,7 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.WithFields(
 				log.Fields{
+					"trace_id":    rCTX.Value("trace_id"),
 					"type":        "service_log",
 					"schema_name": res.Schema,
 					"topic_name":  res.Name,
@@ -643,15 +678,16 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 				},
 			).Error("Could not extract schema name")
 			err := APIErrGenericInternal(schemas.GenericError)
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 
-		sl, err := schemas.Find(projectUUID, "", schemaName, refStr)
+		sl, err := schemas.Find(rCTX, projectUUID, "", schemaName, refStr)
 
 		if err != nil {
 			log.WithFields(
 				log.Fields{
+					"trace_id":    rCTX.Value("trace_id"),
 					"type":        "service_log",
 					"schema_name": schemaName,
 					"topic_name":  res.Name,
@@ -659,7 +695,7 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 				},
 			).Error("Could not retrieve schema from the store")
 			err := APIErrGenericInternal(schemas.GenericError)
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 
@@ -668,24 +704,25 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				if err.Error() == "500" {
 					err := APIErrGenericInternal(schemas.GenericError)
-					respondErr(w, err)
+					respondErr(rCTX, w, err)
 					return
 				} else {
 					err := APIErrorInvalidData(err.Error())
-					respondErr(w, err)
+					respondErr(rCTX, w, err)
 					return
 				}
 			}
 		} else {
 			log.WithFields(
 				log.Fields{
+					"trace_id":    rCTX.Value("trace_id"),
 					"type":        "service_log",
 					"schema_name": res.Schema,
 					"topic_name":  res.Name,
 				},
 			).Error("List of schemas was empty")
 			err := APIErrGenericInternal(schemas.GenericError)
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 	}
@@ -698,25 +735,25 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 		// Get offset and set it as msg
 		fullTopic := projectUUID + "." + urlTopic
 
-		msgID, rTop, _, _, err := refBrk.Publish(fullTopic, msg)
+		msgID, rTop, _, _, err := refBrk.Publish(rCTX, fullTopic, msg)
 
 		if err != nil {
 			if err.Error() == "kafka server: Message was too large, server rejected it to avoid allocation error." {
 				err := APIErrTooLargeMessage("Message size too large")
-				respondErr(w, err)
+				respondErr(rCTX, w, err)
 				return
 			}
 
 			err := APIErrGenericBackend()
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 
 		msg.ID = msgID
-		// Assertions for Succesfull Publish
+		// Assertions for Successful Publish
 		if rTop != fullTopic {
 			err := APIErrGenericInternal("Broker reports wrong topic")
-			respondErr(w, err)
+			respondErr(rCTX, w, err)
 			return
 		}
 
@@ -731,17 +768,17 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 	msgCount := int64(len(msgList.Msgs))
 
 	// increment topic number of message metric
-	refStr.IncrementTopicMsgNum(projectUUID, urlTopic, msgCount)
+	refStr.IncrementTopicMsgNum(rCTX, projectUUID, urlTopic, msgCount)
 
 	// increment daily count of topic messages
 	year, month, day := publishTime.Date()
-	refStr.IncrementDailyTopicMsgCount(projectUUID, urlTopic, msgCount, time.Date(year, month, day, 0, 0, 0, 0, time.UTC))
+	refStr.IncrementDailyTopicMsgCount(rCTX, projectUUID, urlTopic, msgCount, time.Date(year, month, day, 0, 0, 0, 0, time.UTC))
 
 	// increment topic total bytes published
-	refStr.IncrementTopicBytes(projectUUID, urlTopic, msgList.TotalSize())
+	refStr.IncrementTopicBytes(rCTX, projectUUID, urlTopic, msgList.TotalSize())
 
 	// update latest publish date for the given topic
-	refStr.UpdateTopicLatestPublish(projectUUID, urlTopic, publishTime)
+	refStr.UpdateTopicLatestPublish(rCTX, projectUUID, urlTopic, publishTime)
 
 	// count the rate of published messages per sec between the last two publish events
 	var dt float64 = 1
@@ -750,13 +787,13 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 	if !res.LatestPublish.IsZero() {
 		dt = publishTime.Sub(res.LatestPublish).Seconds()
 	}
-	refStr.UpdateTopicPublishRate(projectUUID, urlTopic, float64(msgCount)/dt)
+	refStr.UpdateTopicPublishRate(rCTX, projectUUID, urlTopic, float64(msgCount)/dt)
 
 	// Export the msgIDs
 	resJSON, err := msgIDs.ExportJSON()
 	if err != nil {
 		err := APIErrExportJSON()
-		respondErr(w, err)
+		respondErr(rCTX , w, err)
 		return
 	}
 

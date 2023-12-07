@@ -1,6 +1,7 @@
 package subscriptions
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"strconv"
@@ -165,9 +166,9 @@ func IsAuthorizationHeaderTypeSupported(authzType string) bool {
 }
 
 // FindMetric returns the metric of a specific subscription
-func FindMetric(projectUUID string, name string, store stores.Store) (SubMetrics, error) {
+func FindMetric(ctx context.Context, projectUUID string, name string, store stores.Store) (SubMetrics, error) {
 	result := SubMetrics{MsgNum: 0}
-	subs, _, _, err := store.QuerySubs(projectUUID, "", name, "", 0)
+	subs, _, _, err := store.QuerySubs(ctx, projectUUID, "", name, "", 0)
 
 	// check if sub exists
 	if len(subs) == 0 {
@@ -175,7 +176,7 @@ func FindMetric(projectUUID string, name string, store stores.Store) (SubMetrics
 	}
 
 	for _, item := range subs {
-		projectName := projects.GetNameByUUID(item.ProjectUUID, store)
+		projectName := projects.GetNameByUUID(ctx, item.ProjectUUID, store)
 		if projectName == "" {
 			return result, errors.New("invalid project")
 		}
@@ -215,7 +216,7 @@ func GetPullOptionsJSON(input []byte) (SubPullOptions, error) {
 	return s, err
 }
 
-// GetAckDeadlineFromJson retrieves ack deadline from json input
+// GetAckDeadlineFromJSON retrieves ack deadline from json input
 func GetAckDeadlineFromJSON(input []byte) (AckDeadline, error) {
 	s := AckDeadline{}
 	err := json.Unmarshal([]byte(input), &s)
@@ -278,7 +279,7 @@ func (sl *PaginatedSubscriptions) ExportJSON() (string, error) {
 }
 
 // VerifyPushEndpoint verifies the ownership of a push endpoint
-func VerifyPushEndpoint(sub Subscription, c *http.Client, store stores.Store) error {
+func VerifyPushEndpoint(ctx context.Context, sub Subscription, c *http.Client, store stores.Store) error {
 
 	// extract the push endpoint host
 	if sub.PushCfg.Pend == "" {
@@ -309,8 +310,16 @@ func VerifyPushEndpoint(sub Subscription, c *http.Client, store stores.Store) er
 	}
 
 	if resp.StatusCode != 200 {
-		log.Errorf("failed to verify push endpoint for subscription %v. Expected status response %v but got %v",
-			sub.FullName, http.StatusOK, resp.StatusCode)
+		log.WithFields(
+			log.Fields{
+				"trace_id":        ctx.Value("trace_id"),
+				"type":            "backend_log",
+				"backend_service": "remote_endpoint",
+				"backend_hosts":   u.String(),
+				"subscription":    sub.FullName,
+				"status":          resp.StatusCode,
+			},
+		).Error("failed to verify push endpoint for subscription")
 		return errors.New("Wrong response status code")
 	} else {
 		// read the response
@@ -320,8 +329,18 @@ func VerifyPushEndpoint(sub Subscription, c *http.Client, store stores.Store) er
 		defer resp.Body.Close()
 
 		if sub.PushCfg.VerificationHash != buf.String() {
-			log.Errorf("failed to verify push endpoint for subscription %v. Expected verification hash %v but got %v",
-				sub.FullName, sub.PushCfg.VerificationHash, buf.String())
+			log.WithFields(
+				log.Fields{
+					"trace_id":        ctx.Value("trace_id"),
+					"type":            "backend_log",
+					"backend_service": "remote_endpoint",
+					"backend_hosts":   u.String(),
+					"subscription":    sub.FullName,
+					"status":          resp.StatusCode,
+					"expected_hash":   sub.PushCfg.VerificationHash,
+					"actual_hash":     buf.String(),
+				},
+			).Error("failed to verify hash for push endpoint of subscription")
 			return errors.New("Wrong verification hash")
 		}
 	}
@@ -339,7 +358,7 @@ func VerifyPushEndpoint(sub Subscription, c *http.Client, store stores.Store) er
 		MattermostUsername:  sub.PushCfg.MattermostUsername,
 		MattermostChannel:   sub.PushCfg.MattermostChannel,
 	}
-	err = ModSubPush(sub.ProjectUUID, sub.Name, cfg, store)
+	err = ModSubPush(ctx, sub.ProjectUUID, sub.Name, cfg, store)
 	if err != nil {
 		return err
 	}
@@ -348,7 +367,7 @@ func VerifyPushEndpoint(sub Subscription, c *http.Client, store stores.Store) er
 }
 
 // Find searches the store for all subscriptions of a given project or a specific one
-func Find(projectUUID, userUUID, name, pageToken string, pageSize int64, store stores.Store) (PaginatedSubscriptions, error) {
+func Find(ctx context.Context, projectUUID, userUUID, name, pageToken string, pageSize int64, store stores.Store) (PaginatedSubscriptions, error) {
 
 	var err error
 	var qSubs []stores.QSub
@@ -360,15 +379,22 @@ func Find(projectUUID, userUUID, name, pageToken string, pageSize int64, store s
 
 	// decode the base64 pageToken
 	if pageTokenBytes, err = base64.StdEncoding.DecodeString(pageToken); err != nil {
-		log.Errorf("Page token %v produced an error while being decoded to base64: %v", pageToken, err.Error())
+		log.WithFields(
+			log.Fields{
+				"trace_id":   ctx.Value("trace_id"),
+				"type":       "request_log",
+				"page_token": pageToken,
+				"error":      err.Error(),
+			},
+		).Error("error while decoding to base64")
 		return result, err
 	}
 
-	if qSubs, totalSize, nextPageToken, err = store.QuerySubs(projectUUID, userUUID, name, string(pageTokenBytes), pageSize); err != nil {
+	if qSubs, totalSize, nextPageToken, err = store.QuerySubs(ctx, projectUUID, userUUID, name, string(pageTokenBytes), pageSize); err != nil {
 		return result, err
 	}
 
-	projectName := projects.GetNameByUUID(projectUUID, store)
+	projectName := projects.GetNameByUUID(ctx, projectUUID, store)
 
 	if projectName == "" {
 		return result, errors.New("invalid project")
@@ -425,15 +451,15 @@ func Find(projectUUID, userUUID, name, pageToken string, pageSize int64, store s
 }
 
 // FindByTopic retrieves all subscriptions associated with the given topic
-func FindByTopic(projectUUID string, topicName string, store stores.Store) (NamesList, error) {
+func FindByTopic(ctx context.Context, projectUUID string, topicName string, store stores.Store) (NamesList, error) {
 
-	subs, err := store.QuerySubsByTopic(projectUUID, topicName)
+	subs, err := store.QuerySubsByTopic(ctx, projectUUID, topicName)
 	if err != nil {
 		return NewNamesList(), err
 	}
 
 	subNames := NewNamesList()
-	projectName := projects.GetNameByUUID(projectUUID, store)
+	projectName := projects.GetNameByUUID(ctx, projectUUID, store)
 
 	for _, sub := range subs {
 		subNames.Subscriptions = append(subNames.Subscriptions,
@@ -446,9 +472,9 @@ func FindByTopic(projectUUID string, topicName string, store stores.Store) (Name
 // LoadPushSubs returns all subscriptions defined in store that have a push configuration
 func LoadPushSubs(store stores.Store) PaginatedSubscriptions {
 	result := PaginatedSubscriptions{Subscriptions: []Subscription{}}
-	subs := store.QueryPushSubs()
+	subs := store.QueryPushSubs(context.Background())
 	for _, item := range subs {
-		projectName := projects.GetNameByUUID(item.ProjectUUID, store)
+		projectName := projects.GetNameByUUID(context.Background(), item.ProjectUUID, store)
 		curSub := New(item.ProjectUUID, projectName, item.Name, item.Topic)
 		curSub.Offset = item.Offset
 		curSub.NextOffset = item.NextOffset
@@ -462,10 +488,10 @@ func LoadPushSubs(store stores.Store) PaginatedSubscriptions {
 }
 
 // Create creates a new subscription
-func Create(projectUUID string, name string, topic string, offset int64, ack int,
+func Create(ctx context.Context, projectUUID string, name string, topic string, offset int64, ack int,
 	pushCfg PushConfig, createdOn time.Time, store stores.Store) (Subscription, error) {
 
-	if HasSub(projectUUID, name, store) {
+	if HasSub(ctx, projectUUID, name, store) {
 		return Subscription{}, errors.New("exists")
 	}
 
@@ -493,12 +519,12 @@ func Create(projectUUID string, name string, topic string, offset int64, ack int
 		Base64Decode:        pushCfg.Base64Decode,
 	}
 
-	err := store.InsertSub(projectUUID, name, topic, offset, ack, qPushCfg, createdOn)
+	err := store.InsertSub(ctx, projectUUID, name, topic, offset, ack, qPushCfg, createdOn)
 	if err != nil {
 		return Subscription{}, errors.New("backend error")
 	}
 
-	results, err := Find(projectUUID, "", name, "", 0, store)
+	results, err := Find(ctx, projectUUID, "", name, "", 0, store)
 	if len(results.Subscriptions) != 1 {
 		return Subscription{}, errors.New("backend error")
 	}
@@ -507,23 +533,31 @@ func Create(projectUUID string, name string, topic string, offset int64, ack int
 }
 
 // ModAck updates the subscription's acknowledgment timeout
-func ModAck(projectUUID string, name string, ack int, store stores.Store) error {
+func ModAck(ctx context.Context, projectUUID string, name string, ack int, store stores.Store) error {
 	// minimum deadline allowed 0 seconds, maximum: 600 sec (10 minutes)
 	if ack < 0 || ack > 600 {
 		return errors.New("wrong value")
 	}
 
-	if HasSub(projectUUID, name, store) == false {
+	if HasSub(ctx, projectUUID, name, store) == false {
 		return errors.New("not found")
 	}
 
-	return store.ModAck(projectUUID, name, ack)
+	log.WithFields(
+		log.Fields{
+			"trace_id": ctx.Value("trace_id"),
+			"type":     "service_log",
+			"deadline": ack,
+		},
+	).Info("modifying ack deadline")
+
+	return store.ModAck(ctx, projectUUID, name, ack)
 }
 
 // ModSubPush updates the subscription push config
-func ModSubPush(projectUUID string, name string, pushCfg PushConfig, store stores.Store) error {
+func ModSubPush(ctx context.Context, projectUUID string, name string, pushCfg PushConfig, store stores.Store) error {
 
-	if HasSub(projectUUID, name, store) == false {
+	if HasSub(ctx, projectUUID, name, store) == false {
 		return errors.New("not found")
 	}
 
@@ -546,22 +580,22 @@ func ModSubPush(projectUUID string, name string, pushCfg PushConfig, store store
 		MattermostUsername:  pushCfg.MattermostUsername,
 	}
 
-	return store.ModSubPush(projectUUID, name, qPushCfg)
+	return store.ModSubPush(ctx, projectUUID, name, qPushCfg)
 }
 
 // RemoveSub removes an existing subscription
-func RemoveSub(projectUUID string, name string, store stores.Store) error {
+func RemoveSub(ctx context.Context, projectUUID string, name string, store stores.Store) error {
 
-	if HasSub(projectUUID, name, store) == false {
+	if HasSub(ctx, projectUUID, name, store) == false {
 		return errors.New("not found")
 	}
 
-	return store.RemoveSub(projectUUID, name)
+	return store.RemoveSub(ctx, projectUUID, name)
 }
 
 // HasSub returns true if project & subscription combination exist
-func HasSub(projectUUID string, name string, store stores.Store) bool {
-	res, err := Find(projectUUID, "", name, "", 0, store)
+func HasSub(ctx context.Context, projectUUID string, name string, store stores.Store) bool {
+	res, err := Find(ctx, projectUUID, "", name, "", 0, store)
 	if len(res.Subscriptions) > 0 && err == nil {
 		return true
 	}
