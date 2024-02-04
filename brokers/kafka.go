@@ -3,7 +3,7 @@ package brokers
 import (
 	"context"
 	"github.com/ARGOeu/argo-messaging/messages"
-	"github.com/Shopify/sarama"
+	"github.com/IBM/sarama"
 	log "github.com/sirupsen/logrus"
 	"strconv"
 	"sync"
