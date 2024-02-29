@@ -1472,7 +1472,7 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	// Init Received Message List
 	recList := messages.RecList{}
 
-	msgs, err := refBrk.Consume(r.Context(), fullTopic, targetSub.Offset, retImm, int64(max))
+	msgs, err := refBrk.Consume(rCTX, fullTopic, targetSub.Offset, retImm, int64(max))
 	if err != nil {
 		// If tracked offset is off
 		if err == brokers.ErrOffsetOff {
@@ -1487,7 +1487,7 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 			targetSub.Offset = refBrk.GetMinOffset(rCTX, fullTopic)
 			refStr.UpdateSubOffset(rCTX, projectUUID, targetSub.Name, targetSub.Offset)
 			// Try again to consume
-			msgs, err = refBrk.Consume(r.Context(), fullTopic, targetSub.Offset, retImm, int64(max))
+			msgs, err = refBrk.Consume(rCTX, fullTopic, targetSub.Offset, retImm, int64(max))
 			// If still error respond and return
 			if err != nil {
 				log.WithFields(
