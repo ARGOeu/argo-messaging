@@ -356,9 +356,8 @@ func (b *KafkaBroker) Consume(ctx context.Context, topic string, offset int64, i
 	messages := []string{}
 	var consumed int64
 	timeout := time.After(300 * time.Second)
-
 	if imm {
-		timeout = time.After(100 * time.Millisecond)
+		timeout = time.After(300 * time.Millisecond)
 	}
 
 ConsumerLoop:
@@ -401,7 +400,6 @@ ConsumerLoop:
 				if imm {
 					break ConsumerLoop
 				}
-
 			}
 
 		}
