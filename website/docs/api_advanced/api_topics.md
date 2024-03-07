@@ -8,7 +8,7 @@ sidebar_position: 4
 Topics are resources that can hold messages. Publishers (users/systems) can create topics on demand and name them (Usually with names that make sense and express the class of messages delivered in the topic).
 A topic name must be scoped to a project.
 
-## [PUT] Manage Topics - Create new topic
+## [PUT] Manage Topics - Create new topic {#create-topic}
 This request creates a new topic with the given topic_name in a project with a PUT request
 
 ### Request
@@ -234,7 +234,7 @@ Success Response
 Please refer to section [Errors](/api_basic/api_errors.md) to see all possible Errors
 
 
-## [POST] Publish message/s to a topic
+## [POST] Publish message/s to a topic {#publish}
 The topic:publish endpoint publishes a message, or a list of messages to a specific topic with a  POST request
 
 ### Request

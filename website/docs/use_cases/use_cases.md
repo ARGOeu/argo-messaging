@@ -62,7 +62,7 @@ through the API.
 While the Argo Messaging Service is primarily used for scenarios
 where data is being published by one entity and consumed by another,
 in order for systems to achieve async event based workflows,the existence
-of [push enabled subscriptions](../api_advanced/api_subs.md#push-enabled-subscriptions), gives the ability
+of [push enabled subscriptions](../api_advanced/api_subs.md#push), gives the ability
 to the system itself,
 to forward messages to remote destination when they arrive, without having clients
 constantly asking for new data.

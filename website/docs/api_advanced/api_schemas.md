@@ -148,7 +148,7 @@ Success Response
 ### Errors
 Please refer to section [Errors](/api_basic/api_errors.md) to see all possible Errors
 
-## [POST] Manage Schemas - Create new Schema
+## [POST] Manage Schemas - Create new Schema {#create-schema}
 This request creates a new schema
 
 
@@ -226,7 +226,7 @@ Success Response
 ### Errors
 Please refer to section [Errors](/api_basic/api_errors.md) to see all possible Errors
 
-## [PUT] Manage Schemas - Update Schema
+## [PUT] Manage Schemas - Update Schema 
 This request updates the contents of a schema. You can update `one` or `all` of the fields at a time.
 
 ### Request
@@ -333,7 +333,7 @@ Success Response
 ### Errors
 Please refer to section [Errors](/api_basic/api_errors.md) to see all possible Errors
 
-## [POST] Manage Schemas - Validate Message 
+## [POST] Manage Schemas - Validate Message {#validate}
 This request is used whenever we want to test a message against a schema.
 The process to check that your schema and messages are working as expected is to create
 a new topic that needs to be associated with the schema, then create the message in base64 encoding and
