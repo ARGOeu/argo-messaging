@@ -6,7 +6,7 @@ sidebar_position: 5
 
 # Subscriptions Api Calls
 
-## [PUT] Manage Subscriptions - Create subscriptions  
+## [PUT] Manage Subscriptions - Create subscriptions {#create-subs}
 This request creates a new subscription in a project with a PUT request
 
 ### Request
@@ -43,7 +43,7 @@ Success Response
 }
 ```
 
-### Push Enabled Subscriptions
+### Push Enabled Subscriptions {#push}
 Whenever a subscription is created with a valid push configuration, the service will also generate a unique hash that
 should be later used to validate the ownership of the registered push endpoint, and will mark the subscription as 
 unverified.
@@ -219,7 +219,7 @@ happen in `0.5 seconds`. If it is unsuccessful the next push request will happen
 Please refer to section [Errors](/api_basic/api_errors.md) to see all possible Errors
 
 
-## [POST] Manage Subscriptions - Verify ownership of a push endpoint
+## [POST] Manage Subscriptions - Verify ownership of a push endpoint {#push-verify}
 This request triggers the process of verifying the ownership of a registered push endpoint 
 
 ### Request
@@ -574,7 +574,7 @@ Code: `200 OK`, Empty response if successful. The deadline will change to 30seco
 ### Errors
 Please refer to section [Errors](/api_basic/api_errors.md) to see all possible Errors
 
-## [POST] Modify Push Configuration
+## [POST] Modify Push Configuration {#push-modify}
 This request modifies the push configuration of a subscription
 
 ### Request
@@ -701,9 +701,11 @@ curl -X POST -H "Content-Type: application/json"
 ```
 
 ### post body:
+```
 {
  "maxMessages": "1"
 }
+```
 
 ### Responses  
 
@@ -778,7 +780,7 @@ Success Response
 ### Errors
 Please refer to section [Errors](/api_basic/api_errors.md) to see all possible Errors
 
-## [GET] Get Offsets
+## [GET] Get Offsets {#get-offsets}
 This request returns the min, max and current offset of a subscription
 
 ### Request
@@ -822,7 +824,7 @@ Code: `200 OK`, Empty response if successful.
 ### Errors
 Please refer to section [Errors](/api_basic/api_errors.md) to see all possible Errors
 
-## [GET] Get Offset by Timestamp
+## [GET] Get Offset by Timestamp {#get-offset-timestamp}
 This request returns the offset of the first message with a timestamp equal or greater than the time given.
 
 ### Request
@@ -855,7 +857,7 @@ Code: `200 OK`
 ### Errors
 Please refer to section [Errors](/api_basic/api_errors.md) to see all possible Errors
 
-## [POST] Modify Offsets
+## [POST] Modify Offsets {#modify-offsets}
 This request modifies the current offset of a subscription
 
 ### Request

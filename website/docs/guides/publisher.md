@@ -18,11 +18,11 @@ When everything is set up you can start by following the general flow for a publ
 
 **Step 1:** Create a topic
 
-For more details visit section [Topics: Create a topic](/api_advanced/api_topics.md#put-manage-topics-create-new-topic)
+For more details visit section [Topics: Create a topic](/api_advanced/api_topics.md#create-topic)
 
 **Step 2:** Create a subscription
 
-A Topic without at least one Subscription act like black holes. Publishers can send messages to those topics, but the messages will not be retrievable. In order to be able to publish and consume messages, at least one Subscription must created to the Topic that you are publishing messages to. By default, a Subscription is created in pull mode, meaning that consumers can query the Messaging API and retrieve the messages that are published to the Topic that the Subscription is configured for. More information about how create a Subscription, visit section [Subscriptions: Create a subscription](/api_advanced/api_subs.md#put-manage-subscriptions-create-subscriptions)
+A Topic without at least one Subscription act like black holes. Publishers can send messages to those topics, but the messages will not be retrievable. In order to be able to publish and consume messages, at least one Subscription must created to the Topic that you are publishing messages to. By default, a Subscription is created in pull mode, meaning that consumers can query the Messaging API and retrieve the messages that are published to the Topic that the Subscription is configured for. More information about how create a Subscription, visit section [Subscriptions: Create a subscription](/api_advanced/api_subs.md#create-subs)
 
 **Step 3:** Start publishing messages
 
@@ -99,7 +99,7 @@ Below you can find an example, in which a user publishes two messages in one cal
 
 You can publish and consume any kind of data through the ARGO Messaging Service (as long as the base64 encoded payload is not larger than the maximum acceptable size).
 
-For more details visit section [Topics: Publish message/s to a topic](/api_advanced/api_topics.md#post-publish-messages-to-a-topic)
+For more details visit section [Topics: Publish message/s to a topic](/api_advanced/api_topics.md#publish)
 
 ## Schema Support 
 
@@ -116,29 +116,29 @@ The steps that you should follow for a schema support
 
 The Supported Schema Types are JSON and AVRO
 
-For more details visit section  [Create new schema](/api_advanced/api_schemas.md#post-manage-schemas---create-new-schema)
+For more details visit section  [Create new schema](/api_advanced/api_schemas.md#create-schema)
 
 **Step 2:** Create a topic with this schema attached
 
 If you need to link a schema with your topic you need to provide its name, to the api call during the creation of the topic..
 
-For more details visit section [Create new topic](/api_advanced/api_topics.md#put-manage-topics---create-new-topic) 
+For more details visit section [Create new topic](/api_advanced/api_topics.md#create-topic) 
  
 **Step 3:** Assign this schema to your topic 
 
 If you need to link a schema with your topic you need to provide its name, to the api call
 
-For more details visit section [Update the topic](/api_advanced/api_topics.md#put-manage-topics---create-new-topic) 
+For more details visit section [Update the topic](/api_advanced/api_topics.md#create-topic) 
 
 **Step 4:** Validate the message 
 
 This  is used whenever we want to test a message against a schema. The process to check that your schema and messages are working as expected is to create a new topic that needs to be associated with the schema, then create the message in base64 encoding and publish it to the topic. Instead of creating all this pipeline in order to check your schema and messages we can explicitly do it on this API call.
 
-For more details visit section [Validate the message](/api_advanced/api_schemas.md#post-manage-schemas---validate-message)  
+For more details visit section [Validate the message](/api_advanced/api_schemas.md#validate)  
 
 **Step 5:** Publish messages to your topic 
 
 You may now start publishing messages to your topic.
 
-For more details visit section [publish-messages-to-a-topic](/api_advanced/api_topics.md#post-publish-messages-to-a-topic)
+For more details visit section [publish-messages-to-a-topic](/api_advanced/api_topics.md#publish)
 

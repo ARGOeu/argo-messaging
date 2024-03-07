@@ -17,4 +17,4 @@ If you are developing an endpoint that will receive messages from AMS service yo
 
 **Some more useful links:**
 - AMS docs: https://argoeu.github.io/argo-messaging
-- Push enabled subscriptions: [Click here](api_advanced/api_subs.md#push-enabled-subscriptions)
+- Push enabled subscriptions: [Click here](api_advanced/api_subs.md#push)

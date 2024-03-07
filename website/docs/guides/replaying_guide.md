@@ -27,12 +27,12 @@ Upon account approval, you will receive information via e-mail about your new pr
 
 ## Get Subscription's offsets
 
-A subscription’s offsets can be accessed through the API using the following http call [Get Subscription's offsets](api_advanced/api_subs.md#get-get-offsets.)
+A subscription’s offsets can be accessed through the API using the following http call [Get Subscription's offsets](api_advanced/api_subs.md#get-offsets).
 
 ## Get Subscription's offsets by timestamp
 
-The following http call gives access to the aforementioned functionality [Get Subscription's offsets by timestamp](api_advanced/api_subs.md#get-get-offset-by-timestamp).
+The following http call gives access to the aforementioned functionality [Get Subscription's offsets by timestamp](api_advanced/api_subs.md#get-offset-timestamp).
 
 ## Move Subscription's offsets
 
-The following http call gives access to the modifyOffset api call [Move Subscription's offsets](api_advanced/api_subs.md#post-modify-offsets) to move the indices around and re-consume/replay a subscription’s messages.
+The following http call gives access to the modifyOffset api call [Move Subscription's offsets](api_advanced/api_subs.md#modify-offsets) to move the indices around and re-consume/replay a subscription’s messages.
