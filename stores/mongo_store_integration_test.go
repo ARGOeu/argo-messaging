@@ -22,8 +22,8 @@ type mongodbContainer struct {
 func startContainer(ctx context.Context) (*mongodbContainer, error) {
 
 	req := testcontainers.ContainerRequest{
-		Name:         "mongodb-4.2-ams",
-		Image:        "mongo:4.2",
+		Name:         "mongodb-6.0.14-ams",
+		Image:        "mongo:6.0.14",
 		ExposedPorts: []string{"27017/tcp"},
 	}
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
@@ -1209,7 +1209,7 @@ func (suite *MongoStoreIntegrationTestSuite) TestCRUDProjects() {
 	suite.Equal(expPr3, prUp3[0])
 
 	// Test RemoveProject and all its related resources
-	t := time.Now()
+	t := time.Now().UTC()
 	_ = suite.store.InsertSub(suite.ctx, "argo_uuid3", "subDel", "topicFresh", 0, 10, QPushConfig{}, time.Date(2020, 12, 19, 0, 0, 0, 0, time.UTC))
 	_ = suite.store.InsertTopic(suite.ctx, "argo_uuid3", "topicDel", "", time.Now().UTC())
 	_ = suite.store.IncrementDailyTopicMsgCount(suite.ctx, "argo_uuid3", "topicDel", 100, t)
