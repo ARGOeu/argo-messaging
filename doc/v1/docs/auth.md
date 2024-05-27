@@ -31,8 +31,6 @@ token | Secret token for authentication
 roles | List of roles that user has. Each role definition is used in authorization (explained later)
 
 
-Each user is authenticated by adding the url parameter ?key=T0K3N in each API request
-
 ## Authorization
 
 Authorization requires the presence of a populated “roles” collection in the datastore in the adhering to the following schema:
@@ -92,8 +90,8 @@ The following request returns a list of authorized users for a given subscriptio
 ### Example request
 
 ```bash
-curl -X POST -H "Content-Type: application/json"  
--d $POSTDATA "https://{URL}/v1/projects/EGI/subscriptions/monitoring:acl?key=S3CR3T"
+curl -X POST -H "Content-Type: application/json"  -H "x-api-token:S3CR3T" 
+-d $POSTDATA "https://{URL}/v1/projects/EGI/subscriptions/monitoring:acl"
 ```
 
 ### Responses  
@@ -135,7 +133,8 @@ The following request Modifies the authorized users list of a given subscription
 ### Example request
 
 ```bash
-curl -H "Content-Type: application/json"  "https://{URL}/v1/projects/EGI/subscriptions/monitoring:modifyAcl?key=S3CR3T"
+curl -H "Content-Type: application/json" -H "x-api-token:S3CR3T"
+"https://{URL}/v1/projects/EGI/subscriptions/monitoring:modifyAcl"
 ```
 
 ### Responses  
