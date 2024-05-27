@@ -90,7 +90,7 @@ The following request returns a list of authorized users for a given subscriptio
 ### Example request
 
 ```bash
-curl -X POST -H "Content-Type: application/json"  -H "x-api-token:S3CR3T" 
+curl -X POST -H "Content-Type: application/json"  -H "x-api-key:S3CR3T" 
 -d $POSTDATA "https://{URL}/v1/projects/EGI/subscriptions/monitoring:acl"
 ```
 
@@ -133,7 +133,7 @@ The following request Modifies the authorized users list of a given subscription
 ### Example request
 
 ```bash
-curl -H "Content-Type: application/json" -H "x-api-token:S3CR3T"
+curl -H "Content-Type: application/json" -H "x-api-key:S3CR3T"
 "https://{URL}/v1/projects/EGI/subscriptions/monitoring:modifyAcl"
 ```
 
