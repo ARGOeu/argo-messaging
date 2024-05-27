@@ -16,7 +16,7 @@ GET "/v1/projects/{project_name}/schemas/{schema_name}"
 
 ### Example request
 ```bash
-curl -X GET -H "Content-Type: application/json"  -H "x-api-token:S3CR3T" 
+curl -X GET -H "Content-Type: application/json"  -H "x-api-key:S3CR3T" 
  "https://{URL}/v1/projects/project-1/schemas/schema-1"
 ```
 
@@ -71,7 +71,7 @@ GET "/v1/projects/{project_name}/schemas"
 
 ### Example request
 ```bash
-curl -X GET -H "Content-Type: application/json"  -H "x-api-token:S3CR3T" 
+curl -X GET -H "Content-Type: application/json"  -H "x-api-key:S3CR3T" 
  "https://{URL}/v1/projects/project-1/schemas"
 ```
 
@@ -161,7 +161,7 @@ POST "/v1/projects/{project_name}/schemas/{schema_name}"
 
 ### Example request
 ```bash
-curl -X POST -H "Content-Type: application/json" -H "x-api-token:S3CR3T" -d $POSTDATA 
+curl -X POST -H "Content-Type: application/json" -H "x-api-key:S3CR3T" -d $POSTDATA 
  "https://{URL}/v1/projects/project-1/schemas/schema-1"
 ```
 
@@ -235,7 +235,7 @@ PUT "/v1/projects/{project_name}/schemas/{schema_name}"
 
 ### Example request
 ```bash
-curl -X PUT -H "Content-Type: application/json" -H "x-api-token:S3CR3T"  -d $POSTDATA
+curl -X PUT -H "Content-Type: application/json" -H "x-api-key:S3CR3T"  -d $POSTDATA
  "https://{URL}/v1/projects/project-1/schemas/schema-1?key=S3CR3T"
 ```
 
@@ -312,7 +312,7 @@ DELETE "/v1/projects/{project_name}/schemas/{schema_name}"
 
 ### Example request
 ```bash
-curl -X DELETE -H "Content-Type: application/json"  -H "x-api-token:S3CR3T" 
+curl -X DELETE -H "Content-Type: application/json"  -H "x-api-key:S3CR3T" 
  "https://{URL}/v1/projects/project-1/schemas/schema-1"
 ```
 
@@ -346,7 +346,7 @@ POST "/v1/projects/{project_name}/schemas/{schema_name}:validate"
 
 ### Example request
 ```bash
-curl -X POST -H "Content-Type: application/json"  -H "x-api-token:S3CR3T" -d $POSTDATA
+curl -X POST -H "Content-Type: application/json"  -H "x-api-key:S3CR3T" -d $POSTDATA
  "https://{URL}/v1/projects/project-1/schemas/schema-1:validate"
 ```
 
