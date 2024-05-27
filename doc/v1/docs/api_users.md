@@ -33,8 +33,8 @@ GET "/v1/users"
 
 ### Example request
 ```bash
-curl -X GET -H "Content-Type: application/json"
-  "https://{URL}/v1/users?key=S3CR3T&details=true"
+curl -X GET -H "Content-Type: application/json"  -H "x-api-token:S3CR3T" 
+  "https://{URL}/v1/users?details=true"
 ```
 
 ### Responses  
@@ -186,8 +186,8 @@ Success Response
 
 ### Example request
 ```bash
-curl -X GET -H "Content-Type: application/json"
-  "https://{URL}/v1/users?key=S3CR3T&pageSize=2&details=true"
+curl -X GET -H "Content-Type: application/json"  -H "x-api-token:S3CR3T" 
+  "https://{URL}/v1/users?pageSize=2&details=true"
 ```
 
 ### Responses  
@@ -256,8 +256,8 @@ Success Response
 
 ### Example request
 ```bash
-curl -X GET -H "Content-Type: application/json"
-  "https://{URL}/v1/users?key=S3CR3T&pageSize=3&pageToken=some_token2&details=true"
+curl -X GET -H "Content-Type: application/json"  -H "x-api-token:S3CR3T" 
+  "https://{URL}/v1/users?pageSize=3&pageToken=some_token2&details=true"
 ```
 
 ### Responses  
@@ -358,8 +358,8 @@ Success Response
 
 ### Example request
 ```bash
-curl -X GET -H "Content-Type: application/json"
-  "https://{URL}/v1/users?key=S3CR3T&project=ARGO2&details=true"
+curl -X GET -H "Content-Type: application/json" -H "x-api-token:S3CR3T" 
+  "https://{URL}/v1/users?project=ARGO2&details=true"
 ```
 
 ### Responses  
@@ -414,8 +414,8 @@ GET "/v1/users/{user_name}"
 
 ### Example request
 ```bash
-curl -X GET -H "Content-Type: application/json"
-  "https://{URL}/v1/users/UserA?key=S3CR3T"
+curl -X GET -H "Content-Type: application/json" -H "x-api-token:S3CR3T" 
+  "https://{URL}/v1/users/UserA"
 ```
 
 ### Responses  
@@ -477,8 +477,8 @@ GET "/v1/users:byToken/{token}"
 
 ### Example request
 ```bash
-curl -X GET -H "Content-Type: application/json"
-  "https://{URL}/v1/users:byToken/S3CR3T1?key=S3CR3T"
+curl -X GET -H "Content-Type: application/json" -H "x-api-token:S3CR3T" 
+  "https://{URL}/v1/users:byToken/S3CR3T1"
 ```
 
 ### Responses  
@@ -538,8 +538,8 @@ GET "/v1/users/profile"
 
 ### Example request
 ```bash
-curl -X GET -H "Content-Type: application/json"
-  "https://{URL}/v1/users/profile?key=S3CR3T1"
+curl -X GET -H "Content-Type: application/json" -H "x-api-token:S3CR3T" 
+  "https://{URL}/v1/users/profile"
 ```
 
 ### Responses  
@@ -599,8 +599,8 @@ GET "/v1/users:byUUID/{uuid}"
 
 ### Example request
 ```bash
-curl -X GET -H "Content-Type: application/json"
-  "https://{URL}/v1/users:byUUID/99bfd746-4ebe-11e8-9c2d-fa7ae01bbebc?key=S3CR3T"
+curl -X GET -H "Content-Type: application/json" -H "x-api-token:S3CR3T" 
+  "https://{URL}/v1/users:byUUID/99bfd746-4ebe-11e8-9c2d-fa7ae01bbebc"
 ```
 
 ### Responses  
@@ -698,8 +698,8 @@ and the following service-wide role:
 
 ### Example request
 ```bash
-curl -X POST -H "Content-Type: application/json"
- -d $POSTDATA "https://{URL}/v1/projects/ARGO/users/USERNEW?key=S3CR3T"
+curl -X POST -H "Content-Type: application/json" -H "x-api-token:S3CR3T" 
+ -d $POSTDATA "https://{URL}/v1/projects/ARGO/users/USERNEW"
 ```
 
 ### Responses  
@@ -776,8 +776,8 @@ PUT "/v1/users/{user_name}"
 
 ### Example request
 ```bash
-curl -X POST -H "Content-Type: application/json"
- -d PUTDATA "https://{URL}/v1/projects/ARGO/users/USERNEW?key=S3CR3T"
+curl -X POST -H "Content-Type: application/json" -H "x-api-token:S3CR3T" 
+ -d PUTDATA "https://{URL}/v1/projects/ARGO/users/USERNEW"
 ```
 
 ### Responses  
@@ -829,8 +829,8 @@ POST "/v1/users/{user_name}:refreshToken"
 
 ### Example request
 ```bash
-curl -X POST -H "Content-Type: application/json"
- "https://{URL}/v1/projects/ARGO/users/USER2:refreshToken?key=S3CR3T"
+curl -X POST -H "Content-Type: application/json" -H "x-api-token:S3CR3T" 
+ "https://{URL}/v1/projects/ARGO/users/USER2:refreshToken"
 ```
 
 ### Responses  
@@ -879,8 +879,8 @@ DELETE "/v1/users/{user_name}"
 
 ### Example request
 ```bash
-curl -X DELETE -H "Content-Type: application/json"
- "https://{URL}/v1/projects/ARGO/users/USER2?key=S3CR3T"
+curl -X DELETE -H "Content-Type: application/json" -H "x-api-token:S3CR3T" 
+ "https://{URL}/v1/projects/ARGO/users/USER2"
 ```
 
 ### Responses  
