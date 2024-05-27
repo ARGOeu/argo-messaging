@@ -26,7 +26,7 @@ POST "/v1/registrations
 
 ### Example request
 ```bash
-curl -X POST -H "Content-Type: application/json"
+curl -X POST -H "Content-Type: application/json"  -H "x-api-key:S3CR3T" 
 "https://{URL}/v1/registrations
 ```
 
@@ -67,7 +67,7 @@ POST "/v1/registrations/{uuid}:accept"
 
 ### Example request
 ```bash
-curl -X POST -H "Content-Type: application/json"
+curl -X POST -H "Content-Type: application/json"  -H "x-api-key:S3CR3T" 
 "https://{URL}/v1/registrations/uuid1:accept"
 ```
 
@@ -115,7 +115,7 @@ POST "/v1/registrations/{uuid}:decline"
 
 ### Example request
 ```bash
-curl -X POST -H "Content-Type: application/json"
+curl -X POST -H "Content-Type: application/json"  -H "x-api-key:S3CR3T" 
 "https://{URL}/v1/registrations/uuid1:decline"
 ```
 
@@ -141,7 +141,7 @@ GET "/v1/registrations/{uuid}"
 
 ### Example request
 ```bash
-curl -X GET -H "Content-Type: application/json"
+curl -X GET -H "Content-Type: application/json"  -H "x-api-key:S3CR3T" 
 "https://{URL}/v1/registrations/ur-uuid1"
 ```
 
@@ -188,7 +188,7 @@ GET "/v1/registrations"
 
 ### Example request
 ```bash
-curl -X GET -H "Content-Type: application/json"
+curl -X GET -H "Content-Type: application/json"  -H "x-api-key:S3CR3T" 
 "https://{URL}/v1/registrations"
 ```
 

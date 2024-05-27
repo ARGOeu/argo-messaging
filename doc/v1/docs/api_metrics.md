@@ -14,8 +14,8 @@ GET "/v1/metrics"
 ### Example request
 
 ```bash
-curl -H "Content-Type: application/json"
- "https://{URL}/v1/metrics?key=S3CR3T"
+curl -H "Content-Type: application/json"  -H "x-api-key:S3CR3T" 
+ "https://{URL}/v1/metrics"
 ```
 
 ### Responses
@@ -82,14 +82,14 @@ GET "/v1/metrics/va_metrics"
 ### Example request
 
 ```bash
-curl -H "Content-Type: application/json"
+curl -H "Content-Type: application/json"  -H "x-api-key:S3CR3T" 
  "https://{URL}/v1/metrics/va_metrics"
 ```
 
 ### Example request with URL parameters
 
 ```bash
-curl -H "Content-Type: application/json"
+curl -H "Content-Type: application/json"  -H "x-api-key:S3CR3T" 
  "https://{URL}/v1/metrics/va_metrics?start_date=2019-03-01&end_date=2019-07-24&projects=ARGO,ARGO-2"
 ```
 
