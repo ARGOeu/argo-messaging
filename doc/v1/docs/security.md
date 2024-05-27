@@ -2,12 +2,10 @@
 
 ## Authentication
 
-Authentication in the AMS takes place using an `url key` provided
-with each API request.
+Authentication in the AMS takes place using the x-api-key header.
 
-The large majority of api calls support the `url parameter`, <b>key</b>.
-
-E.g. `/v1/projects?key=b328c7890f061f87cbd4rff34f36fa2ae20993a5`
+E.g. `/v1/projects
+ -H "x-api-key:S3CR3T" 
 
 <b> The service also supports the use of the x-api-key header
 for the user to provide its key. </b>
