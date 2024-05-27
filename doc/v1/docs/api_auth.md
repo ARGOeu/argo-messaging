@@ -7,7 +7,7 @@ Each user is authenticated by using the header `x-api-key`.
 For example the status of the service can be seen by making the following request
 
 ```
-curl -X GET -H “Content-Type: application/json”  -H "x-api-token:S3CR3T"  “https://{URL}/v1/status
+curl -X GET -H “Content-Type: application/json”  -H "x-api-key:S3CR3T"  “https://{URL}/v1/status
 ```
 
 If a user does not provide a valid token the following response is returned:
