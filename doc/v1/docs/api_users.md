@@ -33,7 +33,7 @@ GET "/v1/users"
 
 ### Example request
 ```bash
-curl -X GET -H "Content-Type: application/json"  -H "x-api-token:S3CR3T" 
+curl -X GET -H "Content-Type: application/json"  -H "x-api-key:S3CR3T" 
   "https://{URL}/v1/users?details=true"
 ```
 
@@ -186,7 +186,7 @@ Success Response
 
 ### Example request
 ```bash
-curl -X GET -H "Content-Type: application/json"  -H "x-api-token:S3CR3T" 
+curl -X GET -H "Content-Type: application/json"  -H "x-api-key:S3CR3T" 
   "https://{URL}/v1/users?pageSize=2&details=true"
 ```
 
@@ -256,7 +256,7 @@ Success Response
 
 ### Example request
 ```bash
-curl -X GET -H "Content-Type: application/json"  -H "x-api-token:S3CR3T" 
+curl -X GET -H "Content-Type: application/json"  -H "x-api-key:S3CR3T" 
   "https://{URL}/v1/users?pageSize=3&pageToken=some_token2&details=true"
 ```
 
@@ -358,7 +358,7 @@ Success Response
 
 ### Example request
 ```bash
-curl -X GET -H "Content-Type: application/json" -H "x-api-token:S3CR3T" 
+curl -X GET -H "Content-Type: application/json" -H "x-api-key:S3CR3T" 
   "https://{URL}/v1/users?project=ARGO2&details=true"
 ```
 
@@ -414,7 +414,7 @@ GET "/v1/users/{user_name}"
 
 ### Example request
 ```bash
-curl -X GET -H "Content-Type: application/json" -H "x-api-token:S3CR3T" 
+curl -X GET -H "Content-Type: application/json" -H "x-api-key:S3CR3T" 
   "https://{URL}/v1/users/UserA"
 ```
 
@@ -477,7 +477,7 @@ GET "/v1/users:byToken/{token}"
 
 ### Example request
 ```bash
-curl -X GET -H "Content-Type: application/json" -H "x-api-token:S3CR3T" 
+curl -X GET -H "Content-Type: application/json" -H "x-api-key:S3CR3T" 
   "https://{URL}/v1/users:byToken/S3CR3T1"
 ```
 
@@ -538,7 +538,7 @@ GET "/v1/users/profile"
 
 ### Example request
 ```bash
-curl -X GET -H "Content-Type: application/json" -H "x-api-token:S3CR3T" 
+curl -X GET -H "Content-Type: application/json" -H "x-api-key:S3CR3T" 
   "https://{URL}/v1/users/profile"
 ```
 
@@ -599,7 +599,7 @@ GET "/v1/users:byUUID/{uuid}"
 
 ### Example request
 ```bash
-curl -X GET -H "Content-Type: application/json" -H "x-api-token:S3CR3T" 
+curl -X GET -H "Content-Type: application/json" -H "x-api-key:S3CR3T" 
   "https://{URL}/v1/users:byUUID/99bfd746-4ebe-11e8-9c2d-fa7ae01bbebc"
 ```
 
@@ -698,7 +698,7 @@ and the following service-wide role:
 
 ### Example request
 ```bash
-curl -X POST -H "Content-Type: application/json" -H "x-api-token:S3CR3T" 
+curl -X POST -H "Content-Type: application/json" -H "x-api-key:S3CR3T" 
  -d $POSTDATA "https://{URL}/v1/projects/ARGO/users/USERNEW"
 ```
 
@@ -776,7 +776,7 @@ PUT "/v1/users/{user_name}"
 
 ### Example request
 ```bash
-curl -X POST -H "Content-Type: application/json" -H "x-api-token:S3CR3T" 
+curl -X POST -H "Content-Type: application/json" -H "x-api-key:S3CR3T" 
  -d PUTDATA "https://{URL}/v1/projects/ARGO/users/USERNEW"
 ```
 
@@ -829,7 +829,7 @@ POST "/v1/users/{user_name}:refreshToken"
 
 ### Example request
 ```bash
-curl -X POST -H "Content-Type: application/json" -H "x-api-token:S3CR3T" 
+curl -X POST -H "Content-Type: application/json" -H "x-api-key:S3CR3T" 
  "https://{URL}/v1/projects/ARGO/users/USER2:refreshToken"
 ```
 
@@ -879,7 +879,7 @@ DELETE "/v1/users/{user_name}"
 
 ### Example request
 ```bash
-curl -X DELETE -H "Content-Type: application/json" -H "x-api-token:S3CR3T" 
+curl -X DELETE -H "Content-Type: application/json" -H "x-api-key:S3CR3T" 
  "https://{URL}/v1/projects/ARGO/users/USER2"
 ```
 
