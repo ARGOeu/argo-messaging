@@ -25,7 +25,7 @@ If you need to link a schema with the topic you need to provide its name.
 
 ### Example request
 ```bash
-curl -X PUT -H "Content-Type: application/json"  -H "x-api-token:S3CR3T" 
+curl -X PUT -H "Content-Type: application/json"  -H "x-api-key:S3CR3T" 
  "https://{URL}/v1/projects/BRAND_NEW/topics/monitoring"
 ```
 
@@ -61,7 +61,7 @@ DELETE "/v1/projects/{project_name}/topics/{topic_name}"
 ### Example request
 
 ```bash
-curl -X DELETE -H "Content-Type: application/json"  -H "x-api-token:S3CR3T" 
+curl -X DELETE -H "Content-Type: application/json"  -H "x-api-key:S3CR3T" 
 -d '' "https://{URL}/v1/projects/BRAND_NEW/topics/monitoring"
 ```
 
@@ -88,7 +88,7 @@ GET "/v1/projects/{project_name}/topics/{topic_name}"
 ### Example request
 
 ```bash
-curl -H "Content-Type: application/json"   -H "x-api-token:S3CR3T" 
+curl -H "Content-Type: application/json"   -H "x-api-key:S3CR3T" 
  "https://{URL}/v1/projects/BRAND_NEW/topics/monitoring"
 ```
 
@@ -142,7 +142,7 @@ GET "/v1/projects/{project_name}/topics"
 ### Example request
 
 ```bash
-curl -H "Content-Type: application/json"  -H "x-api-token:S3CR3T" 
+curl -H "Content-Type: application/json"  -H "x-api-key:S3CR3T" 
 "https://{URL}/v1/projects/BRAND_NEW/topics/"
 ```
 
@@ -180,7 +180,7 @@ GET "/v1/projects/{project_name}/topics"
 ### Example request
 
 ```bash
-curl -H "Content-Type: application/json"  -H "x-api-token:S3CR3T" 
+curl -H "Content-Type: application/json"  -H "x-api-key:S3CR3T" 
 "https://{URL}/v1/projects/BRAND_NEW/topics/?pageSize=1"`
 ```
 
@@ -212,7 +212,7 @@ Success Response
 ### Example request
 
 ```bash
-curl -H "Content-Type: application/json" -H "x-api-token:S3CR3T" 
+curl -H "Content-Type: application/json" -H "x-api-key:S3CR3T" 
 "https://{URL}/v1/projects/BRAND_NEW/topics/?pageSize=1&pageToken=some_token"`
 ```
 
@@ -275,7 +275,7 @@ to work properly.
 ### Example request
 
 ```bash
-curl -X POST -H "Content-Type: application/json"  -H "x-api-token:S3CR3T" 
+curl -X POST -H "Content-Type: application/json"  -H "x-api-key:S3CR3T" 
 -d $POSTDATA "https://{URL}/v1/projects/BRAND_NEW/topics/monitoring:publish"
 ```
 
@@ -318,7 +318,7 @@ POST "/v1/projects/{project_name}/topics/{topic_name}:attachSchema"
 ### Example request
 
 ```bash
-curl -X POST -H "Content-Type: application/json"   -H "x-api-token:S3CR3T" 
+curl -X POST -H "Content-Type: application/json"   -H "x-api-key:S3CR3T" 
 -d $POSTDATA "https://{URL}/v1/projects/BRAND_NEW/topics/monitoring:attachSchema"
 ```
 
@@ -348,7 +348,7 @@ POST "/v1/projects/{project_name}/topics/{topic_name}:detachSchema"
 ### Example request
 
 ```bash
-curl -X POST -H "Content-Type: application/json"   -H "x-api-token:S3CR3T" 
+curl -X POST -H "Content-Type: application/json"   -H "x-api-key:S3CR3T" 
 "https://{URL}/v1/projects/BRAND_NEW/topics/monitoring:detachSchema"
 ```
 
@@ -376,7 +376,7 @@ GET "/v1/projects/{project_name}/topics/{topic_name}:acl"
 ### Example request
 
 ```bash
-curl  -H "Content-Type: application/json"  -H "x-api-token:S3CR3T" 
+curl  -H "Content-Type: application/json"  -H "x-api-key:S3CR3T" 
 "https://{URL}/v1/projects/BRAND_NEW/topics/monitoring:acl"
 ```
 
@@ -423,7 +423,7 @@ POST "/v1/projects/{project_name}/topics/{topic_name}:modifyAcl"
 ### Example request
 
 ```bash
-curl -X POST -H "Content-Type: application/json"   -H "x-api-token:S3CR3T" 
+curl -X POST -H "Content-Type: application/json"   -H "x-api-key:S3CR3T" 
 -d $POSTDATA "https://{URL}/v1/projects/BRAND_NEW/topics/monitoring:modifyAcl"
 ```
 
@@ -462,7 +462,7 @@ GET "/v1/projects/{project_name}/topics/{topic_name}:metrics"
 ### Example request
 
 ```bash
-curl  -H "Content-Type: application/json"  -H "x-api-token:S3CR3T" 
+curl  -H "Content-Type: application/json"  -H "x-api-key:S3CR3T" 
 "https://{URL}/v1/projects/BRAND_NEW/topics/monitoring:metrics"
 ```
 
