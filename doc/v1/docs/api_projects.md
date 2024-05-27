@@ -12,8 +12,8 @@ GET "/v1/projects"
 
 ### Example request
 ```bash
-curl -X GET -H "Content-Type: application/json"
-  "https://{URL}/v1/projects?key=S3CR3T"
+curl -X GET -H "Content-Type: application/json"  -H "x-api-token:S3CR3T" 
+  "https://{URL}/v1/projects"
 ```
 
 ### Responses  
@@ -69,8 +69,8 @@ GET "/v1/projects/{project_name}"
 
 ### Example request
 ```bash
-curl -X GET -H "Content-Type: application/json"
-  "https://{URL}/v1/projects/BRAND_NEW?key=S3CR3T"
+curl -X GET -H "Content-Type: application/json"  -H "x-api-token:S3CR3T" 
+  "https://{URL}/v1/projects/BRAND_NEW"
 ```
 
 ### Responses  
@@ -116,8 +116,8 @@ POST "/v1/projects/{project_name}"
 
 
 ```bash
-curl -X POST -H "Content-Type: application/json"
- -d $POSTDATA "https://{URL}/v1/projects/PROJECT_NEW?key=S3CR3T"
+curl -X POST -H "Content-Type: application/json"  -H "x-api-token:S3CR3T" 
+ -d $POSTDATA "https://{URL}/v1/projects/PROJECT_NEW"
 ```
 
 ### Responses  
@@ -128,7 +128,7 @@ Success Response
 
 ```json
 {
- "name": "PROJET_NEW"
+ "name": "PROJECT_NEW"
  "created_on": "2009-11-10T23:00:00Z",
  "modified_on": "2009-11-10T23:00:00Z",
  "created_by": "userA",
@@ -160,8 +160,8 @@ PUT "/v1/projects/{project_name}"
 
 ### Example request
 ```bash
-curl -X PUT -H "Content-Type: application/json"
- -d $POSTDATA "https://{URL}/v1/projects/PROJECT_NEW?key=S3CR3T"
+curl -X PUT -H "Content-Type: application/json"  -H "x-api-token:S3CR3T" 
+ -d $POSTDATA "https://{URL}/v1/projects/PROJECT_NEW"
 ```
 
 ### Responses  
@@ -217,8 +217,8 @@ containing the projects, subscriptions and topics that the user belongs to.
 
 ### Example request
 ```bash
-curl -X GET -H "Content-Type: application/json"
-  "https://{URL}/v1/projects/ARGO2/members?key=S3CR3T&details=true"
+curl -X GET -H "Content-Type: application/json"  -H "x-api-token:S3CR3T" 
+  "https://{URL}/v1/projects/ARGO2/members?details=true"
 ```
 
 ### Responses  
@@ -293,8 +293,8 @@ returned remove user information such as `token`, `service_roles` and `created_b
 
 ### Example request
 ```bash
-curl -X GET -H "Content-Type: application/json"
-  "https://{URL}/v1/projects/ARGO2/members/Test?key=S3CR3T"
+curl -X GET -H "Content-Type: application/json"  -H "x-api-token:S3CR3T" 
+  "https://{URL}/v1/projects/ARGO2/members/Test"
 ```
 
 ### Responses  
@@ -339,8 +339,8 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 
 ### Example request
 ```bash
-curl -X POST -H "Content-Type: application/json"
-  -d $POSTDATA "https://{URL}/v1/projects/ARGO2/members/NewUser?key=S3CR3T"
+curl -X POST -H "Content-Type: application/json"  -H "x-api-token:S3CR3T" 
+  -d $POSTDATA "https://{URL}/v1/projects/ARGO2/members/NewUser"
 ```
 
 ### Post body:
@@ -393,8 +393,8 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 
 ### Example request
 ```bash
-curl -X PUT -H "Content-Type: application/json"
-  -d $POSTDATA "https://{URL}/v1/projects/ARGO2/members/NewUser?key=S3CR3T"
+curl -X PUT -H "Content-Type: application/json"  -H "x-api-token:S3CR3T" 
+  -d $POSTDATA "https://{URL}/v1/projects/ARGO2/members/NewUser"
 ```
 
 ### Post body:
@@ -446,8 +446,8 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 
 ### Example request
 ```bash
-curl -X POST -H "Content-Type: application/json"
-  -d $POSTDATA "https://{URL}/v1/projects/ARGO2/members/NewUser:add?key=S3CR3T"
+curl -X POST -H "Content-Type: application/json"  -H "x-api-token:S3CR3T" 
+  -d $POSTDATA "https://{URL}/v1/projects/ARGO2/members/NewUser:add"
 ```
 
 ### Post body:
@@ -495,8 +495,8 @@ Please refer to section [Errors](api_errors.md) to see all possible Errors
 
 ### Example request
 ```bash
-curl -X POST -H "Content-Type: application/json"
- "https://{URL}/v1/projects/ARGO2/members/NewUser:remove?key=S3CR3T"
+curl -X POST -H "Content-Type: application/json"  -H "x-api-token:S3CR3T" 
+ "https://{URL}/v1/projects/ARGO2/members/NewUser:remove"
 ```
 
 ### Responses  
@@ -526,8 +526,8 @@ GET "/v1/projects/{project_name}:metrics"
 ### Example request
 
 ```bash
-curl  -H "Content-Type: application/json"
-"https://{URL}/v1/projects/BRAND_NEW:metrics?key=S3CR3T"
+curl  -H "Content-Type: application/json"  -H "x-api-token:S3CR3T" 
+"https://{URL}/v1/projects/BRAND_NEW:metrics"
 ```
 
 
