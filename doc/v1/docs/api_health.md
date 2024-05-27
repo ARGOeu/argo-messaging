@@ -19,7 +19,7 @@ information about errors regarding the push server.
 has to be provided when using the `details` parameter.
 
 ```bash
-curl -H "Content-Type: application/json" -H "x-api-token:S3CR3T" 
+curl -H "Content-Type: application/json" -H "x-api-key:S3CR3T" 
  "https://{URL}/v1/status?details=true"
 ```
 
