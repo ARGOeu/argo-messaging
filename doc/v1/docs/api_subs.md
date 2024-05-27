@@ -12,7 +12,7 @@ This request creates a new subscription in a project with a PUT request
 
 ### Example request
 ```bash
-curl -X PUT -H "Content-Type: application/json" -H "x-api-token:S3CR3T"  -d 'PUTBODY'
+curl -X PUT -H "Content-Type: application/json" -H "x-api-key:S3CR3T"  -d 'PUTBODY'
  "https://{URL}/v1/projects/BRAND_NEW/subscriptions/alert_engine"
 ```
 
@@ -225,7 +225,7 @@ This request triggers the process of verifying the ownership of a registered pus
 
 ### Example request
 ```bash
-curl -X POST  -H "x-api-token:S3CR3T" 
+curl -X POST  -H "x-api-key:S3CR3T" 
 "https://{URL}/v1/projects/BRAND_NEW/subscriptions/alert_engine:verifyPushEndpoint"
 ```
 
@@ -264,7 +264,7 @@ This request lists all available subscriptions under a specific topic in the ser
 
 ### Example request
 ```bash
-curl -X GET -H "Content-Type: application/json"  -H "x-api-token:S3CR3T" 
+curl -X GET -H "Content-Type: application/json"  -H "x-api-key:S3CR3T" 
   "https://{URL}/v1/projects/p1/topics/t1/subscriptions"
 ```
 
@@ -317,7 +317,7 @@ This request lists all subscriptions  in a project with a GET  request
 
 ### Example request
 ```bash
-curl -X GET -H "Content-Type: application/json"  -H "x-api-token:S3CR3T" 
+curl -X GET -H "Content-Type: application/json"  -H "x-api-key:S3CR3T" 
   "https://{URL}/v1/projects/BRAND_NEW/subscriptions"
 ```
 
@@ -359,7 +359,7 @@ This request lists subscriptions  in a project with a GET  request
 
 ### Example request
 ```bash
-curl -X PUT -H "Content-Type: application/json"  -H "x-api-token:S3CR3T" 
+curl -X PUT -H "Content-Type: application/json"  -H "x-api-key:S3CR3T" 
   "https://{URL}/v1/projects/BRAND_NEW/subscriptions?pageSize=1&pageToken=some_token"
 ```
 
@@ -395,7 +395,7 @@ This request lists subscriptions  in a project with a GET  request
 
 ### Example request
 ```bash
-curl -X PUT -H "Content-Type: application/json"  -H "x-api-token:S3CR3T" 
+curl -X PUT -H "Content-Type: application/json"  -H "x-api-key:S3CR3T" 
   "https://{URL}/v1/projects/BRAND_NEW/subscriptions?pageSize=1"
 ```
 
@@ -438,7 +438,7 @@ GET /v1/projects/{project_name}/subscriptions/{sub_name}:acl
 ### Example request
 
 ```bash
-curl -H "Content-Type: application/json"   -H "x-api-token:S3CR3T" 
+curl -H "Content-Type: application/json"   -H "x-api-key:S3CR3T" 
  "https://{URL}/v1/projects/BRAND_NEW/subscriptions/subscription:acl"
 ```
 
@@ -480,7 +480,7 @@ POST "/v1/projects/{project_name}/subscriptions/{sub_name}:modifyAcl"
 ### Example request
 
 ```bash
-curl -X POST -H "Content-Type: application/json"    -H "x-api-token:S3CR3T" 
+curl -X POST -H "Content-Type: application/json"    -H "x-api-key:S3CR3T" 
 -d $POSTDATA "https://{URL}/v1/projects/BRAND_NEW/subscriptions/subscription:modifyAcl"
 ```
 
@@ -517,7 +517,7 @@ This request deletes a subscription in a project with a DELETE request
 ### Example request
 
 ```bash
-curl -X DELETE -H "Content-Type: application/json"   -H "x-api-token:S3CR3T" 
+curl -X DELETE -H "Content-Type: application/json"   -H "x-api-key:S3CR3T" 
 "http://{URL}/v1/projects/BRAND_NEW/subscriptions/alert_engine"
 ```
 
@@ -551,7 +551,7 @@ This request modifies the acknowledgment deadline for the subscription. The ack 
 ### Example request
 
 ```bash
-curl -X POST -H "Content-Type: application/json"  -H "x-api-token:S3CR3T" 
+curl -X POST -H "Content-Type: application/json"  -H "x-api-key:S3CR3T" 
 -d $POSTDATA "http://{URL}/v1/projects/BRAND_NEW/subscriptions/alert_engine:modifyAckDeadline"
 ```
 
@@ -630,7 +630,7 @@ you can use the update request with the <b>autogen</b> type.
 ### Example request
 
 ```bash
-curl -X POST -H "Content-Type: application/json"  -H "x-api-token:S3CR3T" 
+curl -X POST -H "Content-Type: application/json"  -H "x-api-key:S3CR3T" 
 -d $POSTDATA "http://{URL}/v1/projects/BRAND_NEW/subscriptions/alert_engine:modifyPushConfig"
 ```
 
@@ -692,7 +692,7 @@ It's important to note that the subscription's topic must exist in order for the
 ### Example request
 
 ```bash
-curl -X POST -H "Content-Type: application/json"  -H "x-api-token:S3CR3T" 
+curl -X POST -H "Content-Type: application/json"  -H "x-api-key:S3CR3T" 
   -d $POSTDATA https://{URL}/v1/projects/BRAND_NEW/subscriptions/alert_engine:pull"
 ```
 
@@ -754,7 +754,7 @@ Messages retrieved from a pull subscription can be acknowledged by sending messa
 
 
 ```bash
-curl -X POST -H "Content-Type: application/json"   -H "x-api-token:S3CR3T" 
+curl -X POST -H "Content-Type: application/json"   -H "x-api-key:S3CR3T" 
 -d $POSTDATA http://{URL}/v1/projects/BRAND_NEW/subscriptions/alert_engine:acknowledge"
 ```
 
@@ -797,7 +797,7 @@ This request returns the min, max and current offset of a subscription
 ### Example request
 
 ```bash
-curl -X GET -H "Content-Type: application/json"   -H "x-api-token:S3CR3T" 
+curl -X GET -H "Content-Type: application/json"   -H "x-api-key:S3CR3T" 
 -d $POSTDATA http://{URL}/v1/projects/BRAND_NEW/subscriptions/alert_engine:offsets"
 ```
 
@@ -832,7 +832,7 @@ This request returns the offset of the first message with a timestamp equal or g
 ### Example request
 
 ```bash
-curl -X GET -H "Content-Type: application/json"  -H "x-api-token:S3CR3T" 
+curl -X GET -H "Content-Type: application/json"  -H "x-api-key:S3CR3T" 
 "http://{URL}/v1/projects/BRAND_NEW/subscriptions/alert_engine:timeToOffset?time=2019-09-02T13:39:11.100Z"
 ```
 
@@ -874,7 +874,7 @@ This request modifies the current offset of a subscription
 ### Example request
 
 ```bash
-curl -X POST -H "Content-Type: application/json" -H "x-api-token:S3CR3T" 
+curl -X POST -H "Content-Type: application/json" -H "x-api-key:S3CR3T" 
 -d $POSTDATA "http://{URL}/v1/projects/BRAND_NEW/subscriptions/alert_engine:modifyOffset"
 ```
 
@@ -908,7 +908,7 @@ GET "/v1/projects/{project_name}/subscriptions/{sub_name}:metrics"
 ### Example request
 
 ```bash
-curl  -H "Content-Type: application/json"  -H "x-api-token:S3CR3T" 
+curl  -H "Content-Type: application/json"  -H "x-api-key:S3CR3T" 
 "https://{URL}/v1/projects/BRAND_NEW/subscriptions/monitoring:metrics"
 ```
 
