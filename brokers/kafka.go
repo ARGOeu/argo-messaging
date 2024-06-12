@@ -148,10 +148,12 @@ func (b *KafkaBroker) init(peers []string) error {
 	b.consumeLock = make(map[string]*topicLock)
 	b.Config = sarama.NewConfig()
 	b.Config.Admin.Timeout = 30 * time.Second
-	b.Config.Consumer.Fetch.Default = 1000000
+	b.Config.Consumer.Fetch.Default = 2000000
+	b.Config.Consumer.Fetch.Max = 2000000
 	b.Config.Producer.RequiredAcks = sarama.WaitForAll
 	b.Config.Producer.Retry.Max = 5
 	b.Config.Producer.Return.Successes = true
+	b.Config.Producer.MaxMessageBytes = 1500000
 	b.Config.Version = sarama.V2_1_0_0
 	b.Servers = peers
 
