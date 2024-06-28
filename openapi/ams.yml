@@ -43,7 +43,6 @@ paths:
       description: |
         Register a new user
       parameters:
-        
         - name: User information
           in: body
           description: Extra user  information
@@ -72,7 +71,7 @@ paths:
       description: |
         Retrieve all registrations the service with or without any filters applied
       parameters:
-        
+
         - $ref: '#/parameters/RegistrationStatus'
         - $ref: '#/parameters/RegistrationActivationToken'
         - $ref: '#/parameters/RegistrationName'
@@ -99,7 +98,7 @@ paths:
       description: |
         Register a new user
       parameters:
-        
+
         - name: UUID
           in: path
           description: UUID of the registration
@@ -129,7 +128,7 @@ paths:
       description: |
         Decline a new user
       parameters:
-        
+
         - name: UUID
           in: path
           description: UUID of the registration
@@ -168,7 +167,7 @@ paths:
       description: |
         Retrieves a user's registration
       parameters:
-        
+
         - name: UUID
           in: path
           description: UUID of the registration
@@ -196,7 +195,7 @@ paths:
       description: |
         Retrieve all schemas under a project
       parameters:
-        
+
         - name: PROJECT
           in: path
           description: Name of the project
@@ -228,7 +227,7 @@ paths:
         that the registered schema and the messages that are expected to be published to the resepctive topic later on,
         work as expected.
       parameters:
-        
+
         - name: PROJECT
           in: path
           description: Name of the project
@@ -273,7 +272,7 @@ paths:
       description: |
         Create a new schema
       parameters:
-        
+
         - name: PROJECT
           in: path
           description: Name of the project
@@ -319,7 +318,7 @@ paths:
       description: |
         Retrieve schema
       parameters:
-        
+
         - name: PROJECT
           in: path
           description: Name of the project
@@ -352,7 +351,7 @@ paths:
       description: |
         Update schema
       parameters:
-        
+
         - name: PROJECT
           in: path
           description: Name of the project
@@ -400,7 +399,7 @@ paths:
       description: |
         Delete schema
       parameters:
-        
+
         - name: PROJECT
           in: path
           description: Name of the project
@@ -435,8 +434,6 @@ paths:
       summary: List operational metrics of the ams service
       description: |
         list operational metrics
-      parameters:
-        
       tags:
         - Operational Metrics
       responses:
@@ -487,7 +484,7 @@ paths:
       description: |
         list operational metrics
       parameters:
-        
+
         - $ref: '#/parameters/StartDate'
         - $ref: '#/parameters/EndDate'
         - $ref: '#/parameters/Projects'
@@ -512,8 +509,6 @@ paths:
       summary: List subscriptions in a project
       description: |
         List all the available projects in the service
-      parameters:
-        
       tags:
         - Projects
       responses:
@@ -540,7 +535,7 @@ paths:
       description: |
         Shows a specific projects information
       parameters:
-        
+
         - name: PROJECT
           in: path
           description: Name of the project
@@ -569,7 +564,7 @@ paths:
       description: |
         Create a new project in the service
       parameters:
-        
+
         - name: PROJECT
           in: path
           description: Name of the project
@@ -608,7 +603,7 @@ paths:
       description: |
         Update information on an existing project
       parameters:
-        
+
         - name: PROJECT
           in: path
           description: Name of the project
@@ -650,7 +645,7 @@ paths:
       description: |
         This request deletes an existing project and clears all it's contained topics and subscriptions
       parameters:
-        
+
         - name: PROJECT
           in: path
           description: Name of the project
@@ -684,7 +679,7 @@ paths:
       description: |
         Shows a specific projects information
       parameters:
-        
+
         - name: PROJECT
           in: path
           description: Name of the project
@@ -714,7 +709,7 @@ paths:
       description: |
         List all user members of the specific project. This call is can be used only by project admins or service admins
       parameters:
-        
+
         - $ref: '#/parameters/PageToken'
         - $ref: '#/parameters/PageSize'
         - $ref: '#/parameters/UserDetails'
@@ -749,7 +744,7 @@ paths:
       description: |
         Shows information on a specific user member of the project. This call is can be used only by project admins or service admins
       parameters:
-        
+
         - name: PROJECT
           in: path
           description: Name of the project
@@ -782,7 +777,7 @@ paths:
       description: |
         Creates a new user memeber under the specified project.Can be used by the project admin of the project when previosuly only service admins could create users.
       parameters:
-        
+
         - name: PROJECT
           in: path
           description: Name of the project
@@ -830,7 +825,7 @@ paths:
       description: |
         Update a  user memeber under the specified project.Can be used by the project admin of the project when previosuly only service admins could update users.
       parameters:
-        
+
         - name: PROJECT
           in: path
           description: Name of the project
@@ -878,7 +873,7 @@ paths:
       description: |
         Add a user to the project
       parameters:
-        
+
         - name: PROJECT
           in: path
           description: Name of the project
@@ -927,7 +922,7 @@ paths:
       description: |
         Removes the user from the respective project.
       parameters:
-        
+
         - name: PROJECT
           in: path
           description: Name of the project
@@ -961,7 +956,7 @@ paths:
       description: |
         List all available users in the service
       parameters:
-        
+
         - $ref: '#/parameters/PageToken'
         - $ref: '#/parameters/PageSize'
         - $ref: '#/parameters/UserDetails'
@@ -991,7 +986,7 @@ paths:
       description: |
         Shows a specific user's information
       parameters:
-        
+
         - name: USER
           in: path
           description: Name of the user
@@ -1020,7 +1015,7 @@ paths:
       description: |
         Create a new user in a project
       parameters:
-        
+
         - name: USER
           in: path
           description: Name of the user
@@ -1066,7 +1061,7 @@ paths:
       description: |
         Updates an existing user's information
       parameters:
-        
+
         - name: USER
           in: path
           description: Name of the user
@@ -1120,7 +1115,7 @@ paths:
       description: |
         Deletes an existing user
       parameters:
-        
+
         - name: USER
           in: path
           description: Name of the user
@@ -1151,7 +1146,7 @@ paths:
       description: |
         Show a specific's user information
       parameters:
-        
+
         - name: UUID
           in: path
           description: UUID of the user
@@ -1181,7 +1176,7 @@ paths:
       description: |
         Show a specific's user information
       parameters:
-        
+
         - name: Token
           in: path
           description: Token of the user
@@ -1210,8 +1205,6 @@ paths:
       summary: Show a specific user based on the provided url key
       description: |
         Show a specific's user information
-      parameters:
-        
       tags:
         - Users
       responses:
@@ -1230,7 +1223,7 @@ paths:
       description: |
         The user's token is refreshed
       parameters:
-        
+
         - name: USER
           in: path
           description: Name of the user
@@ -2345,7 +2338,7 @@ parameters:
     description: the starting point of the next users page
     required: false
     type: string
-    default: empty string
+    default: ""
   PageSize:
     name: pageSize
     in: query
