@@ -308,7 +308,8 @@ func (b *KafkaBroker) Consume(ctx context.Context, topic string, offset int64, i
 	).Debug("Trying to consume")
 
 	// If tracked offset is equal or bigger than topic offset means no new messages
-	if offset >= loff {
+	// and as a result we can return immediately if requested
+	if imm && offset >= loff {
 		return []string{}, nil
 	}
 
