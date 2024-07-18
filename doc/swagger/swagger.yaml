@@ -2201,7 +2201,7 @@ paths:
 
   /projects/{PROJECT}/topics/{TOPIC}:publish:
     post:
-      summary: List topics in a project
+      summary: Publish topics in a project
       description: |
         The topic:publish endpoint publish a message to a specific topic
       parameters:
