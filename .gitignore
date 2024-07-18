@@ -3,3 +3,6 @@ argo-messaging
 _workspace/
 .idea
 .vscode/
+
+# Ignore build artifact
+argo-messaging*.tar.gz
