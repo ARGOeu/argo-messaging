@@ -5,7 +5,6 @@ name: Go
 on: ["push", "pull_request"]
 jobs:
   ci:
-	name: "Run CI"
 	runs-on: ubuntu-latest
 	steps:
 	- uses: actions/checkout@v1
