@@ -1,0 +1,15 @@
+name: CVE Tests
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+jobs:
+  # This is to check the
+  cve:
+    runs-on: qa
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
