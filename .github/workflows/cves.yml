@@ -2,10 +2,10 @@ name: CVE Tests
 on:
   push:
     branches:
-      - main
+      - devel
   pull_request:
     branches:
-      - main
+      - devel
 jobs:
   # This is to check the
   cve:
