@@ -9,7 +9,7 @@ on:
 jobs:
   # This is to check the
   cve:
-    runs-on: qa
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
