@@ -1,0 +1,42 @@
+name: CVE Tests
+# We expose the actions secrets to the job with a single key
+# one script (update_jira) currently uses the jira pip module,
+# while custom library (libraries/ServiceManagementSystem) uses the atlassian module
+# So, we have a bit of duplication here temporarily.
+# env:
+#   JIRA_SERVER: ${{ secrets.JIRA_SERVER }}
+#   JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+#   JIRA_TOKEN: ${{ secrets.JIRA_TOKEN }}
+#   ATLASSIAN_URL: ${{ secrets.ATLASSIAN_URL }}
+#   ATLASSIAN_TOKEN: ${{ secrets.ATLASSIAN_TOKEN }}
+#   ATLASSIAN_USERNAME: ${{ secrets.ATLASSIAN_USERNAME }}
+#   gocdb_password: ${{ secrets.GOCDB_PASSWORD }}
+#   gocdb_username: ${{ secrets.GOCDB_USERNAME }}
+#   username: ${{ secrets.federated_user_01_username }}
+#   password: ${{ secrets.federated_user_01_password }}
+#   personal_username: ${{ secrets.personal_username }}
+#   personal_password:  ${{ secrets.personal_password }}
+#   MS5_MSG_TOKEN: ${{ secrets.MS5_MSG_TOKEN }}
+#   K6_VERSION: v0.52.0
+#   AUTHZ_HEADER: ${{ secrets.AUTHZ_HEADER }}
+#   cmdb_password: ${{ secrets.CMDB_PASSWORD }}
+#   cmdb_username: ${{ secrets.CMDB_USERNAME }}
+#   RP_API_KEY: ${{ secrets.RP_API_KEY }}
+#   ZAMMAD_TOKEN: ${{ secrets.ZAMMAD_TOKEN }}
+#   EOSC_CORE_MON_ACCESS_TOKEN: ${{ secrets.EOSC_CORE_MON_ACCESS_TOKEN }}
+#   EOSC_EXCH_MON_ACCESS_TOKEN: ${{ secrets.EOSC_EXCH_MON_ACCESS_TOKEN }}
+#   DTC_VERSION: latest
+on:
+  push:
+    branches:
+      - devel
+  pull_request:
+    branches:
+      - devel
+jobs:
+  # This is to check the
+  cve:
+    runs-on: qa
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
