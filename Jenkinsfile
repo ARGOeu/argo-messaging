@@ -1,7 +1,7 @@
 pipeline {
     agent {
         docker {
-            image 'argo.registry:5000/epel-7-go1.21'
+            image 'argo.registry:5000/rocky9-go1.25:latest'
             args '-u jenkins:jenkins'
         }
     }
@@ -13,6 +13,8 @@ pipeline {
         PROJECT_DIR="argo-messaging"
         GH_USER = 'newgrnetci'
         GH_EMAIL = '<argo@grnet.gr>'
+        GOCACHE = '/tmp/go-cache'
+        GOMODCACHE = '/tmp/go-mod-cache'
         GOPATH="${WORKSPACE}/go"
         GIT_COMMIT=sh(script: "cd ${WORKSPACE}/$PROJECT_DIR && git log -1 --format=\"%H\"",returnStdout: true).trim()
         GIT_COMMIT_HASH=sh(script: "cd ${WORKSPACE}/$PROJECT_DIR && git log -1 --format=\"%H\" | cut -c1-7",returnStdout: true).trim()
@@ -23,6 +25,7 @@ pipeline {
             steps {
                 echo 'Build...'
                 sh """
+                go version
                 mkdir -p ${WORKSPACE}/go/src/github.com/ARGOeu
                 ln -sf ${WORKSPACE}/${PROJECT_DIR} ${WORKSPACE}/go/src/github.com/ARGOeu/${PROJECT_DIR}
                 rm -rf ${WORKSPACE}/go/src/github.com/ARGOeu/${PROJECT_DIR}/${PROJECT_DIR}
@@ -45,8 +48,8 @@ pipeline {
                 echo 'Test & Coverage...'
                 sh """
                 cd ${WORKSPACE}/go/src/github.com/ARGOeu/${PROJECT_DIR}
-                gocov test -p 1 \$(go list ./... | grep -v /vendor/) | gocov-xml > ${WORKSPACE}/coverage.xml
-                go test -p 1 \$(go list ./... | grep -v /vendor/) -v=1 | go-junit-report > ${WORKSPACE}/junit.xml
+                gotestsum --junitfile ${WORKSPACE}/junit.xml -- -p 1 -v -coverprofile=coverage.out ./...
+                gocover-cobertura < coverage.out > ${WORKSPACE}/coverage.xml
                 """
                 junit '**/junit.xml'
                 cobertura coberturaReportFile: '**/coverage.xml'

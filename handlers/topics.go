@@ -14,7 +14,7 @@ import (
 	gorillaContext "github.com/gorilla/context"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -91,7 +91,7 @@ func TopicModACL(w http.ResponseWriter, r *http.Request) {
 	urlTopic := urlVars["topic"]
 
 	// Read POST JSON body
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		err := APIErrorInvalidRequestBody()
 		respondErr(rCTX, w, err)
@@ -163,7 +163,7 @@ func TopicCreate(w http.ResponseWriter, r *http.Request) {
 	// check if there's a request body provided before trying to decode
 	if r.Body != nil {
 
-		b, err := ioutil.ReadAll(r.Body)
+		b, err := io.ReadAll(r.Body)
 
 		if err != nil {
 			err := APIErrorInvalidRequestBody()
@@ -276,7 +276,7 @@ func TopicAttachSchema(w http.ResponseWriter, r *http.Request) {
 	// check if there's a request body provided before trying to decode
 	if r.Body != nil {
 
-		b, err := ioutil.ReadAll(r.Body)
+		b, err := io.ReadAll(r.Body)
 
 		if err != nil {
 			err := APIErrorInvalidRequestBody()
@@ -647,7 +647,7 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Read POST JSON body
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		err := APIErrorInvalidRequestBody()
 		respondErr(rCTX, w, err)
@@ -793,7 +793,7 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 	resJSON, err := msgIDs.ExportJSON()
 	if err != nil {
 		err := APIErrExportJSON()
-		respondErr(rCTX , w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 
