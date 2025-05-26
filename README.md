@@ -20,10 +20,10 @@ specific topics and receive messages.
 
 #### Build Requirements
 
- - Golang 1.19
+ - Golang 1.21
 
 #### Datastore Requirements
-  - The service has been tested with mongodb from version `3.2.22` up to `4.2.3`.
+  - The service has been tested with mongodb from version `6.0.14`.
  
 #### Broker requirements
 

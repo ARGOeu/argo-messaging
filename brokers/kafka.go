@@ -3,7 +3,7 @@ package brokers
 import (
 	"context"
 	"github.com/ARGOeu/argo-messaging/messages"
-	"github.com/Shopify/sarama"
+	"github.com/IBM/sarama"
 	log "github.com/sirupsen/logrus"
 	"strconv"
 	"sync"
@@ -148,10 +148,12 @@ func (b *KafkaBroker) init(peers []string) error {
 	b.consumeLock = make(map[string]*topicLock)
 	b.Config = sarama.NewConfig()
 	b.Config.Admin.Timeout = 30 * time.Second
-	b.Config.Consumer.Fetch.Default = 1000000
+	b.Config.Consumer.Fetch.Default = 2000000
+	b.Config.Consumer.Fetch.Max = 2000000
 	b.Config.Producer.RequiredAcks = sarama.WaitForAll
 	b.Config.Producer.Retry.Max = 5
 	b.Config.Producer.Return.Successes = true
+	b.Config.Producer.MaxMessageBytes = 1500000
 	b.Config.Version = sarama.V2_1_0_0
 	b.Servers = peers
 
@@ -356,9 +358,8 @@ func (b *KafkaBroker) Consume(ctx context.Context, topic string, offset int64, i
 	messages := []string{}
 	var consumed int64
 	timeout := time.After(300 * time.Second)
-
 	if imm {
-		timeout = time.After(100 * time.Millisecond)
+		timeout = time.After(300 * time.Millisecond)
 	}
 
 ConsumerLoop:
@@ -401,7 +402,6 @@ ConsumerLoop:
 				if imm {
 					break ConsumerLoop
 				}
-
 			}
 
 		}
