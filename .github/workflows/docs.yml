@@ -1,0 +1,58 @@
+# .github/workflows/docs.yml
+name: Deploy documentation to github pages
+
+# Define when to run action
+on:
+  # run action on push to devel bhranch
+  push:
+    branches: [ main ]
+  
+  # run also this workflow manually when needed
+  workflow_dispatch:
+
+# github token permissions are set here
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# deployment concurrency set to one
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: website
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout docusaurus repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22' 
+          cache: 'npm'
+
+      - name: Install deps
+        run: npm i
+
+      - name: Build docs
+        run: npm run build
+
+      - name: Run gh action to setup pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload docs
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'build'
+
+      - name: Run gh action to deploy to github pages
+        id: deployment
+        uses: actions/deploy-pages@v5
