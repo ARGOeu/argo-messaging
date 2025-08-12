@@ -5,7 +5,7 @@ name: Deploy documentation to github pages
 on:
   # run action on push to devel bhranch
   push:
-    branches: [ main ]
+    branches: [ devel ]
   
   # run also this workflow manually when needed
   workflow_dispatch:
