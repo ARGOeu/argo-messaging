@@ -3,9 +3,9 @@ name: Deploy documentation to github pages
 
 # Define when to run action
 on:
-  # run action on push to devel bhranch
+  # run action on push to devel branch
   push:
-    branches: [ main ]
+    branches: [ devel ]
   
   # run also this workflow manually when needed
   workflow_dispatch:
@@ -51,7 +51,7 @@ jobs:
       - name: Upload docs
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'build'
+          path: 'website/build'
 
       - name: Run gh action to deploy to github pages
         id: deployment
