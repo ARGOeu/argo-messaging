@@ -13,7 +13,7 @@ import (
 	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/suite"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -1366,6 +1366,6 @@ func (suite *ProjectsHandlersTestSuite) TestProjectListOne() {
 }
 
 func TestProjectsHandlersTestSuite(t *testing.T) {
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 	suite.Run(t, new(ProjectsHandlersTestSuite))
 }

@@ -30,3 +30,6 @@ go-test:
 	go get github.com/AlekSi/gocov-xml && \
 	${GOPATH}/bin/gocov test ${GOFILES_NOVENDOR} | ${GOPATH}/bin/gocov-xml > ${APPDIR}/coverage.xml &&\
 	chown ${hostUID} ${APPDIR}/coverage.xml
+
+clean:
+	@echo "Clean target - nothing to clean"

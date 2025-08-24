@@ -2,7 +2,7 @@ package push
 
 import (
 	"errors"
-	"io/ioutil"
+	"io"
 	"testing"
 
 	log "github.com/sirupsen/logrus"
@@ -29,7 +29,7 @@ func (suite *PushTestSuite) SetupTest() {
 		"use_ack":true
 	}`
 
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 }
 
 func (suite *PushTestSuite) TestPusher() {

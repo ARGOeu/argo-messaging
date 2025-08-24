@@ -66,8 +66,7 @@ func main() {
 
 	//Configure TLS support only
 	config := &tls.Config{
-		MinVersion:               tls.VersionTLS12,
-		PreferServerCipherSuites: true,
+		MinVersion: tls.VersionTLS12,
 	}
 
 	// Initialize CORS specifics

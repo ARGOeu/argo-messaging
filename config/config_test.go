@@ -1,7 +1,7 @@
 package config
 
 import (
-	"io/ioutil"
+	"io"
 	"testing"
 
 	log "github.com/sirupsen/logrus"
@@ -122,6 +122,6 @@ func (suite *ConfigTestSuite) TestAuthOption() {
 }
 
 func TestConfigTestSuite(t *testing.T) {
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 	suite.Run(t, new(ConfigTestSuite))
 }

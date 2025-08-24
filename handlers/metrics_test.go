@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -820,6 +820,6 @@ func (suite *MetricsHandlersTestSuite) TestUserUsageProfile() {
 }
 
 func TestMetricsHandlersTestSuite(t *testing.T) {
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 	suite.Run(t, new(MetricsHandlersTestSuite))
 }
