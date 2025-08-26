@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/status"
 )
@@ -78,7 +79,7 @@ func NewGrpcClient(cfg *config.APICfg) *GrpcClient {
 
 	} else {
 
-		client.dialOptions = append(client.dialOptions, grpc.WithInsecure())
+		client.dialOptions = append(client.dialOptions, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
 
 	return client
@@ -92,7 +93,7 @@ func (c *GrpcClient) Target() string {
 // Dial connects to the specified grpc endpoint from the api config
 func (c *GrpcClient) Dial() error {
 
-	conn, err := grpc.Dial(c.pushEndpoint, c.dialOptions...)
+	conn, err := grpc.NewClient(c.pushEndpoint, c.dialOptions...)
 	if err != nil {
 		return err
 	}
