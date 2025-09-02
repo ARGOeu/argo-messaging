@@ -39,7 +39,18 @@ pipeline {
             steps {
                 sh """
                 cd ${WORKSPACE}/go/src/github.com/ARGOeu/${PROJECT_DIR}
-                /home/jenkins/checksec.py -b ./argo-messaging
+
+                checksec --file=./argo-messaging --format=xml > ./checksec.xml
+
+                set +x
+                # define function that receives field/value and checks them in checksec.xml output
+                checksec_point(){ f=\$1; v=\$2; r=\$(xmllint --xpath "string(//file/@\$f)" checksec.xml); \
+                echo -n "\$f(expected:\$v)=\$r"; [[ "\$r" == "\$v" ]] && \
+                echo -e "\t✓ PASS" || { echo -e "\t𐄂 FAIL"; return 1; }; }
+
+                # for pairs of field/value items check if they exist in the checksec.xml output - break if not
+                for pair in "pie yes" "nx yes" "relro full" "rpath no" "runpath no" "symbols no" "fortify_source yes"; \
+                do set -- \$pair; checksec_point "\$1" "\$2"; done
                 """
             }
         }
@@ -61,7 +72,7 @@ pipeline {
                 echo 'Building Rpm...'
                 withCredentials(bindings: [sshUserPrivateKey(credentialsId: 'jenkins-rpm-repo', usernameVariable: 'REPOUSER', \
                                                              keyFileVariable: 'REPOKEY')]) {
-                    sh "/home/jenkins/build-rpm.sh -w ${WORKSPACE} -b ${BRANCH_NAME} -d centos7 -p ${PROJECT_DIR} -s ${REPOKEY}"
+                    sh "/home/jenkins/build-rpm.sh -w ${WORKSPACE} -b ${BRANCH_NAME} -d rocky9 -p ${PROJECT_DIR} -s ${REPOKEY}"
                 }
                 archiveArtifacts artifacts: '**/*.rpm', fingerprint: true
             }
