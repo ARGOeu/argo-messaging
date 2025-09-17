@@ -35,7 +35,7 @@ jobs:
           scan-type: fs
           ignore-unfixed: true
           format: 'sarif'  
-          severity: HIGH,CRITICAL
+          severity: 'HIGH,CRITICAL'
           output: trivy-results.sarif
           skip-dirs: website 
         continue-on-error: true  # still upload SARIF even if vulnerabilities exist
