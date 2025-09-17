@@ -35,7 +35,7 @@ jobs:
           scan-type: fs
           ignore-unfixed: true
           format: 'sarif'  
-          limit-severities-for-sarif: true
+          limit-severities-for-sarif: true #By default SARIF format enforces output of all vulnerabilities. To override this behavior set this parameter to true
           severity: 'HIGH,CRITICAL'
           output: trivy-results.sarif
           skip-dirs: website 
@@ -52,6 +52,5 @@ jobs:
           sarif_file: trivy-results.sarif
           # Optional category for the results
           # Used to differentiate multiple results for one commit
-         
 
           
