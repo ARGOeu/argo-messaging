@@ -35,6 +35,7 @@ jobs:
           scan-type: fs
           ignore-unfixed: true
           format: 'sarif'  
+          limit-severities-for-sarif: true
           severity: 'HIGH,CRITICAL'
           output: trivy-results.sarif
           skip-dirs: website 
