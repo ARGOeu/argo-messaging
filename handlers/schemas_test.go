@@ -13,7 +13,7 @@ import (
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/suite"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -768,6 +768,6 @@ func (suite *SchemasHandlersTestSuite) TestSchemaValidateMessage() {
 }
 
 func TestSchemasHandlersTestSuite(t *testing.T) {
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 	suite.Run(t, new(SchemasHandlersTestSuite))
 }

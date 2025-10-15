@@ -11,7 +11,7 @@ import (
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 	"github.com/twinj/uuid"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -71,7 +71,7 @@ func ProjectUpdate(w http.ResponseWriter, r *http.Request) {
 	refStr := gorillaContext.Get(r, "str").(stores.Store)
 	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 	// Read POST JSON body
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		err := APIErrorInvalidRequestBody()
 		respondErr(rCTX, w, err)
@@ -144,7 +144,7 @@ func ProjectCreate(w http.ResponseWriter, r *http.Request) {
 	refUserUUID := gorillaContext.Get(r, "auth_user_uuid").(string)
 
 	// Read POST JSON body
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		err := APIErrorInvalidRequestBody()
 		respondErr(rCTX, w, err)
@@ -358,7 +358,7 @@ func ProjectUserCreate(w http.ResponseWriter, r *http.Request) {
 	refProjUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 
 	// Read POST JSON body
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		err := APIErrorInvalidRequestBody()
 		respondErr(rCTX, w, err)
@@ -478,7 +478,7 @@ func ProjectUserUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Read POST JSON body
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		err := APIErrorInvalidRequestBody()
 		respondErr(rCTX, w, err)
@@ -726,7 +726,7 @@ func ProjectUserAdd(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Read POST JSON body
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		err := APIErrorInvalidRequestBody()
 		respondErr(rCTX, w, err)

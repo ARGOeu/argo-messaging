@@ -2,7 +2,7 @@ package metrics
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"strconv"
 	"strings"
 	"testing"
@@ -28,7 +28,7 @@ func (suite *MetricsTestSuite) SetupTest() {
 		"store_host":"localhost",
 		"store_db":"argo_msg"
 	}`
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 }
 
 func (suite *MetricsTestSuite) TestCreateMetric() {

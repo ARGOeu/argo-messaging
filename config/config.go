@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"strconv"
 	"time"
 
@@ -14,7 +15,6 @@ import (
 	lSyslog "github.com/sirupsen/logrus/hooks/syslog"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"io/ioutil"
 	"log/syslog"
 	"os"
 	"path/filepath"
@@ -219,7 +219,7 @@ func (cfg *APICfg) LoadCAs() (roots *x509.CertPool) {
 		}
 
 		if ok, _ := filepath.Match(pattern, info.Name()); ok {
-			bytes, err := ioutil.ReadFile(filepath.Join(cfg.CertificateAuthoritiesDir, info.Name()))
+			bytes, err := os.ReadFile(filepath.Join(cfg.CertificateAuthoritiesDir, info.Name()))
 			if err != nil {
 				return err
 			}
@@ -294,7 +294,7 @@ func setLogFacilities(facilities []string) {
 
 	// if the console option has not been specified close the standard logging
 	if !consoleEnabled {
-		log.SetOutput(ioutil.Discard)
+		log.SetOutput(io.Discard)
 	}
 }
 

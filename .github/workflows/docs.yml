@@ -3,7 +3,7 @@ name: Deploy documentation to github pages
 
 # Define when to run action
 on:
-  # run action on push to devel bhranch
+  # run action on push to devel branch
   push:
     branches: [ devel ]
   
@@ -38,6 +38,7 @@ jobs:
         with:
           node-version: '22' 
           cache: 'npm'
+          cache-dependency-path: website/package-lock.json
 
       - name: Install deps
         run: npm i
@@ -51,8 +52,8 @@ jobs:
       - name: Upload docs
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'build'
+          path: 'website/build'
 
       - name: Run gh action to deploy to github pages
         id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@v4

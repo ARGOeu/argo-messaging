@@ -2,7 +2,7 @@ package topics
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"testing"
 
 	log "github.com/sirupsen/logrus"
@@ -27,7 +27,7 @@ func (suite *TopicTestSuite) SetupTest() {
 		"store_host":"localhost",
 		"store_db":"argo_msg"
 	}`
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 }
 
 func (suite *TopicTestSuite) TestCreate() {

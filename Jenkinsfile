@@ -1,7 +1,7 @@
 pipeline {
     agent {
         docker {
-            image 'argo.registry:5000/epel-7-go1.21'
+            image 'argo.registry:5000/rocky9-go1.25:latest'
             args '-u jenkins:jenkins'
         }
     }
@@ -13,6 +13,8 @@ pipeline {
         PROJECT_DIR="argo-messaging"
         GH_USER = 'newgrnetci'
         GH_EMAIL = '<argo@grnet.gr>'
+        GOCACHE = '/tmp/go-cache'
+        GOMODCACHE = '/tmp/go-mod-cache'
         GOPATH="${WORKSPACE}/go"
         GIT_COMMIT=sh(script: "cd ${WORKSPACE}/$PROJECT_DIR && git log -1 --format=\"%H\"",returnStdout: true).trim()
         GIT_COMMIT_HASH=sh(script: "cd ${WORKSPACE}/$PROJECT_DIR && git log -1 --format=\"%H\" | cut -c1-7",returnStdout: true).trim()
@@ -23,6 +25,7 @@ pipeline {
             steps {
                 echo 'Build...'
                 sh """
+                go version
                 mkdir -p ${WORKSPACE}/go/src/github.com/ARGOeu
                 ln -sf ${WORKSPACE}/${PROJECT_DIR} ${WORKSPACE}/go/src/github.com/ARGOeu/${PROJECT_DIR}
                 rm -rf ${WORKSPACE}/go/src/github.com/ARGOeu/${PROJECT_DIR}/${PROJECT_DIR}
@@ -36,7 +39,18 @@ pipeline {
             steps {
                 sh """
                 cd ${WORKSPACE}/go/src/github.com/ARGOeu/${PROJECT_DIR}
-                /home/jenkins/checksec.py -b ./argo-messaging
+
+                checksec --file=./argo-messaging --format=xml > ./checksec.xml
+
+                set +x
+                # define function that receives field/value and checks them in checksec.xml output
+                checksec_point(){ f=\$1; v=\$2; r=\$(xmllint --xpath "string(//file/@\$f)" checksec.xml); \
+                echo -n "\$f(expected:\$v)=\$r"; [[ "\$r" == "\$v" ]] && \
+                echo -e "\t✓ PASS" || { echo -e "\t𐄂 FAIL"; return 1; }; }
+
+                # for pairs of field/value items check if they exist in the checksec.xml output - break if not
+                for pair in "pie yes" "nx yes" "relro full" "rpath no" "runpath no" "symbols no" "fortify_source yes"; \
+                do set -- \$pair; checksec_point "\$1" "\$2"; done
                 """
             }
         }
@@ -45,8 +59,8 @@ pipeline {
                 echo 'Test & Coverage...'
                 sh """
                 cd ${WORKSPACE}/go/src/github.com/ARGOeu/${PROJECT_DIR}
-                gocov test -p 1 \$(go list ./... | grep -v /vendor/) | gocov-xml > ${WORKSPACE}/coverage.xml
-                go test -p 1 \$(go list ./... | grep -v /vendor/) -v=1 | go-junit-report > ${WORKSPACE}/junit.xml
+                gotestsum --junitfile ${WORKSPACE}/junit.xml -- -p 1 -v -coverprofile=coverage.out ./...
+                gocover-cobertura < coverage.out > ${WORKSPACE}/coverage.xml
                 """
                 junit '**/junit.xml'
                 cobertura coberturaReportFile: '**/coverage.xml'
@@ -58,7 +72,7 @@ pipeline {
                 echo 'Building Rpm...'
                 withCredentials(bindings: [sshUserPrivateKey(credentialsId: 'jenkins-rpm-repo', usernameVariable: 'REPOUSER', \
                                                              keyFileVariable: 'REPOKEY')]) {
-                    sh "/home/jenkins/build-rpm.sh -w ${WORKSPACE} -b ${BRANCH_NAME} -d centos7 -p ${PROJECT_DIR} -s ${REPOKEY}"
+                    sh "/home/jenkins/build-rpm.sh -w ${WORKSPACE} -b ${BRANCH_NAME} -d rocky9 -p ${PROJECT_DIR} -s ${REPOKEY}"
                 }
                 archiveArtifacts artifacts: '**/*.rpm', fingerprint: true
             }
@@ -68,33 +82,6 @@ pipeline {
                 }
             }
         }
-        stage ('Deploy Docs') {
-            when {
-                branch 'devel'
-            }
-            agent {
-                docker {
-                    image 'node:18-buster'
-                }
-            }
-            steps {
-                echo 'Publish argo-messaging docs...'
-                sh '''
-                    cd $WORKSPACE/$PROJECT_DIR
-                    cd website
-                    npm install
-                '''
-                sshagent (credentials: ['jenkins-master']) {
-                    sh '''
-                        cd $WORKSPACE/$PROJECT_DIR/website
-                        mkdir ~/.ssh && ssh-keyscan -H github.com > ~/.ssh/known_hosts
-                        git config --global user.email ${GH_EMAIL}
-                        git config --global user.name ${GH_USER}
-                        GIT_USER=${GH_USER} USE_SSH=true npm run deploy
-                    '''
-                }
-            }
-        } 
     }
     post{
         always {

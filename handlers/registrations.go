@@ -10,7 +10,7 @@ import (
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 	"github.com/twinj/uuid"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 )
@@ -34,7 +34,7 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 	refStr := gorillaContext.Get(r, "str").(stores.Store)
 
 	// Read POST JSON body
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		err := APIErrorInvalidRequestBody()
 		respondErr(rCTX, w, err)
@@ -321,7 +321,7 @@ func DeleteRegistration(w http.ResponseWriter, r *http.Request) {
 	err = auth.DeleteUserRegistration(rCTX, regUUID, refStr)
 	if err != nil {
 		err := APIErrGenericInternal(err.Error())
-		respondErr(rCTX , w, err)
+		respondErr(rCTX, w, err)
 		return
 	}
 	respondOK(w, nil)

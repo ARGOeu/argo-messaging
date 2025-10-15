@@ -6,6 +6,7 @@ sidebar_position: 1
 
 # Training Resources
 
+
 We have compiled a list of resources that will assist any newcomer
 who wants to understand the messaging service and integrate with it.
 The list includes in general presentations of how AMS is being used

@@ -3,7 +3,7 @@ package subscriptions
 import (
 	"context"
 	"errors"
-	"io/ioutil"
+	"io"
 	"testing"
 
 	log "github.com/sirupsen/logrus"
@@ -39,7 +39,7 @@ func (m *MockPushRoundTripper) RoundTrip(r *http.Request) (*http.Response, error
 		resp = &http.Response{
 			StatusCode: 200,
 			// Send response to be tested
-			Body: ioutil.NopCloser(strings.NewReader("vhash-1")),
+			Body: io.NopCloser(strings.NewReader("vhash-1")),
 			// Must be set to non-nil value or it panics
 			Header: header,
 		}
@@ -49,7 +49,7 @@ func (m *MockPushRoundTripper) RoundTrip(r *http.Request) (*http.Response, error
 		resp = &http.Response{
 			StatusCode: 500,
 			// Send response to be tested
-			Body: ioutil.NopCloser(strings.NewReader("Internal error")),
+			Body: io.NopCloser(strings.NewReader("Internal error")),
 			// Must be set to non-nil value or it panics
 			Header: header,
 		}
@@ -59,7 +59,7 @@ func (m *MockPushRoundTripper) RoundTrip(r *http.Request) (*http.Response, error
 		resp = &http.Response{
 			StatusCode: 200,
 			// Send response to be tested
-			Body: ioutil.NopCloser(strings.NewReader("wrong_vhash")),
+			Body: io.NopCloser(strings.NewReader("wrong_vhash")),
 			// Must be set to non-nil value or it panics
 			Header: header,
 		}
@@ -81,7 +81,7 @@ func (suite *SubTestSuite) SetupTest() {
 		"use_ack":true
 	}`
 
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 }
 
 func (suite *SubTestSuite) TestNewNamesLIst() {

@@ -3,7 +3,7 @@ package auth
 import (
 	"context"
 	"errors"
-	"io/ioutil"
+	"io"
 	"testing"
 	"time"
 
@@ -27,7 +27,7 @@ func (suite *AuthTestSuite) SetupTest() {
 		"store_host":"localhost",
 		"store_db":"argo_msg"
 	}`
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 }
 
 func (suite *AuthTestSuite) TestAuth() {

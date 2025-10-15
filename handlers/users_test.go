@@ -10,7 +10,7 @@ import (
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/suite"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -1661,6 +1661,6 @@ func (suite *UsersHandlersTestSuite) TestUserDelete() {
 }
 
 func TestUsersHandlersTestSuite(t *testing.T) {
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 	suite.Run(t, new(UsersHandlersTestSuite))
 }

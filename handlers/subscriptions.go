@@ -16,7 +16,7 @@ import (
 	gorillaContext "github.com/gorilla/context"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -42,7 +42,7 @@ func SubAck(w http.ResponseWriter, r *http.Request) {
 	refStr := gorillaContext.Get(r, "str").(stores.Store)
 	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 	// Read POST JSON body
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		err := APIErrorInvalidRequestBody()
 		respondErr(rCTX, w, err)
@@ -210,7 +210,7 @@ func SubSetOffset(w http.ResponseWriter, r *http.Request) {
 	urlSub := urlVars["subscription"]
 
 	// Read POST JSON body
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		err := APIErrorInvalidRequestBody()
 		respondErr(rCTX, w, err)
@@ -481,7 +481,7 @@ func SubModACL(w http.ResponseWriter, r *http.Request) {
 	urlSub := urlVars["subscription"]
 
 	// Read POST JSON body
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		err := APIErrorInvalidRequestBody()
 		respondErr(rCTX, w, err)
@@ -550,7 +550,7 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 	refStr := gorillaContext.Get(r, "str").(stores.Store)
 
 	// Read POST JSON body
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		err := APIErrorInvalidRequestBody()
 		respondErr(rCTX, w, err)
@@ -981,7 +981,7 @@ func SubModAck(w http.ResponseWriter, r *http.Request) {
 	urlSub := urlVars["subscription"]
 
 	// Read POST JSON body
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		err := APIErrorInvalidRequestBody()
 		respondErr(rCTX, w, err)
@@ -1043,7 +1043,7 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 	projectUUID := gorillaContext.Get(r, "auth_project_uuid").(string)
 
 	// Read POST JSON body
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		err := APIErrorInvalidRequestBody()
 		respondErr(rCTX, w, err)
@@ -1443,7 +1443,7 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Read POST JSON body
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		err := APIErrorInvalidRequestBody()
 		respondErr(rCTX, w, err)

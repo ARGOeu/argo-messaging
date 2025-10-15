@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/ARGOeu/argo-messaging/version"
 	log "github.com/sirupsen/logrus"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -258,6 +258,6 @@ func (suite *HandlerTestSuite) TestListVersion() {
 }
 
 func TestHandlersTestSuite(t *testing.T) {
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 	suite.Run(t, new(HandlerTestSuite))
 }
