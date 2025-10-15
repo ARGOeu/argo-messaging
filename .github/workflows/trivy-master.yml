@@ -1,0 +1,35 @@
+on:
+  push:
+    branches:
+      - master
+jobs:
+  supply-chain:
+      runs-on: ubuntu-latest
+      steps:
+        - name: checkout code
+          uses: actions/checkout@v4
+        - name: Scan and Generate SBOM
+          uses: aquasecurity/trivy-action@0.32.0
+          with:
+            format: "cyclonedx"
+            exit-code: "1"
+            hide-progress: true
+            output: "dependencies.cdx.json"
+            ignore-unfixed: true
+            scan-type: "fs"
+            scan-ref: "."
+            github-pat: ${{ secrets.GITHUB_TOKEN }}
+            severity: "CRITICAL,HIGH"
+            skip-dirs: website
+          env:
+            TRIVY_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-db:2
+        - name: Deliver BOM to Dependency Tracker
+          run: |
+            curl -v -X POST \
+            -H "X-Api-Key: ${{ secrets.DEPTRACK_API_KEY }}" \
+            -H 'Accept: application/json' \
+            -H 'Content-Type: multipart/form-data' \
+            -F "project=${{ secrets.DEPTRACK_PROJECT_ID }}" \
+            -F "bom=@dependencies.cdx.json" \
+            -F "isLatest=true" \
+            https://sms.eoscnode.org/api/v1/bom
