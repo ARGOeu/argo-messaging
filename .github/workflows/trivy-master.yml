@@ -19,7 +19,6 @@ jobs:
             scan-type: "fs"
             scan-ref: "."
             github-pat: ${{ secrets.GITHUB_TOKEN }}
-            severity: "CRITICAL,HIGH"
             skip-dirs: website
           env:
             TRIVY_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-db:2
