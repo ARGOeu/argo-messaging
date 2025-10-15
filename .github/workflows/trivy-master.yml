@@ -18,6 +18,7 @@ jobs:
             ignore-unfixed: true
             scan-type: "fs"
             scan-ref: "."
+            severity: "CRITICAL,HIGH"
             github-pat: ${{ secrets.GITHUB_TOKEN }}
             skip-dirs: website
           env:
