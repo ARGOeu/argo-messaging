@@ -13,15 +13,17 @@ import (
 	"time"
 )
 
-const TopicsCollection string = "topics"
-const SubscriptionsCollection string = "subscriptions"
-const DailyTopicMsgCountCollection string = "daily_topic_msg_count"
-const UsersCollection string = "users"
-const ProjectsCollection string = "projects"
-const UserRegistrationsCollection string = "user_registrations"
-const SchemasCollection string = "schemas"
-const OpMetricsCollection string = "op_metrics"
-const RolesCollection string = "roles"
+const (
+	TopicsCollection             string = "topics"
+	SubscriptionsCollection      string = "subscriptions"
+	DailyTopicMsgCountCollection string = "daily_topic_msg_count"
+	UsersCollection              string = "users"
+	ProjectsCollection           string = "projects"
+	UserRegistrationsCollection  string = "user_registrations"
+	SchemasCollection            string = "schemas"
+	OpMetricsCollection          string = "op_metrics"
+	RolesCollection              string = "roles"
+)
 
 type DocNotFound struct{}
 
