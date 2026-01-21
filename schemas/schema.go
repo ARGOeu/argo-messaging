@@ -6,13 +6,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
+
 	"github.com/ARGOeu/argo-messaging/messages"
 	"github.com/ARGOeu/argo-messaging/projects"
 	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/linkedin/goavro"
 	log "github.com/sirupsen/logrus"
 	"github.com/xeipuuv/gojsonschema"
-	"strings"
 )
 
 const (
@@ -67,14 +68,14 @@ func ValidateMessages(schema Schema, msgList messages.MsgList) error {
 			messageBytes, err := base64.StdEncoding.DecodeString(msg.Data)
 
 			if err != nil {
-				return fmt.Errorf("Message %v is not in valid base64 enocding,%s", idx, err.Error())
+				return fmt.Errorf("message %v is not in valid base64 encoding,%s", idx, err.Error())
 			}
 
 			documentLoader := gojsonschema.NewBytesLoader(messageBytes)
 
 			result, err := s.Validate(documentLoader)
 			if err != nil {
-				return fmt.Errorf("Message %v data is not valid JSON format,%s", idx, err.Error())
+				return fmt.Errorf("message %v data is not valid JSON format,%s", idx, err.Error())
 			}
 
 			if !result.Valid() {
@@ -84,11 +85,9 @@ func ValidateMessages(schema Schema, msgList messages.MsgList) error {
 					for idx, e := range result.Errors() {
 						sb.WriteString(fmt.Sprintf("%v)%s.", idx+1, e.String()))
 					}
-
-					return fmt.Errorf("Message %v data is not valid.%s", idx, sb.String())
-				} else {
-					return fmt.Errorf("Message %v data is not valid,%v", idx, result.Errors()[0].String())
+					return fmt.Errorf("message %v data is not valid,%s", idx, sb.String())
 				}
+				return fmt.Errorf("message %v data is not valid,%v", idx, result.Errors()[0].String())
 			}
 		}
 	case AVRO:
@@ -122,12 +121,12 @@ func ValidateMessages(schema Schema, msgList messages.MsgList) error {
 			// decode the message payload from base64
 			messageBytes, err := base64.StdEncoding.DecodeString(msg.Data)
 			if err != nil {
-				return fmt.Errorf("Message %v is not in valid base64 enocding,%s", idx, err.Error())
+				return fmt.Errorf("message %v is not in valid base64 encoding,%s", idx, err.Error())
 			}
 
 			_, _, err = c.NativeFromBinary(messageBytes)
 			if err != nil {
-				return fmt.Errorf("Message %v is not valid.%s", idx, err.Error())
+				return fmt.Errorf("message %v is not valid,%s", idx, err.Error())
 			}
 		}
 
@@ -195,8 +194,8 @@ func Find(ctx context.Context, projectUUID, schemaUUID, schemaName string, str s
 					"project_uuid": projectUUID,
 					"error":        err.Error(),
 				},
-			).Error("Could not decode the base64 encoded schema")
-			return SchemaList{}, errors.New("Could not load the schema")
+			).Error("could not decode the base64 encoded schema")
+			return SchemaList{}, errors.New("could not load the schema")
 		}
 
 		err = json.Unmarshal(decodedSchemaBytes, &_schema.RawSchema)
@@ -209,7 +208,7 @@ func Find(ctx context.Context, projectUUID, schemaUUID, schemaName string, str s
 					"error":        err.Error(),
 				},
 			).Error("Could not marshal the schema bytes")
-			return SchemaList{}, errors.New("Could not load the schema")
+			return SchemaList{}, errors.New("could not load the schema")
 		}
 
 		projectName := projects.GetNameByUUID(ctx, projectUUID, str)

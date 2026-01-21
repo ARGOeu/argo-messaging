@@ -6,7 +6,6 @@ import (
 	"github.com/ARGOeu/argo-messaging/auth"
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
-	oldPush "github.com/ARGOeu/argo-messaging/push"
 	push "github.com/ARGOeu/argo-messaging/push/grpc/client"
 	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/gorilla/mux"
@@ -103,7 +102,7 @@ func (suite *RegistrationsHandlersTestSuite) TestRegisterUser() {
 	brk := brokers.MockBroker{}
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
-	mgr := oldPush.Manager{}
+
 	pc := new(push.MockClient)
 
 	for _, t := range testData {
@@ -113,7 +112,7 @@ func (suite *RegistrationsHandlersTestSuite) TestRegisterUser() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		router.HandleFunc("/v1/registrations", WrapMockAuthConfig(RegisterUser, cfgKafka, &brk, str, &mgr, pc))
+		router.HandleFunc("/v1/registrations", WrapMockAuthConfig(RegisterUser, cfgKafka, &brk, str, pc))
 		router.ServeHTTP(w, req)
 		if t.expectedStatusCode == 200 {
 			t.expectedResponse = strings.Replace(t.expectedResponse, "{{UUID}}", str.UserRegistrations[1].UUID, 1)
@@ -178,7 +177,7 @@ func (suite *RegistrationsHandlersTestSuite) TestAcceptRegisterUser() {
 	brk := brokers.MockBroker{}
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
-	mgr := oldPush.Manager{}
+
 	pc := new(push.MockClient)
 
 	for _, t := range testData {
@@ -189,7 +188,7 @@ func (suite *RegistrationsHandlersTestSuite) TestAcceptRegisterUser() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		router.HandleFunc("/v1/registrations/{uuid}:accept", WrapMockAuthConfig(AcceptRegisterUser, cfgKafka, &brk, str, &mgr, pc))
+		router.HandleFunc("/v1/registrations/{uuid}:accept", WrapMockAuthConfig(AcceptRegisterUser, cfgKafka, &brk, str, pc))
 		router.ServeHTTP(w, req)
 		if t.expectedStatusCode == 200 {
 			u, _ := auth.FindUsers(context.Background(), "", "", t.uname, true, str)
@@ -246,7 +245,7 @@ func (suite *RegistrationsHandlersTestSuite) TestDeclineRegisterUser() {
 	brk := brokers.MockBroker{}
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
-	mgr := oldPush.Manager{}
+
 	pc := new(push.MockClient)
 
 	for _, t := range testData {
@@ -257,7 +256,7 @@ func (suite *RegistrationsHandlersTestSuite) TestDeclineRegisterUser() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		router.HandleFunc("/v1/registrations/{uuid}:decline", WrapMockAuthConfig(DeclineRegisterUser, cfgKafka, &brk, str, &mgr, pc))
+		router.HandleFunc("/v1/registrations/{uuid}:decline", WrapMockAuthConfig(DeclineRegisterUser, cfgKafka, &brk, str, pc))
 		router.ServeHTTP(w, req)
 		if t.expectedStatusCode == 200 {
 			suite.Equal(auth.DeclinedRegistrationStatus, str.UserRegistrations[0].Status)
@@ -320,7 +319,7 @@ func (suite *RegistrationsHandlersTestSuite) TestListOneRegistration() {
 	brk := brokers.MockBroker{}
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
-	mgr := oldPush.Manager{}
+
 	pc := new(push.MockClient)
 
 	for _, t := range testData {
@@ -331,7 +330,7 @@ func (suite *RegistrationsHandlersTestSuite) TestListOneRegistration() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		router.HandleFunc("/v1/registrations/{uuid}", WrapMockAuthConfig(ListOneRegistration, cfgKafka, &brk, str, &mgr, pc))
+		router.HandleFunc("/v1/registrations/{uuid}", WrapMockAuthConfig(ListOneRegistration, cfgKafka, &brk, str, pc))
 		router.ServeHTTP(w, req)
 		suite.Equal(t.expectedStatusCode, w.Code, t.msg)
 		suite.Equal(t.expectedResponse, w.Body.String(), t.msg)
@@ -377,7 +376,7 @@ func (suite *RegistrationsHandlersTestSuite) TestDeleteRegistration() {
 	brk := brokers.MockBroker{}
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
-	mgr := oldPush.Manager{}
+
 	pc := new(push.MockClient)
 
 	for _, t := range testData {
@@ -388,7 +387,7 @@ func (suite *RegistrationsHandlersTestSuite) TestDeleteRegistration() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		router.HandleFunc("/v1/registrations/{uuid}", WrapMockAuthConfig(DeleteRegistration, cfgKafka, &brk, str, &mgr, pc))
+		router.HandleFunc("/v1/registrations/{uuid}", WrapMockAuthConfig(DeleteRegistration, cfgKafka, &brk, str, pc))
 		router.ServeHTTP(w, req)
 		suite.Equal(t.expectedStatusCode, w.Code, t.msg)
 		suite.Equal(t.expectedResponse, w.Body.String(), t.msg)
@@ -462,7 +461,7 @@ func (suite *RegistrationsHandlersTestSuite) TestListManyRegistrations() {
 	brk := brokers.MockBroker{}
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
-	mgr := oldPush.Manager{}
+
 	pc := new(push.MockClient)
 
 	for _, t := range testData {
@@ -473,7 +472,7 @@ func (suite *RegistrationsHandlersTestSuite) TestListManyRegistrations() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		router.HandleFunc("/v1/registrations", WrapMockAuthConfig(ListAllRegistrations, cfgKafka, &brk, str, &mgr, pc))
+		router.HandleFunc("/v1/registrations", WrapMockAuthConfig(ListAllRegistrations, cfgKafka, &brk, str, pc))
 		router.ServeHTTP(w, req)
 		suite.Equal(t.expectedStatusCode, w.Code, t.msg)
 		suite.Equal(t.expectedResponse, w.Body.String(), t.msg)

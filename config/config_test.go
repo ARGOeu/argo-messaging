@@ -61,7 +61,7 @@ func (suite *ConfigTestSuite) TestLoadConfiguration() {
 	suite.Equal("/etc/grid-security/certificates", APIcfg2.CertificateAuthoritiesDir)
 	suite.Equal(true, APIcfg.ResAuth)
 	suite.Equal("S3CR3T", APIcfg.ServiceToken)
-	suite.True(APIcfg2.PushTlsEnabled)
+	suite.True(APIcfg2.PushTLSEnabled)
 	suite.Equal("localhost", APIcfg2.PushServerHost)
 	suite.Equal(5555, APIcfg2.PushServerPort)
 	suite.Equal("pw-token", APIcfg2.PushWorkerToken)
@@ -83,7 +83,7 @@ func (suite *ConfigTestSuite) TestLoadStringJSON() {
 	suite.Equal("/etc/pki/tls/private/localhost.key", APIcfg.CertKey)
 	suite.Equal("/etc/grid-security/certificates", APIcfg.CertificateAuthoritiesDir)
 	suite.Equal(true, APIcfg.ResAuth)
-	suite.True(APIcfg.PushTlsEnabled)
+	suite.True(APIcfg.PushTLSEnabled)
 	suite.Equal("localhost", APIcfg.PushServerHost)
 	suite.Equal(5555, APIcfg.PushServerPort)
 	suite.True(APIcfg.VerifyPushServer)
@@ -99,19 +99,19 @@ func (suite *ConfigTestSuite) TestSetAuthOption() {
 	suite.Equal(URLKeyAndHeaderKey, int(cfg.authOption))
 
 	cfg.setAuthOption("KEY")
-	suite.Equal(UrlKey, int(cfg.authOption))
+	suite.Equal(URLKey, int(cfg.authOption))
 
 	cfg.setAuthOption("header")
 	suite.Equal(HeaderKey, int(cfg.authOption))
 
 	cfg.authOption = 0
 	cfg.setAuthOption("")
-	suite.Equal(UrlKey, int(cfg.authOption))
+	suite.Equal(URLKey, int(cfg.authOption))
 }
 
 func (suite *ConfigTestSuite) TestAuthOption() {
 
-	a1 := AuthOption(UrlKey)
+	a1 := AuthOption(URLKey)
 	suite.Equal("key", a1.String())
 
 	a2 := AuthOption(HeaderKey)

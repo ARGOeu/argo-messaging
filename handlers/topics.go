@@ -4,6 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"strconv"
+	"time"
+
 	"github.com/ARGOeu/argo-messaging/auth"
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/messages"
@@ -14,19 +19,12 @@ import (
 	gorillaContext "github.com/gorilla/context"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
-	"io"
-	"net/http"
-	"strconv"
-	"time"
 )
 
 // TopicDelete (DEL) deletes an existing topic
 func TopicDelete(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
-
-	// Init output
-	output := []byte("")
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -69,16 +67,13 @@ func TopicDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Write empty response if anything ok
-	respondOK(w, output)
+	respondOK(w, nil)
 }
 
 // TopicModACL (PUT) modifies the ACL
 func TopicModACL(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
-
-	// Init output
-	output := []byte("")
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -133,17 +128,14 @@ func TopicModACL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondOK(w, output)
+	respondOK(w, nil)
 
 }
 
 // TopicCreate (PUT) creates a new  topic
 func TopicCreate(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
-
-	// Init output
-	output := []byte("")
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -230,18 +222,13 @@ func TopicCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Write response
-	output = []byte(resJSON)
-	respondOK(w, output)
+	respondOK(w, []byte(resJSON))
 }
 
 // TopicAttachSchema (POST) attaches an already created schema to the given topic
 func TopicAttachSchema(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
-
-	// Init output
-	output := []byte("")
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -327,18 +314,13 @@ func TopicAttachSchema(w http.ResponseWriter, r *http.Request) {
 		respondErr(rCTX, w, err)
 	}
 
-	// Write response
-	output = []byte("")
-	respondOK(w, output)
+	respondOK(w, nil)
 }
 
 // TopicDetachSchema (POST) removes the schema from the given topic
 func TopicDetachSchema(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
-
-	// Init output
-	output := []byte("")
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -373,18 +355,13 @@ func TopicDetachSchema(w http.ResponseWriter, r *http.Request) {
 		respondErr(rCTX, w, err)
 	}
 
-	// Write response
-	output = []byte("")
-	respondOK(w, output)
+	respondOK(w, nil)
 }
 
 // TopicListOne (GET) one topic
 func TopicListOne(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
-
-	// Init output
-	output := []byte("")
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -423,15 +400,13 @@ func TopicListOne(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Write response
-	output = []byte(resJSON)
-	respondOK(w, output)
+	respondOK(w, []byte(resJSON))
 }
 
 // ListSubsByTopic (GET) lists all subscriptions associated with the given topic
 func ListSubsByTopic(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -480,11 +455,8 @@ func ListSubsByTopic(w http.ResponseWriter, r *http.Request) {
 
 // TopicACL (GET) one topic's authorized users
 func TopicACL(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
-
-	// Init output
-	output := []byte("")
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -517,23 +489,18 @@ func TopicACL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Write response
-	output = []byte(resJSON)
-	respondOK(w, output)
+	respondOK(w, []byte(resJSON))
 }
 
 // TopicListAll (GET) all topics
 func TopicListAll(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	var err error
 	var strPageSize string
 	var pageSize int
 	var res topics.PaginatedTopics
-
-	// Init output
-	output := []byte("")
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -585,17 +552,13 @@ func TopicListAll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Write Response
-	output = []byte(resJSON)
-	respondOK(w, output)
+	respondOK(w, []byte(resJSON))
 }
 
 // TopicPublish (POST) publish messages to a topic
 func TopicPublish(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
-	// Init output
-	output := []byte("")
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -639,7 +602,7 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 
 	if refAuthResource && auth.IsPublisher(refRoles) {
 
-		if auth.PerResource(rCTX, projectUUID, "topics", urlTopic, refUserUUID, refStr) == false {
+		if !auth.PerResource(rCTX, projectUUID, "topics", urlTopic, refUserUUID, refStr) {
 			err := APIErrorForbidden()
 			respondErr(rCTX, w, err)
 			return
@@ -797,7 +760,5 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Write response
-	output = []byte(resJSON)
-	respondOK(w, output)
+	respondOK(w, []byte(resJSON))
 }

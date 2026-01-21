@@ -199,7 +199,7 @@ func NewProjectUserTopics(project string, user string, value int64, tstamp strin
 	return m
 }
 
-// Initialize single point timeseries with the latest timestamp and value
+// NewOpNodeCPU initializes a single point time series with the latest timestamp and value
 func NewOpNodeCPU(hostname string, value float64, tstamp string) Metric {
 	ts := []Timepoint{Timepoint{Timestamp: tstamp, Value: value}}
 	m := Metric{Metric: NameOpNodeCPU, MetricType: "percentage", ValueType: "float64", ResourceType: "ams_node", Resource: hostname, Timeseries: ts, Description: DescOpNodeCPU}
@@ -214,7 +214,6 @@ func NewOpNodeMEM(hostname string, value float64, tstamp string) Metric {
 	return m
 }
 
-// GetUserFromJSON retrieves User info From JSON string
 func GetMetricsFromJSON(input []byte) (MetricList, error) {
 	ml := MetricList{}
 	err := json.Unmarshal([]byte(input), &ml)

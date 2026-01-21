@@ -25,7 +25,7 @@ type QSub struct {
 	TotalBytes          int64       `bson:"total_bytes"`
 	VerificationHash    string      `bson:"verification_hash"`
 	Verified            bool        `bson:"verified"`
-	MattermostUrl       string      `bson:"mattermost_url"`
+	MattermostURL       string      `bson:"mattermost_url"`
 	MattermostUsername  string      `bson:"mattermost_username"`
 	MattermostChannel   string      `bson:"mattermost_channel"`
 	Base64Decode        bool        `bson:"base_64_decode"`
@@ -46,7 +46,7 @@ type QPushConfig struct {
 	RetPeriod           int    `bson:"retry_period"`
 	VerificationHash    string `bson:"verification_hash"`
 	Verified            bool   `bson:"verified"`
-	MattermostUrl       string `bson:"mattermost_url"`
+	MattermostURL       string `bson:"mattermost_url"`
 	MattermostUsername  string `bson:"mattermost_username"`
 	MattermostChannel   string `bson:"mattermost_channel"`
 	Base64Decode        bool   `bson:"base_64_decode"`
@@ -109,7 +109,7 @@ type QUser struct {
 	CreatedBy    string          `bson:"created_by"`
 }
 
-//QProjectRoles include information about projects and roles that user has
+// QProjectRoles include information about projects and roles that user has
 type QProjectRoles struct {
 	ProjectUUID string   `bson:"project_uuid"`
 	Roles       []string `bson:"roles"`

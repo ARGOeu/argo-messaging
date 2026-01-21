@@ -4,6 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/ARGOeu/argo-messaging/auth"
 	"github.com/ARGOeu/argo-messaging/projects"
 	"github.com/ARGOeu/argo-messaging/stores"
@@ -11,20 +17,12 @@ import (
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 	"github.com/twinj/uuid"
-	"io"
-	"net/http"
-	"strconv"
-	"strings"
-	"time"
 )
 
 // ProjectDelete (DEL) deletes an existing project (also removes it's topics and subscriptions)
 func ProjectDelete(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
-
-	// Init output
-	output := []byte("")
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -51,16 +49,13 @@ func ProjectDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Write empty response if anything ok
-	respondOK(w, output)
+	respondOK(w, nil)
 }
 
 // ProjectUpdate (PUT) updates the name or the description of an existing project
 func ProjectUpdate(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
-
-	// Init output
-	output := []byte("")
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -117,18 +112,13 @@ func ProjectUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Write response
-	output = []byte(resJSON)
-	respondOK(w, output)
+	respondOK(w, []byte(resJSON))
 }
 
 // ProjectCreate (POST) creates a new project
 func ProjectCreate(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
-
-	// Init output
-	output := []byte("")
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -184,18 +174,13 @@ func ProjectCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Write response
-	output = []byte(resJSON)
-	respondOK(w, output)
+	respondOK(w, []byte(resJSON))
 }
 
 // ProjectListAll (GET) all projects
 func ProjectListAll(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
-
-	// Init output
-	output := []byte("")
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -224,18 +209,13 @@ func ProjectListAll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Write response
-	output = []byte(resJSON)
-	respondOK(w, output)
+	respondOK(w, []byte(resJSON))
 }
 
 // ProjectListOne (GET) one project
 func ProjectListOne(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
-
-	// Init output
-	output := []byte("")
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -274,18 +254,13 @@ func ProjectListOne(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Write response
-	output = []byte(resJSON)
-	respondOK(w, output)
+	respondOK(w, []byte(resJSON))
 }
 
 // ProjectUserListOne (GET) one user member of a specific project
 func ProjectUserListOne(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
-
-	// Init output
-	output := []byte("")
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -330,18 +305,13 @@ func ProjectUserListOne(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Write response
-	output = []byte(resJSON)
-	respondOK(w, output)
+	respondOK(w, []byte(resJSON))
 }
 
 // ProjectUserCreate (POST) creates a user under the respective project by the project's admin
 func ProjectUserCreate(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
-
-	// Init output
-	output := []byte("")
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -405,6 +375,10 @@ func ProjectUserCreate(w http.ResponseWriter, r *http.Request) {
 
 	uuid := uuid.NewV4().String() // generate a new uuid to attach to the new project
 	token, err := auth.GenToken() // generate a new user token
+	if err != nil {
+		respondErr(rCTX, w, APIErrGenericInternal(err.Error()))
+		return
+	}
 	created := time.Now().UTC()
 
 	// Get Result Object
@@ -442,18 +416,13 @@ func ProjectUserCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Write response
-	output = []byte(resJSON)
-	respondOK(w, output)
+	respondOK(w, []byte(resJSON))
 }
 
 // ProjectUserUpdate (PUT) updates a user under the respective project by the project's admin
 func ProjectUserUpdate(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
-
-	// Init output
-	output := []byte("")
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -603,15 +572,13 @@ func ProjectUserUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Write response
-	output = []byte(resJSON)
-	respondOK(w, output)
+	respondOK(w, []byte(resJSON))
 }
 
 // ProjectUserRemove (POST) removes a user from the respective project
 func ProjectUserRemove(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -693,8 +660,8 @@ func ProjectUserRemove(w http.ResponseWriter, r *http.Request) {
 
 // ProjectUserAdd (POST) adds a user to the respective project
 func ProjectUserAdd(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -830,15 +797,12 @@ func ProjectUserAdd(w http.ResponseWriter, r *http.Request) {
 
 // ProjectListUsers (GET) all users belonging to a project
 func ProjectListUsers(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	var err error
 	var pageSize int
 	var paginatedUsers auth.PaginatedUsers
-
-	// Init output
-	output := []byte("")
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -899,7 +863,5 @@ func ProjectListUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Write response
-	output = []byte(resJSON)
-	respondOK(w, output)
+	respondOK(w, []byte(resJSON))
 }

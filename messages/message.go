@@ -47,10 +47,10 @@ type MsgIDs struct {
 // Attributes representation as key/value
 type Attributes map[string]string
 
-//TotalSize returns the total bytesize of a message list
-func (msgL RecList) TotalSize() int64 {
+// TotalSize returns the total bytesize of a message list
+func (r RecList) TotalSize() int64 {
 	sum := int64(0)
-	for _, msg := range msgL.RecMsgs {
+	for _, msg := range r.RecMsgs {
 		// Convert data string to byte array
 		bt := []byte(msg.Msg.Data)
 		sum = sum + int64(len(bt))
@@ -59,10 +59,10 @@ func (msgL RecList) TotalSize() int64 {
 	return sum
 }
 
-//TotalSize returns the total bytesize of a message list
-func (msgL MsgList) TotalSize() int64 {
+// TotalSize returns the total bytesize of a message list
+func (m MsgList) TotalSize() int64 {
 	sum := int64(0)
-	for _, msg := range msgL.Msgs {
+	for _, msg := range m.Msgs {
 		// Convert data string to byte array
 		bt := []byte(msg.Data)
 		sum = sum + int64(len(bt))
@@ -71,7 +71,7 @@ func (msgL MsgList) TotalSize() int64 {
 	return sum
 }
 
-//Size returns the messages size in bytes
+// Size returns the messages size in bytes
 func (msg Message) Size() int64 {
 	// Convert data string to byte array
 	bt := []byte(msg.Data)
@@ -162,7 +162,7 @@ func (msg *Message) AttrExists(key string) (bool, string) {
 func (msg *Message) InsertAttribute(key string, value string) error {
 	exists, _ := msg.AttrExists(key)
 	if exists {
-		return errors.New("Attribute already exists")
+		return errors.New("attribute already exists")
 	}
 
 	msg.Attr[key] = value
@@ -177,7 +177,7 @@ func (msg *Message) UpdateAttribute(key string, value string) error {
 		return nil
 	}
 
-	return errors.New("Attribute doesn't exist")
+	return errors.New("attribute doesn't exist")
 }
 
 // RemoveAttribute takes a key and removes attribute if exists (based on key)
@@ -188,7 +188,7 @@ func (msg *Message) RemoveAttribute(key string) error {
 		return nil
 	}
 
-	return errors.New("Attribute doesn't exist")
+	return errors.New("attribute doesn't exist")
 }
 
 // GetAttribute takes a key and return attribute value if exists (based on key)
@@ -198,7 +198,7 @@ func (msg *Message) GetAttribute(key string) (string, error) {
 		return value, nil
 	}
 
-	return "", errors.New("Attribute doesn't exist")
+	return "", errors.New("attribute doesn't exist")
 
 }
 
@@ -221,16 +221,16 @@ func (msgIDs *MsgIDs) ExportJSON() (string, error) {
 }
 
 // ExportJSON exports whole msgId  Structure as a json string
-func (recList *RecList) ExportJSON() (string, error) {
-	if recList.RecMsgs == nil {
-		recList.RecMsgs = []RecMsg{}
+func (r *RecList) ExportJSON() (string, error) {
+	if r.RecMsgs == nil {
+		r.RecMsgs = []RecMsg{}
 	}
-	output, err := json.MarshalIndent(recList, "", "   ")
+	output, err := json.MarshalIndent(r, "", "   ")
 	return string(output[:]), err
 }
 
 // ExportJSON exports whole MsgList as a json string
-func (msgList *MsgList) ExportJSON() (string, error) {
-	output, err := json.MarshalIndent(msgList, "", "   ")
+func (m *MsgList) ExportJSON() (string, error) {
+	output, err := json.MarshalIndent(m, "", "   ")
 	return string(output[:]), err
 }

@@ -124,7 +124,7 @@ func (suite *MongoStoreIntegrationTestSuite) assertSubsEqual(expected []QSub, ac
 		suite.Equal(sub.Name, actual[idx].Name, sub.Name)
 		suite.Equal(sub.ProjectUUID, actual[idx].ProjectUUID, sub.Name)
 		suite.Equal(sub.MattermostChannel, actual[idx].MattermostChannel, sub.Name)
-		suite.Equal(sub.MattermostUrl, actual[idx].MattermostUrl, sub.Name)
+		suite.Equal(sub.MattermostURL, actual[idx].MattermostURL, sub.Name)
 		suite.Equal(sub.MattermostUsername, actual[idx].MattermostUsername, sub.Name)
 		suite.Equal(sub.ConsumeRate, actual[idx].ConsumeRate, sub.Name)
 		suite.Equal(sub.LatestConsume, actual[idx].LatestConsume, sub.Name)
@@ -350,7 +350,7 @@ func (suite *MongoStoreIntegrationTestSuite) initDB() {
 			RetPeriod:           qSub.RetPeriod,
 			VerificationHash:    qSub.VerificationHash,
 			Verified:            qSub.Verified,
-			MattermostUrl:       qSub.MattermostUrl,
+			MattermostURL:       qSub.MattermostUrl,
 			MattermostUsername:  qSub.MattermostUsername,
 			MattermostChannel:   qSub.MattermostChannel,
 			Base64Decode:        qSub.Base64Decode,
@@ -943,7 +943,7 @@ func (suite *MongoStoreIntegrationTestSuite) TestModPushSub() {
 		RetPeriod:           400,
 		VerificationHash:    "hash-1",
 		Verified:            true,
-		MattermostUrl:       "m-url",
+		MattermostURL:       "m-url",
 		MattermostUsername:  "m-u",
 		MattermostChannel:   "m-c",
 		Base64Decode:        true,

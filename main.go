@@ -7,7 +7,6 @@ import (
 
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
-	oldPush "github.com/ARGOeu/argo-messaging/push"
 	push "github.com/ARGOeu/argo-messaging/push/grpc/client"
 	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/ARGOeu/argo-messaging/version"
@@ -40,8 +39,6 @@ func main() {
 	// create and initialize broker based on configuration
 	broker := brokers.NewKafkaBroker(cfg.GetBrokerInfo())
 
-	mgr := &oldPush.Manager{}
-
 	// ams push server pushClient
 	pushClient := push.NewGrpcClient(cfg)
 	err := pushClient.Dial()
@@ -62,7 +59,7 @@ func main() {
 	}()
 
 	// create and initialize API routing object
-	API := NewRouting(cfg, broker, store, mgr, pushClient, defaultRoutes)
+	API := NewRouting(cfg, broker, store, pushClient, defaultRoutes)
 
 	//Configure TLS support only
 	config := &tls.Config{

@@ -32,7 +32,7 @@ func (suite *MetricsTestSuite) SetupTest() {
 }
 
 func (suite *MetricsTestSuite) TestCreateMetric() {
-	expJson := `{
+	expJSON := `{
    "metric": "project.number_of_topics",
    "metric_type": "counter",
    "value_type": "int64",
@@ -50,11 +50,11 @@ func (suite *MetricsTestSuite) TestCreateMetric() {
 	ts := "2017-06-23T03:42:44Z"
 	myMetric := NewProjectTopics("test_project", 32, ts)
 	outputJSON, _ := myMetric.ExportJSON()
-	suite.Equal(expJson, outputJSON)
+	suite.Equal(expJSON, outputJSON)
 }
 
 func (suite *MetricsTestSuite) TestCreateMetricList() {
-	expJson := `{
+	expJSON := `{
    "metrics": [
       {
          "metric": "project.number_of_topics",
@@ -77,7 +77,7 @@ func (suite *MetricsTestSuite) TestCreateMetricList() {
 	myList := NewMetricList(myMetric)
 	outputJSON, _ := myList.ExportJSON()
 
-	suite.Equal(expJson, outputJSON)
+	suite.Equal(expJSON, outputJSON)
 }
 
 func (suite *MetricsTestSuite) TestOperational() {
@@ -118,7 +118,7 @@ func (suite *MetricsTestSuite) TestOperational() {
 	APIcfg := config.NewAPICfg()
 	APIcfg.LoadStrJSON(suite.cfgStr)
 	store := stores.NewMockStore(APIcfg.StoreHost, APIcfg.StoreDB)
-	ml, _ := GetUsageCpuMem(suite.ctx, store)
+	ml, _ := GetUsageCPUMem(suite.ctx, store)
 	outJSON, _ := ml.ExportJSON()
 
 	ts1 := ml.Metrics[0].Timeseries[0].Timestamp

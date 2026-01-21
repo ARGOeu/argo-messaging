@@ -47,7 +47,7 @@ func (ps *Projects) Empty() bool {
 
 // One returns the first project if a projects list is not empty
 func (ps *Projects) One() Project {
-	if ps.Empty() == false {
+	if !ps.Empty() {
 		return ps.List[0]
 	}
 	return Project{}
@@ -180,7 +180,7 @@ func UpdateProject(ctx context.Context, uuid string, name string, description st
 	// ProjectUUID with uuid should exist to be updated
 
 	// check if project with the same name exists
-	if ExistsWithUUID(ctx, uuid, store) == false {
+	if !ExistsWithUUID(ctx, uuid, store) {
 		return Project{}, errors.New("not found")
 	}
 
@@ -198,7 +198,7 @@ func RemoveProject(ctx context.Context, uuid string, store stores.Store) error {
 	// ProjectUUID with uuid should exist to be updated
 
 	// check if project with the same name exists
-	if ExistsWithUUID(ctx, uuid, store) == false {
+	if !ExistsWithUUID(ctx, uuid, store) {
 		return errors.New("not found")
 	}
 

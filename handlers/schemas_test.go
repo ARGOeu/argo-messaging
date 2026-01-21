@@ -4,20 +4,20 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
-	oldPush "github.com/ARGOeu/argo-messaging/push"
 	push "github.com/ARGOeu/argo-messaging/push/grpc/client"
 	"github.com/ARGOeu/argo-messaging/schemas"
 	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/suite"
-	"io"
-	"net/http"
-	"net/http/httptest"
-	"strings"
-	"testing"
 )
 
 type SchemasHandlersTestSuite struct {
@@ -189,7 +189,7 @@ func (suite *SchemasHandlersTestSuite) TestSchemaCreate() {
 	brk := brokers.MockBroker{}
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
-	mgr := oldPush.Manager{}
+
 	pc := new(push.MockClient)
 
 	for _, t := range testData {
@@ -200,7 +200,7 @@ func (suite *SchemasHandlersTestSuite) TestSchemaCreate() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		router.HandleFunc("/v1/projects/{project}/schemas/{schema}", WrapMockAuthConfig(SchemaCreate, cfgKafka, &brk, str, &mgr, pc))
+		router.HandleFunc("/v1/projects/{project}/schemas/{schema}", WrapMockAuthConfig(SchemaCreate, cfgKafka, &brk, str, pc))
 		router.ServeHTTP(w, req)
 
 		if t.expectedStatusCode == 200 {
@@ -277,7 +277,7 @@ func (suite *SchemasHandlersTestSuite) TestSchemaListOne() {
 	brk := brokers.MockBroker{}
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
-	mgr := oldPush.Manager{}
+
 	pc := new(push.MockClient)
 
 	for _, t := range testData {
@@ -288,7 +288,7 @@ func (suite *SchemasHandlersTestSuite) TestSchemaListOne() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		router.HandleFunc("/v1/projects/{project}/schemas/{schema}", WrapMockAuthConfig(SchemaListOne, cfgKafka, &brk, str, &mgr, pc))
+		router.HandleFunc("/v1/projects/{project}/schemas/{schema}", WrapMockAuthConfig(SchemaListOne, cfgKafka, &brk, str, pc))
 		router.ServeHTTP(w, req)
 
 		suite.Equal(t.expectedStatusCode, w.Code, t.msg)
@@ -404,7 +404,7 @@ func (suite *SchemasHandlersTestSuite) TestSchemaListAll() {
 	brk := brokers.MockBroker{}
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
-	mgr := oldPush.Manager{}
+
 	pc := new(push.MockClient)
 
 	for _, t := range testData {
@@ -415,7 +415,7 @@ func (suite *SchemasHandlersTestSuite) TestSchemaListAll() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		router.HandleFunc("/v1/projects/{project}/schemas", WrapMockAuthConfig(SchemaListAll, cfgKafka, &brk, str, &mgr, pc))
+		router.HandleFunc("/v1/projects/{project}/schemas", WrapMockAuthConfig(SchemaListAll, cfgKafka, &brk, str, pc))
 		router.ServeHTTP(w, req)
 
 		suite.Equal(t.expectedStatusCode, w.Code, t.msg)
@@ -554,7 +554,7 @@ func (suite *SchemasHandlersTestSuite) TestSchemaUpdate() {
 	brk := brokers.MockBroker{}
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
-	mgr := oldPush.Manager{}
+
 	pc := new(push.MockClient)
 
 	for _, t := range testData {
@@ -565,7 +565,7 @@ func (suite *SchemasHandlersTestSuite) TestSchemaUpdate() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		router.HandleFunc("/v1/projects/{project}/schemas/{schema}", WrapMockAuthConfig(SchemaUpdate, cfgKafka, &brk, str, &mgr, pc))
+		router.HandleFunc("/v1/projects/{project}/schemas/{schema}", WrapMockAuthConfig(SchemaUpdate, cfgKafka, &brk, str, pc))
 		router.ServeHTTP(w, req)
 
 		suite.Equal(t.expectedStatusCode, w.Code, t.msg)
@@ -610,7 +610,7 @@ func (suite *SchemasHandlersTestSuite) TestSchemaDelete() {
 	brk := brokers.MockBroker{}
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
-	mgr := oldPush.Manager{}
+
 	pc := new(push.MockClient)
 
 	for _, t := range testData {
@@ -621,7 +621,7 @@ func (suite *SchemasHandlersTestSuite) TestSchemaDelete() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		router.HandleFunc("/v1/projects/{project}/schemas/{schema}", WrapMockAuthConfig(SchemaDelete, cfgKafka, &brk, str, &mgr, pc))
+		router.HandleFunc("/v1/projects/{project}/schemas/{schema}", WrapMockAuthConfig(SchemaDelete, cfgKafka, &brk, str, pc))
 		router.ServeHTTP(w, req)
 
 		suite.Equal(t.expectedStatusCode, w.Code, t.msg)
@@ -673,7 +673,7 @@ func (suite *SchemasHandlersTestSuite) TestSchemaValidateMessage() {
 			expectedResponse: `{
    "error": {
       "code": 400,
-      "message": "Message 0 data is not valid,(root): email is required",
+      "message": "message 0 data is not valid,(root): email is required",
       "status": "INVALID_ARGUMENT"
    }
 }`,
@@ -688,7 +688,7 @@ func (suite *SchemasHandlersTestSuite) TestSchemaValidateMessage() {
 			expectedResponse: `{
    "error": {
       "code": 400,
-      "message": "Message 0 is not valid.cannot decode binary record \"user.avro.User\" field \"username\": cannot decode binary string: cannot decode binary bytes: negative size: -40",
+      "message": "message 0 is not valid,cannot decode binary record \"user.avro.User\" field \"username\": cannot decode binary string: cannot decode binary bytes: negative size: -40",
       "status": "INVALID_ARGUMENT"
    }
 }`,
@@ -703,7 +703,7 @@ func (suite *SchemasHandlersTestSuite) TestSchemaValidateMessage() {
 			expectedResponse: `{
    "error": {
       "code": 400,
-      "message": "Message 0 is not in valid base64 enocding,illegal base64 data at input byte 12",
+      "message": "message 0 is not in valid base64 encoding,illegal base64 data at input byte 12",
       "status": "INVALID_ARGUMENT"
    }
 }`,
@@ -744,7 +744,7 @@ func (suite *SchemasHandlersTestSuite) TestSchemaValidateMessage() {
 	brk := brokers.MockBroker{}
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
-	mgr := oldPush.Manager{}
+
 	pc := new(push.MockClient)
 
 	for _, t := range testData {
@@ -759,7 +759,7 @@ func (suite *SchemasHandlersTestSuite) TestSchemaValidateMessage() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		router.HandleFunc("/v1/projects/{project}/schemas/{schema}:validate", WrapMockAuthConfig(SchemaValidateMessage, cfgKafka, &brk, str, &mgr, pc))
+		router.HandleFunc("/v1/projects/{project}/schemas/{schema}:validate", WrapMockAuthConfig(SchemaValidateMessage, cfgKafka, &brk, str, pc))
 		router.ServeHTTP(w, req)
 
 		suite.Equal(t.expectedStatusCode, w.Code, t.msg)

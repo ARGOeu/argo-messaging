@@ -11,7 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func GetUsageCpuMem(ctx context.Context, store stores.Store) (MetricList, error) {
+func GetUsageCPUMem(ctx context.Context, store stores.Store) (MetricList, error) {
 	pid := os.Getpid()
 	pidstr := strconv.FormatInt(int64(pid), 10)
 	out, err := exec.Command("ps", "-p", pidstr, "-o", "%cpu").Output()
@@ -25,7 +25,7 @@ func GetUsageCpuMem(ctx context.Context, store stores.Store) (MetricList, error)
 	}
 
 	// Take cli output and split it by new line chars
-	cpuOut := strings.Split(string(out[:len(out)]), "\n")
+	cpuOut := strings.Split(string(out[:]), "\n")
 	log.WithFields(
 		log.Fields{
 			"trace_id": ctx.Value("trace_id"),
@@ -53,7 +53,7 @@ func GetUsageCpuMem(ctx context.Context, store stores.Store) (MetricList, error)
 	}
 
 	// Take cli output and split it by new line chars
-	memOut := strings.Split(string(out2[:len(out2)]), "\n")
+	memOut := strings.Split(string(out2[:]), "\n")
 	log.WithFields(
 		log.Fields{
 			"trace_id": ctx.Value("trace_id"),

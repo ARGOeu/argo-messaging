@@ -6,9 +6,10 @@ import (
 
 	"errors"
 	"fmt"
-	"github.com/ARGOeu/argo-messaging/messages"
 	"strings"
 	"time"
+
+	"github.com/ARGOeu/argo-messaging/messages"
 )
 
 // MockBroker struct
@@ -103,12 +104,12 @@ func (b *MockBroker) Publish(ctx context.Context, topic string, msg messages.Mes
 	return msgID, fmt.Sprintf("%s.%s", s[0], s[1]), 0, int64(len(b.MsgList)), nil
 }
 
-// GetOffset returns a current topic's offset
+// GetMaxOffset returns a current topic's offset
 func (b *MockBroker) GetMaxOffset(ctx context.Context, topic string) int64 {
 	return int64(len(b.MsgList) + 1)
 }
 
-// GetOffset returns a current topic's offset
+// GetMinOffset returns a current topic's offset
 func (b *MockBroker) GetMinOffset(ctx context.Context, topic string) int64 {
 	return int64(len(b.MsgList))
 }
@@ -118,7 +119,7 @@ func (b *MockBroker) Consume(ctx context.Context, topic string, offset int64, im
 	return b.MsgList, nil
 }
 
-// Delete topic from the broker
+// DeleteTopic remove the topic from the broker
 func (b *MockBroker) DeleteTopic(ctx context.Context, topic string) error {
 
 	_, ok := b.Topics[topic]

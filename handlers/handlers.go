@@ -4,11 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"sort"
+	"time"
+
 	"github.com/ARGOeu/argo-messaging/auth"
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
 	"github.com/ARGOeu/argo-messaging/projects"
-	oldPush "github.com/ARGOeu/argo-messaging/push"
 	push "github.com/ARGOeu/argo-messaging/push/grpc/client"
 	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/ARGOeu/argo-messaging/validation"
@@ -17,16 +20,17 @@ import (
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 	"github.com/twinj/uuid"
-	"net/http"
-	"sort"
-	"time"
 )
+
+type ContextStringValue string
+
+const TraceIDContextKey ContextStringValue = "trace_id"
 
 // WrapValidate handles validation
 func WrapValidate(hfn http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		traceId := gorillaContext.Get(r, "trace_id").(string)
-		rCTX := context.WithValue(context.Background(), "trace_id", traceId)
+		traceID := gorillaContext.Get(r, "trace_id").(string)
+		rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 		urlVars := mux.Vars(r)
 
 		// sort keys
@@ -38,7 +42,7 @@ func WrapValidate(hfn http.HandlerFunc) http.HandlerFunc {
 
 		// Iterate alphabetically
 		for _, key := range keys {
-			if validation.ValidName(urlVars[key]) == false {
+			if !validation.ValidName(urlVars[key]) {
 				err := APIErrorInvalidName(key)
 				respondErr(rCTX, w, err)
 				return
@@ -50,7 +54,7 @@ func WrapValidate(hfn http.HandlerFunc) http.HandlerFunc {
 }
 
 // WrapMockAuthConfig handle wrapper is used in tests were some auth context is needed
-func WrapMockAuthConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *oldPush.Manager, c push.Client, roles ...string) http.HandlerFunc {
+func WrapMockAuthConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Broker, str stores.Store, c push.Client, roles ...string) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		urlVars := mux.Vars(r)
@@ -63,15 +67,14 @@ func WrapMockAuthConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Br
 		nStr := str.Clone()
 		defer nStr.Close()
 
-		traceId := uuid.NewV4().String()
-		gorillaContext.Set(r, "trace_id", traceId)
+		traceID := uuid.NewV4().String()
+		gorillaContext.Set(r, "trace_id", traceID)
 
-		projectUUID := projects.GetUUIDByName(context.WithValue(context.Background(), "trace_id", traceId),
+		projectUUID := projects.GetUUIDByName(context.WithValue(context.Background(), TraceIDContextKey, traceID),
 			urlVars["project"], nStr)
 		gorillaContext.Set(r, "auth_project_uuid", projectUUID)
 		gorillaContext.Set(r, "brk", brk)
 		gorillaContext.Set(r, "str", nStr)
-		gorillaContext.Set(r, "mgr", mgr)
 		gorillaContext.Set(r, "apsc", c)
 		gorillaContext.Set(r, "authOption", cfg.AuthOption())
 		gorillaContext.Set(r, "auth_resource", cfg.ResAuth)
@@ -87,14 +90,13 @@ func WrapMockAuthConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Br
 }
 
 // WrapConfig handle wrapper to retrieve kafka configuration
-func WrapConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Broker, str stores.Store, mgr *oldPush.Manager, c push.Client) http.HandlerFunc {
+func WrapConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Broker, str stores.Store, c push.Client) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		traceId := uuid.NewV4().String()
-		gorillaContext.Set(r, "trace_id", traceId)
+		traceID := uuid.NewV4().String()
+		gorillaContext.Set(r, "trace_id", traceID)
 		gorillaContext.Set(r, "brk", brk)
 		gorillaContext.Set(r, "str", str)
-		gorillaContext.Set(r, "mgr", mgr)
 		gorillaContext.Set(r, "apsc", c)
 		gorillaContext.Set(r, "authOption", cfg.AuthOption())
 		gorillaContext.Set(r, "proxy_hostname", cfg.ProxyHostname)
@@ -143,8 +145,8 @@ func WrapLog(hfn http.Handler, name string) http.HandlerFunc {
 // WrapAuthenticate handle wrapper to apply authentication
 func WrapAuthenticate(hfn http.Handler, extractToken RequestTokenExtractStrategy) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		traceId := gorillaContext.Get(r, "trace_id").(string)
-		rCTX := context.WithValue(context.Background(), "trace_id", traceId)
+		traceID := gorillaContext.Get(r, "trace_id").(string)
+		rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 		urlVars := mux.Vars(r)
 
@@ -164,7 +166,7 @@ func WrapAuthenticate(hfn http.Handler, extractToken RequestTokenExtractStrategy
 		projectUUID := projects.GetUUIDByName(rCTX, urlVars["project"], refStr)
 
 		// In all cases instead of project create
-		if "projects:create" != mux.CurrentRoute(r).GetName() {
+		if mux.CurrentRoute(r).GetName() != "projects:create" {
 			// Check if given a project name the project wasn't found
 			if projectName != "" && projectUUID == "" {
 				apiErr := APIErrorNotFound("project")
@@ -203,8 +205,8 @@ func WrapAuthenticate(hfn http.Handler, extractToken RequestTokenExtractStrategy
 // WrapAuthorize handle wrapper to apply authorization
 func WrapAuthorize(hfn http.Handler, routeName string, extractToken RequestTokenExtractStrategy) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		traceId := gorillaContext.Get(r, "trace_id").(string)
-		rCTX := context.WithValue(context.Background(), "trace_id", traceId)
+		traceID := gorillaContext.Get(r, "trace_id").(string)
+		rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 		refStr := gorillaContext.Get(r, "str").(stores.Store)
 		refRoles := gorillaContext.Get(r, "auth_roles").([]string)
@@ -228,8 +230,8 @@ func WrapAuthorize(hfn http.Handler, routeName string, extractToken RequestToken
 
 // HealthCheck returns an ok message to make sure the service is up and running
 func HealthCheck(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	var err error
 	var bytes []byte
@@ -306,8 +308,8 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 
 // ListVersion displays version information about the service
 func ListVersion(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -381,8 +383,8 @@ func respondErr(ctx context.Context, w http.ResponseWriter, apiErr APIErrorRoot)
 // that can extract an api access token from the request
 type RequestTokenExtractStrategy func(r *http.Request) string
 
-// UrlKeyExtract extracts the api access token from the url parameter key
-func UrlKeyExtract(r *http.Request) string {
+// URLKeyExtract extracts the api access token from the url parameter key
+func URLKeyExtract(r *http.Request) string {
 	return r.URL.Query().Get("key")
 }
 
@@ -391,9 +393,9 @@ func HeaderKeyExtract(r *http.Request) string {
 	return r.Header.Get("x-api-key")
 }
 
-// HeaderUrlKeyExtract tries to extract the api access token first from the x-api-header
+// HeaderURLKeyExtract tries to extract the api access token first from the x-api-header,
 // and then it falls back to the url parameter
-func HeaderUrlKeyExtract(r *http.Request) string {
+func HeaderURLKeyExtract(r *http.Request) string {
 
 	// first try the header x-api-key
 	key := r.Header.Get("x-api-key")
@@ -412,12 +414,12 @@ func GetRequestTokenExtractStrategy(authOpt config.AuthOption) RequestTokenExtra
 	switch authOpt {
 	case config.HeaderKey:
 		return HeaderKeyExtract
-	case config.UrlKey:
-		return UrlKeyExtract
+	case config.URLKey:
+		return URLKeyExtract
 	case config.URLKeyAndHeaderKey:
-		return HeaderUrlKeyExtract
+		return HeaderURLKeyExtract
 	}
-	return HeaderUrlKeyExtract
+	return HeaderURLKeyExtract
 }
 
 type HealthStatus struct {

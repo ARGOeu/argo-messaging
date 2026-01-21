@@ -37,7 +37,7 @@ func (suite *MsgTestSuite) TestAttributes() {
 	suite.Equal("wayne", val2)
 	suite.Equal(nil, err2)
 	suite.Equal("", val3)
-	suite.Equal(errors.New("Attribute doesn't exist"), err3)
+	suite.Equal(errors.New("attribute doesn't exist"), err3)
 	// Test update attribute
 	testMsg.UpdateAttribute("bruce", "doe")
 	val1, err1 = testMsg.GetAttribute("bruce")
@@ -48,7 +48,7 @@ func (suite *MsgTestSuite) TestAttributes() {
 	suite.Equal(nil, err1)
 	val1, err1 = testMsg.GetAttribute("bruce")
 	suite.Equal("", val1)
-	suite.Equal(errors.New("Attribute doesn't exist"), err1)
+	suite.Equal(errors.New("attribute doesn't exist"), err1)
 }
 
 func (suite *MsgTestSuite) TestMsgListBytes() {

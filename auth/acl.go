@@ -58,7 +58,7 @@ func AppendToACL(ctx context.Context, projectUUID string, resourceType string, r
 	return store.AppendToACL(ctx, projectUUID, resourceType, resourceName, userUUIDs)
 }
 
-// AppendToACL is used to remove users from a topic's or sub's acl
+// RemoveFromACL is used to remove users from a topic's or sub's acl
 func RemoveFromACL(ctx context.Context, projectUUID string, resourceType string, resourceName string, acl []string, store stores.Store) error {
 
 	// Transform user name to user uuid

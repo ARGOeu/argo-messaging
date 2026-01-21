@@ -13,7 +13,6 @@ import (
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
 	"github.com/ARGOeu/argo-messaging/metrics"
-	oldPush "github.com/ARGOeu/argo-messaging/push"
 	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
@@ -74,8 +73,7 @@ func (suite *MetricsHandlersTestSuite) TestProjectMessageCount() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/metrics/va_metrics", WrapMockAuthConfig(VaMetrics, cfgKafka, &brk, str, &mgr, nil))
+	router.HandleFunc("/v1/metrics/va_metrics", WrapMockAuthConfig(VaMetrics, cfgKafka, &brk, str, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -114,8 +112,7 @@ func (suite *MetricsHandlersTestSuite) TestVaReportFull() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/metrics/va_metrics", WrapMockAuthConfig(VaMetrics, cfgKafka, &brk, str, &mgr, nil))
+	router.HandleFunc("/v1/metrics/va_metrics", WrapMockAuthConfig(VaMetrics, cfgKafka, &brk, str, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -129,8 +126,7 @@ func (suite *MetricsHandlersTestSuite) TestProjectMessageCountErrors() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects-message-count", WrapMockAuthConfig(VaMetrics, cfgKafka, &brk, str, &mgr, nil))
+	router.HandleFunc("/v1/projects-message-count", WrapMockAuthConfig(VaMetrics, cfgKafka, &brk, str, nil))
 
 	// wrong start date
 	expResp1 := `{
@@ -170,7 +166,7 @@ func (suite *MetricsHandlersTestSuite) TestProjectMessageCountErrors() {
 	expResp3 := `{
    "error": {
       "code": 404,
-      "message": "Project ffff doesn't exist",
+      "message": "project ffff doesn't exist",
       "status": "NOT_FOUND"
    }
 }`
@@ -260,12 +256,11 @@ func (suite *MetricsHandlersTestSuite) TestSubMetrics() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:metrics", WrapMockAuthConfig(SubMetrics, cfgKafka, &brk, str, &mgr, nil))
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:metrics", WrapMockAuthConfig(SubMetrics, cfgKafka, &brk, str, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 
-	metricOut, _ := metrics.GetMetricsFromJSON([]byte(w.Body.String()))
+	metricOut, _ := metrics.GetMetricsFromJSON(w.Body.Bytes())
 	ts1 := metricOut.Metrics[0].Timeseries[0].Timestamp
 	ts2 := metricOut.Metrics[1].Timeseries[0].Timestamp
 	expResp = strings.Replace(expResp, "{{TS1}}", ts1, -1)
@@ -297,8 +292,7 @@ func (suite *MetricsHandlersTestSuite) TestSubMetricsNotFound() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:metrics", WrapMockAuthConfig(SubMetrics, cfgKafka, &brk, str, &mgr, nil))
+	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}:metrics", WrapMockAuthConfig(SubMetrics, cfgKafka, &brk, str, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(404, w.Code)
 	suite.Equal(expRes, w.Body.String())
@@ -481,11 +475,10 @@ func (suite *MetricsHandlersTestSuite) TestProjectMetrics() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}:metrics", WrapMockAuthConfig(ProjectMetrics, cfgKafka, &brk, str, &mgr, nil))
+	router.HandleFunc("/v1/projects/{project}:metrics", WrapMockAuthConfig(ProjectMetrics, cfgKafka, &brk, str, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
-	metricOut, _ := metrics.GetMetricsFromJSON([]byte(w.Body.String()))
+	metricOut, _ := metrics.GetMetricsFromJSON(w.Body.Bytes())
 	ts1 := metricOut.Metrics[0].Timeseries[0].Timestamp
 	ts2 := metricOut.Metrics[1].Timeseries[0].Timestamp
 	ts3 := metricOut.Metrics[2].Timeseries[0].Timestamp
@@ -560,11 +553,10 @@ func (suite *MetricsHandlersTestSuite) TestOpMetrics() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/metrics", WrapMockAuthConfig(OpMetrics, cfgKafka, &brk, str, &mgr, nil))
+	router.HandleFunc("/v1/metrics", WrapMockAuthConfig(OpMetrics, cfgKafka, &brk, str, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
-	metricOut, _ := metrics.GetMetricsFromJSON([]byte(w.Body.String()))
+	metricOut, _ := metrics.GetMetricsFromJSON(w.Body.Bytes())
 	ts1 := metricOut.Metrics[0].Timeseries[0].Timestamp
 	val1 := metricOut.Metrics[0].Timeseries[0].Value.(float64)
 	ts2 := metricOut.Metrics[1].Timeseries[0].Timestamp
@@ -671,11 +663,10 @@ func (suite *MetricsHandlersTestSuite) TestTopicMetrics() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}:metrics", WrapMockAuthConfig(TopicMetrics, cfgKafka, &brk, str, &mgr, nil))
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:metrics", WrapMockAuthConfig(TopicMetrics, cfgKafka, &brk, str, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
-	metricOut, _ := metrics.GetMetricsFromJSON([]byte(w.Body.String()))
+	metricOut, _ := metrics.GetMetricsFromJSON(w.Body.Bytes())
 	ts1 := metricOut.Metrics[0].Timeseries[0].Timestamp
 	ts2 := metricOut.Metrics[1].Timeseries[0].Timestamp
 	ts3 := metricOut.Metrics[2].Timeseries[0].Timestamp
@@ -713,8 +704,7 @@ func (suite *MetricsHandlersTestSuite) TestTopicMetricsNotFound() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}:metrics", WrapMockAuthConfig(TopicMetrics, cfgKafka, &brk, str, &mgr, nil))
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:metrics", WrapMockAuthConfig(TopicMetrics, cfgKafka, &brk, str, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(404, w.Code)
 	suite.Equal(expRes, w.Body.String())
@@ -798,12 +788,12 @@ func (suite *MetricsHandlersTestSuite) TestUserUsageProfile() {
 		time.Now(), time.Now(), ""})
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/users/usageReport", WrapMockAuthConfig(UserUsageReport, cfgKafka, &brk, str, &mgr, nil))
+	router.HandleFunc("/v1/users/usageReport", WrapMockAuthConfig(UserUsageReport, cfgKafka, &brk, str, nil))
 	router.ServeHTTP(w, req)
 
 	metricOut := metrics.UserUsageReport{}
-	json.Unmarshal([]byte(w.Body.String()), &metricOut)
+	err = json.Unmarshal(w.Body.Bytes(), &metricOut)
+	suite.NoError(err)
 	ts1 := metricOut.OperationalMetrics.Metrics[0].Timeseries[0].Timestamp
 	val1 := metricOut.OperationalMetrics.Metrics[0].Timeseries[0].Value.(float64)
 	ts2 := metricOut.OperationalMetrics.Metrics[1].Timeseries[0].Timestamp

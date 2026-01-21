@@ -4,21 +4,21 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/ARGOeu/argo-messaging/auth"
-	"github.com/ARGOeu/argo-messaging/brokers"
-	"github.com/ARGOeu/argo-messaging/config"
-	"github.com/ARGOeu/argo-messaging/projects"
-	oldPush "github.com/ARGOeu/argo-messaging/push"
-	push "github.com/ARGOeu/argo-messaging/push/grpc/client"
-	"github.com/ARGOeu/argo-messaging/stores"
-	"github.com/gorilla/mux"
-	"github.com/stretchr/testify/suite"
 	"io"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/ARGOeu/argo-messaging/auth"
+	"github.com/ARGOeu/argo-messaging/brokers"
+	"github.com/ARGOeu/argo-messaging/config"
+	"github.com/ARGOeu/argo-messaging/projects"
+	push "github.com/ARGOeu/argo-messaging/push/grpc/client"
+	"github.com/ARGOeu/argo-messaging/stores"
+	"github.com/gorilla/mux"
+	"github.com/stretchr/testify/suite"
 )
 
 type ProjectsHandlersTestSuite struct {
@@ -83,8 +83,7 @@ func (suite *ProjectsHandlersTestSuite) TestProjectUserListOne() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}/members/{user}", WrapMockAuthConfig(ProjectUserListOne, cfgKafka, &brk, str, &mgr, nil, "service_admin"))
+	router.HandleFunc("/v1/projects/{project}/members/{user}", WrapMockAuthConfig(ProjectUserListOne, cfgKafka, &brk, str, nil, "service_admin"))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -129,8 +128,8 @@ func (suite *ProjectsHandlersTestSuite) TestProjectUserListOneUnpriv() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}/members/{user}", WrapMockAuthConfig(ProjectUserListOne, cfgKafka, &brk, str, &mgr, nil, "project_admin"))
+
+	router.HandleFunc("/v1/projects/{project}/members/{user}", WrapMockAuthConfig(ProjectUserListOne, cfgKafka, &brk, str, nil, "project_admin"))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -329,8 +328,8 @@ func (suite *ProjectsHandlersTestSuite) TestProjectUserListARGO() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}/users", WrapMockAuthConfig(ProjectListUsers, cfgKafka, &brk, str, &mgr, nil, "service_admin"))
+
+	router.HandleFunc("/v1/projects/{project}/users", WrapMockAuthConfig(ProjectListUsers, cfgKafka, &brk, str, nil, "service_admin"))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -368,8 +367,8 @@ func (suite *ProjectsHandlersTestSuite) TestProjectUserListARGONoUserDetails() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}/users", WrapMockAuthConfig(ProjectListUsers, cfgKafka, &brk, str, &mgr, nil, "service_admin"))
+
+	router.HandleFunc("/v1/projects/{project}/users", WrapMockAuthConfig(ProjectListUsers, cfgKafka, &brk, str, nil, "service_admin"))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -557,8 +556,8 @@ func (suite *ProjectsHandlersTestSuite) TestProjectUserListUnprivARGO() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}/members", WrapMockAuthConfig(ProjectListUsers, cfgKafka, &brk, str, &mgr, nil, "project_admin"))
+
+	router.HandleFunc("/v1/projects/{project}/members", WrapMockAuthConfig(ProjectListUsers, cfgKafka, &brk, str, nil, "project_admin"))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -704,7 +703,7 @@ func (suite *ProjectsHandlersTestSuite) TestProjectUserCreate() {
 	brk := brokers.MockBroker{}
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
-	mgr := oldPush.Manager{}
+
 	pc := new(push.MockClient)
 
 	for _, t := range testData {
@@ -715,7 +714,7 @@ func (suite *ProjectsHandlersTestSuite) TestProjectUserCreate() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		router.HandleFunc("/v1/projects/{project}/members/{user}", WrapMockAuthConfig(ProjectUserCreate, cfgKafka, &brk, str, &mgr, pc))
+		router.HandleFunc("/v1/projects/{project}/members/{user}", WrapMockAuthConfig(ProjectUserCreate, cfgKafka, &brk, str, pc))
 		router.ServeHTTP(w, req)
 		if t.expectedStatusCode == 200 {
 			u, _ := auth.FindUsers(context.Background(), "argo_uuid", "", t.user, true, str)
@@ -922,7 +921,7 @@ func (suite *ProjectsHandlersTestSuite) TestProjectUserUpdate() {
 	cfgKafka.ResAuth = true
 	brk := brokers.MockBroker{}
 	str := stores.NewMockStore("whatever", "argo_mgs")
-	mgr := oldPush.Manager{}
+
 	pc := new(push.MockClient)
 
 	for _, t := range testData {
@@ -934,7 +933,7 @@ func (suite *ProjectsHandlersTestSuite) TestProjectUserUpdate() {
 			log.Fatal(err)
 		}
 		router := mux.NewRouter().StrictSlash(true)
-		router.HandleFunc("/v1/projects/{project}/members/{user}", WrapMockAuthConfig(ProjectUserUpdate, cfgKafka, &brk, str, &mgr, pc, t.authRole))
+		router.HandleFunc("/v1/projects/{project}/members/{user}", WrapMockAuthConfig(ProjectUserUpdate, cfgKafka, &brk, str, pc, t.authRole))
 		router.ServeHTTP(w, req)
 		if t.expectedStatusCode == 200 {
 			u, _ := auth.FindUsers(context.Background(), "argo_uuid", "", t.user, true, str)
@@ -1000,7 +999,7 @@ func (suite *ProjectsHandlersTestSuite) TestProjectUserRemove() {
 	brk := brokers.MockBroker{}
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
-	mgr := oldPush.Manager{}
+
 	pc := new(push.MockClient)
 
 	for _, t := range testData {
@@ -1011,7 +1010,7 @@ func (suite *ProjectsHandlersTestSuite) TestProjectUserRemove() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		router.HandleFunc("/v1/projects/{project}/members/{user}:remove", WrapMockAuthConfig(ProjectUserRemove, cfgKafka, &brk, str, &mgr, pc))
+		router.HandleFunc("/v1/projects/{project}/members/{user}:remove", WrapMockAuthConfig(ProjectUserRemove, cfgKafka, &brk, str, pc))
 		router.ServeHTTP(w, req)
 		suite.Equal(t.expectedStatusCode, w.Code, t.msg)
 		suite.Equal(t.expectedResponse, w.Body.String(), t.msg)
@@ -1156,7 +1155,7 @@ func (suite *ProjectsHandlersTestSuite) TestProjectUserAdd() {
 	cfgKafka.PushWorkerToken = "push_token"
 	cfgKafka.ResAuth = false
 	brk := brokers.MockBroker{}
-	mgr := oldPush.Manager{}
+
 	pc := new(push.MockClient)
 
 	for _, t := range testData {
@@ -1168,7 +1167,7 @@ func (suite *ProjectsHandlersTestSuite) TestProjectUserAdd() {
 			log.Fatal(err)
 		}
 		router := mux.NewRouter().StrictSlash(true)
-		router.HandleFunc("/v1/projects/{project}/members/{user}:add", WrapMockAuthConfig(ProjectUserAdd, cfgKafka, &brk, str, &mgr, pc, t.authRole))
+		router.HandleFunc("/v1/projects/{project}/members/{user}:add", WrapMockAuthConfig(ProjectUserAdd, cfgKafka, &brk, str, pc, t.authRole))
 		router.ServeHTTP(w, req)
 		if t.expectedStatusCode == 200 {
 			u, _ := auth.FindUsers(context.Background(), "argo_uuid", "", t.user, true, str)
@@ -1198,8 +1197,8 @@ func (suite *ProjectsHandlersTestSuite) TestProjectDelete() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}", WrapMockAuthConfig(ProjectDelete, cfgKafka, &brk, str, &mgr, nil))
+
+	router.HandleFunc("/v1/projects/{project}", WrapMockAuthConfig(ProjectDelete, cfgKafka, &brk, str, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -1222,12 +1221,12 @@ func (suite *ProjectsHandlersTestSuite) TestProjectUpdate() {
 	brk := brokers.MockBroker{}
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
-	mgr := oldPush.Manager{}
+
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}", WrapMockAuthConfig(ProjectUpdate, cfgKafka, &brk, str, &mgr, nil))
+	router.HandleFunc("/v1/projects/{project}", WrapMockAuthConfig(ProjectUpdate, cfgKafka, &brk, str, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
-	projOut, _ := projects.GetFromJSON([]byte(w.Body.String()))
+	projOut, _ := projects.GetFromJSON(w.Body.Bytes())
 	suite.Equal("NEWARGO", projOut.Name)
 	// Check if the mock authenticated userA has been marked as the creator
 	suite.Equal("UserA", projOut.CreatedBy)
@@ -1250,12 +1249,12 @@ func (suite *ProjectsHandlersTestSuite) TestProjectCreate() {
 	brk := brokers.MockBroker{}
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
-	mgr := oldPush.Manager{}
+
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/projects/{project}", WrapMockAuthConfig(ProjectCreate, cfgKafka, &brk, str, &mgr, nil))
+	router.HandleFunc("/v1/projects/{project}", WrapMockAuthConfig(ProjectCreate, cfgKafka, &brk, str, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
-	projOut, _ := projects.GetFromJSON([]byte(w.Body.String()))
+	projOut, _ := projects.GetFromJSON(w.Body.Bytes())
 	suite.Equal("ARGONEW", projOut.Name)
 	// Check if the mock authenticated userA has been marked as the creator
 	suite.Equal("UserA", projOut.CreatedBy)
@@ -1295,9 +1294,8 @@ func (suite *ProjectsHandlersTestSuite) TestProjectListAll() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
 
-	router.HandleFunc("/v1/projects", WrapMockAuthConfig(ProjectListAll, cfgKafka, &brk, str, &mgr, nil))
+	router.HandleFunc("/v1/projects", WrapMockAuthConfig(ProjectListAll, cfgKafka, &brk, str, nil))
 
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
@@ -1327,8 +1325,8 @@ func (suite *ProjectsHandlersTestSuite) TestProjectListOneNotFound() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}", WrapMockAuthConfig(ProjectListOne, cfgKafka, &brk, str, &mgr, nil))
+
+	router.HandleFunc("/v1/projects/{project}", WrapMockAuthConfig(ProjectListOne, cfgKafka, &brk, str, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(404, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -1357,8 +1355,8 @@ func (suite *ProjectsHandlersTestSuite) TestProjectListOne() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}", WrapMockAuthConfig(ProjectListOne, cfgKafka, &brk, str, &mgr, nil))
+
+	router.HandleFunc("/v1/projects/{project}", WrapMockAuthConfig(ProjectListOne, cfgKafka, &brk, str, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())

@@ -232,7 +232,7 @@ var APIErrPushVerification = func(msg string) APIErrorRoot {
 
 	apiErrBody := APIErrorBody{
 		Code:    http.StatusUnauthorized,
-		Message: fmt.Sprintf("Endpoint verification failed.%v", msg),
+		Message: fmt.Sprintf("Endpoint verification failed,%v", msg),
 		Status:  "UNAUTHORIZED",
 	}
 

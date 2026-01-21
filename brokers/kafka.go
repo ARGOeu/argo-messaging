@@ -33,11 +33,11 @@ type KafkaBroker struct {
 func (b *KafkaBroker) lockForTopic(topic string) {
 	// Check if lock for topic exists
 	_, present := b.consumeLock[topic]
-	if present == false {
+	if !present {
 		// TopicLock is not in list so add it
 		b.createTopicLock.Lock()
 		_, nowPresent := b.consumeLock[topic]
-		if nowPresent == false {
+		if !nowPresent {
 			b.consumeLock[topic] = &topicLock{}
 			b.consumeLock[topic].Lock()
 		}
@@ -50,7 +50,7 @@ func (b *KafkaBroker) lockForTopic(topic string) {
 func (b *KafkaBroker) unlockForTopic(topic string) {
 	// Check if lock for topic exists
 	_, present := b.consumeLock[topic]
-	if present == false {
+	if !present {
 		return
 	}
 
