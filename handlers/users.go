@@ -3,6 +3,12 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/ARGOeu/argo-messaging/auth"
 	"github.com/ARGOeu/argo-messaging/config"
 	"github.com/ARGOeu/argo-messaging/projects"
@@ -11,17 +17,12 @@ import (
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 	"github.com/twinj/uuid"
-	"io"
-	"net/http"
-	"strconv"
-	"strings"
-	"time"
 )
 
 // UserProfile returns a user's profile based on the provided url parameter(key)
 func UserProfile(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -70,11 +71,8 @@ func UserProfile(w http.ResponseWriter, r *http.Request) {
 
 // RefreshToken (POST) refreshes user's token
 func RefreshToken(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
-
-	// Init output
-	output := []byte("")
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -91,6 +89,10 @@ func RefreshToken(w http.ResponseWriter, r *http.Request) {
 	// Get Result Object
 	userUUID := auth.GetUUIDByName(rCTX, urlUser, refStr)
 	token, err := auth.GenToken() // generate a new user token
+	if err != nil {
+		respondErr(rCTX, w, APIErrGenericInternal(err.Error()))
+		return
+	}
 
 	res, err := auth.UpdateUserToken(rCTX, userUUID, token, refStr)
 
@@ -113,18 +115,13 @@ func RefreshToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Write response
-	output = []byte(resJSON)
-	respondOK(w, output)
+	respondOK(w, []byte(resJSON))
 }
 
 // UserUpdate (PUT) updates the user information
 func UserUpdate(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
-
-	// Init output
-	output := []byte("")
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -195,18 +192,13 @@ func UserUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Write response
-	output = []byte(resJSON)
-	respondOK(w, output)
+	respondOK(w, []byte(resJSON))
 }
 
 // UserCreate (POST) creates a new user inside a project
 func UserCreate(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
-
-	// Init output
-	output := []byte("")
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -239,6 +231,10 @@ func UserCreate(w http.ResponseWriter, r *http.Request) {
 
 	uuid := uuid.NewV4().String() // generate a new uuid to attach to the new project
 	token, err := auth.GenToken() // generate a new user token
+	if err != nil {
+		respondErr(rCTX, w, APIErrGenericInternal(err.Error()))
+		return
+	}
 	created := time.Now().UTC()
 	// Get Result Object
 	res, err := auth.CreateUser(rCTX, uuid, urlUser, postBody.FirstName, postBody.LastName, postBody.Organization, postBody.Description,
@@ -276,18 +272,13 @@ func UserCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Write response
-	output = []byte(resJSON)
-	respondOK(w, output)
+	respondOK(w, []byte(resJSON))
 }
 
 // UserListByToken (GET) one user by his token
 func UserListByToken(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
-
-	// Init output
-	output := []byte("")
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -324,19 +315,14 @@ func UserListByToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Write response
-	output = []byte(resJSON)
-	respondOK(w, output)
+	respondOK(w, []byte(resJSON))
 
 }
 
 // UserListOne (GET) one user
 func UserListOne(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
-
-	// Init output
-	output := []byte("")
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -376,18 +362,13 @@ func UserListOne(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Write response
-	output = []byte(resJSON)
-	respondOK(w, output)
+	respondOK(w, []byte(resJSON))
 }
 
 // UserListByUUID (GET) one user by uuid
 func UserListByUUID(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
-
-	// Init output
-	output := []byte("")
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -429,22 +410,17 @@ func UserListByUUID(w http.ResponseWriter, r *http.Request) {
 		respondErr(rCTX, w, err)
 	}
 
-	// Write response
-	output = []byte(resJSON)
-	respondOK(w, output)
+	respondOK(w, []byte(resJSON))
 }
 
 // UserListAll (GET) all users - or users belonging to a project
 func UserListAll(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	var err error
 	var pageSize int
 	var paginatedUsers auth.PaginatedUsers
-
-	// Init output
-	output := []byte("")
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -516,17 +492,13 @@ func UserListAll(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Write response
-	output = []byte(resJSON)
-	respondOK(w, output)
+	respondOK(w, []byte(resJSON))
 }
 
 // UserDelete (DEL) deletes an existing user
 func UserDelete(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
-
-	// Init output
-	output := []byte("")
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -553,6 +525,5 @@ func UserDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Write empty response if anything ok
-	respondOK(w, output)
+	respondOK(w, nil)
 }

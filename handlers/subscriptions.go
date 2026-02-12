@@ -4,6 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"strconv"
+	"time"
+
 	"github.com/ARGOeu/argo-messaging/auth"
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/messages"
@@ -16,19 +21,12 @@ import (
 	gorillaContext "github.com/gorilla/context"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
-	"io"
-	"net/http"
-	"strconv"
-	"time"
 )
 
 // SubAck (POST) acknowledge the consumption of specific messages
 func SubAck(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
-
-	// Init output
-	output := []byte("")
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -63,13 +61,13 @@ func SubAck(w http.ResponseWriter, r *http.Request) {
 
 	// Check if sub exists
 
-	cur_sub, err := subscriptions.Find(rCTX, projectUUID, "", subName, "", 0, refStr)
+	curSub, err := subscriptions.Find(rCTX, projectUUID, "", subName, "", 0, refStr)
 	if err != nil {
 		err := APIErrHandlingAcknowledgement()
 		respondErr(rCTX, w, err)
 		return
 	}
-	if len(cur_sub.Subscriptions) == 0 {
+	if len(curSub.Subscriptions) == 0 {
 		err := APIErrorNotFound("Subscription")
 		respondErr(rCTX, w, err)
 		return
@@ -84,7 +82,7 @@ func SubAck(w http.ResponseWriter, r *http.Request) {
 
 	// Check if each AckID is valid
 	for _, ackID := range postBody.IDs {
-		if validation.ValidAckID(projectName, subName, ackID) == false {
+		if !validation.ValidAckID(projectName, subName, ackID) {
 			err := APIErrorInvalidData("Invalid ack id")
 			respondErr(rCTX, w, err)
 			return
@@ -128,18 +126,13 @@ func SubAck(w http.ResponseWriter, r *http.Request) {
 	// Output result to JSON
 	resJSON := "{}"
 
-	// Write response
-	output = []byte(resJSON)
-	respondOK(w, output)
+	respondOK(w, []byte(resJSON))
 }
 
 // SubListOne (GET) one subscription
 func SubListOne(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
-
-	// Init output
-	output := []byte("")
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -186,18 +179,13 @@ func SubListOne(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Write response
-	output = []byte(resJSON)
-	respondOK(w, output)
+	respondOK(w, []byte(resJSON))
 }
 
 // SubSetOffset (PUT) sets subscriptions current offset
 func SubSetOffset(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
-
-	// Init output
-	output := []byte("")
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -246,12 +234,12 @@ func SubSetOffset(w http.ResponseWriter, r *http.Request) {
 		respondErr(rCTX, w, err)
 		return
 	}
-	brk_topic := projectUUID + "." + results.Subscriptions[0].Topic
-	min_offset := refBrk.GetMinOffset(rCTX, brk_topic)
-	max_offset := refBrk.GetMaxOffset(rCTX, brk_topic)
+	brkTopic := projectUUID + "." + results.Subscriptions[0].Topic
+	minOffset := refBrk.GetMinOffset(rCTX, brkTopic)
+	maxOffset := refBrk.GetMaxOffset(rCTX, brkTopic)
 
 	//Check if given offset is between min max
-	if postBody.Offset < min_offset || postBody.Offset > max_offset {
+	if postBody.Offset < minOffset || postBody.Offset > maxOffset {
 		err := APIErrorInvalidData("Offset out of bounds")
 		respondErr(rCTX, w, err)
 	}
@@ -259,16 +247,13 @@ func SubSetOffset(w http.ResponseWriter, r *http.Request) {
 	// Get subscription offsets
 	refStr.UpdateSubOffset(rCTX, projectUUID, urlSub, postBody.Offset)
 
-	respondOK(w, output)
+	respondOK(w, nil)
 }
 
 // SubGetOffsets (GET) gets offset indices from a subscription
 func SubGetOffsets(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
-
-	// Init output
-	output := []byte("")
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -326,18 +311,13 @@ func SubGetOffsets(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Write response
-	output = []byte(resJSON)
-	respondOK(w, output)
+	respondOK(w, []byte(resJSON))
 }
 
 // SubTimeToOffset (GET) gets offset indices closest to a timestamp
 func SubTimeToOffset(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
-
-	// Init output
-	output := []byte("")
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -392,7 +372,7 @@ func SubTimeToOffset(w http.ResponseWriter, r *http.Request) {
 	}
 
 	topicOffset := brokers.TopicOffset{Offset: off}
-	output, err = json.Marshal(topicOffset)
+	output, err := json.Marshal(topicOffset)
 	if err != nil {
 		err := APIErrExportJSON()
 		respondErr(rCTX, w, err)
@@ -404,8 +384,8 @@ func SubTimeToOffset(w http.ResponseWriter, r *http.Request) {
 
 // SubDelete (DEL) deletes an existing subscription
 func SubDelete(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Init output
 	output := []byte("")
@@ -464,11 +444,8 @@ func SubDelete(w http.ResponseWriter, r *http.Request) {
 
 // SubModACL (POST) modifies the ACL
 func SubModACL(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
-
-	// Init output
-	output := []byte("")
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -523,16 +500,13 @@ func SubModACL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondOK(w, output)
+	respondOK(w, nil)
 }
 
 // SubModPush (POST) modifies the push configuration
 func SubModPush(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
-
-	// Init output
-	output := []byte("")
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -592,7 +566,7 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 	maxMessages := int64(1)
 	pushWorker := auth.User{}
 	pwToken := gorillaContext.Get(r, "push_worker_token").(string)
-	mattermostUrl := ""
+	mattermostURL := ""
 	mattermostUsername := ""
 	mattermostChannel := ""
 	pushType := ""
@@ -636,7 +610,7 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 
 		pushType = postBody.PushCfg.Type
 
-		if pushType == subscriptions.HttpEndpointPushConfig {
+		if pushType == subscriptions.HTTPEndpointPushConfig {
 
 			pushEnd = postBody.PushCfg.Pend
 			// Check if push endpoint is not a valid https:// endpoint
@@ -741,12 +715,12 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		} else if pushType == subscriptions.MattermostPushConfig {
-			mattermostUrl = postBody.PushCfg.MattermostUrl
+			mattermostURL = postBody.PushCfg.MattermostURL
 			mattermostChannel = postBody.PushCfg.MattermostChannel
 			mattermostUsername = postBody.PushCfg.MattermostUsername
 			verified = true
 
-			if postBody.PushCfg.MattermostUrl == "" {
+			if postBody.PushCfg.MattermostURL == "" {
 				err := APIErrorInvalidData("Field mattermostUrl cannot be empty")
 				respondErr(rCTX, w, err)
 				return
@@ -774,7 +748,7 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 		},
 		VerificationHash:   vhash,
 		Verified:           verified,
-		MattermostUrl:      mattermostUrl,
+		MattermostURL:      mattermostURL,
 		MattermostUsername: mattermostUsername,
 		MattermostChannel:  mattermostChannel,
 		Base64Decode:       base64Decode,
@@ -821,7 +795,7 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 
 		// reactivate only if the push endpoint hasn't changed and it was already verified
 		// otherwise we need to verify the ownership again before wee activate it
-		if (postBody.PushCfg.Type == subscriptions.HttpEndpointPushConfig &&
+		if (postBody.PushCfg.Type == subscriptions.HTTPEndpointPushConfig &&
 			postBody.PushCfg.Pend == existingSub.PushCfg.Pend && existingSub.PushCfg.Verified) ||
 			(postBody.PushCfg.Type == subscriptions.MattermostPushConfig) {
 
@@ -841,7 +815,7 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 						PolicyType: rPolicy,
 						Period:     rPeriod,
 					},
-					MattermostUrl:      mattermostUrl,
+					MattermostURL:      mattermostURL,
 					MattermostUsername: mattermostUsername,
 					MattermostChannel:  mattermostChannel,
 				},
@@ -867,13 +841,13 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Write empty response if everything's ok
-	respondOK(w, output)
+	respondOK(w, nil)
 }
 
 // SubVerifyPushEndpoint (POST) verifies the ownership of a push endpoint registered in a push enabled subscription
 func SubVerifyPushEndpoint(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -893,8 +867,6 @@ func SubVerifyPushEndpoint(w http.ResponseWriter, r *http.Request) {
 	pwToken := gorillaContext.Get(r, "push_worker_token").(string)
 
 	pushEnabled := gorillaContext.Get(r, "push_enabled").(bool)
-
-	pushW := auth.User{}
 
 	// check the state of the push functionality
 	if !pushEnabled {
@@ -928,7 +900,7 @@ func SubVerifyPushEndpoint(w http.ResponseWriter, r *http.Request) {
 	sub := res.Subscriptions[0]
 
 	// check that the subscription is push enabled
-	if sub.PushCfg.Type != subscriptions.HttpEndpointPushConfig {
+	if sub.PushCfg.Type != subscriptions.HTTPEndpointPushConfig {
 		err := APIErrorGenericConflict("Subscription is not in http push mode")
 		respondErr(rCTX, w, err)
 		return
@@ -964,11 +936,8 @@ func SubVerifyPushEndpoint(w http.ResponseWriter, r *http.Request) {
 
 // SubModAck (POST) modifies the Ack deadline of the subscription
 func SubModAck(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
-
-	// Init output
-	output := []byte("")
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -1018,16 +987,13 @@ func SubModAck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondOK(w, output)
+	respondOK(w, nil)
 }
 
 // SubCreate (PUT) creates a new subscription
 func SubCreate(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
-
-	// Init output
-	output := []byte("")
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -1066,7 +1032,7 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if topics.HasTopic(rCTX, projectUUID, tName, refStr) == false {
+	if !topics.HasTopic(rCTX, projectUUID, tName, refStr) {
 		err := APIErrorNotFound("Topic")
 		respondErr(rCTX, w, err)
 		return
@@ -1101,7 +1067,7 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// checks for http endpoint push subscriptions
-		if pushConfig.Type == subscriptions.HttpEndpointPushConfig {
+		if pushConfig.Type == subscriptions.HTTPEndpointPushConfig {
 
 			pushConfig.Pend = postBody.PushCfg.Pend
 
@@ -1165,12 +1131,12 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 			}
 			pushConfig.Verified = false
 		} else if pushConfig.Type == subscriptions.MattermostPushConfig {
-			if postBody.PushCfg.MattermostUrl == "" {
+			if postBody.PushCfg.MattermostURL == "" {
 				err := APIErrorInvalidData("Field mattermostUrl cannot be empty")
 				respondErr(rCTX, w, err)
 				return
 			}
-			pushConfig.MattermostUrl = postBody.PushCfg.MattermostUrl
+			pushConfig.MattermostURL = postBody.PushCfg.MattermostURL
 			pushConfig.MattermostUsername = postBody.PushCfg.MattermostUsername
 			pushConfig.MattermostChannel = postBody.PushCfg.MattermostChannel
 			pushConfig.Verified = true
@@ -1243,19 +1209,14 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Write response
-	output = []byte(resJSON)
-	respondOK(w, output)
+	respondOK(w, []byte(resJSON))
 
 }
 
 // SubACL (GET) one sub's authorized users
 func SubACL(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
-
-	// Init output
-	output := []byte("")
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -1288,23 +1249,18 @@ func SubACL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Write response
-	output = []byte(resJSON)
-	respondOK(w, output)
+	respondOK(w, []byte(resJSON))
 }
 
 // SubListAll (GET) all subscriptions
 func SubListAll(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	var err error
 	var strPageSize string
 	var pageSize int
 	var res subscriptions.PaginatedSubscriptions
-
-	// Init output
-	output := []byte("")
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -1358,17 +1314,13 @@ func SubListAll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Write Response
-	output = []byte(resJSON)
-	respondOK(w, output)
+	respondOK(w, []byte(resJSON))
 }
 
 // SubPull (POST) consumes messages from the underlying topic
 func SubPull(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
-	// Init output
-	output := []byte("")
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -1428,7 +1380,7 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	// - if enabled in config
 	// - if user has only consumer role
 	if refAuthResource && auth.IsConsumer(refRoles) {
-		if auth.PerResource(rCTX, projectUUID, "subscriptions", targetSub.Name, refUserUUID, refStr) == false {
+		if !auth.PerResource(rCTX, projectUUID, "subscriptions", targetSub.Name, refUserUUID, refStr) {
 			err := APIErrorForbidden()
 			respondErr(rCTX, w, err)
 			return
@@ -1576,8 +1528,7 @@ func SubPull(w http.ResponseWriter, r *http.Request) {
 	ts := t.Format(zSec)
 	refStr.UpdateSubPull(rCTX, targetSub.ProjectUUID, targetSub.Name, int64(len(recList.RecMsgs))+targetSub.Offset, ts)
 
-	output = []byte(resJSON)
-	respondOK(w, output)
+	respondOK(w, []byte(resJSON))
 }
 
 func activatePushSubscription(rCTX context.Context, sub subscriptions.Subscription, pushW auth.User,

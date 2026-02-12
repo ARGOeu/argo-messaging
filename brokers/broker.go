@@ -21,4 +21,4 @@ type Broker interface {
 	TimeToOffset(ctx context.Context, topic string, time time.Time) (int64, error)
 }
 
-var ErrOffsetOff = errors.New("Offset is off")
+var ErrOffsetOff = errors.New("offset is off")

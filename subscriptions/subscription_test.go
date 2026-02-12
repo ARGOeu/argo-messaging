@@ -418,7 +418,7 @@ func (suite *SubTestSuite) TestModSubPush() {
 		},
 		VerificationHash:   "hash-1",
 		Verified:           true,
-		MattermostUrl:      "",
+		MattermostURL:      "",
 		MattermostUsername: "",
 		MattermostChannel:  "",
 	}
@@ -522,7 +522,7 @@ func (suite *SubTestSuite) TestVerifyPushEndpoint() {
 
 	e2 := VerifyPushEndpoint(suite.ctx, s2, c2, nil)
 
-	suite.Equal("Wrong response status code", e2.Error())
+	suite.EqualError(e2, "wrong response status code")
 
 	// mismatch
 	s3 := Subscription{
@@ -538,7 +538,7 @@ func (suite *SubTestSuite) TestVerifyPushEndpoint() {
 
 	e3 := VerifyPushEndpoint(suite.ctx, s3, c3, nil)
 
-	suite.Equal("Wrong verification hash", e3.Error())
+	suite.EqualError(e3, "wrong verification hash")
 }
 
 func (suite *SubTestSuite) TestExportJson() {

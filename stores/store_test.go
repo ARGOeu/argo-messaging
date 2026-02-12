@@ -98,7 +98,8 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal("0", pg6)
 
 	// retrieve all subs
-	subList, ts1, pg1, err1 := store.QuerySubs(ctx, "argo_uuid", "", "", "", 0)
+	subList, ts1, _, err1 := store.QuerySubs(ctx, "argo_uuid", "", "", "", 0)
+	suite.NoError(err1)
 	suite.Equal(eSubList, subList)
 	suite.Equal(int64(4), ts1)
 	suite.Equal("", pg3)
@@ -253,6 +254,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal("not found", err.Error())
 
 	sb, err := store.QueryOneSub(ctx, "argo_uuid", "sub1")
+	suite.NoError(err)
 	esb := QSub{0, "argo_uuid", "sub1", "topic1", 0, 0, "", "", "", 0, "", "", 10, "", 0, 0, 0, "", false, "", "", "", false, time.Date(2019, 5, 6, 0, 0, 0, 0, time.UTC), 10, time.Date(2020, 11, 19, 0, 0, 0, 0, time.UTC), []string{}}
 	suite.Equal(esb, sb)
 
@@ -272,7 +274,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 		RetPeriod:           400,
 		VerificationHash:    "hash-1",
 		Verified:            true,
-		MattermostUrl:       "",
+		MattermostURL:       "",
 		MattermostUsername:  "",
 		MattermostChannel:   "",
 	}
@@ -444,7 +446,9 @@ func (suite *StoreTestSuite) TestMockStore() {
 
 	// Test Sub Update Pull
 	err = store.UpdateSubPull(ctx, "argo_uuid", "sub4", 4, "2016-10-11T12:00:35:15Z")
+	suite.NoError(err)
 	qSubUpd, _, _, err := store.QuerySubs(ctx, "argo_uuid", "", "sub4", "", 0)
+	suite.NoError(err)
 	var nxtOff int64 = 4
 	suite.Equal(qSubUpd[0].NextOffset, nxtOff)
 	suite.Equal("2016-10-11T12:00:35:15Z", qSubUpd[0].PendingAck)
@@ -509,7 +513,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 
 	// Test Remove User
 	store.RemoveUser(ctx, "user_uuid11")
-	usr11, err = store.QueryUsers(ctx, "", "user_uuid11", "")
+	_, err = store.QueryUsers(ctx, "", "user_uuid11", "")
 	suite.Equal(errors.New("not found"), err)
 
 	usrGet, _ := store.GetUserFromToken(ctx, "A3B94A94V3A")

@@ -24,7 +24,7 @@ const (
 	SlowStartRetryPolicyType          = "slowstart"
 	AutoGenerationAuthorizationHeader = "autogen"
 	DisabledAuthorizationHeader       = "disabled"
-	HttpEndpointPushConfig            = "http_endpoint"
+	HTTPEndpointPushConfig            = "http_endpoint"
 	MattermostPushConfig              = "mattermost"
 	UnSupportedRetryPolicyError       = `Retry policy can only be of 'linear' or 'slowstart' type`
 	UnSupportedAuthorizationHeader    = `Authorization header type can only be of 'autogen' or 'disabled' type`
@@ -39,11 +39,6 @@ var supportedRetryPolicyTypes = []string{
 var supportedAuthorizationHeaderTypes = []string{
 	AutoGenerationAuthorizationHeader,
 	DisabledAuthorizationHeader,
-}
-
-var supportedPushConfigTypes = []string{
-	HttpEndpointPushConfig,
-	MattermostPushConfig,
 }
 
 // Subscription struct to hold information for a given topic
@@ -73,7 +68,7 @@ type PushConfig struct {
 	RetPol              RetryPolicy         `json:"retryPolicy"`
 	VerificationHash    string              `json:"verificationHash"`
 	Verified            bool                `json:"verified"`
-	MattermostUrl       string              `json:"mattermostUrl"`
+	MattermostURL       string              `json:"mattermostUrl"`
 	MattermostUsername  string              `json:"mattermostUsername"`
 	MattermostChannel   string              `json:"mattermostChannel"`
 	Base64Decode        bool                `json:"base64Decode"`
@@ -128,7 +123,7 @@ type AckIDs struct {
 	IDs []string `json:"AckIds"`
 }
 
-// Ack utility struct
+// AckDeadline utility struct
 type AckDeadline struct {
 	AckDeadline int `json:"ackDeadlineSeconds"`
 }
@@ -283,7 +278,7 @@ func VerifyPushEndpoint(ctx context.Context, sub Subscription, c *http.Client, s
 
 	// extract the push endpoint host
 	if sub.PushCfg.Pend == "" {
-		return errors.New("Could not retrieve push endpoint host")
+		return errors.New("could not retrieve push endpoint host")
 	}
 
 	u1 := &url.URL{}
@@ -320,7 +315,7 @@ func VerifyPushEndpoint(ctx context.Context, sub Subscription, c *http.Client, s
 				"status":          resp.StatusCode,
 			},
 		).Error("failed to verify push endpoint for subscription")
-		return errors.New("Wrong response status code")
+		return errors.New("wrong response status code")
 	} else {
 		// read the response
 		buf := bytes.Buffer{}
@@ -341,7 +336,7 @@ func VerifyPushEndpoint(ctx context.Context, sub Subscription, c *http.Client, s
 					"actual_hash":     buf.String(),
 				},
 			).Error("failed to verify hash for push endpoint of subscription")
-			return errors.New("Wrong verification hash")
+			return errors.New("wrong verification hash")
 		}
 	}
 
@@ -354,7 +349,7 @@ func VerifyPushEndpoint(ctx context.Context, sub Subscription, c *http.Client, s
 		RetPol:              sub.PushCfg.RetPol,
 		VerificationHash:    sub.PushCfg.VerificationHash,
 		Verified:            true,
-		MattermostUrl:       sub.PushCfg.MattermostUrl,
+		MattermostURL:       sub.PushCfg.MattermostURL,
 		MattermostUsername:  sub.PushCfg.MattermostUsername,
 		MattermostChannel:   sub.PushCfg.MattermostChannel,
 	}
@@ -432,7 +427,7 @@ func Find(ctx context.Context, projectUUID, userUUID, name, pageToken string, pa
 				RetPol:              rp,
 				VerificationHash:    item.VerificationHash,
 				Verified:            item.Verified,
-				MattermostUrl:       item.MattermostUrl,
+				MattermostURL:       item.MattermostURL,
 				MattermostChannel:   item.MattermostChannel,
 				MattermostUsername:  item.MattermostUsername,
 				Type:                item.PushType,
@@ -514,7 +509,7 @@ func Create(ctx context.Context, projectUUID string, name string, topic string, 
 		VerificationHash:    pushCfg.VerificationHash,
 		Verified:            pushCfg.Verified,
 		MattermostChannel:   pushCfg.MattermostChannel,
-		MattermostUrl:       pushCfg.MattermostUrl,
+		MattermostURL:       pushCfg.MattermostURL,
 		MattermostUsername:  pushCfg.MattermostUsername,
 		Base64Decode:        pushCfg.Base64Decode,
 	}
@@ -539,7 +534,7 @@ func ModAck(ctx context.Context, projectUUID string, name string, ack int, store
 		return errors.New("wrong value")
 	}
 
-	if HasSub(ctx, projectUUID, name, store) == false {
+	if !HasSub(ctx, projectUUID, name, store) {
 		return errors.New("not found")
 	}
 
@@ -557,7 +552,7 @@ func ModAck(ctx context.Context, projectUUID string, name string, ack int, store
 // ModSubPush updates the subscription push config
 func ModSubPush(ctx context.Context, projectUUID string, name string, pushCfg PushConfig, store stores.Store) error {
 
-	if HasSub(ctx, projectUUID, name, store) == false {
+	if !HasSub(ctx, projectUUID, name, store) {
 		return errors.New("not found")
 	}
 
@@ -576,7 +571,7 @@ func ModSubPush(ctx context.Context, projectUUID string, name string, pushCfg Pu
 		VerificationHash:    pushCfg.VerificationHash,
 		Verified:            pushCfg.Verified,
 		MattermostChannel:   pushCfg.MattermostChannel,
-		MattermostUrl:       pushCfg.MattermostUrl,
+		MattermostURL:       pushCfg.MattermostURL,
 		MattermostUsername:  pushCfg.MattermostUsername,
 	}
 
@@ -586,7 +581,7 @@ func ModSubPush(ctx context.Context, projectUUID string, name string, pushCfg Pu
 // RemoveSub removes an existing subscription
 func RemoveSub(ctx context.Context, projectUUID string, name string, store stores.Store) error {
 
-	if HasSub(ctx, projectUUID, name, store) == false {
+	if !HasSub(ctx, projectUUID, name, store) {
 		return errors.New("not found")
 	}
 

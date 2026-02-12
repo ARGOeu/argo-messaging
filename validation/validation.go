@@ -26,12 +26,7 @@ func ValidAckID(project string, sub string, ackID string) bool {
 		return false
 	}
 	_, err := strconv.ParseInt(subTokens[1], 10, 64)
-	if err != nil {
-
-		return false
-	}
-
-	return true
+	return err == nil
 }
 
 // IsValidHTTPS checks if a url string is valid https url

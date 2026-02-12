@@ -3,10 +3,11 @@ package schemas
 import (
 	"context"
 	"errors"
+	"testing"
+
 	"github.com/ARGOeu/argo-messaging/messages"
 	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/stretchr/testify/suite"
-	"testing"
 )
 
 type SchemasTestSuite struct {
@@ -411,7 +412,7 @@ func (suite *SchemasTestSuite) TestValidateMessages() {
 					},
 				},
 			},
-			err: errors.New("Message 1 is not valid.cannot decode binary record \"user.avro.User\" field \"username\": cannot decode binary string: cannot decode binary bytes: negative size: -40"),
+			err: errors.New("message 1 is not valid,cannot decode binary record \"user.avro.User\" field \"username\": cannot decode binary string: cannot decode binary bytes: negative size: -40"),
 			msg: "Case where one of the messages is not successfully validated(1 errors)(AVRO)",
 		},
 		{
@@ -428,7 +429,7 @@ func (suite *SchemasTestSuite) TestValidateMessages() {
 					},
 				},
 			},
-			err: errors.New("Message 0 data is not valid.1)(root): email is required.2)telephone: Invalid type. Expected: string, given: integer."),
+			err: errors.New("message 0 data is not valid,1)(root): email is required.2)telephone: Invalid type. Expected: string, given: integer."),
 			msg: "Case where one of the messages is not successfully validated(2 errors)(JSON)",
 		},
 		{
@@ -445,7 +446,7 @@ func (suite *SchemasTestSuite) TestValidateMessages() {
 					},
 				},
 			},
-			err: errors.New("Message 0 data is not valid,(root): email is required"),
+			err: errors.New("message 0 data is not valid,(root): email is required"),
 			msg: "Case where the one of the messages is not successfully validated(1 error)(JSON)",
 		},
 		{
@@ -462,7 +463,7 @@ func (suite *SchemasTestSuite) TestValidateMessages() {
 					},
 				},
 			},
-			err: errors.New("Message 1 data is not valid JSON format,unexpected EOF"),
+			err: errors.New("message 1 data is not valid JSON format,unexpected EOF"),
 			msg: "Case where the one of the messages is not in valid json format",
 		},
 	}
