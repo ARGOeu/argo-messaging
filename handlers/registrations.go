@@ -4,24 +4,22 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"time"
+
 	"github.com/ARGOeu/argo-messaging/auth"
 	"github.com/ARGOeu/argo-messaging/stores"
 	gorillaContext "github.com/gorilla/context"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 	"github.com/twinj/uuid"
-	"io"
-	"net/http"
-	"time"
 )
 
 // RegisterUser (POST) registers a new user
 func RegisterUser(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
-
-	// Init output
-	output := []byte("")
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -75,7 +73,7 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	output, err = json.MarshalIndent(ur, "", "   ")
+	output, err := json.MarshalIndent(ur, "", "   ")
 	if err != nil {
 		err := APIErrGenericInternal(err.Error())
 		respondErr(rCTX, w, err)
@@ -85,10 +83,10 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 	respondOK(w, output)
 }
 
-// AcceptUserRegister (POST) accepts a user registration and creates the respective user
+// AcceptRegisterUser (POST) accepts a user registration and creates the respective user
 func AcceptRegisterUser(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	contentType := "application/json"
 	charset := "utf-8"
@@ -118,6 +116,10 @@ func AcceptRegisterUser(w http.ResponseWriter, r *http.Request) {
 
 	userUUID := uuid.NewV4().String() // generate a new userUUID to attach to the new project
 	token, err := auth.GenToken()     // generate a new user token
+	if err != nil {
+		respondErr(rCTX, w, APIErrGenericInternal(err.Error()))
+		return
+	}
 	created := time.Now().UTC()
 	// Get Result Object
 	res, err := auth.CreateUser(rCTX, userUUID, ru.Name, ru.FirstName, ru.LastName, ru.Organization, ru.Description,
@@ -160,8 +162,8 @@ func AcceptRegisterUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func DeclineRegisterUser(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	contentType := "application/json"
 	charset := "utf-8"
@@ -214,8 +216,8 @@ func DeclineRegisterUser(w http.ResponseWriter, r *http.Request) {
 
 // ListOneRegistration (GET) retrieves information for a specific registration based on the provided activation token
 func ListOneRegistration(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	contentType := "application/json"
 	charset := "utf-8"
@@ -254,8 +256,8 @@ func ListOneRegistration(w http.ResponseWriter, r *http.Request) {
 
 // ListAllRegistrations (GET) retrieves information about all the registrations in the service
 func ListAllRegistrations(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	contentType := "application/json"
 	charset := "utf-8"
@@ -290,8 +292,8 @@ func ListAllRegistrations(w http.ResponseWriter, r *http.Request) {
 
 // DeleteRegistration (DELETE) removes a registration from the service's store
 func DeleteRegistration(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	contentType := "application/json"
 	charset := "utf-8"

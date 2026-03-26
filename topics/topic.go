@@ -203,7 +203,7 @@ func DetachSchemaFromTopic(ctx context.Context, projectUUID, name string, store 
 
 // RemoveTopic removes an existing topic
 func RemoveTopic(ctx context.Context, projectUUID string, name string, store stores.Store) error {
-	if HasTopic(ctx, projectUUID, name, store) == false {
+	if !HasTopic(ctx, projectUUID, name, store) {
 		return errors.New("not found")
 	}
 

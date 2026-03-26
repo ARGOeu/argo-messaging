@@ -13,15 +13,17 @@ import (
 	"time"
 )
 
-const TopicsCollection string = "topics"
-const SubscriptionsCollection string = "subscriptions"
-const DailyTopicMsgCountCollection string = "daily_topic_msg_count"
-const UsersCollection string = "users"
-const ProjectsCollection string = "projects"
-const UserRegistrationsCollection string = "user_registrations"
-const SchemasCollection string = "schemas"
-const OpMetricsCollection string = "op_metrics"
-const RolesCollection string = "roles"
+const (
+	TopicsCollection             string = "topics"
+	SubscriptionsCollection      string = "subscriptions"
+	DailyTopicMsgCountCollection string = "daily_topic_msg_count"
+	UsersCollection              string = "users"
+	ProjectsCollection           string = "projects"
+	UserRegistrationsCollection  string = "user_registrations"
+	SchemasCollection            string = "schemas"
+	OpMetricsCollection          string = "op_metrics"
+	RolesCollection              string = "roles"
+)
 
 type DocNotFound struct{}
 
@@ -1639,7 +1641,7 @@ func (store *MongoStoreWithOfficialDriver) InsertSub(ctx context.Context, projec
 		RetPeriod:           pushCfg.RetPeriod,
 		VerificationHash:    pushCfg.VerificationHash,
 		Verified:            pushCfg.Verified,
-		MattermostUrl:       pushCfg.MattermostUrl,
+		MattermostURL:       pushCfg.MattermostURL,
 		MattermostChannel:   pushCfg.MattermostChannel,
 		MattermostUsername:  pushCfg.MattermostUsername,
 		Base64Decode:        pushCfg.Base64Decode,
@@ -1797,7 +1799,7 @@ func (store *MongoStoreWithOfficialDriver) ModSubPush(ctx context.Context, proje
 		"retry_period":         pushCfg.RetPeriod,
 		"verification_hash":    pushCfg.VerificationHash,
 		"verified":             pushCfg.Verified,
-		"mattermost_url":       pushCfg.MattermostUrl,
+		"mattermost_url":       pushCfg.MattermostURL,
 		"mattermost_username":  pushCfg.MattermostUsername,
 		"mattermost_channel":   pushCfg.MattermostChannel,
 		"base_64_decode":       pushCfg.Base64Decode,

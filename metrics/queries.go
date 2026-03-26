@@ -3,10 +3,11 @@ package metrics
 import (
 	"context"
 	"fmt"
-	amsProjects "github.com/ARGOeu/argo-messaging/projects"
-	"github.com/ARGOeu/argo-messaging/stores"
 	"math"
 	"time"
+
+	amsProjects "github.com/ARGOeu/argo-messaging/projects"
+	"github.com/ARGOeu/argo-messaging/stores"
 )
 
 func GetProjectTopics(ctx context.Context, projectUUID string, store stores.Store) (int64, error) {
@@ -153,7 +154,7 @@ func GenerateVAReport(ctx context.Context, projects []string, startDate time.Tim
 	for _, prj := range projects {
 		projectUUID := amsProjects.GetUUIDByName(ctx, prj, str)
 		if projectUUID == "" {
-			return VAReport{}, fmt.Errorf("Project %v", prj)
+			return VAReport{}, fmt.Errorf("project %v", prj)
 		}
 		projectUUIDs = append(projectUUIDs, projectUUID)
 		projectsUUIDNames[projectUUID] = prj
@@ -235,7 +236,7 @@ func GetUserUsageReport(ctx context.Context, projects []string, startDate time.T
 		return UserUsageReport{}, err
 	}
 
-	om, err := GetUsageCpuMem(ctx, str)
+	om, err := GetUsageCPUMem(ctx, str)
 	if err != nil {
 		return UserUsageReport{}, err
 	}

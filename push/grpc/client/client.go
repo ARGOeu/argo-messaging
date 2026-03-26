@@ -64,7 +64,7 @@ func NewGrpcClient(cfg *config.APICfg) *GrpcClient {
 
 	client.pushEndpoint = fmt.Sprintf("%v:%v", cfg.PushServerHost, cfg.PushServerPort)
 
-	if cfg.PushTlsEnabled {
+	if cfg.PushTLSEnabled {
 
 		cert, _ := tls.LoadX509KeyPair(cfg.Cert, cfg.CertKey)
 
@@ -124,7 +124,7 @@ func (c *GrpcClient) SubscriptionStatus(ctx context.Context, fullSub string) Cli
 func (c *GrpcClient) ActivateSubscription(ctx context.Context, subscription subscriptions.Subscription) ClientStatus {
 
 	var pushType amsPb.PushType
-	if subscription.PushCfg.Type == subscriptions.HttpEndpointPushConfig {
+	if subscription.PushCfg.Type == subscriptions.HTTPEndpointPushConfig {
 		pushType = amsPb.PushType_HTTP_ENDPOINT
 	} else {
 		pushType = amsPb.PushType_MATTERMOST
@@ -143,7 +143,7 @@ func (c *GrpcClient) ActivateSubscription(ctx context.Context, subscription subs
 					Type:   subscription.PushCfg.RetPol.PolicyType,
 					Period: uint32(subscription.PushCfg.RetPol.Period),
 				},
-				MattermostUrl:      subscription.PushCfg.MattermostUrl,
+				MattermostUrl:      subscription.PushCfg.MattermostURL,
 				MattermostChannel:  subscription.PushCfg.MattermostChannel,
 				MattermostUsername: subscription.PushCfg.MattermostUsername,
 				Base_64Decode:      subscription.PushCfg.Base64Decode,

@@ -538,6 +538,7 @@ func (suite *AuthTestSuite) TestAuth() {
 	qUsers1 = append(qUsers1, User{"uuid0", []ProjectRoles{{"ARGO", []string{"consumer", "publisher"}, []string{}, []string{}}}, "Test", "", "", "", "", "S3CR3T", "Test@test.com", []string{}, created, modified, ""})
 	// return all users
 	pu1, e1 := PaginatedFindUsers(suite.ctx, "", 0, "", true, true, store2)
+	suite.NoError(e1)
 
 	var qUsers2 []User
 	qUsers2 = append(qUsers2, User{"uuid8", []ProjectRoles{{"ARGO2", []string{"consumer", "publisher"}, []string{}, []string{}}}, "UserZ", "", "", "", "", "S3CR3T1", "foo-email", []string{}, created, modified, ""})
@@ -556,6 +557,7 @@ func (suite *AuthTestSuite) TestAuth() {
 
 	// return the first page with 2 users
 	pu2, e2 := PaginatedFindUsers(suite.ctx, "", 3, "", true, true, store2)
+	suite.NoError(e2)
 
 	var qUsers3 []User
 	qUsers3 = append(qUsers3, User{"uuid4", []ProjectRoles{{"ARGO", []string{"publisher", "consumer"}, []string{"topic2"}, []string{"sub3", "sub4"}}}, "UserZ", "", "", "", "", "S3CR3T4", "foo-email", []string{}, created, modified, "UserA"})
@@ -570,10 +572,6 @@ func (suite *AuthTestSuite) TestAuth() {
 
 	// invalid id
 	_, e5 := PaginatedFindUsers(suite.ctx, "invalid", 0, "", true, true, store2)
-
-	// check user list by project
-	var qUsersB []User
-	qUsersB = append(qUsersB, User{"uuid8", []ProjectRoles{{"ARGO2", []string{"consumer", "publisher"}, []string{}, []string{}}}, "UserZ", "", "", "", "", "S3CR3T1", "foo-email", []string{}, created, modified, ""})
 
 	// check user list by project and with unprivileged mode (token redacted)
 	var qUsersC []User
@@ -793,13 +791,13 @@ func (suite *AuthTestSuite) TestModACL() {
 	e1 := ModACL(suite.ctx, "argo_uuid", "topics", "topic1", []string{"UserX", "UserZ"}, store)
 	suite.Nil(e1)
 
-	tACL1, _ := store.TopicsACL["topic1"]
+	tACL1 := store.TopicsACL["topic1"]
 	suite.Equal([]string{"uuid3", "uuid4"}, tACL1.ACL)
 
 	e2 := ModACL(suite.ctx, "argo_uuid", "subscriptions", "sub1", []string{"UserX", "UserZ"}, store)
 	suite.Nil(e2)
 
-	sACL1, _ := store.SubsACL["sub1"]
+	sACL1 := store.SubsACL["sub1"]
 	suite.Equal([]string{"uuid3", "uuid4"}, sACL1.ACL)
 
 	e3 := ModACL(suite.ctx, "argo_uuid", "mistype", "sub1", []string{"UserX", "UserZ"}, store)
@@ -813,13 +811,13 @@ func (suite *AuthTestSuite) TestAppendToACL() {
 	e1 := AppendToACL(suite.ctx, "argo_uuid", "topics", "topic1", []string{"UserX", "UserZ", "UserZ"}, store)
 	suite.Nil(e1)
 
-	tACL1, _ := store.TopicsACL["topic1"]
+	tACL1 := store.TopicsACL["topic1"]
 	suite.Equal([]string{"uuid1", "uuid2", "uuid3", "uuid4"}, tACL1.ACL)
 
 	e2 := AppendToACL(suite.ctx, "argo_uuid", "subscriptions", "sub1", []string{"UserX", "UserZ", "UserZ"}, store)
 	suite.Nil(e2)
 
-	sACL1, _ := store.SubsACL["sub1"]
+	sACL1 := store.SubsACL["sub1"]
 	suite.Equal([]string{"uuid1", "uuid2", "uuid3", "uuid4"}, sACL1.ACL)
 
 	e3 := AppendToACL(suite.ctx, "argo_uuid", "mistype", "sub1", []string{"UserX", "UserZ"}, store)
@@ -833,13 +831,13 @@ func (suite *AuthTestSuite) TestRemoveFromACL() {
 	e1 := RemoveFromACL(suite.ctx, "argo_uuid", "topics", "topic1", []string{"UserA", "UserK"}, store)
 	suite.Nil(e1)
 
-	tACL1, _ := store.TopicsACL["topic1"]
+	tACL1 := store.TopicsACL["topic1"]
 	suite.Equal([]string{"uuid2"}, tACL1.ACL)
 
 	e2 := RemoveFromACL(suite.ctx, "argo_uuid", "subscriptions", "sub1", []string{"UserA", "UserK"}, store)
 	suite.Nil(e2)
 
-	sACL1, _ := store.SubsACL["sub1"]
+	sACL1 := store.SubsACL["sub1"]
 	suite.Equal([]string{"uuid2"}, sACL1.ACL)
 
 	e3 := RemoveFromACL(suite.ctx, "argo_uuid", "mistype", "sub1", []string{"UserX", "UserZ"}, store)

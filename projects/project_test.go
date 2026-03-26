@@ -44,7 +44,7 @@ func (suite *ProjectsTestSuite) TestProjects() {
 	itemNew := NewProject("uuid_new", "BRAND_NEW", tm, tm, "UserA", "brand new project")
 
 	reflect, err := CreateProject(suite.ctx, "uuid_new", "BRAND_NEW", tm, "uuid1", "brand new project", store)
-
+	suite.NoError(err)
 	expNew := Projects{List: []Project{itemNew}}
 	expAllNew := Projects{List: []Project{item1, item2, itemNew}}
 

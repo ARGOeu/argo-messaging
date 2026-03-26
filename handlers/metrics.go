@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/ARGOeu/argo-messaging/config"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/ARGOeu/argo-messaging/config"
 
 	"github.com/ARGOeu/argo-messaging/auth"
 	"github.com/ARGOeu/argo-messaging/metrics"
@@ -20,11 +21,8 @@ import (
 
 // OpMetrics (GET) all operational metrics
 func OpMetrics(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
-
-	// Init output
-	output := []byte("")
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -35,7 +33,7 @@ func OpMetrics(w http.ResponseWriter, r *http.Request) {
 	refStr := gorillaContext.Get(r, "str").(stores.Store)
 
 	// Get Results Object
-	res, err := metrics.GetUsageCpuMem(rCTX, refStr)
+	res, err := metrics.GetUsageCPUMem(rCTX, refStr)
 
 	if err != nil && err.Error() != "not found" {
 		err := APIErrQueryDatastore()
@@ -53,14 +51,13 @@ func OpMetrics(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Write response
-	output = []byte(resJSON)
-	respondOK(w, output)
+	respondOK(w, []byte(resJSON))
 }
 
 // VaMetrics (GET) retrieves metrics regrading projects, users, subscriptions, topics
 func VaMetrics(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -70,8 +67,7 @@ func VaMetrics(w http.ResponseWriter, r *http.Request) {
 	// Grab context references
 	refStr := gorillaContext.Get(r, "str").(stores.Store)
 
-	startDate := time.Time{}
-	endDate := time.Time{}
+	var startDate, endDate time.Time
 	var err error
 
 	// if no start date was provided, set it to the start of the unix time
@@ -105,9 +101,9 @@ func VaMetrics(w http.ResponseWriter, r *http.Request) {
 	}
 
 	projectsList := make([]string, 0)
-	projectsUrlValue := r.URL.Query().Get("projects")
-	if projectsUrlValue != "" {
-		projectsList = strings.Split(projectsUrlValue, ",")
+	projectsURLValue := r.URL.Query().Get("projects")
+	if projectsURLValue != "" {
+		projectsList = strings.Split(projectsURLValue, ",")
 	}
 
 	vr, err := metrics.GetVAReport(rCTX, projectsList, startDate, endDate, refStr)
@@ -132,8 +128,8 @@ func VaMetrics(w http.ResponseWriter, r *http.Request) {
 // alongside service operational metrics
 // This handler is supposed to be used for project admins in order to get usage information for their projects
 func UserUsageReport(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -167,8 +163,7 @@ func UserUsageReport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	startDate := time.Time{}
-	endDate := time.Time{}
+	var startDate, endDate time.Time
 
 	// if no start date was provided, set it to the start of the unix time
 	if r.URL.Query().Get("start_date") != "" {
@@ -201,10 +196,10 @@ func UserUsageReport(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// filter based on url parameters projects and project_admin role
-	projectsUrlValue := r.URL.Query().Get("projects")
+	projectsURLValue := r.URL.Query().Get("projects")
 	projectsList := make([]string, 0)
-	if projectsUrlValue != "" {
-		projectsList = strings.Split(projectsUrlValue, ",")
+	if projectsURLValue != "" {
+		projectsList = strings.Split(projectsURLValue, ",")
 	}
 
 	queryProjects := make([]string, 0)
@@ -224,7 +219,7 @@ func UserUsageReport(w http.ResponseWriter, r *http.Request) {
 
 		// check if the project belongs to the filter list of projects
 		// first check if the filter has any value provided
-		if projectsUrlValue != "" {
+		if projectsURLValue != "" {
 			for _, filterProject := range projectsList {
 				if filterProject == p.Project {
 					queryProjects = append(queryProjects, p.Project)
@@ -270,11 +265,8 @@ func UserUsageReport(w http.ResponseWriter, r *http.Request) {
 
 // ProjectMetrics (GET) metrics for one project (number of topics)
 func ProjectMetrics(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
-
-	// Init output
-	output := []byte("")
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -338,9 +330,7 @@ func ProjectMetrics(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for _, item := range m3.Metrics {
-		res.Metrics = append(res.Metrics, item)
-	}
+	res.Metrics = append(res.Metrics, m3.Metrics...)
 
 	// ProjectUUID User subscriptions aggregation
 	m4, err := metrics.AggrProjectUserSubs(rCTX, projectUUID, refStr)
@@ -350,9 +340,7 @@ func ProjectMetrics(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for _, item := range m4.Metrics {
-		res.Metrics = append(res.Metrics, item)
-	}
+	res.Metrics = append(res.Metrics, m4.Metrics...)
 
 	m5 := metrics.NewDailyProjectMsgCount(urlProject, timePoints)
 	res.Metrics = append(res.Metrics, m5)
@@ -365,18 +353,13 @@ func ProjectMetrics(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Write response
-	output = []byte(resJSON)
-	respondOK(w, output)
+	respondOK(w, []byte(resJSON))
 }
 
 // TopicMetrics (GET) metrics for one topic
 func TopicMetrics(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
-
-	// Init output
-	output := []byte("")
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -402,7 +385,7 @@ func TopicMetrics(w http.ResponseWriter, r *http.Request) {
 
 	if refAuthResource && auth.IsPublisher(refRoles) {
 
-		if auth.PerResource(rCTX, projectUUID, "topics", urlTopic, refUserUUID, refStr) == false {
+		if !auth.PerResource(rCTX, projectUUID, "topics", urlTopic, refUserUUID, refStr) {
 			err := APIErrorForbidden()
 			respondErr(rCTX, w, err)
 			return
@@ -464,18 +447,13 @@ func TopicMetrics(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Write response
-	output = []byte(resJSON)
-	respondOK(w, output)
+	respondOK(w, []byte(resJSON))
 }
 
 // SubMetrics (GET) metrics for one subscription
 func SubMetrics(w http.ResponseWriter, r *http.Request) {
-	traceId := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), "trace_id", traceId)
-
-	// Init output
-	output := []byte("")
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -501,7 +479,7 @@ func SubMetrics(w http.ResponseWriter, r *http.Request) {
 
 	if refAuthResource && auth.IsConsumer(refRoles) {
 
-		if auth.PerResource(rCTX, projectUUID, "subscriptions", urlSub, refUserUUID, refStr) == false {
+		if !auth.PerResource(rCTX, projectUUID, "subscriptions", urlSub, refUserUUID, refStr) {
 			err := APIErrorForbidden()
 			respondErr(rCTX, w, err)
 			return
@@ -539,6 +517,5 @@ func SubMetrics(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Write response
-	output = []byte(resJSON)
-	respondOK(w, output)
+	respondOK(w, []byte(resJSON))
 }

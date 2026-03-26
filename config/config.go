@@ -11,14 +11,15 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"crypto/x509"
-	"github.com/samuel/go-zookeeper/zk"
-	lSyslog "github.com/sirupsen/logrus/hooks/syslog"
-	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
 	"log/syslog"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/samuel/go-zookeeper/zk"
+	lSyslog "github.com/sirupsen/logrus/hooks/syslog"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 )
 
 // AuthOption defines how the service will handle authentication/authorization
@@ -28,7 +29,7 @@ type AuthOption int
 const (
 	// the api key can reside in the url parameter 'key'
 	// maps to config value 'key'
-	UrlKey = iota + 1
+	URLKey = iota + 1
 	// the api key can reside in the header 'x-api-key'
 	// maps to config value 'header'
 	HeaderKey
@@ -62,8 +63,8 @@ type APICfg struct {
 	ProxyHostname string
 
 	PushEnabled bool
-	// Whether or not it should communicate over tls with the push server
-	PushTlsEnabled bool
+	// Whether it should communicate over tls with the push server
+	PushTLSEnabled bool
 	// Push server endpoint
 	PushServerHost string
 	// Push server port
@@ -147,6 +148,10 @@ func (cfg *APICfg) GetZooList() ([]string, error) {
 	).Info("Trying to connect to Zookeeper")
 
 	zConn, _, err := zk.Connect(cfg.ZooHosts, time.Second)
+	if err != nil {
+		return peerList, err
+	}
+
 	// Check if indeed connected and can read
 	_, _, _, err = zConn.ChildrenW("/")
 	if err != nil {
@@ -225,7 +230,7 @@ func (cfg *APICfg) LoadCAs() (roots *x509.CertPool) {
 			}
 
 			if ok = roots.AppendCertsFromPEM(bytes); !ok {
-				return fmt.Errorf("Could not append cert to CA: %v ", filepath.Join(cfg.CertificateAuthoritiesDir, info.Name()))
+				return fmt.Errorf("could not append cert to CA: %v ", filepath.Join(cfg.CertificateAuthoritiesDir, info.Name()))
 			}
 		}
 
@@ -249,19 +254,14 @@ func setLogLevel(logLvl string) {
 	switch logLvl {
 	case "DEBUG":
 		log.SetLevel(log.DebugLevel)
-		break
 	case "INFO":
 		log.SetLevel(log.InfoLevel)
-		break
 	case "WARNING":
 		log.SetLevel(log.WarnLevel)
-		break
 	case "ERROR":
 		log.SetLevel(log.ErrorLevel)
-		break
 	case "FATAL":
 		log.SetLevel(log.FatalLevel)
-		break
 	default:
 		log.SetLevel(log.InfoLevel)
 	}
@@ -304,12 +304,10 @@ func (cfg *APICfg) setAuthOption(authOpt string) {
 	switch strings.ToLower(authOpt) {
 	case "both":
 		cfg.authOption = URLKeyAndHeaderKey
-		break
 	case "header":
 		cfg.authOption = HeaderKey
-		break
 	default:
-		cfg.authOption = UrlKey
+		cfg.authOption = URLKey
 	}
 }
 
@@ -328,7 +326,7 @@ func (cfg *APICfg) LoadTest() {
 	// Find and read the configuration file
 	err := viper.ReadInConfig()
 	if err != nil {
-		panic(fmt.Errorf("Errod trying to read the configuration file: %s \n", err))
+		panic(fmt.Errorf("error trying to read the configuration file: %s", err))
 	}
 
 	// Load Kafka configuration
@@ -463,12 +461,12 @@ func (cfg *APICfg) LoadTest() {
 	).Infof("Parameter Loaded - push_enabled: %v", cfg.PushEnabled)
 
 	// push TLS enabled true or false
-	cfg.PushTlsEnabled = viper.GetBool("push_tls_enabled")
+	cfg.PushTLSEnabled = viper.GetBool("push_tls_enabled")
 	log.WithFields(
 		log.Fields{
 			"type": "service_log",
 		},
-	).Infof("Parameter Loaded - push_tls_enabled: %v", cfg.PushTlsEnabled)
+	).Infof("Parameter Loaded - push_tls_enabled: %v", cfg.PushTLSEnabled)
 
 	// push server host
 	cfg.PushServerHost = viper.GetString("push_server_host")
@@ -508,7 +506,7 @@ func (cfg *APICfg) Load() {
 	// Set Flags
 	var configPath *string
 
-	if pflag.Parsed() == false {
+	if !pflag.Parsed() {
 
 		pflag.String("log-level", "INFO", "set the desired log level")
 		viper.BindPFlag("log_level", pflag.Lookup("log-level"))
@@ -589,7 +587,7 @@ func (cfg *APICfg) Load() {
 	// Find and read the configuration file
 	err := viper.ReadInConfig()
 	if err != nil {
-		panic(fmt.Errorf("Errod trying to read the configuration file: %s \n", err))
+		panic(fmt.Errorf("error trying to read the configuration file: %s", err))
 	}
 
 	// First check log level parameter and set logger
@@ -723,12 +721,12 @@ func (cfg *APICfg) Load() {
 	).Infof("Parameter Loaded - push_enabled: %v", cfg.PushEnabled)
 
 	// push TLS enabled true or false
-	cfg.PushTlsEnabled = viper.GetBool("push_tls_enabled")
+	cfg.PushTLSEnabled = viper.GetBool("push_tls_enabled")
 	log.WithFields(
 		log.Fields{
 			"type": "service_log",
 		},
-	).Infof("Parameter Loaded - push_tls_enabled: %v", cfg.PushTlsEnabled)
+	).Infof("Parameter Loaded - push_tls_enabled: %v", cfg.PushTLSEnabled)
 
 	// push server host
 	cfg.PushServerHost = viper.GetString("push_server_host")
@@ -874,12 +872,12 @@ func (cfg *APICfg) LoadStrJSON(input string) {
 	).Infof("Parameter Loaded - push_enabled: %v", cfg.PushEnabled)
 
 	// push TLS enabled true or false
-	cfg.PushTlsEnabled = viper.GetBool("push_tls_enabled")
+	cfg.PushTLSEnabled = viper.GetBool("push_tls_enabled")
 	log.WithFields(
 		log.Fields{
 			"type": "service_log",
 		},
-	).Infof("Parameter Loaded - push_tls_enabled: %v", cfg.PushTlsEnabled)
+	).Infof("Parameter Loaded - push_tls_enabled: %v", cfg.PushTLSEnabled)
 
 	// push server host
 	cfg.PushServerHost = viper.GetString("push_server_host")

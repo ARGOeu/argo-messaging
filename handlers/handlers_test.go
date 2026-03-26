@@ -2,8 +2,6 @@ package handlers
 
 import (
 	"fmt"
-	"github.com/ARGOeu/argo-messaging/version"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -11,9 +9,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ARGOeu/argo-messaging/version"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
-	oldPush "github.com/ARGOeu/argo-messaging/push"
 	push "github.com/ARGOeu/argo-messaging/push/grpc/client"
 	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/gorilla/mux"
@@ -67,10 +67,9 @@ func (suite *HandlerTestSuite) TestHealthCheck() {
 	brk := brokers.MockBroker{}
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
-	mgr := oldPush.Manager{}
 	pc := new(push.MockClient)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/status", WrapMockAuthConfig(HealthCheck, cfgKafka, &brk, str, &mgr, pc))
+	router.HandleFunc("/v1/status", WrapMockAuthConfig(HealthCheck, cfgKafka, &brk, str, pc))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 
@@ -108,10 +107,9 @@ func (suite *HandlerTestSuite) TestHealthCheckDetails() {
 	})
 
 	router := mux.NewRouter().StrictSlash(true)
-	mgr := oldPush.Manager{}
 	pc := new(push.MockClient)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/status", WrapMockAuthConfig(HealthCheck, cfgKafka, &brk, str, &mgr, pc))
+	router.HandleFunc("/v1/status", WrapMockAuthConfig(HealthCheck, cfgKafka, &brk, str, pc))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 
@@ -136,10 +134,9 @@ func (suite *HandlerTestSuite) TestHealthCheckPushDisabled() {
 	brk := brokers.MockBroker{}
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
-	mgr := oldPush.Manager{}
 	pc := new(push.MockClient)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/status", WrapMockAuthConfig(HealthCheck, cfgKafka, &brk, str, &mgr, pc))
+	router.HandleFunc("/v1/status", WrapMockAuthConfig(HealthCheck, cfgKafka, &brk, str, pc))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -170,10 +167,9 @@ func (suite *HandlerTestSuite) TestHealthCheckPushWorkerMissing() {
 	brk := brokers.MockBroker{}
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
-	mgr := oldPush.Manager{}
 	pc := new(push.MockClient)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/status", WrapMockAuthConfig(HealthCheck, cfgKafka, &brk, str, &mgr, pc))
+	router.HandleFunc("/v1/status", WrapMockAuthConfig(HealthCheck, cfgKafka, &brk, str, pc))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -182,7 +178,7 @@ func (suite *HandlerTestSuite) TestHealthCheckPushWorkerMissing() {
 func (suite *HandlerTestSuite) TestGetRequestTokenExtractStrategy() {
 
 	// test the key extract strategy
-	keyStrategy := GetRequestTokenExtractStrategy(config.UrlKey)
+	keyStrategy := GetRequestTokenExtractStrategy(config.URLKey)
 	u1, _ := url.Parse("https://host.com/v1/projects?key=tok3n")
 	r1 := &http.Request{
 		URL: u1,
@@ -248,10 +244,9 @@ func (suite *HandlerTestSuite) TestListVersion() {
 	str.UserList = append(str.UserList, stores.QUser{8, "uuid8", nil, "UserZ", "", "", "", "", "st", "foo-email", []string{"service_admin"}, time.Now(), time.Now(), ""})
 
 	router := mux.NewRouter().StrictSlash(true)
-	mgr := oldPush.Manager{}
 	pc := new(push.MockClient)
 	w := httptest.NewRecorder()
-	router.HandleFunc("/v1/version", WrapMockAuthConfig(ListVersion, cfgKafka, &brk, str, &mgr, pc))
+	router.HandleFunc("/v1/version", WrapMockAuthConfig(ListVersion, cfgKafka, &brk, str, pc))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())

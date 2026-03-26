@@ -4,13 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/ARGOeu/argo-messaging/brokers"
-	"github.com/ARGOeu/argo-messaging/config"
-	oldPush "github.com/ARGOeu/argo-messaging/push"
-	push "github.com/ARGOeu/argo-messaging/push/grpc/client"
-	"github.com/ARGOeu/argo-messaging/stores"
-	"github.com/gorilla/mux"
-	"github.com/stretchr/testify/suite"
 	"io"
 	"log"
 	"net/http"
@@ -18,6 +11,13 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/ARGOeu/argo-messaging/brokers"
+	"github.com/ARGOeu/argo-messaging/config"
+	push "github.com/ARGOeu/argo-messaging/push/grpc/client"
+	"github.com/ARGOeu/argo-messaging/stores"
+	"github.com/gorilla/mux"
+	"github.com/stretchr/testify/suite"
 )
 
 type TopicsHandlersTestSuite struct {
@@ -64,8 +64,8 @@ func (suite *TopicsHandlersTestSuite) TestTopicDeleteNotfound() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapMockAuthConfig(TopicDelete, cfgKafka, &brk, str, &mgr, nil))
+
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapMockAuthConfig(TopicDelete, cfgKafka, &brk, str, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(404, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -90,8 +90,8 @@ func (suite *TopicsHandlersTestSuite) TestTopicCreate() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapMockAuthConfig(TopicCreate, cfgKafka, &brk, str, &mgr, nil))
+
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapMockAuthConfig(TopicCreate, cfgKafka, &brk, str, nil))
 	router.ServeHTTP(w, req)
 	tp, _, _, _ := str.QueryTopics(suite.ctx, "argo_uuid", "", "topicNew", "", 1)
 	expResp = strings.Replace(expResp, "{{CON}}", tp[0].CreatedOn.Format("2006-01-02T15:04:05Z"), 1)
@@ -118,8 +118,8 @@ func (suite *TopicsHandlersTestSuite) TestTopicAttachSchema() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}:attachSchema", WrapMockAuthConfig(TopicAttachSchema, cfgKafka, &brk, str, &mgr, nil))
+
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:attachSchema", WrapMockAuthConfig(TopicAttachSchema, cfgKafka, &brk, str, nil))
 	router.ServeHTTP(w, req)
 	tp, _, _, _ := str.QueryTopics(suite.ctx, "argo_uuid", "", "topic1", "", 1)
 	suite.Equal(200, w.Code)
@@ -146,8 +146,8 @@ func (suite *TopicsHandlersTestSuite) TestTopicDetachSchema() {
 	})
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}:detachSchema", WrapMockAuthConfig(TopicDetachSchema, cfgKafka, &brk, str, &mgr, nil))
+
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:detachSchema", WrapMockAuthConfig(TopicDetachSchema, cfgKafka, &brk, str, nil))
 	router.ServeHTTP(w, req)
 	tp, _, _, _ := str.QueryTopics(suite.ctx, "argo_uuid", "", "topic5", "", 1)
 	suite.Equal(200, w.Code)
@@ -176,8 +176,8 @@ func (suite *TopicsHandlersTestSuite) TestTopicCreateExists() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapMockAuthConfig(TopicCreate, cfgKafka, &brk, str, &mgr, nil))
+
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapMockAuthConfig(TopicCreate, cfgKafka, &brk, str, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(409, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -201,8 +201,8 @@ func (suite *TopicsHandlersTestSuite) TestTopicListOne() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapMockAuthConfig(TopicListOne, cfgKafka, &brk, str, &mgr, nil))
+
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapMockAuthConfig(TopicListOne, cfgKafka, &brk, str, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -223,8 +223,8 @@ func (suite *TopicsHandlersTestSuite) TestTopicListSubscriptions() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}/subscriptions", WrapMockAuthConfig(ListSubsByTopic, cfgKafka, &brk, str, &mgr, nil))
+
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}/subscriptions", WrapMockAuthConfig(ListSubsByTopic, cfgKafka, &brk, str, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -246,8 +246,8 @@ func (suite *TopicsHandlersTestSuite) TestTopicListSubscriptionsEmpty() {
 	str.SubList = nil
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}/subscriptions", WrapMockAuthConfig(ListSubsByTopic, cfgKafka, &brk, str, &mgr, nil))
+
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}/subscriptions", WrapMockAuthConfig(ListSubsByTopic, cfgKafka, &brk, str, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -268,8 +268,8 @@ func (suite *TopicsHandlersTestSuite) TestModTopicACL01() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}:modAcl", WrapMockAuthConfig(TopicModACL, cfgKafka, &brk, str, &mgr, nil))
+
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:modAcl", WrapMockAuthConfig(TopicModACL, cfgKafka, &brk, str, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal("", w.Body.String())
@@ -278,7 +278,7 @@ func (suite *TopicsHandlersTestSuite) TestModTopicACL01() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}:acl", WrapMockAuthConfig(TopicACL, cfgKafka, &brk, str, &mgr, nil))
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:acl", WrapMockAuthConfig(TopicACL, cfgKafka, &brk, str, nil))
 	w2 := httptest.NewRecorder()
 	router.ServeHTTP(w2, req2)
 	suite.Equal(200, w2.Code)
@@ -314,8 +314,8 @@ func (suite *TopicsHandlersTestSuite) TestTopicACL01() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}:acl", WrapMockAuthConfig(TopicACL, cfgKafka, &brk, str, &mgr, nil))
+
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:acl", WrapMockAuthConfig(TopicACL, cfgKafka, &brk, str, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -341,8 +341,8 @@ func (suite *TopicsHandlersTestSuite) TestTopicACL02() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}:acl", WrapMockAuthConfig(TopicACL, cfgKafka, &brk, str, &mgr, nil))
+
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:acl", WrapMockAuthConfig(TopicACL, cfgKafka, &brk, str, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -372,8 +372,8 @@ func (suite *TopicsHandlersTestSuite) TestModTopicACLWrong() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}:modAcl", WrapMockAuthConfig(TopicModACL, cfgKafka, &brk, str, &mgr, nil))
+
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:modAcl", WrapMockAuthConfig(TopicModACL, cfgKafka, &brk, str, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(404, w.Code)
 	suite.Equal(expRes, w.Body.String())
@@ -418,8 +418,8 @@ func (suite *TopicsHandlersTestSuite) TestTopicListAll() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics", WrapMockAuthConfig(TopicListAll, cfgKafka, &brk, str, &mgr, nil, "project_admin"))
+
+	router.HandleFunc("/v1/projects/{project}/topics", WrapMockAuthConfig(TopicListAll, cfgKafka, &brk, str, nil, "project_admin"))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -455,8 +455,8 @@ func (suite *TopicsHandlersTestSuite) TestTopicListAllPublisher() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics", WrapMockAuthConfig(TopicListAll, cfgKafka, &brk, str, &mgr, nil, "publisher"))
+
+	router.HandleFunc("/v1/projects/{project}/topics", WrapMockAuthConfig(TopicListAll, cfgKafka, &brk, str, nil, "publisher"))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -487,8 +487,8 @@ func (suite *TopicsHandlersTestSuite) TestTopicListAllPublisherWithPagination() 
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics", WrapMockAuthConfig(TopicListAll, cfgKafka, &brk, str, &mgr, nil, "publisher"))
+
+	router.HandleFunc("/v1/projects/{project}/topics", WrapMockAuthConfig(TopicListAll, cfgKafka, &brk, str, nil, "publisher"))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -574,7 +574,7 @@ func (suite *TopicsHandlersTestSuite) TestPublishWithSchema() {
 			expectedResponse: `{
    "error": {
       "code": 400,
-      "message": "Message 0 data is not valid.1)(root): email is required.2)telephone: Invalid type. Expected: string, given: integer.",
+      "message": "message 0 data is not valid,1)(root): email is required.2)telephone: Invalid type. Expected: string, given: integer.",
       "status": "INVALID_ARGUMENT"
    }
 }`,
@@ -600,7 +600,7 @@ func (suite *TopicsHandlersTestSuite) TestPublishWithSchema() {
 			expectedResponse: `{
    "error": {
       "code": 400,
-      "message": "Message 0 is not valid.cannot decode binary record \"user.avro.User\" field \"username\": cannot decode binary string: cannot decode binary bytes: negative size: -40",
+      "message": "message 0 is not valid,cannot decode binary record \"user.avro.User\" field \"username\": cannot decode binary string: cannot decode binary bytes: negative size: -40",
       "status": "INVALID_ARGUMENT"
    }
 }`,
@@ -627,7 +627,7 @@ func (suite *TopicsHandlersTestSuite) TestPublishWithSchema() {
 			expectedResponse: `{
    "error": {
       "code": 400,
-      "message": "Message 0 data is not valid,(root): email is required",
+      "message": "message 0 data is not valid,(root): email is required",
       "status": "INVALID_ARGUMENT"
    }
 }`,
@@ -653,7 +653,7 @@ func (suite *TopicsHandlersTestSuite) TestPublishWithSchema() {
 			expectedResponse: `{
    "error": {
       "code": 400,
-      "message": "Message 1 data is not valid JSON format,unexpected EOF",
+      "message": "message 1 data is not valid JSON format,unexpected EOF",
       "status": "INVALID_ARGUMENT"
    }
 }`,
@@ -669,7 +669,7 @@ func (suite *TopicsHandlersTestSuite) TestPublishWithSchema() {
 	brk := brokers.MockBroker{}
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
-	mgr := oldPush.Manager{}
+
 	pc := new(push.MockClient)
 
 	for _, t := range testData {
@@ -680,7 +680,7 @@ func (suite *TopicsHandlersTestSuite) TestPublishWithSchema() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapMockAuthConfig(TopicPublish, cfgKafka, &brk, str, &mgr, pc))
+		router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapMockAuthConfig(TopicPublish, cfgKafka, &brk, str, pc))
 		router.ServeHTTP(w, req)
 
 		suite.Equal(t.expectedStatusCode, w.Code, t.msg)
@@ -717,8 +717,8 @@ func (suite *TopicsHandlersTestSuite) TestTopicListAllFirstPage() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics", WrapMockAuthConfig(TopicListAll, cfgKafka, &brk, str, &mgr, nil, "project_admin"))
+
+	router.HandleFunc("/v1/projects/{project}/topics", WrapMockAuthConfig(TopicListAll, cfgKafka, &brk, str, nil, "project_admin"))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -749,8 +749,8 @@ func (suite *TopicsHandlersTestSuite) TestTopicListAllNextPage() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics", WrapMockAuthConfig(TopicListAll, cfgKafka, &brk, str, &mgr, nil, "project_admin"))
+
+	router.HandleFunc("/v1/projects/{project}/topics", WrapMockAuthConfig(TopicListAll, cfgKafka, &brk, str, nil, "project_admin"))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -778,8 +778,8 @@ func (suite *TopicsHandlersTestSuite) TestTopicListAllEmpty() {
 	str.TopicList = []stores.QTopic{}
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics", WrapMockAuthConfig(TopicListAll, cfgKafka, &brk, str, &mgr, nil))
+
+	router.HandleFunc("/v1/projects/{project}/topics", WrapMockAuthConfig(TopicListAll, cfgKafka, &brk, str, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -808,8 +808,8 @@ func (suite *TopicsHandlersTestSuite) TestTopicListAllInvalidPageSize() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics", WrapMockAuthConfig(TopicListAll, cfgKafka, &brk, str, &mgr, nil))
+
+	router.HandleFunc("/v1/projects/{project}/topics", WrapMockAuthConfig(TopicListAll, cfgKafka, &brk, str, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(400, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -838,8 +838,8 @@ func (suite *TopicsHandlersTestSuite) TestTopicListAllInvalidPageToken() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics", WrapMockAuthConfig(TopicListAll, cfgKafka, &brk, str, &mgr, nil))
+
+	router.HandleFunc("/v1/projects/{project}/topics", WrapMockAuthConfig(TopicListAll, cfgKafka, &brk, str, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(400, w.Code)
 	suite.Equal(expResp, w.Body.String())
@@ -879,8 +879,8 @@ func (suite *TopicsHandlersTestSuite) TestPublish() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapMockAuthConfig(TopicPublish, cfgKafka, &brk, str, &mgr, nil))
+
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapMockAuthConfig(TopicPublish, cfgKafka, &brk, str, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expJSON, w.Body.String())
@@ -941,8 +941,8 @@ func (suite *TopicsHandlersTestSuite) TestPublishMultiple() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapMockAuthConfig(TopicPublish, cfgKafka, &brk, str, &mgr, nil))
+
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapMockAuthConfig(TopicPublish, cfgKafka, &brk, str, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(200, w.Code)
 	suite.Equal(expJSON, w.Body.String())
@@ -990,8 +990,8 @@ func (suite *TopicsHandlersTestSuite) TestPublishError() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapMockAuthConfig(TopicPublish, cfgKafka, &brk, str, &mgr, nil))
+
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapMockAuthConfig(TopicPublish, cfgKafka, &brk, str, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(400, w.Code)
 	suite.Equal(expJSON, w.Body.String())
@@ -1042,8 +1042,8 @@ func (suite *TopicsHandlersTestSuite) TestPublishNoTopic() {
 	str := stores.NewMockStore("whatever", "argo_mgs")
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()
-	mgr := oldPush.Manager{}
-	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapMockAuthConfig(TopicPublish, cfgKafka, &brk, str, &mgr, nil))
+
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapMockAuthConfig(TopicPublish, cfgKafka, &brk, str, nil))
 	router.ServeHTTP(w, req)
 	suite.Equal(404, w.Code)
 	suite.Equal(expJSON, w.Body.String())
@@ -1092,8 +1092,8 @@ func (suite *TopicsHandlersTestSuite) TestValidationInTopics() {
 		w := httptest.NewRecorder()
 		req, err := http.NewRequest("GET", url, bytes.NewBuffer([]byte("")))
 		router := mux.NewRouter().StrictSlash(true)
-		mgr := oldPush.Manager{}
-		router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapMockAuthConfig(WrapValidate(TopicListOne), cfgKafka, &brk, str, &mgr, nil))
+
+		router.HandleFunc("/v1/projects/{project}/topics/{topic}", WrapMockAuthConfig(WrapValidate(TopicListOne), cfgKafka, &brk, str, nil))
 
 		if err != nil {
 			log.Fatal(err)

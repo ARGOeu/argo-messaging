@@ -645,7 +645,7 @@ func (mk *MockStore) ModSubPush(ctx context.Context, projectUUID string, name st
 			mk.SubList[i].RetPeriod = config.RetPeriod
 			mk.SubList[i].VerificationHash = config.VerificationHash
 			mk.SubList[i].Verified = config.Verified
-			mk.SubList[i].MattermostUrl = config.MattermostUrl
+			mk.SubList[i].MattermostURL = config.MattermostURL
 			mk.SubList[i].MattermostUsername = config.MattermostUsername
 			mk.SubList[i].MattermostChannel = config.MattermostChannel
 			return nil
@@ -724,9 +724,7 @@ func (mk *MockStore) QueryUsers(ctx context.Context, projectUUID string, uuid st
 	result := []QUser{}
 
 	if name == "" && uuid == "" && projectUUID == "" {
-		for _, item := range mk.UserList {
-			result = append(result, item)
-		}
+		result = append(result, mk.UserList...)
 	} else if name == "" && uuid == "" && projectUUID != "" {
 		for _, item := range mk.UserList {
 			if item.isInProject(projectUUID) {
@@ -1191,7 +1189,7 @@ func (mk *MockStore) InsertSub(ctx context.Context, projectUUID string, name str
 		RetPeriod:           pushCfg.RetPeriod,
 		VerificationHash:    pushCfg.VerificationHash,
 		Verified:            pushCfg.Verified,
-		MattermostUrl:       pushCfg.MattermostUrl,
+		MattermostURL:       pushCfg.MattermostURL,
 		MattermostChannel:   pushCfg.MattermostChannel,
 		MattermostUsername:  pushCfg.MattermostUsername,
 		Base64Decode:        pushCfg.Base64Decode,
@@ -1611,7 +1609,7 @@ func (mk *MockStore) existsInACL(ctx context.Context, resource, resourceName, us
 
 }
 
-// Checks if a users exists in an ACL resource (topic or subscription)
+// ExistsInACL checks if a users exists in an ACL resource (topic or subscription)
 func (mk *MockStore) ExistsInACL(ctx context.Context, projectUUID string, resource string, resourceName string, userUUID string) error {
 
 	var acl QAcl

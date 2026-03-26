@@ -109,7 +109,7 @@ func (us *Users) Empty() bool {
 
 // One returns the first user if a user list is not empty
 func (us *Users) One() User {
-	if us.Empty() == false {
+	if !us.Empty() {
 		return us.List[0]
 	}
 	return User{}
@@ -670,7 +670,7 @@ func UpdateUser(ctx context.Context, uuid, firstName, lastName, organization, de
 			// Check roles
 
 			for _, roleItem := range item.Roles {
-				if IsRoleValid(roleItem, validRoles) == false {
+				if !IsRoleValid(roleItem, validRoles) {
 					return User{}, errors.New("invalid role: " + roleItem)
 				}
 			}
@@ -681,9 +681,9 @@ func UpdateUser(ctx context.Context, uuid, firstName, lastName, organization, de
 		prList = nil
 	}
 
-	if serviceRoles != nil && len(serviceRoles) > 0 {
+	if len(serviceRoles) > 0 {
 		for _, roleItem := range serviceRoles {
-			if IsRoleValid(roleItem, validRoles) == false {
+			if !IsRoleValid(roleItem, validRoles) {
 				return User{}, errors.New("invalid role: " + roleItem)
 			}
 		}
@@ -740,16 +740,16 @@ func CreateUser(ctx context.Context, uuid string, name string, fname string, lna
 
 		// Check roles
 		for _, roleItem := range item.Roles {
-			if IsRoleValid(roleItem, validRoles) == false {
+			if !IsRoleValid(roleItem, validRoles) {
 				return User{}, errors.New("invalid role: " + roleItem)
 			}
 		}
 		prList = append(prList, stores.QProjectRoles{ProjectUUID: prUUID, Roles: item.Roles})
 	}
 
-	if serviceRoles != nil && len(serviceRoles) > 0 {
+	if len(serviceRoles) > 0 {
 		for _, roleItem := range serviceRoles {
-			if IsRoleValid(roleItem, validRoles) == false {
+			if !IsRoleValid(roleItem, validRoles) {
 				return User{}, errors.New("invalid role: " + roleItem)
 			}
 		}
