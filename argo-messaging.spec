@@ -63,6 +63,8 @@ go clean
 %attr(0644,root,root) /usr/lib/systemd/system/argo-messaging.service
 
 %changelog
+* Thu March 26 2026 Agelos Tsalapatis  <agelos.tsal@gmail.com> 1.8.0-1%{?dist}
+- AMS release 1.8.0
 * Tue May 20 2025 Agelos Tsalapatis  <agelos.tsal@gmail.com> 1.7.0-1%{?dist}
 - AMS release 1.7.0
 * Thu Dec 7 2023 Agelos Tsalapatis  <agelos.tsal@gmail.com> 1.6.0-1%{?dist}

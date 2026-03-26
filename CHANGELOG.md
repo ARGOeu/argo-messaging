@@ -2,6 +2,18 @@
 
 All notable changes in the argo messaging service have been listed below alognside their release date and the package version they belong.
 
+## 1.8.0-1 - (2026-26-03)
+
+### Changed
+
+-   Upgrade test-containers to latest version for security fixes 
+
+-   Add rocky9 build repo and checksec detailed security check
+
+-   AM-401 Support for MongoDB 7
+
+-   Upgrade Golang to version 1.25
+
 ## 1.7.0-1 - (2025-20-05)
 
 ### Changed
