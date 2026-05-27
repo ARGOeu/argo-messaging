@@ -2,6 +2,12 @@ package handlers
 
 import (
 	"bytes"
+	"encoding/json"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
 	"github.com/ARGOeu/argo-messaging/auth"
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
@@ -9,10 +15,6 @@ import (
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/suite"
-	"io"
-	"net/http"
-	"net/http/httptest"
-	"testing"
 )
 
 type UsersHandlersTestSuite struct {
@@ -225,6 +227,95 @@ func (suite *UsersHandlersTestSuite) TestUserCreate() {
 	suite.Equal("lname-1", usrOut.LastName)
 	suite.Equal("org-1", usrOut.Organization)
 	suite.Equal("desc-1", usrOut.Description)
+}
+
+func (suite *UsersHandlersTestSuite) TestComponentUser() {
+
+	postJSON := `{
+	"email":"email@foo.com",
+	"first_name": "fname-1",
+	"last_name": "lname-1",
+	"organization": "org-1",
+	"description": "desc-1",
+	"projects":[{"project_uuid":"argo_uuid","roles":["admin","viewer"]}],
+   "component": "monbox",
+   "component_project": "ARGO"
+}`
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/users/USERNEW2", bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/users/{user}", WrapMockAuthConfig(UserCreate, cfgKafka, &brk, str, nil))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	usrOut, _ := auth.GetUserFromJSON(w.Body.Bytes())
+
+	suite.Equal("USERNEW2", usrOut.Name)
+	// Check if the mock authenticated userA has been marked as the creator
+	suite.Equal("email@foo.com", usrOut.Email)
+	//suite.Equal([]string{"admin", "viewer"}, usrOut.Projects[0].Role)
+	suite.Equal("fname-1", usrOut.FirstName)
+	suite.Equal("lname-1", usrOut.LastName)
+	suite.Equal("org-1", usrOut.Organization)
+	suite.Equal("desc-1", usrOut.Description)
+	suite.Equal("monbox", usrOut.Component)
+	suite.Equal("ARGO", usrOut.ComponentProject)
+
+	// try to post a second user with same component info - find duplicate
+
+	postJSON2 := `{
+	"email":"email@foo.com",
+	"first_name": "fname-1",
+	"last_name": "lname-1",
+	"organization": "org-1",
+	"description": "desc-1",
+	"projects":[{"project_uuid":"argo_uuid","roles":["admin","viewer"]}],
+   "component": "monbox",
+   "component_project": "ARGO"
+}`
+
+	req2, err := http.NewRequest("POST", "http://localhost:8080/v1/users/USERNEW3", bytes.NewBuffer([]byte(postJSON2)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	router2 := mux.NewRouter().StrictSlash(true)
+
+	w2 := httptest.NewRecorder()
+	router2.HandleFunc("/v1/users/{user}", WrapMockAuthConfig(UserCreate, cfgKafka, &brk, str, nil))
+	router2.ServeHTTP(w2, req2)
+	suite.Equal(409, w2.Code)
+
+	// try to refresh token
+
+	req3, err := http.NewRequest("POST", "http://localhost:8080/v1/integrations/component/monbox/by-project-name/ARGO/refresh", bytes.NewBuffer(nil))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	router3 := mux.NewRouter().StrictSlash(true)
+
+	resp3 := ComponentResponse{}
+
+	w3 := httptest.NewRecorder()
+	router3.HandleFunc("/v1/integrations/component/{component}/by-project-name/{project}/refresh", WrapMockAuthConfig(RefreshComponentToken, cfgKafka, &brk, str, nil))
+	router3.ServeHTTP(w3, req3)
+	suite.Equal(200, w3.Code)
+	suite.Require().NoError(json.Unmarshal(w3.Body.Bytes(), &resp3))
+
+	suite.Equal("Component api key succesfully renewed", resp3.Status.Message)
+	suite.Equal("200", resp3.Status.Code)
+	suite.NotEmpty(resp3.Data.APIKey)
+
 }
 
 func (suite *UsersHandlersTestSuite) TestUserCreateDuplicateRef() {

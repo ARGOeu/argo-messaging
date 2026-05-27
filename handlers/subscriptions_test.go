@@ -3,7 +3,6 @@ package handlers
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -1359,7 +1358,6 @@ func (suite *SubscriptionsHandlersTestSuite) TestSubCreate() {
 	router.HandleFunc("/v1/projects/{project}/subscriptions/{subscription}", WrapMockAuthConfig(SubCreate, cfgKafka, &brk, str, nil))
 	router.ServeHTTP(w, req)
 	sub, _ := str.QueryOneSub(suite.ctx, "argo_uuid", "subNew")
-	fmt.Println(sub)
 	expResp = strings.Replace(expResp, "{{CON}}", sub.CreatedOn.Format("2006-01-02T15:04:05Z"), 1)
 	suite.Equal(200, w.Code)
 	suite.Equal(expResp, w.Body.String())

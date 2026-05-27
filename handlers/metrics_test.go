@@ -784,7 +784,7 @@ func (suite *MetricsHandlersTestSuite) TestUserUsageProfile() {
 		},
 	},
 		"UserA", "FirstA", "LastA", "OrgA",
-		"DescA", "S3CR3T1T", "foo-email", []string{},
+		"DescA", "S3CR3T1T", "foo-email", []string{}, "", "",
 		time.Now(), time.Now(), ""})
 	router := mux.NewRouter().StrictSlash(true)
 	w := httptest.NewRecorder()

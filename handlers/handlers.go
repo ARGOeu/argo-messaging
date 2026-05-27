@@ -146,6 +146,7 @@ func WrapLog(hfn http.Handler, name string) http.HandlerFunc {
 func WrapAuthenticate(hfn http.Handler, extractToken RequestTokenExtractStrategy) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		traceID := gorillaContext.Get(r, "trace_id").(string)
+
 		rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
 
 		urlVars := mux.Vars(r)
@@ -364,6 +365,12 @@ func respondOK(w http.ResponseWriter, output []byte) {
 	w.Write(output)
 }
 
+// respondAny is used to finalize reponse writer with any code and output
+func respondAny(w http.ResponseWriter, code int, output []byte) {
+	w.WriteHeader(code)
+	w.Write(output)
+}
+
 // respondErr is used to finalize response writer with proper error codes and error output
 func respondErr(ctx context.Context, w http.ResponseWriter, apiErr APIErrorRoot) {
 	log.WithFields(
@@ -431,4 +438,24 @@ type HealthStatus struct {
 type PushServerInfo struct {
 	Endpoint string `json:"endpoint"`
 	Status   string `json:"status"`
+}
+
+// Component response is used when a component admin asks for a token refresh on an account tied to a component under a specific project
+type ComponentResponse struct {
+	Status struct {
+		Message string `json:"message"`
+		Code    string `json:"code"`
+	} `json:"status"`
+	Data *struct {
+		APIKey string `json:"api_key"`
+	} `json:"data,omitempty"`
+}
+
+// ExportJSON for the component response
+func (resp *ComponentResponse) ExportJSON() (string, error) {
+	out, err := json.MarshalIndent(resp, "", "    ")
+	if err != nil {
+		return "", err
+	}
+	return string(out), nil
 }

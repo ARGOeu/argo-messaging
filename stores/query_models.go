@@ -93,20 +93,22 @@ type QUserRegistration struct {
 
 // QUser are the results of the QUser query
 type QUser struct {
-	ID           interface{}     `bson:"_id,omitempty"`
-	UUID         string          `bson:"uuid"`
-	Projects     []QProjectRoles `bson:"projects"`
-	Name         string          `bson:"name"`
-	FirstName    string          `bson:"first_name,omitempty"`
-	LastName     string          `bson:"last_name,omitempty"`
-	Organization string          `bson:"organization,omitempty"`
-	Description  string          `bson:"description,omitempty"`
-	Token        string          `bson:"token"`
-	Email        string          `bson:"email"`
-	ServiceRoles []string        `bson:"service_roles"`
-	CreatedOn    time.Time       `bson:"created_on"`
-	ModifiedOn   time.Time       `bson:"modified_on"`
-	CreatedBy    string          `bson:"created_by"`
+	ID               interface{}     `bson:"_id,omitempty"`
+	UUID             string          `bson:"uuid"`
+	Projects         []QProjectRoles `bson:"projects"`
+	Name             string          `bson:"name"`
+	FirstName        string          `bson:"first_name,omitempty"`
+	LastName         string          `bson:"last_name,omitempty"`
+	Organization     string          `bson:"organization,omitempty"`
+	Description      string          `bson:"description,omitempty"`
+	Token            string          `bson:"token"`
+	Email            string          `bson:"email"`
+	ServiceRoles     []string        `bson:"service_roles"`
+	Component        string          `bson:"component,omitempty"`
+	ComponentProject string          `bson:"component_project,omitepmty"`
+	CreatedOn        time.Time       `bson:"created_on"`
+	ModifiedOn       time.Time       `bson:"modified_on"`
+	CreatedBy        string          `bson:"created_by"`
 }
 
 // QProjectRoles include information about projects and roles that user has

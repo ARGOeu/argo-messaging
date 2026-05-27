@@ -474,8 +474,8 @@ func (suite *StoreTestSuite) TestMockStore() {
 	qRoles := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"admin"}}, QProjectRoles{"argo_uuid2", []string{"admin", "viewer"}}}
 	expUsr10 := QUser{UUID: "user_uuid10", Projects: qRoleAdmin1, Name: "newUser1", FirstName: "fname", LastName: "lname", Organization: "org1", Description: "desc1", Token: "A3B94A94V3A", Email: "fake@email.com", ServiceRoles: []string{}, CreatedOn: created, ModifiedOn: modified, CreatedBy: "uuid1"}
 	expUsr11 := QUser{UUID: "user_uuid11", Projects: qRoles, Name: "newUser2", Token: "BX312Z34NLQ", Email: "fake@email.com", ServiceRoles: []string{}, CreatedOn: created, ModifiedOn: modified, CreatedBy: "uuid1"}
-	store.InsertUser(ctx, "user_uuid10", qRoleAdmin1, "newUser1", "fname", "lname", "org1", "desc1", "A3B94A94V3A", "fake@email.com", []string{}, created, modified, "uuid1")
-	store.InsertUser(ctx, "user_uuid11", qRoles, "newUser2", "", "", "", "", "BX312Z34NLQ", "fake@email.com", []string{}, created, modified, "uuid1")
+	store.InsertUser(ctx, "user_uuid10", qRoleAdmin1, "newUser1", "fname", "lname", "org1", "desc1", "A3B94A94V3A", "fake@email.com", []string{}, "", "", created, modified, "uuid1")
+	store.InsertUser(ctx, "user_uuid11", qRoles, "newUser2", "", "", "", "", "BX312Z34NLQ", "fake@email.com", []string{}, "", "", created, modified, "uuid1")
 	usr10, _ := store.QueryUsers(ctx, "argo_uuid", "user_uuid10", "")
 	usr11, _ := store.QueryUsers(ctx, "argo_uuid", "", "newUser2")
 
@@ -492,7 +492,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 
 	// Test Update User
 	usrUpdated := QUser{UUID: "user_uuid11", Projects: qRoles, Name: "updated_name", Token: "BX312Z34NLQ", Email: "fake@email.com", ServiceRoles: []string{"service_admin"}, CreatedOn: created, ModifiedOn: modified, CreatedBy: "uuid1"}
-	store.UpdateUser(ctx, "user_uuid11", "", "", "", "", nil, "updated_name", "", []string{"service_admin"}, modified)
+	store.UpdateUser(ctx, "user_uuid11", "", "", "", "", nil, "updated_name", "", []string{"service_admin"}, "", "", modified)
 	usr11, _ = store.QueryUsers(ctx, "", "user_uuid11", "")
 	suite.Equal(usrUpdated, usr11[0])
 

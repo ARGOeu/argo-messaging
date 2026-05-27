@@ -714,6 +714,11 @@ POST "/v1/users/{user_name}"
 - service_roles: A list of service-wide roles. An example of service-wide role is `service_admin` which can manage
   projects or other users
 
+### Optional component fields see more [here](#custom-id)
+When we want a user account to be attached to a specific component that integrates with Messaging we use the following optional fields:
+- component: the name of the component that will use this account
+- component_project: the name of the project under which the component will use this account
+
 ##### Available Roles
 
 ARGO Messaging Service has the following predefined project roles:
@@ -728,7 +733,8 @@ and the following service-wide role:
 
 | Role          | Description                                                                                                                                                                                   |
 |---------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| service_admin | Users with `service_admin` role operate service wide. They are able to create, modify and delete projects. Also they are able to create, modify and delete users and assign them to projects. |  
+| service_admin | Users with `service_admin` role operate service wide. They are able to create, modify and delete projects. Also they are able to create, modify and delete users and assign them to projects. | 
+| component_admin | Users with `component_admin` role operate service wide for only component related calls. They are able to retrieve access tokens for component accounts under specific projects |   
 
 ### Example request
 
@@ -947,3 +953,52 @@ Success Response
 ### Errors
 
 Please refer to section [Errors](/api_basic/api_errors.md) to see all possible Errors
+
+
+## Accounts tied to components {#comp}
+
+When integrating with external components certain user accounts can be used per component integration. To declare a user account that will be used by a specific account we need to specify the `component` and `component_project` fields during user creation like below:
+
+To create a publisher account for the component monbox for project PROJECT-101 we issue:
+## [POST] Manage Users - Create new user
+
+This request creates a new user in a project
+
+### Request
+
+```
+POST "/v1/users/{user_name}"
+```
+
+### Post body:
+
+```json
+{
+  "projects": [
+    {
+      "project": "ARGO",
+      "roles": [
+        "project_admin"
+      ]
+    }
+  ],
+  "email": "foo-email",
+  "first_name": "fname-1",
+  "last_name": "lname-1",
+  "organization": "org-1",
+  "description": "desc-1",
+  "service_roles": [],
+  "component": "monbox",
+  "component_project": "PROJECT-101"
+}
+```
+
+### Where
+
+- user_name: Name of the user
+- projects: A list of Projects & associated roles that the user has on those projects
+- email: User's email
+- service_roles: A list of service-wide roles. An example of service-wide role is `service_admin` which can manage
+  projects or other users
+- component: the name of the component that will use this account
+- component_project: the name of the project under which the component will use this account
