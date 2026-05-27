@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
+
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"time"
 )
 
 const (
@@ -1170,7 +1171,7 @@ func (store *MongoStoreWithOfficialDriver) QueryUsers(ctx context.Context, proje
 
 // UpdateUser updates user information
 func (store *MongoStoreWithOfficialDriver) UpdateUser(ctx context.Context, uuid, fname, lname, org,
-	desc string, projects []QProjectRoles, name string, email string, serviceRoles []string, modifiedOn time.Time) error {
+	desc string, projects []QProjectRoles, name string, email string, serviceRoles []string, comp string, compProject string, modifiedOn time.Time) error {
 
 	doc := bson.M{"uuid": uuid}
 	results, err := store.QueryUsers(ctx, "", uuid, "")
@@ -1216,6 +1217,14 @@ func (store *MongoStoreWithOfficialDriver) UpdateUser(ctx context.Context, uuid,
 
 	if serviceRoles != nil {
 		curUsr.ServiceRoles = serviceRoles
+	}
+
+	if comp != "" {
+		curUsr.Component = comp
+	}
+
+	if compProject != "" {
+		curUsr.ComponentProject = compProject
 	}
 
 	curUsr.ModifiedOn = modifiedOn
@@ -1270,21 +1279,23 @@ func (store *MongoStoreWithOfficialDriver) RemoveUser(ctx context.Context, uuid 
 
 // InsertUser inserts a new user to the store
 func (store *MongoStoreWithOfficialDriver) InsertUser(ctx context.Context, uuid string, projects []QProjectRoles,
-	name string, firstName string, lastName string, org string, desc string, token string, email string, serviceRoles []string, createdOn time.Time, modifiedOn time.Time, createdBy string) error {
+	name string, firstName string, lastName string, org string, desc string, token string, email string, serviceRoles []string, comp string, compProject string, createdOn time.Time, modifiedOn time.Time, createdBy string) error {
 	user := QUser{
-		UUID:         uuid,
-		Name:         name,
-		Email:        email,
-		Token:        token,
-		FirstName:    firstName,
-		LastName:     lastName,
-		Organization: org,
-		Description:  desc,
-		Projects:     projects,
-		ServiceRoles: serviceRoles,
-		CreatedOn:    createdOn,
-		ModifiedOn:   modifiedOn,
-		CreatedBy:    createdBy,
+		UUID:             uuid,
+		Name:             name,
+		Email:            email,
+		Token:            token,
+		FirstName:        firstName,
+		LastName:         lastName,
+		Organization:     org,
+		Description:      desc,
+		Projects:         projects,
+		ServiceRoles:     serviceRoles,
+		Component:        comp,
+		ComponentProject: compProject,
+		CreatedOn:        createdOn,
+		ModifiedOn:       modifiedOn,
+		CreatedBy:        createdBy,
 	}
 	_, err := store.usersCollection.InsertOne(ctx, user)
 	if err != nil {
@@ -1318,6 +1329,38 @@ func (store *MongoStoreWithOfficialDriver) GetUserFromToken(ctx context.Context,
 				"backend_hosts":   store.Server,
 			},
 		).Warning("Multiple users with the same token")
+	}
+
+	// Search the found user for project roles
+	return results[0], err
+}
+
+// GetComponentUser returns specific user with attached component info
+func (store *MongoStoreWithOfficialDriver) GetComponentUser(ctx context.Context, comp string, compProject string) (QUser, error) {
+
+	query := bson.M{"component": comp, "component_project": compProject}
+	results, err := store.usersFindQueryProcessor.execute(ctx, query)
+
+	if err != nil {
+		store.logErrorAndCrash(ctx, "GetUserFromToken", err)
+		return QUser{}, err
+	}
+
+	if len(results) == 0 {
+		return QUser{}, DocNotFound{}
+	}
+
+	if len(results) > 1 {
+		log.WithFields(
+			log.Fields{
+				"type":              "backend_log",
+				"trace_id":          ctx.Value("trace_id"),
+				"component":         comp,
+				"component_project": compProject,
+				"backend_service":   "mongo",
+				"backend_hosts":     store.Server,
+			},
+		).Warning("Multiple users with the same component info")
 	}
 
 	// Search the found user for project roles

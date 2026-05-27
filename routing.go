@@ -91,6 +91,7 @@ var defaultRoutes = []APIRoute{
 	{"users:usageReport", "GET", "/users/usageReport", handlers.UserUsageReport},
 	{"users:show", "GET", "/users/{user}", handlers.UserListOne},
 	{"users:refreshToken", "POST", "/users/{user}:refreshToken", handlers.RefreshToken},
+	{"users:componentRefreshToken", "POST", "/integrations/{component}/by-project-name/{project}/refresh", handlers.RefreshComponentToken},
 	{"users:create", "POST", "/users/{user}", handlers.UserCreate},
 	{"users:update", "PUT", "/users/{user}", handlers.UserUpdate},
 	{"users:delete", "DELETE", "/users/{user}", handlers.UserDelete},

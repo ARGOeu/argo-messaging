@@ -1657,7 +1657,7 @@ paths:
         404:
           $ref: "#/responses/404"
         409:
-          $ref: "#/responses/409_no_offset_for_time"
+          $ref: "#/responses/409"
         500:
           $ref: "#/responses/500"
 
@@ -1700,7 +1700,7 @@ paths:
         404:
           $ref: "#/responses/404"
         409:
-          $ref: "#/responses/409_no_topic"
+          $ref: "#/responses/409"
         500:
           $ref: "#/responses/500"
 
@@ -1820,7 +1820,7 @@ paths:
         404:
           $ref: "#/responses/404"
         409:
-          $ref: "#/responses/409_action_conflict"
+          $ref: "#/responses/409"
         500:
           $ref: "#/responses/500"
 
@@ -2282,6 +2282,44 @@ paths:
           schema:
             $ref: "#/definitions/Version"
 
+  /integrations/components/{COMPONENT}/by-project-name/{PROJECT}/refresh:
+    post:
+      tags:
+       - Integrations
+      summary: Renew an account access key for a component that integrates with a specific project
+      description: For a specific project, renew the access key of a specific integration component
+      operationId: integrations.components.refresh
+      parameters:
+        - name: PROJECT
+          in: path
+          description: Name of the project
+          required: true
+          type: string
+        - name: COMPONENT
+          in: path
+          description: Name of the component
+          required: true
+          type: string
+      responses:
+        200:
+          description: A response containing the refreshed api key
+          schema:
+            $ref: '#/definitions/ComponentApiKey'
+        409:
+          description: Conflict if component account is not configured
+          schema:
+            $ref: '#/definitions/ComponentStatus'
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
+
 parameters:
   Details:
     name: details
@@ -2371,46 +2409,36 @@ parameters:
     default: all of the registered projects
 
 responses:
-  400:
+  "400":
     description: Invalid argument used
     schema:
       $ref: '#/definitions/ErrorMsg'
-  401:
+  "401":
     description: Unauthorized user based on key
     schema:
       $ref: '#/definitions/ErrorMsg'
-  403:
+  "403":
     description: Access Forbidden for the user on the resource
     schema:
       $ref: '#/definitions/ErrorMsg'
-  404:
+  "404":
     description: Item not found
     schema:
       $ref: '#/definitions/ErrorMsg'
-  408:
+  "408":
     description: Server timed out waiting for the request
     schema:
       $ref: '#/definitions/ErrorMsg'
-  409:
-    description: Item already exists!
+  "409":
+    description: |
+      Conflict. Possible causes:
+        * Item already exists
+        * A conflict occurred due to the user's action
+        * Subscription's topic doesn't exist
+        * Timestamp is out of bounds for the subscription's topic/partition
     schema:
       $ref: '#/definitions/ErrorMsg'
-  409_action_conflict:
-    description: A conflict occurred due to the user's action!
-    schema:
-      $ref: '#/definitions/ErrorMsg'
-
-  409_no_topic:
-    description: Subscription's topic doesn't exist
-    schema:
-      $ref: '#/definitions/ErrorMsg'
-
-  409_no_offset_for_time:
-    description: Timestamp is out of bounds for the subscription's topic/partition
-    schema:
-      $ref: '#/definitions/ErrorMsg'
-
-  500:
+  "500":
     description: Internal Error
     schema:
       $ref: '#/definitions/ErrorMsg'
@@ -2537,6 +2565,34 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/Metric'
+
+  ComponentApiKey:
+    type: object
+    properties:
+      status:
+        type: object
+        properties:
+          message:
+            type: string
+          code: 
+            type: string
+      data:
+        type: object
+        properties:
+          api_key:
+            type: string
+  ComponentStatus:
+    type: object
+    properties:
+      status:
+        type: object
+        properties:
+          message:
+            type: string
+          code: 
+            type: string
+
+
 
   Metric:
     type: object
@@ -2834,6 +2890,10 @@ definitions:
         type: array
         items:
           type: string
+      component:
+        type: string
+      component_project:
+        type: string
       created_on:
         type: string
       modified_on:

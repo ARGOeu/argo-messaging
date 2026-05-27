@@ -382,7 +382,7 @@ func ProjectUserCreate(w http.ResponseWriter, r *http.Request) {
 	created := time.Now().UTC()
 
 	// Get Result Object
-	res, err := auth.CreateUser(rCTX, uuid, urlUser, "", "", "", "", postBody.Projects, token, postBody.Email, postBody.ServiceRoles, created, refUserUUID, refStr)
+	res, err := auth.CreateUser(rCTX, uuid, urlUser, "", "", "", "", postBody.Projects, token, postBody.Email, postBody.ServiceRoles, "", "", created, refUserUUID, refStr)
 
 	if err != nil {
 		if err.Error() == "exists" {
@@ -521,7 +521,7 @@ func ProjectUserUpdate(w http.ResponseWriter, r *http.Request) {
 	userOrg := u.One().Organization
 	userDesc := u.One().Description
 
-	_, err = auth.UpdateUser(rCTX, userUUID, userFN, userLN, userOrg, userDesc, userName, userProjects, userEmail, userSRoles, modified, false, refStr)
+	_, err = auth.UpdateUser(rCTX, userUUID, userFN, userLN, userOrg, userDesc, userName, userProjects, userEmail, userSRoles, "", "", modified, false, refStr)
 
 	if err != nil {
 
@@ -638,7 +638,7 @@ func ProjectUserRemove(w http.ResponseWriter, r *http.Request) {
 	userOrg := u.One().Organization
 	userDesc := u.One().Description
 
-	_, err = auth.UpdateUser(rCTX, userUUID, userFN, userLN, userOrg, userDesc, userName, userProjects, userEmail, userSRoles, modified, false, refStr)
+	_, err = auth.UpdateUser(rCTX, userUUID, userFN, userLN, userOrg, userDesc, userName, userProjects, userEmail, userSRoles, "", "", modified, false, refStr)
 
 	if err != nil {
 
@@ -741,7 +741,7 @@ func ProjectUserAdd(w http.ResponseWriter, r *http.Request) {
 		Roles:   data.Roles,
 	})
 
-	_, err = auth.UpdateUser(rCTX, userUUID, userFN, userLN, userOrg, userDesc, userName, userProjects, userEmail, userSRoles, modified, false, refStr)
+	_, err = auth.UpdateUser(rCTX, userUUID, userFN, userLN, userOrg, userDesc, userName, userProjects, userEmail, userSRoles, "", "", modified, false, refStr)
 
 	if err != nil {
 
@@ -765,7 +765,6 @@ func ProjectUserAdd(w http.ResponseWriter, r *http.Request) {
 
 	// Write response
 	privileged := auth.IsServiceAdmin(refRoles)
-	fmt.Println(privileged)
 	results, err := auth.FindUsers(rCTX, refProjUUID, "", urlUser, privileged, refStr)
 
 	if err != nil {

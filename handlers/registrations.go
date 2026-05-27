@@ -123,7 +123,7 @@ func AcceptRegisterUser(w http.ResponseWriter, r *http.Request) {
 	created := time.Now().UTC()
 	// Get Result Object
 	res, err := auth.CreateUser(rCTX, userUUID, ru.Name, ru.FirstName, ru.LastName, ru.Organization, ru.Description,
-		[]auth.ProjectRoles{}, token, ru.Email, []string{}, created, refUserUUID, refStr)
+		[]auth.ProjectRoles{}, token, ru.Email, []string{}, "", "", created, refUserUUID, refStr)
 
 	if err != nil {
 		if err.Error() == "exists" {

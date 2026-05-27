@@ -24,19 +24,21 @@ const (
 
 // User is the struct that holds user information
 type User struct {
-	UUID         string         `json:"uuid"`
-	Projects     []ProjectRoles `json:"projects,omitempty"`
-	Name         string         `json:"name"`
-	FirstName    string         `json:"first_name,omitempty"`
-	LastName     string         `json:"last_name,omitempty"`
-	Organization string         `json:"organization,omitempty"`
-	Description  string         `json:"description,omitempty"`
-	Token        string         `json:"token,omitempty"`
-	Email        string         `json:"email"`
-	ServiceRoles []string       `json:"service_roles"`
-	CreatedOn    string         `json:"created_on,omitempty"`
-	ModifiedOn   string         `json:"modified_on,omitempty"`
-	CreatedBy    string         `json:"created_by,omitempty"`
+	UUID             string         `json:"uuid"`
+	Projects         []ProjectRoles `json:"projects,omitempty"`
+	Name             string         `json:"name"`
+	FirstName        string         `json:"first_name,omitempty"`
+	LastName         string         `json:"last_name,omitempty"`
+	Organization     string         `json:"organization,omitempty"`
+	Description      string         `json:"description,omitempty"`
+	Token            string         `json:"token,omitempty"`
+	Email            string         `json:"email"`
+	ServiceRoles     []string       `json:"service_roles"`
+	Component        string         `json:"component,omitempty"`
+	ComponentProject string         `json:"component_project,omitempty"`
+	CreatedOn        string         `json:"created_on,omitempty"`
+	ModifiedOn       string         `json:"modified_on,omitempty"`
+	CreatedBy        string         `json:"created_by,omitempty"`
 }
 
 // ProjectRoles is the struct that hold project and role information of the user
@@ -241,22 +243,24 @@ func UpdateUserRegistration(ctx context.Context, regUUID, status, declineComment
 }
 
 // NewUser accepts parameters and creates a new user
-func NewUser(uuid string, projects []ProjectRoles, name string, fname string, lname string, org string, desc string, token string, email string, serviceRoles []string, createdOn time.Time, modifiedOn time.Time, createdBy string) User {
+func NewUser(uuid string, projects []ProjectRoles, name string, fname string, lname string, org string, desc string, token string, email string, serviceRoles []string, comp string, compProject string, createdOn time.Time, modifiedOn time.Time, createdBy string) User {
 	zuluForm := "2006-01-02T15:04:05Z"
 	return User{
-		UUID:         uuid,
-		Projects:     projects,
-		Name:         name,
-		FirstName:    fname,
-		LastName:     lname,
-		Organization: org,
-		Description:  desc,
-		Token:        token,
-		Email:        email,
-		ServiceRoles: serviceRoles,
-		CreatedOn:    createdOn.Format(zuluForm),
-		ModifiedOn:   modifiedOn.Format(zuluForm),
-		CreatedBy:    createdBy}
+		UUID:             uuid,
+		Projects:         projects,
+		Name:             name,
+		FirstName:        fname,
+		LastName:         lname,
+		Organization:     org,
+		Description:      desc,
+		Token:            token,
+		Email:            email,
+		ServiceRoles:     serviceRoles,
+		Component:        comp,
+		ComponentProject: compProject,
+		CreatedOn:        createdOn.Format(zuluForm),
+		ModifiedOn:       modifiedOn.Format(zuluForm),
+		CreatedBy:        createdBy}
 }
 
 // GetPushWorker returns a push worker user by token
@@ -318,7 +322,7 @@ func GetUserByToken(ctx context.Context, token string, store stores.Store) (User
 
 	curUser := NewUser(user.UUID, pRoles, user.Name, user.FirstName,
 		user.LastName, user.Organization, user.Description, user.Token, user.Email,
-		user.ServiceRoles, user.CreatedOn.UTC(), user.ModifiedOn.UTC(), usernameC)
+		user.ServiceRoles, user.Component, user.ComponentProject, user.CreatedOn.UTC(), user.ModifiedOn.UTC(), usernameC)
 
 	result = curUser
 
@@ -385,7 +389,7 @@ func FindUsers(ctx context.Context, projectUUID string, uuid string, name string
 		}
 
 		curUser := NewUser(item.UUID, pRoles, item.Name, item.FirstName, item.LastName,
-			item.Organization, item.Description, token, item.Email, serviceRoles,
+			item.Organization, item.Description, token, item.Email, serviceRoles, item.Component, item.ComponentProject,
 			item.CreatedOn.UTC(), item.ModifiedOn.UTC(), usernameC)
 
 		result.List = append(result.List, curUser)
@@ -474,7 +478,7 @@ func PaginatedFindUsers(ctx context.Context, pageToken string, pageSize int64, p
 		}
 
 		curUser := NewUser(item.UUID, pRoles, item.Name, item.FirstName, item.LastName,
-			item.Organization, item.Description, token, item.Email, serviceRoles,
+			item.Organization, item.Description, token, item.Email, serviceRoles, item.Component, item.ComponentProject,
 			item.CreatedOn.UTC(), item.ModifiedOn.UTC(), usernameC)
 
 		result.Users = append(result.Users, curUser)
@@ -580,7 +584,7 @@ func GetUserByUUID(ctx context.Context, uuid string, store stores.Store) (User, 
 
 	curUser := NewUser(user.UUID, pRoles, user.Name, user.FirstName,
 		user.LastName, user.Organization, user.Description, user.Token, user.Email,
-		user.ServiceRoles, user.CreatedOn.UTC(), user.ModifiedOn.UTC(), usernameC)
+		user.ServiceRoles, user.Component, user.ComponentProject, user.CreatedOn.UTC(), user.ModifiedOn.UTC(), usernameC)
 
 	result = curUser
 
@@ -595,6 +599,18 @@ func GetUUIDByName(ctx context.Context, name string, store stores.Store) string 
 
 	if len(users) > 0 && err == nil {
 		result = users[0].UUID
+	}
+
+	return result
+}
+
+// GetUUIDByComponent queries user by component info and returns the corresponding UUID
+func GetUUIDByComponent(ctx context.Context, comp string, compProject string, store stores.Store) string {
+	result := ""
+	user, err := store.GetComponentUser(ctx, comp, compProject)
+
+	if err == nil && user.UUID != "" {
+		result = user.UUID
 	}
 
 	return result
@@ -636,7 +652,7 @@ func AppendToUserProjects(ctx context.Context, userUUID string, projectUUID stri
 
 // UpdateUser updates an existing user's information
 // IF the function caller needs to have a view on the updated user object it can set the reflectObj to true
-func UpdateUser(ctx context.Context, uuid, firstName, lastName, organization, description string, name string, projectList []ProjectRoles, email string, serviceRoles []string, modifiedOn time.Time, reflectObj bool, store stores.Store) (User, error) {
+func UpdateUser(ctx context.Context, uuid, firstName, lastName, organization, description string, name string, projectList []ProjectRoles, email string, serviceRoles []string, comp string, compProject string, modifiedOn time.Time, reflectObj bool, store stores.Store) (User, error) {
 
 	prList := []stores.QProjectRoles{}
 
@@ -689,7 +705,7 @@ func UpdateUser(ctx context.Context, uuid, firstName, lastName, organization, de
 		}
 	}
 
-	if err := store.UpdateUser(ctx, uuid, firstName, lastName, organization, description, prList, name, email, serviceRoles, modifiedOn); err != nil {
+	if err := store.UpdateUser(ctx, uuid, firstName, lastName, organization, description, prList, name, email, serviceRoles, comp, compProject, modifiedOn); err != nil {
 		return User{}, err
 	}
 
@@ -703,7 +719,7 @@ func UpdateUser(ctx context.Context, uuid, firstName, lastName, organization, de
 }
 
 // CreateUser creates a new user
-func CreateUser(ctx context.Context, uuid string, name string, fname string, lname string, org string, desc string, projectList []ProjectRoles, token string, email string, serviceRoles []string, createdOn time.Time, createdBy string, store stores.Store) (User, error) {
+func CreateUser(ctx context.Context, uuid string, name string, fname string, lname string, org string, desc string, projectList []ProjectRoles, token string, email string, serviceRoles []string, comp string, compProject string, createdOn time.Time, createdBy string, store stores.Store) (User, error) {
 	// check if project with the same name exists
 	if ExistsWithName(ctx, name, store) {
 		return User{}, errors.New("exists")
@@ -755,7 +771,7 @@ func CreateUser(ctx context.Context, uuid string, name string, fname string, lna
 		}
 	}
 
-	if err := store.InsertUser(ctx, uuid, prList, name, fname, lname, org, desc, token, email, serviceRoles, createdOn, createdOn, createdBy); err != nil {
+	if err := store.InsertUser(ctx, uuid, prList, name, fname, lname, org, desc, token, email, serviceRoles, comp, compProject, createdOn, createdOn, createdBy); err != nil {
 		return User{}, errors.New("backend error")
 	}
 
