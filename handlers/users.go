@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -180,6 +181,47 @@ func RefreshComponentToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondOK(w, []byte(resJSON))
+}
+
+// RefreshTokenByUserUUID (POST) refreshes a user's token addressed by UUID
+func RefreshTokenByUserUUID(w http.ResponseWriter, r *http.Request) {
+	traceID := gorillaContext.Get(r, "trace_id").(string)
+	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+
+	// Add content type header to the response
+	contentType := "application/json"
+	charset := "utf-8"
+	w.Header().Add("Content-Type", fmt.Sprintf("%s; charset=%s", contentType, charset))
+
+	// Grab url path variables
+	urlVars := mux.Vars(r)
+	urlUUID := urlVars["uuid"]
+
+	// Grab context references
+	refStr := gorillaContext.Get(r, "str").(stores.Store)
+
+	token, err := auth.GenToken()
+	if err != nil {
+		respondErr(rCTX, w, APIErrGenericBackend())
+		return
+	}
+
+	if err := auth.SetUserToken(rCTX, urlUUID, token, refStr); err != nil {
+		if err.Error() == "not found" {
+			respondErr(rCTX, w, APIErrorNotFound("User"))
+			return
+		}
+		respondErr(rCTX, w, APIErrGenericBackend())
+		return
+	}
+
+	resJSON, err := json.Marshal(map[string]string{"token": token})
+	if err != nil {
+		respondErr(rCTX, w, APIErrExportJSON())
+		return
+	}
+
+	respondOK(w, resJSON)
 }
 
 // UserUpdate (PUT) updates the user information

@@ -616,7 +616,7 @@ func GetUUIDByComponent(ctx context.Context, comp string, compProject string, st
 	return result
 }
 
-// UpdateUserToken updates an existing user's token
+// UpdateUserToken updates an existing user's token and returns the updated user.
 func UpdateUserToken(ctx context.Context, uuid string, token string, store stores.Store) (User, error) {
 	if err := store.UpdateUserToken(ctx, uuid, token); err != nil {
 		return User{}, err
@@ -624,6 +624,11 @@ func UpdateUserToken(ctx context.Context, uuid string, token string, store store
 	// reflect stored object
 	stored, err := FindUsers(ctx, "", uuid, "", true, store)
 	return stored.One(), err
+}
+
+// SetUserToken updates an existing user's token without fetching the updated record.
+func SetUserToken(ctx context.Context, uuid string, token string, store stores.Store) error {
+	return store.UpdateUserToken(ctx, uuid, token)
 }
 
 // AppendToUserProjects appends a unique project to the user's project list

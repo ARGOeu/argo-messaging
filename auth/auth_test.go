@@ -963,6 +963,22 @@ func (suite *AuthTestSuite) TestFindUserRegistrations() {
 
 }
 
+func (suite *AuthTestSuite) TestSetUserToken() {
+
+	store := stores.NewMockStore("", "")
+
+	// successful update - token changes
+	err := SetUserToken(suite.ctx, "uuid4", "NEWTOKEN", store)
+	suite.Nil(err)
+	u, e := GetUserByToken(suite.ctx, "NEWTOKEN", store)
+	suite.Nil(e)
+	suite.Equal("uuid4", u.UUID)
+
+	// unknown uuid returns not found
+	err2 := SetUserToken(suite.ctx, "unknown-uuid", "SOMETOKEN", store)
+	suite.Equal("not found", err2.Error())
+}
+
 func TestAuthTestSuite(t *testing.T) {
 	suite.Run(t, new(AuthTestSuite))
 }

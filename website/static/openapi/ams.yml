@@ -1247,6 +1247,36 @@ paths:
         500:
           $ref: "#/responses/500"
 
+  /users:refreshTokenByUUID/{UUID}:
+    post:
+      summary: Refreshes the token of an existing user addressed by UUID
+      description: |
+        The user's token is refreshed using the user's UUID
+      parameters:
+
+        - name: UUID
+          in: path
+          description: UUID of the user
+          required: true
+          type: string
+      tags:
+        - Users
+      responses:
+        200:
+          description: An object containing only the new token
+          schema:
+            $ref: '#/definitions/TokenResponse'
+        400:
+          $ref: "#/responses/400"
+        401:
+          $ref: "#/responses/401"
+        403:
+          $ref: "#/responses/403"
+        404:
+          $ref: "#/responses/404"
+        500:
+          $ref: "#/responses/500"
+
   /projects/{PROJECT}/subscriptions:
     get:
       summary: List subscriptions in a project
@@ -2444,6 +2474,12 @@ responses:
       $ref: '#/definitions/ErrorMsg'
 
 definitions:
+
+  TokenResponse:
+    type: object
+    properties:
+      token:
+        type: string
 
   UserRegistration:
     type: object

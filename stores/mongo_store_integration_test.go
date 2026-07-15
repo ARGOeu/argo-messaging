@@ -1056,12 +1056,18 @@ func (suite *MongoStoreIntegrationTestSuite) TestGetUserFromToken() {
 }
 
 func (suite *MongoStoreIntegrationTestSuite) TestUpdateUserFromToken() {
-	_ = suite.store.UpdateUserToken(suite.ctx, suite.UserList[0].UUID, "S3CR3T-v2")
+	// successful update changes the token
+	err := suite.store.UpdateUserToken(suite.ctx, suite.UserList[0].UUID, "S3CR3T-v2")
+	suite.Nil(err)
 	_, e1 := suite.store.GetUserFromToken(suite.ctx, "S3CR3T")
 	suite.Equal("not found", e1.Error())
 	usrGet, _ := suite.store.GetUserFromToken(suite.ctx, "S3CR3T-v2")
 	suite.Equal(suite.UserList[0].UUID, usrGet.UUID)
 	_ = suite.store.UpdateUserToken(suite.ctx, suite.UserList[0].UUID, "S3CR3T")
+
+	// update with unknown uuid returns not found
+	err = suite.store.UpdateUserToken(suite.ctx, "unknown-uuid", "SOMETOKEN")
+	suite.Equal("not found", err.Error())
 }
 
 func (suite *MongoStoreIntegrationTestSuite) TestPaginatedQueryUsers() {
