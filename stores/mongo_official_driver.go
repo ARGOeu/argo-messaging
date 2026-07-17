@@ -1261,11 +1261,15 @@ func (store *MongoStoreWithOfficialDriver) AppendToUserProjects(ctx context.Cont
 func (store *MongoStoreWithOfficialDriver) UpdateUserToken(ctx context.Context, uuid string, token string) error {
 	doc := bson.M{"uuid": uuid}
 	change := bson.M{"$set": bson.M{"token": token}}
-	_, err := store.usersCollection.UpdateOne(ctx, doc, change)
+	result, err := store.usersCollection.UpdateOne(ctx, doc, change)
 	if err != nil {
 		store.logErrorAndCrash(ctx, "UpdateUserToken", err)
+		return err
 	}
-	return err
+	if result.MatchedCount == 0 {
+		return errors.New("not found")
+	}
+	return nil
 }
 
 func (store *MongoStoreWithOfficialDriver) RemoveUser(ctx context.Context, uuid string) error {

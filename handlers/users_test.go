@@ -472,6 +472,57 @@ func (suite *UsersHandlersTestSuite) TestRefreshToken() {
 	suite.NotEqual("S3CR3T", userOut.Token)
 }
 
+func (suite *UsersHandlersTestSuite) TestRefreshTokenByUserUUID() {
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/users:refreshTokenByUUID/uuid4", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/users:refreshTokenByUUID/{uuid}", WrapMockAuthConfig(RefreshTokenByUserUUID, cfgKafka, &brk, str, nil))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+	var resp map[string]string
+	_ = json.Unmarshal(w.Body.Bytes(), &resp)
+	suite.NotEmpty(resp["token"])
+	suite.NotEqual("S3CR3T4", resp["token"])
+}
+
+func (suite *UsersHandlersTestSuite) TestRefreshTokenByUserUUIDNotFound() {
+
+	req, err := http.NewRequest("POST", "http://localhost:8080/v1/users:refreshTokenByUUID/unknown-uuid", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	expJSON := `{
+   "error": {
+      "code": 404,
+      "message": "User doesn't exist",
+      "status": "NOT_FOUND"
+   }
+}`
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+
+	w := httptest.NewRecorder()
+	router.HandleFunc("/v1/users:refreshTokenByUUID/{uuid}", WrapMockAuthConfig(RefreshTokenByUserUUID, cfgKafka, &brk, str, nil))
+	router.ServeHTTP(w, req)
+	suite.Equal(404, w.Code)
+	suite.Equal(expJSON, w.Body.String())
+}
+
 func (suite *UsersHandlersTestSuite) TestUserUpdate() {
 
 	postJSON := `{

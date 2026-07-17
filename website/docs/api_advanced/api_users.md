@@ -922,6 +922,44 @@ Success Response
 
 Please refer to section [Errors](/api_basic/api_errors.md) to see all possible Errors
 
+## [POST] Manage Users - Refresh token by UUID
+
+This request refreshes an existing user's token addressed by UUID
+
+### Request
+
+```
+POST "/v1/users:refreshTokenByUUID/{uuid}"
+```
+
+### Where
+
+- uuid: UUID of the user
+
+### Example request
+
+```bash
+curl -X POST -H "Content-Type: application/json" -H "x-api-key: S3CR3T"
+ "https://{URL}/v1/users:refreshTokenByUUID/99bfd746-4ebe-11p0-9c2d-fa7ae01bbebc"
+```
+
+### Responses
+
+If successful, the response contains only the new token
+
+Success Response
+`200 OK`
+
+```json
+{
+  "token": "NEWRANDOMTOKEN"
+}
+```
+
+### Errors
+
+Please refer to section [Errors](/api_basic/api_errors.md) to see all possible Errors
+
 ## [DELETE] Manage Users - Delete User
 
 This request deletes an existing user
