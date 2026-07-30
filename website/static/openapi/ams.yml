@@ -4,10 +4,6 @@ info:
   title: argo-messaging-api
   description: "ARGO is a lightweight service for Service Level Monitoring designed for medium and large sized e-Infrastructures. This swagger UI interface provides access to the specification of the ARGO messaging api, which can be used to produce or consume messages."
   version: "1.2.0"
-  contact:
-    name: ARGO Messaging
-    url: http://argoeu.github.io/argo-messaging
-    email: argo-dev@lists.grnet.gr
 
 securityDefinitions:
   APIKeyHeader:
