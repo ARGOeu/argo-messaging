@@ -16,6 +16,7 @@ import (
 
 	"github.com/ARGOeu/argo-messaging/projects"
 	"github.com/ARGOeu/argo-messaging/stores"
+	"github.com/ARGOeu/argo-messaging/tracectx"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -307,7 +308,7 @@ func VerifyPushEndpoint(ctx context.Context, sub Subscription, c *http.Client, s
 	if resp.StatusCode != 200 {
 		log.WithFields(
 			log.Fields{
-				"trace_id":        ctx.Value("trace_id"),
+				"trace_id":        tracectx.FromContext(ctx),
 				"type":            "backend_log",
 				"backend_service": "remote_endpoint",
 				"backend_hosts":   u.String(),
@@ -326,7 +327,7 @@ func VerifyPushEndpoint(ctx context.Context, sub Subscription, c *http.Client, s
 		if sub.PushCfg.VerificationHash != buf.String() {
 			log.WithFields(
 				log.Fields{
-					"trace_id":        ctx.Value("trace_id"),
+					"trace_id":        tracectx.FromContext(ctx),
 					"type":            "backend_log",
 					"backend_service": "remote_endpoint",
 					"backend_hosts":   u.String(),
@@ -376,7 +377,7 @@ func Find(ctx context.Context, projectUUID, userUUID, name, pageToken string, pa
 	if pageTokenBytes, err = base64.StdEncoding.DecodeString(pageToken); err != nil {
 		log.WithFields(
 			log.Fields{
-				"trace_id":   ctx.Value("trace_id"),
+				"trace_id":   tracectx.FromContext(ctx),
 				"type":       "request_log",
 				"page_token": pageToken,
 				"error":      err.Error(),
@@ -540,7 +541,7 @@ func ModAck(ctx context.Context, projectUUID string, name string, ack int, store
 
 	log.WithFields(
 		log.Fields{
-			"trace_id": ctx.Value("trace_id"),
+			"trace_id": tracectx.FromContext(ctx),
 			"type":     "service_log",
 			"deadline": ack,
 		},

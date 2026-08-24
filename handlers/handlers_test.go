@@ -241,7 +241,7 @@ func (suite *HandlerTestSuite) TestListVersion() {
 	cfgKafka.PushWorkerToken = "missing"
 	brk := brokers.MockBroker{}
 	str := stores.NewMockStore("whatever", "argo_mgs")
-	str.UserList = append(str.UserList, stores.QUser{8, "uuid8", nil, "UserZ", "", "", "", "", "st", "foo-email", []string{"service_admin"}, "", "", time.Now(), time.Now(), ""})
+	str.UserList = append(str.UserList, stores.QUser{8, "uuid8", nil, "UserZ", "", "", "", "", "st", stores.HashToken("st"), "foo-email", []string{"service_admin"}, "", "", time.Now(), time.Now(), ""})
 
 	router := mux.NewRouter().StrictSlash(true)
 	pc := new(push.MockClient)

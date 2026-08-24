@@ -13,6 +13,7 @@ import (
 	"github.com/ARGOeu/argo-messaging/auth"
 	"github.com/ARGOeu/argo-messaging/projects"
 	"github.com/ARGOeu/argo-messaging/stores"
+	"github.com/ARGOeu/argo-messaging/tracectx"
 	gorillaContext "github.com/gorilla/context"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
@@ -22,7 +23,7 @@ import (
 // ProjectDelete (DEL) deletes an existing project (also removes it's topics and subscriptions)
 func ProjectDelete(w http.ResponseWriter, r *http.Request) {
 	traceID := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+	rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -55,7 +56,7 @@ func ProjectDelete(w http.ResponseWriter, r *http.Request) {
 // ProjectUpdate (PUT) updates the name or the description of an existing project
 func ProjectUpdate(w http.ResponseWriter, r *http.Request) {
 	traceID := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+	rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -118,7 +119,7 @@ func ProjectUpdate(w http.ResponseWriter, r *http.Request) {
 // ProjectCreate (POST) creates a new project
 func ProjectCreate(w http.ResponseWriter, r *http.Request) {
 	traceID := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+	rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -180,7 +181,7 @@ func ProjectCreate(w http.ResponseWriter, r *http.Request) {
 // ProjectListAll (GET) all projects
 func ProjectListAll(w http.ResponseWriter, r *http.Request) {
 	traceID := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+	rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -215,7 +216,7 @@ func ProjectListAll(w http.ResponseWriter, r *http.Request) {
 // ProjectListOne (GET) one project
 func ProjectListOne(w http.ResponseWriter, r *http.Request) {
 	traceID := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+	rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -260,7 +261,7 @@ func ProjectListOne(w http.ResponseWriter, r *http.Request) {
 // ProjectUserListOne (GET) one user member of a specific project
 func ProjectUserListOne(w http.ResponseWriter, r *http.Request) {
 	traceID := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+	rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -311,7 +312,7 @@ func ProjectUserListOne(w http.ResponseWriter, r *http.Request) {
 // ProjectUserCreate (POST) creates a user under the respective project by the project's admin
 func ProjectUserCreate(w http.ResponseWriter, r *http.Request) {
 	traceID := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+	rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -374,7 +375,7 @@ func ProjectUserCreate(w http.ResponseWriter, r *http.Request) {
 	postBody.Projects = []auth.ProjectRoles{projectRoles}
 
 	uuid := uuid.NewV4().String() // generate a new uuid to attach to the new project
-	token, err := auth.GenToken() // generate a new user token
+	token, tokenHash, err := auth.GenUserToken()
 	if err != nil {
 		respondErr(rCTX, w, APIErrGenericInternal(err.Error()))
 		return
@@ -382,7 +383,7 @@ func ProjectUserCreate(w http.ResponseWriter, r *http.Request) {
 	created := time.Now().UTC()
 
 	// Get Result Object
-	res, err := auth.CreateUser(rCTX, uuid, urlUser, "", "", "", "", postBody.Projects, token, postBody.Email, postBody.ServiceRoles, "", "", created, refUserUUID, refStr)
+	res, err := auth.CreateUser(rCTX, uuid, urlUser, "", "", "", "", postBody.Projects, tokenHash, postBody.Email, postBody.ServiceRoles, "", "", created, refUserUUID, refStr)
 
 	if err != nil {
 		if err.Error() == "exists" {
@@ -408,6 +409,10 @@ func ProjectUserCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Surface the plaintext token once in the API response. The persisted
+	// record only holds the hash.
+	res.Token = token
+
 	// Output result to JSON
 	resJSON, err := res.ExportJSON()
 	if err != nil {
@@ -422,7 +427,7 @@ func ProjectUserCreate(w http.ResponseWriter, r *http.Request) {
 // ProjectUserUpdate (PUT) updates a user under the respective project by the project's admin
 func ProjectUserUpdate(w http.ResponseWriter, r *http.Request) {
 	traceID := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+	rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -578,7 +583,7 @@ func ProjectUserUpdate(w http.ResponseWriter, r *http.Request) {
 // ProjectUserRemove (POST) removes a user from the respective project
 func ProjectUserRemove(w http.ResponseWriter, r *http.Request) {
 	traceID := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+	rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -661,7 +666,7 @@ func ProjectUserRemove(w http.ResponseWriter, r *http.Request) {
 // ProjectUserAdd (POST) adds a user to the respective project
 func ProjectUserAdd(w http.ResponseWriter, r *http.Request) {
 	traceID := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+	rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -797,7 +802,7 @@ func ProjectUserAdd(w http.ResponseWriter, r *http.Request) {
 // ProjectListUsers (GET) all users belonging to a project
 func ProjectListUsers(w http.ResponseWriter, r *http.Request) {
 	traceID := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+	rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 	var err error
 	var pageSize int

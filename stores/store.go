@@ -53,9 +53,9 @@ type Store interface {
 	QueryUsers(ctx context.Context, projectUUID string, uuid string, name string) ([]QUser, error)
 	UpdateUser(ctx context.Context, uuid, fname, lname, org, desc string, projects []QProjectRoles, name string, email string, serviceRoles []string, comp string, compProject string, modifiedOn time.Time) error
 	AppendToUserProjects(ctx context.Context, userUUID string, projectUUID string, pRoles ...string) error
-	UpdateUserToken(ctx context.Context, uuid string, token string) error
+	UpdateUserToken(ctx context.Context, uuid string, tokenHash string) error
 	RemoveUser(ctx context.Context, uuid string) error
-	InsertUser(ctx context.Context, uuid string, projects []QProjectRoles, name string, firstName string, lastName string, org string, desc string, token string, email string, serviceRoles []string, comp string, compProject string, createdOn time.Time, modifiedOn time.Time, createdBy string) error
+	InsertUser(ctx context.Context, uuid string, projects []QProjectRoles, name string, firstName string, lastName string, org string, desc string, tokenHash string, email string, serviceRoles []string, comp string, compProject string, createdOn time.Time, modifiedOn time.Time, createdBy string) error
 	GetUserFromToken(ctx context.Context, token string) (QUser, error)
 	GetComponentUser(ctx context.Context, comp string, compProject string) (QUser, error)
 	UsersCount(ctx context.Context, startDate, endDate time.Time, projectUUIDs []string) (map[string]int64, error)

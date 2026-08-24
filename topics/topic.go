@@ -11,6 +11,7 @@ import (
 	"github.com/ARGOeu/argo-messaging/projects"
 	"github.com/ARGOeu/argo-messaging/schemas"
 	"github.com/ARGOeu/argo-messaging/stores"
+	"github.com/ARGOeu/argo-messaging/tracectx"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -96,7 +97,7 @@ func Find(ctx context.Context, projectUUID, userUUID, name, pageToken string, pa
 	if pageTokenBytes, err = base64.StdEncoding.DecodeString(pageToken); err != nil {
 		log.WithFields(
 			log.Fields{
-				"trace_id":   ctx.Value("trace_id"),
+				"trace_id":   tracectx.FromContext(ctx),
 				"type":       "request_log",
 				"page_token": pageToken,
 				"error":      err.Error(),
@@ -131,7 +132,7 @@ func Find(ctx context.Context, projectUUID, userUUID, name, pageToken string, pa
 			} else {
 				log.WithFields(
 					log.Fields{
-						"trace_id":     ctx.Value("trace_id"),
+						"trace_id":     tracectx.FromContext(ctx),
 						"type":         "service_log",
 						"topic_name":   item.Name,
 						"project_uuid": projectUUID,

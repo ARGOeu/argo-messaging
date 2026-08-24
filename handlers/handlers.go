@@ -14,6 +14,7 @@ import (
 	"github.com/ARGOeu/argo-messaging/projects"
 	push "github.com/ARGOeu/argo-messaging/push/grpc/client"
 	"github.com/ARGOeu/argo-messaging/stores"
+	"github.com/ARGOeu/argo-messaging/tracectx"
 	"github.com/ARGOeu/argo-messaging/validation"
 	"github.com/ARGOeu/argo-messaging/version"
 	gorillaContext "github.com/gorilla/context"
@@ -22,15 +23,11 @@ import (
 	"github.com/twinj/uuid"
 )
 
-type ContextStringValue string
-
-const TraceIDContextKey ContextStringValue = "trace_id"
-
 // WrapValidate handles validation
 func WrapValidate(hfn http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		traceID := gorillaContext.Get(r, "trace_id").(string)
-		rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+		rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 		urlVars := mux.Vars(r)
 
 		// sort keys
@@ -70,7 +67,7 @@ func WrapMockAuthConfig(hfn http.HandlerFunc, cfg *config.APICfg, brk brokers.Br
 		traceID := uuid.NewV4().String()
 		gorillaContext.Set(r, "trace_id", traceID)
 
-		projectUUID := projects.GetUUIDByName(context.WithValue(context.Background(), TraceIDContextKey, traceID),
+		projectUUID := projects.GetUUIDByName(context.WithValue(context.Background(), tracectx.TraceIDKey, traceID),
 			urlVars["project"], nStr)
 		gorillaContext.Set(r, "auth_project_uuid", projectUUID)
 		gorillaContext.Set(r, "brk", brk)
@@ -147,7 +144,7 @@ func WrapAuthenticate(hfn http.Handler, extractToken RequestTokenExtractStrategy
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		traceID := gorillaContext.Get(r, "trace_id").(string)
 
-		rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+		rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 		urlVars := mux.Vars(r)
 
@@ -207,7 +204,7 @@ func WrapAuthenticate(hfn http.Handler, extractToken RequestTokenExtractStrategy
 func WrapAuthorize(hfn http.Handler, routeName string, extractToken RequestTokenExtractStrategy) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		traceID := gorillaContext.Get(r, "trace_id").(string)
-		rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+		rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 		refStr := gorillaContext.Get(r, "str").(stores.Store)
 		refRoles := gorillaContext.Get(r, "auth_roles").([]string)
@@ -232,7 +229,7 @@ func WrapAuthorize(hfn http.Handler, routeName string, extractToken RequestToken
 // HealthCheck returns an ok message to make sure the service is up and running
 func HealthCheck(w http.ResponseWriter, r *http.Request) {
 	traceID := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+	rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 	var err error
 	var bytes []byte
@@ -310,7 +307,7 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 // ListVersion displays version information about the service
 func ListVersion(w http.ResponseWriter, r *http.Request) {
 	traceID := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+	rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -375,7 +372,7 @@ func respondAny(w http.ResponseWriter, code int, output []byte) {
 func respondErr(ctx context.Context, w http.ResponseWriter, apiErr APIErrorRoot) {
 	log.WithFields(
 		log.Fields{
-			"trace_id":    ctx.Value("trace_id"),
+			"trace_id":    tracectx.FromContext(ctx),
 			"type":        "service_log",
 			"status_code": apiErr.Body.Code,
 		},

@@ -102,6 +102,7 @@ type QUser struct {
 	Organization     string          `bson:"organization,omitempty"`
 	Description      string          `bson:"description,omitempty"`
 	Token            string          `bson:"token"`
+	TokenV2          string          `bson:"token_v2,omitempty"`
 	Email            string          `bson:"email"`
 	ServiceRoles     []string        `bson:"service_roles"`
 	Component        string          `bson:"component,omitempty"`

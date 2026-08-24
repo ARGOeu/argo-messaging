@@ -441,7 +441,6 @@ func (suite *AuthTestSuite) TestAuth() {
    "last_name": "lastdoe",
    "organization": "orgdoe",
    "description": "descdoe",
-   "token": "johndoe@fake.email.foo",
    "email": "TOK3N",
    "service_roles": [
       "service_admin"
@@ -461,7 +460,7 @@ func (suite *AuthTestSuite) TestAuth() {
 	// Test Create with empty project list
 	CreateUser(suite.ctx, "uuid13", "empty-proj", "", "", "", "", []ProjectRoles{{Project: "", Roles: []string{"consumer"}}}, "TOK3N", "johndoe@fake.email.foo", []string{"service_admin"}, "", "", tm, "", store)
 	usrs2, _ := FindUsers(suite.ctx, "", "uuid13", "", true, store)
-	expusrs2 := Users{List: []User{{UUID: "uuid13", Projects: []ProjectRoles{}, Name: "empty-proj", Token: "TOK3N", Email: "johndoe@fake.email.foo", ServiceRoles: []string{"service_admin"}, CreatedOn: "2009-11-10T23:00:00Z", ModifiedOn: "2009-11-10T23:00:00Z", CreatedBy: ""}}}
+	expusrs2 := Users{List: []User{{UUID: "uuid13", Projects: []ProjectRoles{}, Name: "empty-proj", Token: "", Email: "johndoe@fake.email.foo", ServiceRoles: []string{"service_admin"}, CreatedOn: "2009-11-10T23:00:00Z", ModifiedOn: "2009-11-10T23:00:00Z", CreatedBy: ""}}}
 	suite.Equal(expusrs2, usrs2)
 
 	// Test Update
@@ -482,7 +481,6 @@ func (suite *AuthTestSuite) TestAuth() {
    "last_name": "lastdoe2",
    "organization": "orgdoe2",
    "description": "descdoe2",
-   "token": "johndoe@fake.email.foo",
    "email": "TOK3N",
    "service_roles": [
       "consumer",
@@ -504,7 +502,7 @@ func (suite *AuthTestSuite) TestAuth() {
 	// Test update with empty project
 	UpdateUser(suite.ctx, "uuid13", "", "", "", "", "empty-proj", []ProjectRoles{{Project: "", Roles: []string{"consumer"}}}, "johndoe@fake.email.foo", []string{"service_admin"}, "", "", tm, false, store)
 	usrs2, _ = FindUsers(suite.ctx, "", "uuid13", "", true, store)
-	expusrs2 = Users{List: []User{{UUID: "uuid13", Projects: []ProjectRoles{}, Name: "empty-proj", Token: "TOK3N", Email: "johndoe@fake.email.foo", ServiceRoles: []string{"service_admin"}, CreatedOn: "2009-11-10T23:00:00Z", ModifiedOn: "2009-11-10T23:00:00Z", CreatedBy: ""}}}
+	expusrs2 = Users{List: []User{{UUID: "uuid13", Projects: []ProjectRoles{}, Name: "empty-proj", Token: "", Email: "johndoe@fake.email.foo", ServiceRoles: []string{"service_admin"}, CreatedOn: "2009-11-10T23:00:00Z", ModifiedOn: "2009-11-10T23:00:00Z", CreatedBy: ""}}}
 	suite.Equal(expusrs2, usrs2)
 
 	RemoveUser(suite.ctx, "uuid12", store)
@@ -968,15 +966,60 @@ func (suite *AuthTestSuite) TestSetUserToken() {
 	store := stores.NewMockStore("", "")
 
 	// successful update - token changes
-	err := SetUserToken(suite.ctx, "uuid4", "NEWTOKEN", store)
+	// SetUserToken expects a pre-hashed token (contract moved to service layer).
+	err := SetUserToken(suite.ctx, "uuid4", stores.HashToken("NEWTOKEN"), store)
 	suite.Nil(err)
 	u, e := GetUserByToken(suite.ctx, "NEWTOKEN", store)
 	suite.Nil(e)
 	suite.Equal("uuid4", u.UUID)
 
 	// unknown uuid returns not found
-	err2 := SetUserToken(suite.ctx, "unknown-uuid", "SOMETOKEN", store)
+	err2 := SetUserToken(suite.ctx, "unknown-uuid", stores.HashToken("SOMETOKEN"), store)
 	suite.Equal("not found", err2.Error())
+}
+
+func (suite *AuthTestSuite) TestUpdateUserToken_EmptyHash() {
+	store := stores.NewMockStore("", "")
+
+	// Empty tokenHash must be rejected before touching the store to avoid
+	// wiping an existing user's token_v2. Handler layer maps this to 500.
+	_, err := UpdateUserToken(suite.ctx, "uuid4", "", store)
+	suite.Equal(ErrEmptyTokenHash, err)
+
+	// Confirm the user's existing token/token_v2 was not overwritten.
+	u, e := GetUserByToken(suite.ctx, "S3CR3T4", store)
+	suite.Nil(e)
+	suite.Equal("uuid4", u.UUID)
+}
+
+func (suite *AuthTestSuite) TestSetUserToken_EmptyHash() {
+	store := stores.NewMockStore("", "")
+
+	err := SetUserToken(suite.ctx, "uuid4", "", store)
+	suite.Equal(ErrEmptyTokenHash, err)
+
+	// Confirm the user's existing token/token_v2 was not overwritten.
+	u, e := GetUserByToken(suite.ctx, "S3CR3T4", store)
+	suite.Nil(e)
+	suite.Equal("uuid4", u.UUID)
+}
+
+func (suite *AuthTestSuite) TestCreateUser_EmptyHash() {
+	store := stores.NewMockStore("", "")
+
+	tm := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
+	// Empty tokenHash must be rejected before ExistsWithName / InsertUser,
+	// so nothing gets persisted and the handler layer surfaces a 500.
+	_, err := CreateUser(
+		suite.ctx, "uuid-empty-hash", "brand-new-user", "", "", "", "",
+		[]ProjectRoles{{Project: "ARGO", Roles: []string{"consumer"}}},
+		"", "brand-new@fake.email.foo", []string{}, "", "", tm, "", store,
+	)
+	suite.Equal(ErrEmptyTokenHash, err)
+
+	// Confirm the user was NOT inserted.
+	usrs, _ := FindUsers(suite.ctx, "", "uuid-empty-hash", "", true, store)
+	suite.Equal(0, len(usrs.List))
 }
 
 func TestAuthTestSuite(t *testing.T) {

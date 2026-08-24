@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ARGOeu/argo-messaging/config"
+	"github.com/ARGOeu/argo-messaging/tracectx"
 
 	"github.com/ARGOeu/argo-messaging/auth"
 	"github.com/ARGOeu/argo-messaging/metrics"
@@ -22,7 +23,7 @@ import (
 // OpMetrics (GET) all operational metrics
 func OpMetrics(w http.ResponseWriter, r *http.Request) {
 	traceID := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+	rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -57,7 +58,7 @@ func OpMetrics(w http.ResponseWriter, r *http.Request) {
 // VaMetrics (GET) retrieves metrics regrading projects, users, subscriptions, topics
 func VaMetrics(w http.ResponseWriter, r *http.Request) {
 	traceID := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+	rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -129,7 +130,7 @@ func VaMetrics(w http.ResponseWriter, r *http.Request) {
 // This handler is supposed to be used for project admins in order to get usage information for their projects
 func UserUsageReport(w http.ResponseWriter, r *http.Request) {
 	traceID := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+	rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -266,7 +267,7 @@ func UserUsageReport(w http.ResponseWriter, r *http.Request) {
 // ProjectMetrics (GET) metrics for one project (number of topics)
 func ProjectMetrics(w http.ResponseWriter, r *http.Request) {
 	traceID := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+	rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -359,7 +360,7 @@ func ProjectMetrics(w http.ResponseWriter, r *http.Request) {
 // TopicMetrics (GET) metrics for one topic
 func TopicMetrics(w http.ResponseWriter, r *http.Request) {
 	traceID := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+	rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -453,7 +454,7 @@ func TopicMetrics(w http.ResponseWriter, r *http.Request) {
 // SubMetrics (GET) metrics for one subscription
 func SubMetrics(w http.ResponseWriter, r *http.Request) {
 	traceID := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+	rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
