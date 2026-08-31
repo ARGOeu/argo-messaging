@@ -13,6 +13,7 @@ import (
 
 	"github.com/ARGOeu/argo-messaging/projects"
 	"github.com/ARGOeu/argo-messaging/stores"
+	"github.com/ARGOeu/argo-messaging/tracectx"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -21,6 +22,14 @@ const (
 	PendingRegistrationStatus  = "pending"
 	DeclinedRegistrationStatus = "declined"
 )
+
+// ErrEmptyTokenHash is returned by CreateUser, UpdateUserToken and
+// SetUserToken when the caller passes an empty tokenHash. Persisting an
+// empty hash would create a user record that cannot authenticate via the
+// token_v2 path and would collide with every other empty-hash record, so
+// it is treated as a programmer error and surfaced as an internal server
+// error by the handler layer (any error other than "not found" maps to 500).
+var ErrEmptyTokenHash = errors.New("empty token hash")
 
 // User is the struct that holds user information
 type User struct {
@@ -270,7 +279,7 @@ func GetPushWorker(ctx context.Context, pwToken string, store stores.Store) (Use
 	if err != nil {
 		log.WithFields(
 			log.Fields{
-				"trace_id": ctx.Value("trace_id"),
+				"trace_id": tracectx.FromContext(ctx),
 				"type":     "service_log",
 				"token":    pwToken,
 				"error":    err.Error(),
@@ -415,7 +424,7 @@ func PaginatedFindUsers(ctx context.Context, pageToken string, pageSize int64, p
 	if pageTokenBytes, err = base64.StdEncoding.DecodeString(pageToken); err != nil {
 		log.WithFields(
 			log.Fields{
-				"trace_id":   ctx.Value("trace_id"),
+				"trace_id":   tracectx.FromContext(ctx),
 				"type":       "request_log",
 				"page_token": pageToken,
 				"error":      err.Error(),
@@ -616,9 +625,15 @@ func GetUUIDByComponent(ctx context.Context, comp string, compProject string, st
 	return result
 }
 
-// UpdateUserToken updates an existing user's token and returns the updated user.
-func UpdateUserToken(ctx context.Context, uuid string, token string, store stores.Store) (User, error) {
-	if err := store.UpdateUserToken(ctx, uuid, token); err != nil {
+// UpdateUserToken persists the pre-hashed token for an existing user and
+// returns the updated user. The caller (typically a handler) is responsible
+// for surfacing the plaintext token once in the API response; only the
+// hash is stored at rest.
+func UpdateUserToken(ctx context.Context, uuid string, tokenHash string, store stores.Store) (User, error) {
+	if tokenHash == "" {
+		return User{}, ErrEmptyTokenHash
+	}
+	if err := store.UpdateUserToken(ctx, uuid, tokenHash); err != nil {
 		return User{}, err
 	}
 	// reflect stored object
@@ -626,9 +641,13 @@ func UpdateUserToken(ctx context.Context, uuid string, token string, store store
 	return stored.One(), err
 }
 
-// SetUserToken updates an existing user's token without fetching the updated record.
-func SetUserToken(ctx context.Context, uuid string, token string, store stores.Store) error {
-	return store.UpdateUserToken(ctx, uuid, token)
+// SetUserToken persists the pre-hashed token for an existing user without
+// fetching the updated record.
+func SetUserToken(ctx context.Context, uuid string, tokenHash string, store stores.Store) error {
+	if tokenHash == "" {
+		return ErrEmptyTokenHash
+	}
+	return store.UpdateUserToken(ctx, uuid, tokenHash)
 }
 
 // AppendToUserProjects appends a unique project to the user's project list
@@ -723,8 +742,14 @@ func UpdateUser(ctx context.Context, uuid, firstName, lastName, organization, de
 	return User{}, nil
 }
 
-// CreateUser creates a new user
-func CreateUser(ctx context.Context, uuid string, name string, fname string, lname string, org string, desc string, projectList []ProjectRoles, token string, email string, serviceRoles []string, comp string, compProject string, createdOn time.Time, createdBy string, store stores.Store) (User, error) {
+// CreateUser creates a new user. The tokenHash argument must already be the
+// SHA-256 hash of the plaintext token (typically produced by GenUserToken);
+// the plaintext must never be stored at rest, so callers are responsible
+// for surfacing it once in the API response themselves.
+func CreateUser(ctx context.Context, uuid string, name string, fname string, lname string, org string, desc string, projectList []ProjectRoles, tokenHash string, email string, serviceRoles []string, comp string, compProject string, createdOn time.Time, createdBy string, store stores.Store) (User, error) {
+	if tokenHash == "" {
+		return User{}, ErrEmptyTokenHash
+	}
 	// check if project with the same name exists
 	if ExistsWithName(ctx, name, store) {
 		return User{}, errors.New("exists")
@@ -776,7 +801,7 @@ func CreateUser(ctx context.Context, uuid string, name string, fname string, lna
 		}
 	}
 
-	if err := store.InsertUser(ctx, uuid, prList, name, fname, lname, org, desc, token, email, serviceRoles, comp, compProject, createdOn, createdOn, createdBy); err != nil {
+	if err := store.InsertUser(ctx, uuid, prList, name, fname, lname, org, desc, tokenHash, email, serviceRoles, comp, compProject, createdOn, createdOn, createdBy); err != nil {
 		return User{}, errors.New("backend error")
 	}
 
@@ -785,7 +810,11 @@ func CreateUser(ctx context.Context, uuid string, name string, fname string, lna
 	return stored.One(), err
 }
 
-// GenToken generates a new token
+// GenToken generates a new random token, hex-encoded from a SHA-256 digest
+// over 32 random bytes. It is used both for user API tokens and for
+// unrelated random-string needs (e.g. push subscription authorization
+// headers), so it does not hash the returned value; see GenUserToken for
+// the user-token variant that also returns the persistable hash.
 func GenToken() (string, error) {
 	tokenLen := 32
 	tokenBytes := make([]byte, tokenLen)
@@ -794,6 +823,19 @@ func GenToken() (string, error) {
 	}
 	sha1Bytes := sha256.Sum256(tokenBytes)
 	return hex.EncodeToString(sha1Bytes[:]), nil
+}
+
+// GenUserToken generates a new user API token. It returns the plaintext
+// token (to be surfaced once to the API caller in the response body) and
+// its SHA-256 hash (to be persisted at rest via the store). Only the hash
+// should ever leave the process boundary; the plaintext must never be
+// stored or logged.
+func GenUserToken() (plaintext string, hash string, err error) {
+	plaintext, err = GenToken()
+	if err != nil {
+		return "", "", err
+	}
+	return plaintext, stores.HashToken(plaintext), nil
 }
 
 // IsPublisher Checks if a user is publisher
@@ -906,7 +948,7 @@ func PerResource(ctx context.Context, project string, resType string, resName st
 		if err != nil {
 			log.WithFields(
 				log.Fields{
-					"trace_id": ctx.Value("trace_id"),
+					"trace_id": tracectx.FromContext(ctx),
 					"type":     "system_log",
 				},
 			).Error(err.Error())

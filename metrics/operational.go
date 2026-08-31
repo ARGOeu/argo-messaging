@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/ARGOeu/argo-messaging/stores"
+	"github.com/ARGOeu/argo-messaging/tracectx"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -18,7 +19,7 @@ func GetUsageCPUMem(ctx context.Context, store stores.Store) (MetricList, error)
 	if err != nil {
 		log.WithFields(
 			log.Fields{
-				"trace_id": ctx.Value("trace_id"),
+				"trace_id": tracectx.FromContext(ctx),
 				"type":     "service_log",
 			},
 		).Error(err.Error())
@@ -28,7 +29,7 @@ func GetUsageCPUMem(ctx context.Context, store stores.Store) (MetricList, error)
 	cpuOut := strings.Split(string(out[:]), "\n")
 	log.WithFields(
 		log.Fields{
-			"trace_id": ctx.Value("trace_id"),
+			"trace_id": tracectx.FromContext(ctx),
 			"type":     "service_log",
 		},
 	).Info("CPU extracted value:", cpuOut[1])
@@ -36,7 +37,7 @@ func GetUsageCPUMem(ctx context.Context, store stores.Store) (MetricList, error)
 	if err != nil {
 		log.WithFields(
 			log.Fields{
-				"trace_id": ctx.Value("trace_id"),
+				"trace_id": tracectx.FromContext(ctx),
 				"type":     "service_log",
 			},
 		).Error(err.Error())
@@ -46,7 +47,7 @@ func GetUsageCPUMem(ctx context.Context, store stores.Store) (MetricList, error)
 	if err != nil {
 		log.WithFields(
 			log.Fields{
-				"trace_id": ctx.Value("trace_id"),
+				"trace_id": tracectx.FromContext(ctx),
 				"type":     "service_log",
 			},
 		).Error(err.Error())
@@ -56,7 +57,7 @@ func GetUsageCPUMem(ctx context.Context, store stores.Store) (MetricList, error)
 	memOut := strings.Split(string(out2[:]), "\n")
 	log.WithFields(
 		log.Fields{
-			"trace_id": ctx.Value("trace_id"),
+			"trace_id": tracectx.FromContext(ctx),
 			"type":     "service_log",
 		},
 	).Info("MEM extracted value:", memOut[1])
@@ -64,7 +65,7 @@ func GetUsageCPUMem(ctx context.Context, store stores.Store) (MetricList, error)
 	if err != nil {
 		log.WithFields(
 			log.Fields{
-				"trace_id": ctx.Value("trace_id"),
+				"trace_id": tracectx.FromContext(ctx),
 				"type":     "service_log",
 			},
 		).Error(err.Error())
@@ -74,7 +75,7 @@ func GetUsageCPUMem(ctx context.Context, store stores.Store) (MetricList, error)
 	if err != nil {
 		log.WithFields(
 			log.Fields{
-				"trace_id": ctx.Value("trace_id"),
+				"trace_id": tracectx.FromContext(ctx),
 				"type":     "service_log",
 			},
 		).Error(err.Error())

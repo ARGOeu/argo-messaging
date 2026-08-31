@@ -95,7 +95,7 @@ func (suite *MongoStoreIntegrationTestSuite) assertUsersEqual(expected []QUser, 
 		suite.Equal(user.CreatedBy, actual[idx].CreatedBy, user.Name)
 		suite.Equal(user.CreatedOn, actual[idx].CreatedOn, user.Name)
 		suite.Equal(user.ModifiedOn, actual[idx].ModifiedOn, user.Name)
-		suite.Equal(user.Token, actual[idx].Token, user.Name)
+		suite.Equal(user.TokenV2, actual[idx].TokenV2, user.Name)
 		_, isObjectId := actual[idx].ID.(primitive.ObjectID)
 		suite.True(isObjectId, user.Name)
 	}
@@ -350,7 +350,7 @@ func (suite *MongoStoreIntegrationTestSuite) initDB() {
 			RetPeriod:           qSub.RetPeriod,
 			VerificationHash:    qSub.VerificationHash,
 			Verified:            qSub.Verified,
-			MattermostURL:       qSub.MattermostUrl,
+			MattermostURL:       qSub.MattermostURL,
 			MattermostUsername:  qSub.MattermostUsername,
 			MattermostChannel:   qSub.MattermostChannel,
 			Base64Decode:        qSub.Base64Decode,
@@ -593,10 +593,15 @@ func (suite *MongoStoreIntegrationTestSuite) initDB() {
 		ModifiedOn:   modified,
 	})
 
+	for i := range suite.UserList {
+		// token_v2 migration: seed the hashed field and let InsertUser persist it.
+		suite.UserList[i].TokenV2 = HashToken(suite.UserList[i].Token)
+	}
+
 	for _, qUser := range suite.UserList {
 		err := suite.store.InsertUser(suite.ctx, qUser.UUID, qUser.Projects, qUser.Name, qUser.FirstName, qUser.LastName,
-			qUser.Organization, qUser.Description, qUser.Token, qUser.Email, qUser.ServiceRoles,
-			qUser.CreatedOn, qUser.ModifiedOn, qUser.CreatedBy)
+			qUser.Organization, qUser.Description, qUser.TokenV2, qUser.Email, qUser.ServiceRoles,
+			"", "", qUser.CreatedOn, qUser.ModifiedOn, qUser.CreatedBy)
 		if err != nil {
 			panic("could not insert user")
 		}
@@ -958,7 +963,7 @@ func (suite *MongoStoreIntegrationTestSuite) TestModPushSub() {
 	suite.Equal("hash-1", sub1.VerificationHash)
 	suite.Equal("autogen", sub1.AuthorizationType)
 	suite.Equal("auth-h-1", sub1.AuthorizationHeader)
-	suite.Equal("m-url", sub1.MattermostUrl)
+	suite.Equal("m-url", sub1.MattermostURL)
 	suite.Equal("m-c", sub1.MattermostChannel)
 	suite.Equal("m-u", sub1.MattermostUsername)
 	suite.True(sub1.Verified)
@@ -1020,9 +1025,9 @@ func (suite *MongoStoreIntegrationTestSuite) TestUpdateUser() {
 	created := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
 	modified := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
 	qRoles := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"admin"}}, QProjectRoles{"argo_uuid2", []string{"admin", "viewer"}}}
-	_ = suite.store.InsertUser(suite.ctx, "user_uuid11", qRoles, "newUser2", "", "", "", "", "BX312Z34NLQ", "fake@email.com", []string{}, created, modified, "uuid1")
-	usrUpdated := QUser{UUID: "user_uuid11", Projects: qRoles, Name: "updated_name", Token: "BX312Z34NLQ", Email: "fake@email.com", ServiceRoles: []string{"service_admin"}, CreatedOn: created, ModifiedOn: modified, CreatedBy: "uuid1"}
-	_ = suite.store.UpdateUser(suite.ctx, "user_uuid11", "", "", "", "", nil, "updated_name", "", []string{"service_admin"}, modified)
+	_ = suite.store.InsertUser(suite.ctx, "user_uuid11", qRoles, "newUser2", "", "", "", "", HashToken("BX312Z34NLQ"), "fake@email.com", []string{}, "", "", created, modified, "uuid1")
+	usrUpdated := QUser{UUID: "user_uuid11", Projects: qRoles, Name: "updated_name", TokenV2: HashToken("BX312Z34NLQ"), Email: "fake@email.com", ServiceRoles: []string{"service_admin"}, CreatedOn: created, ModifiedOn: modified, CreatedBy: "uuid1"}
+	_ = suite.store.UpdateUser(suite.ctx, "user_uuid11", "", "", "", "", nil, "updated_name", "", []string{"service_admin"}, "", "", modified)
 	usr11, _ := suite.store.QueryUsers(suite.ctx, "", "user_uuid11", "")
 	suite.assertUsersEqual([]QUser{usrUpdated}, usr11)
 	// test append project to user
@@ -1053,20 +1058,40 @@ func (suite *MongoStoreIntegrationTestSuite) TestUpdateUser() {
 func (suite *MongoStoreIntegrationTestSuite) TestGetUserFromToken() {
 	usrGet, _ := suite.store.GetUserFromToken(suite.ctx, "S3CR3T")
 	suite.assertUsersEqual([]QUser{suite.UserList[0]}, []QUser{usrGet})
+
+	// Empty token must short-circuit before hitting the DB and surface
+	// DocNotFound rather than accidentally matching a document whose
+	// token / token_v2 field is missing or empty.
+	_, err := suite.store.GetUserFromToken(suite.ctx, "")
+	suite.Equal(DocNotFound{}, err)
+}
+
+func (suite *MongoStoreIntegrationTestSuite) TestGetUserRoles_EmptyToken() {
+	// Sanity: a real seeded token still resolves.
+	roles, uname := suite.store.GetUserRoles(suite.ctx, "argo_uuid", "S3CR3T")
+	suite.NotEmpty(uname)
+	suite.NotNil(roles)
+
+	// Empty token must short-circuit: no roles, and the username slot
+	// carries the DocNotFound sentinel error string (matching the
+	// existing GetUserRoles contract on the not-found path).
+	roles, uname = suite.store.GetUserRoles(suite.ctx, "argo_uuid", "")
+	suite.Equal([]string{}, roles)
+	suite.Equal(DocNotFound{}.Error(), uname)
 }
 
 func (suite *MongoStoreIntegrationTestSuite) TestUpdateUserFromToken() {
 	// successful update changes the token
-	err := suite.store.UpdateUserToken(suite.ctx, suite.UserList[0].UUID, "S3CR3T-v2")
+	err := suite.store.UpdateUserToken(suite.ctx, suite.UserList[0].UUID, HashToken("S3CR3T-v2"))
 	suite.Nil(err)
 	_, e1 := suite.store.GetUserFromToken(suite.ctx, "S3CR3T")
 	suite.Equal("not found", e1.Error())
 	usrGet, _ := suite.store.GetUserFromToken(suite.ctx, "S3CR3T-v2")
 	suite.Equal(suite.UserList[0].UUID, usrGet.UUID)
-	_ = suite.store.UpdateUserToken(suite.ctx, suite.UserList[0].UUID, "S3CR3T")
+	_ = suite.store.UpdateUserToken(suite.ctx, suite.UserList[0].UUID, HashToken("S3CR3T"))
 
 	// update with unknown uuid returns not found
-	err = suite.store.UpdateUserToken(suite.ctx, "unknown-uuid", "SOMETOKEN")
+	err = suite.store.UpdateUserToken(suite.ctx, "unknown-uuid", HashToken("SOMETOKEN"))
 	suite.Equal("not found", err.Error())
 }
 

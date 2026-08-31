@@ -472,10 +472,10 @@ func (suite *StoreTestSuite) TestMockStore() {
 	// Test Insert User
 	qRoleAdmin1 := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"admin"}}}
 	qRoles := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"admin"}}, QProjectRoles{"argo_uuid2", []string{"admin", "viewer"}}}
-	expUsr10 := QUser{UUID: "user_uuid10", Projects: qRoleAdmin1, Name: "newUser1", FirstName: "fname", LastName: "lname", Organization: "org1", Description: "desc1", Token: "A3B94A94V3A", Email: "fake@email.com", ServiceRoles: []string{}, CreatedOn: created, ModifiedOn: modified, CreatedBy: "uuid1"}
-	expUsr11 := QUser{UUID: "user_uuid11", Projects: qRoles, Name: "newUser2", Token: "BX312Z34NLQ", Email: "fake@email.com", ServiceRoles: []string{}, CreatedOn: created, ModifiedOn: modified, CreatedBy: "uuid1"}
-	store.InsertUser(ctx, "user_uuid10", qRoleAdmin1, "newUser1", "fname", "lname", "org1", "desc1", "A3B94A94V3A", "fake@email.com", []string{}, "", "", created, modified, "uuid1")
-	store.InsertUser(ctx, "user_uuid11", qRoles, "newUser2", "", "", "", "", "BX312Z34NLQ", "fake@email.com", []string{}, "", "", created, modified, "uuid1")
+	expUsr10 := QUser{UUID: "user_uuid10", Projects: qRoleAdmin1, Name: "newUser1", FirstName: "fname", LastName: "lname", Organization: "org1", Description: "desc1", Token: "", TokenV2: HashToken("A3B94A94V3A"), Email: "fake@email.com", ServiceRoles: []string{}, CreatedOn: created, ModifiedOn: modified, CreatedBy: "uuid1"}
+	expUsr11 := QUser{UUID: "user_uuid11", Projects: qRoles, Name: "newUser2", Token: "", TokenV2: HashToken("BX312Z34NLQ"), Email: "fake@email.com", ServiceRoles: []string{}, CreatedOn: created, ModifiedOn: modified, CreatedBy: "uuid1"}
+	store.InsertUser(ctx, "user_uuid10", qRoleAdmin1, "newUser1", "fname", "lname", "org1", "desc1", HashToken("A3B94A94V3A"), "fake@email.com", []string{}, "", "", created, modified, "uuid1")
+	store.InsertUser(ctx, "user_uuid11", qRoles, "newUser2", "", "", "", "", HashToken("BX312Z34NLQ"), "fake@email.com", []string{}, "", "", created, modified, "uuid1")
 	usr10, _ := store.QueryUsers(ctx, "argo_uuid", "user_uuid10", "")
 	usr11, _ := store.QueryUsers(ctx, "argo_uuid", "", "newUser2")
 
@@ -491,7 +491,7 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal([]string{"admin", "viewer"}, rolesB)
 
 	// Test Update User
-	usrUpdated := QUser{UUID: "user_uuid11", Projects: qRoles, Name: "updated_name", Token: "BX312Z34NLQ", Email: "fake@email.com", ServiceRoles: []string{"service_admin"}, CreatedOn: created, ModifiedOn: modified, CreatedBy: "uuid1"}
+	usrUpdated := QUser{UUID: "user_uuid11", Projects: qRoles, Name: "updated_name", Token: "", TokenV2: HashToken("BX312Z34NLQ"), Email: "fake@email.com", ServiceRoles: []string{"service_admin"}, CreatedOn: created, ModifiedOn: modified, CreatedBy: "uuid1"}
 	store.UpdateUser(ctx, "user_uuid11", "", "", "", "", nil, "updated_name", "", []string{"service_admin"}, "", "", modified)
 	usr11, _ = store.QueryUsers(ctx, "", "user_uuid11", "")
 	suite.Equal(usrUpdated, usr11[0])
@@ -685,6 +685,35 @@ func (suite *StoreTestSuite) TestMockStore() {
 	suite.Equal(map[string]int64{"argo_uuid": 3}, tc)
 	suite.Equal(map[string]int64{"argo_uuid": 3}, sc)
 	suite.Equal(map[string]int64{"argo_uuid": 7, "argo_uuid2": 1}, uc)
+}
+
+func (suite *StoreTestSuite) TestMockStore_GetUserFromToken_EmptyToken() {
+	ctx := context.Background()
+	store := NewMockStore("mockhost", "mockbase")
+
+	// Sanity: a real seeded token still resolves.
+	usr, err := store.GetUserFromToken(ctx, "S3CR3T")
+	suite.Nil(err)
+	suite.Equal("Test", usr.Name)
+
+	// Empty token must short-circuit and NOT match any user.
+	_, err = store.GetUserFromToken(ctx, "")
+	suite.Equal(errors.New("not found"), err)
+}
+
+func (suite *StoreTestSuite) TestMockStore_GetUserRoles_EmptyToken() {
+	ctx := context.Background()
+	store := NewMockStore("mockhost", "mockbase")
+
+	// Sanity: a real seeded token still resolves.
+	roles, uname := store.GetUserRoles(ctx, "argo_uuid", "S3CR3T")
+	suite.Equal([]string{"consumer", "publisher"}, roles)
+	suite.Equal("Test", uname)
+
+	// Empty token must short-circuit and return no roles / no username.
+	roles, uname = store.GetUserRoles(ctx, "argo_uuid", "")
+	suite.Equal([]string{}, roles)
+	suite.Equal("", uname)
 }
 
 func TestStoresTestSuite(t *testing.T) {
