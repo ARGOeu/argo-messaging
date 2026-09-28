@@ -290,6 +290,8 @@ POST "/v1/projects/{project_name}/topics/{topic_name}:publish"
 
 > The value of the data property must be always encoded in base64 format.
 
+> **Note:** the API automatically injects a reserved `x_sender_id` attribute into every published message, containing the UUID of the authenticated user/service account that published it. This value is always set/overwritten server-side on publish (any client-supplied `x_sender_id` attribute is ignored/replaced) and is visible to subscribers upon consuming the message.
+
 #### AVRO Schema Use case
 
 Whenever a topic has an AVRO Schema attached to it, all messages
