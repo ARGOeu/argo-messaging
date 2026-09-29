@@ -696,6 +696,13 @@ func TopicPublish(w http.ResponseWriter, r *http.Request) {
 
 	// For each message in message list
 	for _, msg := range msgList.Msgs {
+
+		// Add sender info for each message
+		if msg.Attr == nil {
+			msg.Attr = make(messages.Attributes)
+		}
+		msg.Attr["x_sender_id"] = refUserUUID
+
 		// Get offset and set it as msg
 		fullTopic := projectUUID + "." + urlTopic
 
