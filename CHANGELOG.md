@@ -2,6 +2,18 @@
 
 All notable changes in the argo messaging service have been listed below alognside their release date and the package version they belong.
 
+## 1.9.0-1 - (2026-26-10)
+
+### Changed
+
+- AM-416 Include sender information per message published
+
+- ARGO-5877 ams: introduce hashed auth tokens
+
+- ARGO-5765 ams: introduce refreshTokenByUUID api call
+
+- ARGO-5587 Support component admins to refresh tokens on component accounts
+
 ## 1.8.0-1 - (2026-26-03)
 
 ### Changed
