@@ -3,7 +3,7 @@
 
 Name: argo-messaging
 Summary: ARGO Messaging API for broker network
-Version: 1.7.0
+Version: 1.9.0
 Release: 1%{?dist}
 License: ASL 2.0
 Buildroot: %{_tmppath}/%{name}-buildroot
@@ -63,6 +63,8 @@ go clean
 %attr(0644,root,root) /usr/lib/systemd/system/argo-messaging.service
 
 %changelog
+* Thu March 26 2026 Agelos Tsalapatis  <agelos.tsal@gmail.com> 1.9.0-1%{?dist}
+- AMS release 1.9.0
 * Thu March 26 2026 Agelos Tsalapatis  <agelos.tsal@gmail.com> 1.8.0-1%{?dist}
 - AMS release 1.8.0
 * Tue May 20 2025 Agelos Tsalapatis  <agelos.tsal@gmail.com> 1.7.0-1%{?dist}

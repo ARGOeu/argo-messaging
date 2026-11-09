@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -718,8 +719,18 @@ func (suite *ProjectsHandlersTestSuite) TestProjectUserCreate() {
 		router.ServeHTTP(w, req)
 		if t.expectedStatusCode == 200 {
 			u, _ := auth.FindUsers(context.Background(), "argo_uuid", "", t.user, true, str)
+			// The plaintext token is generated inside the handler and only
+			// appears in the response body — the store only holds the hash.
+			// Verify the roundtrip: presenting the response token to the
+			// store must resolve back to the same user.
+			var resp map[string]interface{}
+			suite.NoError(json.Unmarshal(w.Body.Bytes(), &resp))
+			plaintext, _ := resp["token"].(string)
+			qu, gerr := str.GetUserFromToken(context.Background(), plaintext)
+			suite.NoError(gerr, "response token must resolve to the stored user")
+			suite.Equal(u.List[0].UUID, qu.UUID)
 			t.expectedResponse = strings.Replace(t.expectedResponse, "{{UUID}}", u.List[0].UUID, 1)
-			t.expectedResponse = strings.Replace(t.expectedResponse, "{{TOKEN}}", u.List[0].Token, 1)
+			t.expectedResponse = strings.Replace(t.expectedResponse, "{{TOKEN}}", plaintext, 1)
 			t.expectedResponse = strings.Replace(t.expectedResponse, "{{CON}}", u.List[0].CreatedOn, 1)
 			t.expectedResponse = strings.Replace(t.expectedResponse, "{{MON}}", u.List[0].ModifiedOn, 1)
 		}

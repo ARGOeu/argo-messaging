@@ -14,6 +14,7 @@ import (
 
 	"github.com/ARGOeu/argo-messaging/brokers"
 	"github.com/ARGOeu/argo-messaging/config"
+	"github.com/ARGOeu/argo-messaging/messages"
 	push "github.com/ARGOeu/argo-messaging/push/grpc/client"
 	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/gorilla/mux"
@@ -947,6 +948,123 @@ func (suite *TopicsHandlersTestSuite) TestPublishMultiple() {
 	suite.Equal(200, w.Code)
 	suite.Equal(expJSON, w.Body.String())
 
+}
+
+func (suite *TopicsHandlersTestSuite) TestPublishSenderID() {
+
+	postJSON := `{
+  "messages": [
+    {
+      "attributes":
+        {
+         "foo":"bar"
+        }
+      ,
+      "data": "YmFzZTY0ZW5jb2RlZA=="
+    }
+  ]
+}`
+	url := "http://localhost:8080/v1/projects/ARGO/topics/topic1:publish"
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	brk.Initialize([]string{"localhost"})
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapMockAuthConfig(TopicPublish, cfgKafka, &brk, str, nil))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+
+	// check that the message stored/published by the broker got tagged with
+	// the sender's uuid (mocked auth context uses "uuid1")
+	suite.Require().Len(brk.MsgList, 1)
+	storedMsg, err := messages.LoadMsgJSON([]byte(brk.MsgList[0]))
+	suite.NoError(err)
+	suite.Equal("uuid1", storedMsg.Attr["x_sender_id"])
+	// original client-supplied attribute should still be intact
+	suite.Equal("bar", storedMsg.Attr["foo"])
+}
+
+func (suite *TopicsHandlersTestSuite) TestPublishSenderIDNoAttributes() {
+
+	// message without an "attributes" field at all, Attr map will be nil
+	// after unmarshaling, this should not panic when the sender id is injected
+	postJSON := `{
+  "messages": [
+    {
+      "data": "YmFzZTY0ZW5jb2RlZA=="
+    }
+  ]
+}`
+	url := "http://localhost:8080/v1/projects/ARGO/topics/topic1:publish"
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	brk.Initialize([]string{"localhost"})
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapMockAuthConfig(TopicPublish, cfgKafka, &brk, str, nil))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+
+	suite.Require().Len(brk.MsgList, 1)
+	storedMsg, err := messages.LoadMsgJSON([]byte(brk.MsgList[0]))
+	suite.NoError(err)
+	suite.Equal("uuid1", storedMsg.Attr["x_sender_id"])
+}
+
+func (suite *TopicsHandlersTestSuite) TestPublishSenderIDOverridesClientValue() {
+
+	// client attempts to spoof the sender id attribute, it should be
+	// overwritten with the authenticated user's uuid ("uuid1" in mock auth)
+	postJSON := `{
+  "messages": [
+    {
+      "attributes":
+        {
+         "x_sender_id":"spoofed-uuid"
+        }
+      ,
+      "data": "YmFzZTY0ZW5jb2RlZA=="
+    }
+  ]
+}`
+	url := "http://localhost:8080/v1/projects/ARGO/topics/topic1:publish"
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(postJSON)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfgKafka := config.NewAPICfg()
+	cfgKafka.LoadStrJSON(suite.cfgStr)
+	brk := brokers.MockBroker{}
+	brk.Initialize([]string{"localhost"})
+	str := stores.NewMockStore("whatever", "argo_mgs")
+	router := mux.NewRouter().StrictSlash(true)
+	w := httptest.NewRecorder()
+
+	router.HandleFunc("/v1/projects/{project}/topics/{topic}:publish", WrapMockAuthConfig(TopicPublish, cfgKafka, &brk, str, nil))
+	router.ServeHTTP(w, req)
+	suite.Equal(200, w.Code)
+
+	suite.Require().Len(brk.MsgList, 1)
+	storedMsg, err := messages.LoadMsgJSON([]byte(brk.MsgList[0]))
+	suite.NoError(err)
+	suite.Equal("uuid1", storedMsg.Attr["x_sender_id"])
 }
 
 func (suite *TopicsHandlersTestSuite) TestPublishError() {

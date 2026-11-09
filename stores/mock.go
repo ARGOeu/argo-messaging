@@ -145,22 +145,26 @@ func (mk *MockStore) Close() {
 	mk.Session = false
 }
 
-// InsertUser inserts a new user to the store
-func (mk *MockStore) InsertUser(ctx context.Context, uuid string, projects []QProjectRoles, name string, fname string, lname string, org string, desc string, token string, email string, serviceRoles []string, createdOn time.Time, modifiedOn time.Time, createdBy string) error {
+// InsertUser inserts a new user to the store. The tokenHash argument must
+// already be the hashed form of the plaintext token — only the hash is
+// persisted.
+func (mk *MockStore) InsertUser(ctx context.Context, uuid string, projects []QProjectRoles, name string, fname string, lname string, org string, desc string, tokenHash string, email string, serviceRoles []string, comp string, compProject string, createdOn time.Time, modifiedOn time.Time, createdBy string) error {
 	user := QUser{
-		UUID:         uuid,
-		Name:         name,
-		Email:        email,
-		Token:        token,
-		FirstName:    fname,
-		LastName:     lname,
-		Organization: org,
-		Description:  desc,
-		Projects:     projects,
-		ServiceRoles: serviceRoles,
-		CreatedOn:    createdOn,
-		ModifiedOn:   modifiedOn,
-		CreatedBy:    createdBy,
+		UUID:             uuid,
+		Name:             name,
+		Email:            email,
+		TokenV2:          tokenHash,
+		FirstName:        fname,
+		LastName:         lname,
+		Organization:     org,
+		Description:      desc,
+		Projects:         projects,
+		ServiceRoles:     serviceRoles,
+		Component:        comp,
+		ComponentProject: compProject,
+		CreatedOn:        createdOn,
+		ModifiedOn:       modifiedOn,
+		CreatedBy:        createdBy,
 	}
 	mk.UserList = append(mk.UserList, user)
 	return nil
@@ -277,11 +281,11 @@ func (mk *MockStore) GetAllRoles(ctx context.Context) []string {
 	return []string{"service_admin", "admin", "project_admin", "viewer", "consumer", "producer", "publisher", "push_worker"}
 }
 
-// UpdateUserToken updates user's token
-func (mk *MockStore) UpdateUserToken(ctx context.Context, uuid string, token string) error {
+// UpdateUserToken persists a new pre-hashed token for a user.
+func (mk *MockStore) UpdateUserToken(ctx context.Context, uuid string, tokenHash string) error {
 	for i, item := range mk.UserList {
 		if item.UUID == uuid {
-			mk.UserList[i].Token = token
+			mk.UserList[i].TokenV2 = tokenHash
 			return nil
 		}
 	}
@@ -331,7 +335,7 @@ func (mk *MockStore) AppendToUserProjects(ctx context.Context, userUUID string, 
 }
 
 // UpdateUser updates user information
-func (mk *MockStore) UpdateUser(ctx context.Context, uuid, fname, lname, org, desc string, projects []QProjectRoles, name string, email string, serviceRoles []string, modifiedOn time.Time) error {
+func (mk *MockStore) UpdateUser(ctx context.Context, uuid, fname, lname, org, desc string, projects []QProjectRoles, name string, email string, serviceRoles []string, comp string, compProject string, modifiedOn time.Time) error {
 
 	for i, item := range mk.UserList {
 		if item.UUID == uuid {
@@ -362,6 +366,14 @@ func (mk *MockStore) UpdateUser(ctx context.Context, uuid, fname, lname, org, de
 
 			if desc != "" {
 				mk.UserList[i].Description = desc
+			}
+
+			if comp != "" {
+				mk.UserList[i].Component = comp
+			}
+
+			if compProject != "" {
+				mk.UserList[i].ComponentProject = compProject
 			}
 
 			mk.UserList[i].ModifiedOn = modifiedOn
@@ -946,20 +958,20 @@ func (mk *MockStore) Initialize() {
 	// populate Users
 	qRole := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"consumer", "publisher"}}}
 	qRoleB := []QProjectRoles{QProjectRoles{"argo_uuid2", []string{"consumer", "publisher"}}}
-	qUsr := QUser{0, "uuid0", qRole, "Test", "", "", "", "", "S3CR3T", "Test@test.com", []string{}, created, modified, ""}
+	qUsr := QUser{0, "uuid0", qRole, "Test", "", "", "", "", "S3CR3T", HashToken("S3CR3T"), "Test@test.com", []string{}, "", "", created, modified, ""}
 
 	mk.UserList = append(mk.UserList, qUsr)
 
 	qRoleConsumerPub := []QProjectRoles{QProjectRoles{"argo_uuid", []string{"publisher", "consumer"}}}
 
-	mk.UserList = append(mk.UserList, QUser{1, "uuid1", qRole, "UserA", "FirstA", "LastA", "OrgA", "DescA", "S3CR3T1", "foo-email", []string{}, created, modified, ""})
-	mk.UserList = append(mk.UserList, QUser{2, "uuid2", qRole, "UserB", "", "", "", "", "S3CR3T2", "foo-email", []string{}, created, modified, "uuid1"})
-	mk.UserList = append(mk.UserList, QUser{3, "uuid3", qRoleConsumerPub, "UserX", "", "", "", "", "S3CR3T3", "foo-email", []string{}, created, modified, "uuid1"})
-	mk.UserList = append(mk.UserList, QUser{4, "uuid4", qRoleConsumerPub, "UserZ", "", "", "", "", "S3CR3T4", "foo-email", []string{}, created, modified, "uuid1"})
-	mk.UserList = append(mk.UserList, QUser{5, "same_uuid", qRoleConsumerPub, "UserSame1", "", "", "", "", "S3CR3T41", "foo-email", []string{}, created, modified, "uuid1"})
-	mk.UserList = append(mk.UserList, QUser{6, "same_uuid", qRoleConsumerPub, "UserSame2", "", "", "", "", "S3CR3T42", "foo-email", []string{}, created, modified, "uuid1"})
-	mk.UserList = append(mk.UserList, QUser{7, "uuid7", []QProjectRoles{}, "push_worker_0", "", "", "", "", "push_token", "foo-email", []string{"push_worker"}, created, modified, ""})
-	mk.UserList = append(mk.UserList, QUser{8, "uuid8", qRoleB, "UserZ", "", "", "", "", "S3CR3T1", "foo-email", []string{}, created, modified, ""})
+	mk.UserList = append(mk.UserList, QUser{1, "uuid1", qRole, "UserA", "FirstA", "LastA", "OrgA", "DescA", "S3CR3T1", HashToken("S3CR3T1"), "foo-email", []string{}, "", "", created, modified, ""})
+	mk.UserList = append(mk.UserList, QUser{2, "uuid2", qRole, "UserB", "", "", "", "", "S3CR3T2", HashToken("S3CR3T2"), "foo-email", []string{}, "", "", created, modified, "uuid1"})
+	mk.UserList = append(mk.UserList, QUser{3, "uuid3", qRoleConsumerPub, "UserX", "", "", "", "", "S3CR3T3", HashToken("S3CR3T3"), "foo-email", []string{}, "", "", created, modified, "uuid1"})
+	mk.UserList = append(mk.UserList, QUser{4, "uuid4", qRoleConsumerPub, "UserZ", "", "", "", "", "S3CR3T4", HashToken("S3CR3T4"), "foo-email", []string{}, "", "", created, modified, "uuid1"})
+	mk.UserList = append(mk.UserList, QUser{5, "same_uuid", qRoleConsumerPub, "UserSame1", "", "", "", "", "S3CR3T41", HashToken("S3CR3T41"), "foo-email", []string{}, "", "", created, modified, "uuid1"})
+	mk.UserList = append(mk.UserList, QUser{6, "same_uuid", qRoleConsumerPub, "UserSame2", "", "", "", "", "S3CR3T42", HashToken("S3CR3T42"), "foo-email", []string{}, "", "", created, modified, "uuid1"})
+	mk.UserList = append(mk.UserList, QUser{7, "uuid7", []QProjectRoles{}, "push_worker_0", "", "", "", "", "push_token", HashToken("push_token"), "foo-email", []string{"push_worker"}, "", "", created, modified, ""})
+	mk.UserList = append(mk.UserList, QUser{8, "uuid8", qRoleB, "UserZ", "", "", "", "", "S3CR3T1", HashToken("S3CR3T1"), "foo-email", []string{}, "", "", created, modified, ""})
 
 	qRole1 := QRole{"topics:list_all", []string{"admin", "reader", "publisher"}}
 	qRole2 := QRole{"topics:publish", []string{"admin", "publisher"}}
@@ -1082,11 +1094,46 @@ func (mk *MockStore) Clone() Store {
 	return mk
 }
 
-// GetUserFromToken retrieves specific user info from a given token
+// findUserByTokenWithFallback matches a user by the hashed `TokenV2` field
+// and falls back to the legacy plaintext `Token` field.
+//
+// TODO(token_v2 cutover): remove the fallback after the backfill script has
+// migrated all users.
+func (mk *MockStore) findUserByTokenWithFallback(token string) (QUser, bool) {
+	if token == "" {
+		return QUser{}, false
+	}
+
+	hashed := HashToken(token)
+
+	for _, item := range mk.UserList {
+		if item.TokenV2 != "" && item.TokenV2 == hashed {
+			return item, true
+		}
+	}
+
+	for _, item := range mk.UserList {
+		if item.Token == token {
+			return item, true
+		}
+	}
+
+	return QUser{}, false
+}
+
+// GetUserFromToken retrieves specific user info from a given token.
 func (mk *MockStore) GetUserFromToken(ctx context.Context, token string) (QUser, error) {
+	if user, ok := mk.findUserByTokenWithFallback(token); ok {
+		return user, nil
+	}
+	return QUser{}, errors.New("not found")
+}
+
+// GetComponentUser retrieves specific user that has attached component information
+func (mk *MockStore) GetComponentUser(ctx context.Context, comp string, compProject string) (QUser, error) {
 	for _, item := range mk.UserList {
 
-		if item.Token == token {
+		if item.Component == comp && item.ComponentProject == compProject {
 			return item, nil
 
 		}
@@ -1096,17 +1143,13 @@ func (mk *MockStore) GetUserFromToken(ctx context.Context, token string) (QUser,
 
 }
 
-// GetUserRoles returns the roles of a user in a project
+// GetUserRoles returns the roles of a user in a project.
 func (mk *MockStore) GetUserRoles(ctx context.Context, projectUUID string, token string) ([]string, string) {
-	for _, item := range mk.UserList {
-
-		if item.Token == token {
-			return item.getProjectRoles(projectUUID), item.Name
-
-		}
+	user, ok := mk.findUserByTokenWithFallback(token)
+	if !ok {
+		return []string{}, ""
 	}
-
-	return []string{}, ""
+	return user.getProjectRoles(projectUUID), user.Name
 }
 
 // HasResourceRoles returns the roles of a user in a project

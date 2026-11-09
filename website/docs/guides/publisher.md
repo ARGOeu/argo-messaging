@@ -72,6 +72,8 @@ The JSON body send to the ARGO Messaging Service may contain one or more message
 
 The data must be base64-encoded, and can not exceed 10MB after encoding. Note that the message payload must not be empty; it must contain either a non-empty data field, or at least one attribute.
 
+> **Note:** the ARGO Messaging Service automatically adds a reserved `x_sender_id` attribute to every published message, containing the UUID of the authenticated user/service account that published it. This attribute is always set/overwritten by the API on publish, regardless of any value the client supplies, and it is delivered to subscribers along with the rest of the attributes.
+
 Below you can find an example, in which a user publishes two messages in one call:
 
 ```json

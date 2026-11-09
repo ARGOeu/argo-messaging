@@ -17,6 +17,7 @@ import (
 	"github.com/ARGOeu/argo-messaging/stores"
 	"github.com/ARGOeu/argo-messaging/subscriptions"
 	"github.com/ARGOeu/argo-messaging/topics"
+	"github.com/ARGOeu/argo-messaging/tracectx"
 	"github.com/ARGOeu/argo-messaging/validation"
 	gorillaContext "github.com/gorilla/context"
 	"github.com/gorilla/mux"
@@ -26,7 +27,7 @@ import (
 // SubAck (POST) acknowledge the consumption of specific messages
 func SubAck(w http.ResponseWriter, r *http.Request) {
 	traceID := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+	rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -132,7 +133,7 @@ func SubAck(w http.ResponseWriter, r *http.Request) {
 // SubListOne (GET) one subscription
 func SubListOne(w http.ResponseWriter, r *http.Request) {
 	traceID := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+	rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -185,7 +186,7 @@ func SubListOne(w http.ResponseWriter, r *http.Request) {
 // SubSetOffset (PUT) sets subscriptions current offset
 func SubSetOffset(w http.ResponseWriter, r *http.Request) {
 	traceID := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+	rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -253,7 +254,7 @@ func SubSetOffset(w http.ResponseWriter, r *http.Request) {
 // SubGetOffsets (GET) gets offset indices from a subscription
 func SubGetOffsets(w http.ResponseWriter, r *http.Request) {
 	traceID := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+	rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -317,7 +318,7 @@ func SubGetOffsets(w http.ResponseWriter, r *http.Request) {
 // SubTimeToOffset (GET) gets offset indices closest to a timestamp
 func SubTimeToOffset(w http.ResponseWriter, r *http.Request) {
 	traceID := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+	rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -385,7 +386,7 @@ func SubTimeToOffset(w http.ResponseWriter, r *http.Request) {
 // SubDelete (DEL) deletes an existing subscription
 func SubDelete(w http.ResponseWriter, r *http.Request) {
 	traceID := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+	rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 	// Init output
 	output := []byte("")
@@ -445,7 +446,7 @@ func SubDelete(w http.ResponseWriter, r *http.Request) {
 // SubModACL (POST) modifies the ACL
 func SubModACL(w http.ResponseWriter, r *http.Request) {
 	traceID := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+	rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -506,7 +507,7 @@ func SubModACL(w http.ResponseWriter, r *http.Request) {
 // SubModPush (POST) modifies the push configuration
 func SubModPush(w http.ResponseWriter, r *http.Request) {
 	traceID := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+	rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -847,7 +848,7 @@ func SubModPush(w http.ResponseWriter, r *http.Request) {
 // SubVerifyPushEndpoint (POST) verifies the ownership of a push endpoint registered in a push enabled subscription
 func SubVerifyPushEndpoint(w http.ResponseWriter, r *http.Request) {
 	traceID := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+	rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -937,7 +938,7 @@ func SubVerifyPushEndpoint(w http.ResponseWriter, r *http.Request) {
 // SubModAck (POST) modifies the Ack deadline of the subscription
 func SubModAck(w http.ResponseWriter, r *http.Request) {
 	traceID := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+	rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -993,7 +994,7 @@ func SubModAck(w http.ResponseWriter, r *http.Request) {
 // SubCreate (PUT) creates a new subscription
 func SubCreate(w http.ResponseWriter, r *http.Request) {
 	traceID := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+	rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -1216,7 +1217,7 @@ func SubCreate(w http.ResponseWriter, r *http.Request) {
 // SubACL (GET) one sub's authorized users
 func SubACL(w http.ResponseWriter, r *http.Request) {
 	traceID := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+	rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -1255,7 +1256,7 @@ func SubACL(w http.ResponseWriter, r *http.Request) {
 // SubListAll (GET) all subscriptions
 func SubListAll(w http.ResponseWriter, r *http.Request) {
 	traceID := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+	rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 	var err error
 	var strPageSize string
@@ -1320,7 +1321,7 @@ func SubListAll(w http.ResponseWriter, r *http.Request) {
 // SubPull (POST) consumes messages from the underlying topic
 func SubPull(w http.ResponseWriter, r *http.Request) {
 	traceID := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+	rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"

@@ -2,15 +2,19 @@ package stores
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"time"
+
+	"github.com/ARGOeu/argo-messaging/tracectx"
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"time"
 )
 
 const (
@@ -24,6 +28,21 @@ const (
 	OpMetricsCollection          string = "op_metrics"
 	RolesCollection              string = "roles"
 )
+
+// HashToken returns the hex-encoded SHA-256 hash of the given plaintext token.
+// It is used to derive the value stored in the token_v2 field of a user record,
+// so that plaintext user tokens no longer need to be persisted at rest.
+//
+// A dedicated helper is provided (instead of ad-hoc hashing at call sites) so
+// that the hashing scheme can be evolved in a single place if we later switch
+// to HMAC-SHA256 with a server-side secret or to a key-derivation function.
+func HashToken(token string) string {
+	if token == "" {
+		return ""
+	}
+	sum := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(sum[:])
+}
 
 type DocNotFound struct{}
 
@@ -211,7 +230,7 @@ func (store *MongoStoreWithOfficialDriver) Clone() Store {
 func (store *MongoStoreWithOfficialDriver) logErrorAndCrash(ctx context.Context, funcName string, err error) {
 	log.WithFields(
 		log.Fields{
-			"trace_id":        ctx.Value("trace_id"),
+			"trace_id":        tracectx.FromContext(ctx),
 			"type":            "backend_log",
 			"function":        funcName,
 			"backend_service": "mongo",
@@ -1085,7 +1104,7 @@ func (store *MongoStoreWithOfficialDriver) PaginatedQueryUsers(ctx context.Conte
 			log.WithFields(
 				log.Fields{
 					"type":            "backend_log",
-					"trace_id":        ctx.Value("trace_id"),
+					"trace_id":        tracectx.FromContext(ctx),
 					"backend_service": "mongo",
 					"page_token":      pageToken,
 					"err":             err.Error(),
@@ -1170,7 +1189,7 @@ func (store *MongoStoreWithOfficialDriver) QueryUsers(ctx context.Context, proje
 
 // UpdateUser updates user information
 func (store *MongoStoreWithOfficialDriver) UpdateUser(ctx context.Context, uuid, fname, lname, org,
-	desc string, projects []QProjectRoles, name string, email string, serviceRoles []string, modifiedOn time.Time) error {
+	desc string, projects []QProjectRoles, name string, email string, serviceRoles []string, comp string, compProject string, modifiedOn time.Time) error {
 
 	doc := bson.M{"uuid": uuid}
 	results, err := store.QueryUsers(ctx, "", uuid, "")
@@ -1218,6 +1237,14 @@ func (store *MongoStoreWithOfficialDriver) UpdateUser(ctx context.Context, uuid,
 		curUsr.ServiceRoles = serviceRoles
 	}
 
+	if comp != "" {
+		curUsr.Component = comp
+	}
+
+	if compProject != "" {
+		curUsr.ComponentProject = compProject
+	}
+
 	curUsr.ModifiedOn = modifiedOn
 
 	change := bson.M{"$set": curUsr}
@@ -1248,15 +1275,21 @@ func (store *MongoStoreWithOfficialDriver) AppendToUserProjects(ctx context.Cont
 	return err
 }
 
-// UpdateUserToken updates user's token
-func (store *MongoStoreWithOfficialDriver) UpdateUserToken(ctx context.Context, uuid string, token string) error {
+// UpdateUserToken persists a new pre-hashed token for a user. The plaintext
+// is generated and surfaced by the auth layer; the store only sees, and
+// only stores, the hash.
+func (store *MongoStoreWithOfficialDriver) UpdateUserToken(ctx context.Context, uuid string, tokenHash string) error {
 	doc := bson.M{"uuid": uuid}
-	change := bson.M{"$set": bson.M{"token": token}}
-	_, err := store.usersCollection.UpdateOne(ctx, doc, change)
+	change := bson.M{"$set": bson.M{"token_v2": tokenHash}}
+	result, err := store.usersCollection.UpdateOne(ctx, doc, change)
 	if err != nil {
 		store.logErrorAndCrash(ctx, "UpdateUserToken", err)
+		return err
 	}
-	return err
+	if result.MatchedCount == 0 {
+		return errors.New("not found")
+	}
+	return nil
 }
 
 func (store *MongoStoreWithOfficialDriver) RemoveUser(ctx context.Context, uuid string) error {
@@ -1268,23 +1301,27 @@ func (store *MongoStoreWithOfficialDriver) RemoveUser(ctx context.Context, uuid 
 	return err
 }
 
-// InsertUser inserts a new user to the store
+// InsertUser inserts a new user to the store. The tokenHash argument must
+// already be the hashed form of the plaintext token — only the hash is
+// persisted.
 func (store *MongoStoreWithOfficialDriver) InsertUser(ctx context.Context, uuid string, projects []QProjectRoles,
-	name string, firstName string, lastName string, org string, desc string, token string, email string, serviceRoles []string, createdOn time.Time, modifiedOn time.Time, createdBy string) error {
+	name string, firstName string, lastName string, org string, desc string, tokenHash string, email string, serviceRoles []string, comp string, compProject string, createdOn time.Time, modifiedOn time.Time, createdBy string) error {
 	user := QUser{
-		UUID:         uuid,
-		Name:         name,
-		Email:        email,
-		Token:        token,
-		FirstName:    firstName,
-		LastName:     lastName,
-		Organization: org,
-		Description:  desc,
-		Projects:     projects,
-		ServiceRoles: serviceRoles,
-		CreatedOn:    createdOn,
-		ModifiedOn:   modifiedOn,
-		CreatedBy:    createdBy,
+		UUID:             uuid,
+		Name:             name,
+		Email:            email,
+		TokenV2:          tokenHash,
+		FirstName:        firstName,
+		LastName:         lastName,
+		Organization:     org,
+		Description:      desc,
+		Projects:         projects,
+		ServiceRoles:     serviceRoles,
+		Component:        comp,
+		ComponentProject: compProject,
+		CreatedOn:        createdOn,
+		ModifiedOn:       modifiedOn,
+		CreatedBy:        createdBy,
 	}
 	_, err := store.usersCollection.InsertOne(ctx, user)
 	if err != nil {
@@ -1293,14 +1330,60 @@ func (store *MongoStoreWithOfficialDriver) InsertUser(ctx context.Context, uuid 
 	return err
 }
 
-// GetUserFromToken returns user information from a specific token
+// findUserByTokenWithFallback looks up a user by the hashed `token_v2` field
+// and, on miss, falls back to the legacy plaintext `token` field.
+//
+// TODO(token_v2 cutover): once all users have been migrated by the backfill
+// script, drop the fallback branch and query token_v2 only.
+func (store *MongoStoreWithOfficialDriver) findUserByTokenWithFallback(ctx context.Context, op, token string) ([]QUser, error) {
+
+	if token == "" {
+		return nil, DocNotFound{}
+	}
+
+	// Primary lookup: hashed token.
+	results, err := store.usersFindQueryProcessor.execute(ctx, bson.M{"token_v2": HashToken(token)})
+	if err != nil {
+		store.logErrorAndCrash(ctx, op, err)
+		return nil, err
+	}
+	if len(results) > 0 {
+		return results, nil
+	}
+
+	// Fallback lookup: legacy plaintext token. Backfill is handled
+	// out-of-band by tools/backfill_token_v2.js.
+	results, err = store.usersFindQueryProcessor.execute(ctx, bson.M{"token": token})
+	if err != nil {
+		store.logErrorAndCrash(ctx, op, err)
+		return nil, err
+	}
+
+	// Emit a marker whenever a request still authenticates via the legacy
+	// plaintext token. Monitoring this signal drives the token_v2 cutover:
+	// when it drops to zero the fallback branch and the plaintext `token`
+	// field can be removed.
+	if len(results) > 0 {
+		log.WithFields(
+			log.Fields{
+				"type":            "backend_log",
+				"trace_id":        tracectx.FromContext(ctx),
+				"op":              op,
+				"user_uuid":       results[0].UUID,
+				"backend_service": "mongo",
+				"backend_hosts":   store.Server,
+			},
+		).Warn("token_v2 miss, matched user via legacy plaintext token fallback")
+	}
+
+	return results, nil
+}
+
+// GetUserFromToken returns user information from a specific token.
 func (store *MongoStoreWithOfficialDriver) GetUserFromToken(ctx context.Context, token string) (QUser, error) {
 
-	query := bson.M{"token": token}
-	results, err := store.usersFindQueryProcessor.execute(ctx, query)
-
+	results, err := store.findUserByTokenWithFallback(ctx, "GetUserFromToken", token)
 	if err != nil {
-		store.logErrorAndCrash(ctx, "GetUserFromToken", err)
 		return QUser{}, err
 	}
 
@@ -1312,12 +1395,42 @@ func (store *MongoStoreWithOfficialDriver) GetUserFromToken(ctx context.Context,
 		log.WithFields(
 			log.Fields{
 				"type":            "backend_log",
-				"trace_id":        ctx.Value("trace_id"),
-				"token":           token,
+				"trace_id":        tracectx.FromContext(ctx),
 				"backend_service": "mongo",
 				"backend_hosts":   store.Server,
 			},
 		).Warning("Multiple users with the same token")
+	}
+
+	return results[0], nil
+}
+
+// GetComponentUser returns specific user with attached component info
+func (store *MongoStoreWithOfficialDriver) GetComponentUser(ctx context.Context, comp string, compProject string) (QUser, error) {
+
+	query := bson.M{"component": comp, "component_project": compProject}
+	results, err := store.usersFindQueryProcessor.execute(ctx, query)
+
+	if err != nil {
+		store.logErrorAndCrash(ctx, "GetComponentUser", err)
+		return QUser{}, err
+	}
+
+	if len(results) == 0 {
+		return QUser{}, DocNotFound{}
+	}
+
+	if len(results) > 1 {
+		log.WithFields(
+			log.Fields{
+				"type":              "backend_log",
+				"trace_id":          tracectx.FromContext(ctx),
+				"component":         comp,
+				"component_project": compProject,
+				"backend_service":   "mongo",
+				"backend_hosts":     store.Server,
+			},
+		).Warning("Multiple users with the same component info")
 	}
 
 	// Search the found user for project roles
@@ -1399,13 +1512,11 @@ func (store *MongoStoreWithOfficialDriver) UsersCount(ctx context.Context, start
 
 }
 
+// GetUserRoles returns the user's roles in the given project.
 func (store *MongoStoreWithOfficialDriver) GetUserRoles(ctx context.Context, projectUUID string, token string) ([]string, string) {
 
-	query := bson.M{"token": token}
-	results, err := store.usersFindQueryProcessor.execute(ctx, query)
-
+	results, err := store.findUserByTokenWithFallback(ctx, "GetUserRoles", token)
 	if err != nil {
-		store.logErrorAndCrash(ctx, "GetUserRoles", err)
 		return []string{}, err.Error()
 	}
 
@@ -1417,17 +1528,14 @@ func (store *MongoStoreWithOfficialDriver) GetUserRoles(ctx context.Context, pro
 		log.WithFields(
 			log.Fields{
 				"type":            "backend_log",
-				"trace_id":        ctx.Value("trace_id"),
-				"token":           token,
+				"trace_id":        tracectx.FromContext(ctx),
 				"backend_service": "mongo",
 				"backend_hosts":   store.Server,
 			},
 		).Warning("Multiple users with the same token")
 	}
 
-	// Search the found user for project roles
 	return results[0].getProjectRoles(projectUUID), results[0].Name
-
 }
 
 // ##### SUBSCRIPTION QUERIES #####
@@ -1499,7 +1607,7 @@ func (store *MongoStoreWithOfficialDriver) QuerySubs(ctx context.Context, projec
 			log.WithFields(
 				log.Fields{
 					"type":            "backend_log",
-					"trace_id":        ctx.Value("trace_id"),
+					"trace_id":        tracectx.FromContext(ctx),
 					"backend_service": "mongo",
 					"page_token":      pageToken,
 					"err":             err.Error(),
@@ -1884,7 +1992,7 @@ func (store *MongoStoreWithOfficialDriver) QueryTopics(ctx context.Context, proj
 			log.WithFields(
 				log.Fields{
 					"type":            "backend_log",
-					"trace_id":        ctx.Value("trace_id"),
+					"trace_id":        tracectx.FromContext(ctx),
 					"backend_service": "mongo",
 					"page_token":      pageToken,
 					"err":             err.Error(),

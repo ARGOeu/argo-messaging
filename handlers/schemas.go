@@ -11,6 +11,7 @@ import (
 	"github.com/ARGOeu/argo-messaging/messages"
 	"github.com/ARGOeu/argo-messaging/schemas"
 	"github.com/ARGOeu/argo-messaging/stores"
+	"github.com/ARGOeu/argo-messaging/tracectx"
 	gorillaContext "github.com/gorilla/context"
 	"github.com/gorilla/mux"
 	"github.com/twinj/uuid"
@@ -19,7 +20,7 @@ import (
 // SchemaCreate (POST) handles the creation of a new schema
 func SchemaCreate(w http.ResponseWriter, r *http.Request) {
 	traceID := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+	rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -75,7 +76,7 @@ func SchemaCreate(w http.ResponseWriter, r *http.Request) {
 // SchemaListOne (GET) retrieves information about the requested schema
 func SchemaListOne(w http.ResponseWriter, r *http.Request) {
 	traceID := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+	rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -111,7 +112,7 @@ func SchemaListOne(w http.ResponseWriter, r *http.Request) {
 // SchemaListAll (GET) retrieves all the schemas under the given project
 func SchemaListAll(w http.ResponseWriter, r *http.Request) {
 	traceID := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+	rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -137,7 +138,7 @@ func SchemaListAll(w http.ResponseWriter, r *http.Request) {
 // SchemaUpdate (PUT) updates the given schema
 func SchemaUpdate(w http.ResponseWriter, r *http.Request) {
 	traceID := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+	rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -212,7 +213,7 @@ func SchemaUpdate(w http.ResponseWriter, r *http.Request) {
 
 func SchemaDelete(w http.ResponseWriter, r *http.Request) {
 	traceID := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+	rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
@@ -255,7 +256,7 @@ func SchemaDelete(w http.ResponseWriter, r *http.Request) {
 // SchemaValidateMessage (POST) validates the given message against the schema
 func SchemaValidateMessage(w http.ResponseWriter, r *http.Request) {
 	traceID := gorillaContext.Get(r, "trace_id").(string)
-	rCTX := context.WithValue(context.Background(), TraceIDContextKey, traceID)
+	rCTX := context.WithValue(context.Background(), tracectx.TraceIDKey, traceID)
 
 	// Add content type header to the response
 	contentType := "application/json"
