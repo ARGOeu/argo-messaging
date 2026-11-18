@@ -10,11 +10,10 @@ import (
 
 	"github.com/ARGOeu/argo-messaging/tracectx"
 	log "github.com/sirupsen/logrus"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 )
 
 const (
@@ -54,7 +53,7 @@ type findQueryProcessor[T any] struct {
 	collection *mongo.Collection
 }
 
-func (p findQueryProcessor[T]) execute(ctx context.Context, query bson.M, opts ...*options.FindOptions) ([]T, error) {
+func (p findQueryProcessor[T]) execute(ctx context.Context, query bson.M, opts ...options.Lister[options.FindOptions]) ([]T, error) {
 	var results []T
 
 	cursor, err := p.collection.Find(ctx, query, opts...)
@@ -115,7 +114,6 @@ func (store *MongoStoreWithOfficialDriver) Initialize() {
 	mongoDBUri := fmt.Sprintf("mongodb://%s", store.Server)
 
 	for {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		log.WithFields(
 			log.Fields{
 				"type":            "backend_log",
@@ -123,7 +121,19 @@ func (store *MongoStoreWithOfficialDriver) Initialize() {
 				"backend_hosts":   store.Server,
 			},
 		).Info("Trying to connect to Mongo")
-		client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoDBUri))
+		clientOptions := options.Client().ApplyURI(mongoDBUri)
+		err := clientOptions.Validate()
+		if err != nil {
+			log.WithFields(
+				log.Fields{
+					"type":            "backend_log",
+					"backend_service": "mongo",
+					"backend_hosts":   store.Server,
+				},
+			).Error(err.Error())
+			continue
+		}
+		client, err := mongo.Connect(options.Client().ApplyURI(mongoDBUri))
 		if err != nil {
 			log.WithFields(
 				log.Fields{
@@ -135,7 +145,6 @@ func (store *MongoStoreWithOfficialDriver) Initialize() {
 			continue
 		}
 		store.client = client
-		cancel()
 		break
 	}
 
@@ -255,7 +264,7 @@ func (store *MongoStoreWithOfficialDriver) deleteOne(
 
 func (store *MongoStoreWithOfficialDriver) upsert(ctx context.Context, doc interface{},
 	change interface{}, collection *mongo.Collection) error {
-	updateOptions := options.Update().SetUpsert(true)
+	updateOptions := options.UpdateOne().SetUpsert(true)
 	_, err := collection.UpdateOne(ctx, doc, change, updateOptions)
 	return err
 }
@@ -401,14 +410,16 @@ func (store *MongoStoreWithOfficialDriver) InsertResourceRoles(ctx context.Conte
 
 // GetAllRoles returns a list of all available roles
 func (store *MongoStoreWithOfficialDriver) GetAllRoles(ctx context.Context) []string {
-	cursor, err := store.rolesCollection.Distinct(ctx, "roles", bson.M{})
-	if err != nil {
-		store.logErrorAndCrash(ctx, "GetAllRoles", err)
+	res := store.rolesCollection.Distinct(ctx, "roles", bson.M{})
+	if res.Err() != nil {
+		store.logErrorAndCrash(ctx, "GetAllRoles", res.Err())
 		return []string{}
 	}
 	var roles []string
-	for _, i := range cursor {
-		roles = append(roles, i.(string))
+	err := res.Decode(&roles)
+	if err != nil {
+		store.logErrorAndCrash(ctx, "GetAllRoles", err)
+		return []string{}
 	}
 	return roles
 
@@ -1098,7 +1109,7 @@ func (store *MongoStoreWithOfficialDriver) PaginatedQueryUsers(ctx context.Conte
 	// now take into account if pagination is enabled and change the query accordingly
 	// first check if an pageToken is provided and whether is a valid bson ID
 	if pageToken != "" {
-		bsonID, err := primitive.ObjectIDFromHex(pageToken)
+		bsonID, err := bson.ObjectIDFromHex(pageToken)
 		if err != nil {
 			err = fmt.Errorf("page token %s is not a valid bson ObjectId. %s", pageToken, err.Error())
 			log.WithFields(
@@ -1148,7 +1159,7 @@ func (store *MongoStoreWithOfficialDriver) PaginatedQueryUsers(ctx context.Conte
 	// and eliminate the extra element from the current response
 	if pageSize > 0 && len(qUsers) > 0 && len(qUsers) == int(limit) {
 
-		nextPageToken = qUsers[limit-1].ID.(primitive.ObjectID).Hex()
+		nextPageToken = qUsers[limit-1].ID.(bson.ObjectID).Hex()
 		qUsers = qUsers[:len(qUsers)-1]
 	}
 
@@ -1601,7 +1612,7 @@ func (store *MongoStoreWithOfficialDriver) QuerySubs(ctx context.Context, projec
 
 	// first check if an pageToken is provided and whether is a valid bson ID
 	if pageToken != "" {
-		bsonID, err := primitive.ObjectIDFromHex(pageToken)
+		bsonID, err := bson.ObjectIDFromHex(pageToken)
 		if err != nil {
 			err = fmt.Errorf("page token %s is not a valid bson ObjectId. %s", pageToken, err.Error())
 			log.WithFields(
@@ -1645,7 +1656,7 @@ func (store *MongoStoreWithOfficialDriver) QuerySubs(ctx context.Context, projec
 		// and eliminate the extra element from the current response
 		if len(qSubs) > 0 && len(qSubs) == int(limit) {
 
-			nextPageToken = qSubs[limit-1].ID.(primitive.ObjectID).Hex()
+			nextPageToken = qSubs[limit-1].ID.(bson.ObjectID).Hex()
 			qSubs = qSubs[:len(qSubs)-1]
 		}
 	}
@@ -1986,7 +1997,7 @@ func (store *MongoStoreWithOfficialDriver) QueryTopics(ctx context.Context, proj
 
 	// first check if an pageToken is provided and whether is a valid bson ID
 	if pageToken != "" {
-		bsonID, err := primitive.ObjectIDFromHex(pageToken)
+		bsonID, err := bson.ObjectIDFromHex(pageToken)
 		if err != nil {
 			err = fmt.Errorf("page token %s is not a valid bson ObjectId. %s", pageToken, err.Error())
 			log.WithFields(
@@ -2030,7 +2041,7 @@ func (store *MongoStoreWithOfficialDriver) QueryTopics(ctx context.Context, proj
 		// and eliminate the extra element from the current response
 		if len(qTopics) > 0 && len(qTopics) == int(limit) {
 
-			nextPageToken = qTopics[limit-1].ID.(primitive.ObjectID).Hex()
+			nextPageToken = qTopics[limit-1].ID.(bson.ObjectID).Hex()
 			qTopics = qTopics[:len(qTopics)-1]
 		}
 	}
