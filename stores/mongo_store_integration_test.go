@@ -6,11 +6,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/stretchr/testify/suite"
-	"github.com/testcontainers/testcontainers-go"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/suite"
+	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/wait"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 // mongodbContainer represents the mongodb container type used in the module
@@ -18,13 +20,16 @@ type mongodbContainer struct {
 	testcontainers.Container
 }
 
+const mongoDBPort = "27017/tcp"
+
 // startContainer creates an instance of the mongodb container type
 func startContainer(ctx context.Context) (*mongodbContainer, error) {
 
 	req := testcontainers.ContainerRequest{
 		Name:         "mongodb-7.0.23-ams",
 		Image:        "mongo:7.0.23",
-		ExposedPorts: []string{"27017/tcp"},
+		ExposedPorts: []string{mongoDBPort},
+		WaitingFor:   wait.ForListeningPort(mongoDBPort).WithStartupTimeout(60 * time.Second),
 	}
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: req,
@@ -96,7 +101,7 @@ func (suite *MongoStoreIntegrationTestSuite) assertUsersEqual(expected []QUser, 
 		suite.Equal(user.CreatedOn, actual[idx].CreatedOn, user.Name)
 		suite.Equal(user.ModifiedOn, actual[idx].ModifiedOn, user.Name)
 		suite.Equal(user.TokenV2, actual[idx].TokenV2, user.Name)
-		_, isObjectId := actual[idx].ID.(primitive.ObjectID)
+		_, isObjectId := actual[idx].ID.(bson.ObjectID)
 		suite.True(isObjectId, user.Name)
 	}
 }
@@ -113,7 +118,7 @@ func (suite *MongoStoreIntegrationTestSuite) assertTopicsEqual(expected []QTopic
 		suite.Equal(topic.MsgNum, actual[idx].MsgNum, topic.Name)
 		suite.Equal(topic.TotalBytes, actual[idx].TotalBytes, topic.Name)
 		suite.Equal(topic.ACL, actual[idx].ACL, topic.Name)
-		_, isObjectId := actual[idx].ID.(primitive.ObjectID)
+		_, isObjectId := actual[idx].ID.(bson.ObjectID)
 		suite.True(isObjectId, topic.Name)
 	}
 }
@@ -132,7 +137,7 @@ func (suite *MongoStoreIntegrationTestSuite) assertSubsEqual(expected []QSub, ac
 		suite.Equal(sub.MsgNum, actual[idx].MsgNum, sub.Name)
 		suite.Equal(sub.TotalBytes, actual[idx].TotalBytes, sub.Name)
 		suite.Equal(sub.ACL, actual[idx].ACL, sub.Name)
-		_, isObjectId := actual[idx].ID.(primitive.ObjectID)
+		_, isObjectId := actual[idx].ID.(bson.ObjectID)
 		suite.True(isObjectId, sub.Name)
 		suite.Equal(sub.PushType, actual[idx].PushType, sub.Name)
 		suite.Equal(sub.PushEndpoint, actual[idx].PushEndpoint, sub.Name)
@@ -696,14 +701,16 @@ func (suite *MongoStoreIntegrationTestSuite) TestQueryTopics() {
 	tpList2, ts2, pg2, _ := suite.store.QueryTopics(suite.ctx, "argo_uuid", "", "", "", 2)
 	suite.assertTopicsEqual(eTopList1st2, tpList2)
 	suite.Equal(int64(4), ts2)
-	suite.True(primitive.IsValidObjectID(pg2))
+	_, err := bson.ObjectIDFromHex(pg2)
+	suite.NoError(err)
 
 	// retrieve the next one
 	eTopList3 := []QTopic{suite.TopicList[1]}
 	tpList3, ts3, pg3, _ := suite.store.QueryTopics(suite.ctx, "argo_uuid", "", "", pg2, 1)
 	suite.assertTopicsEqual(eTopList3, tpList3)
 	suite.Equal(int64(4), ts3)
-	suite.True(primitive.IsValidObjectID(pg3))
+	_, err = bson.ObjectIDFromHex(pg3)
+	suite.NoError(err)
 
 	// retrieve a single topic
 	eTopList4 := []QTopic{suite.TopicList[0]}
@@ -724,7 +731,8 @@ func (suite *MongoStoreIntegrationTestSuite) TestQueryTopics() {
 	tpList6, ts6, pg6, _ := suite.store.QueryTopics(suite.ctx, "argo_uuid", "uuid1", "", "", 1)
 	suite.assertTopicsEqual(eTopList6, tpList6)
 	suite.Equal(int64(2), ts6)
-	suite.True(primitive.IsValidObjectID(pg6))
+	_, err = bson.ObjectIDFromHex(pg6)
+	suite.NoError(err)
 }
 
 func (suite *MongoStoreIntegrationTestSuite) TestQuerySubs() {
@@ -744,7 +752,8 @@ func (suite *MongoStoreIntegrationTestSuite) TestQuerySubs() {
 	subList2, ts2, pg2, err2 := suite.store.QuerySubs(suite.ctx, "argo_uuid", "", "", "", 2)
 	suite.assertSubsEqual(eSubListFirstPage, subList2)
 	suite.Equal(int64(4), ts2)
-	suite.True(primitive.IsValidObjectID(pg2))
+	_, err := bson.ObjectIDFromHex(pg2)
+	suite.NoError(err)
 
 	// retrieve next 2 subs
 	eSubListNextPage := []QSub{
@@ -778,7 +787,8 @@ func (suite *MongoStoreIntegrationTestSuite) TestQuerySubs() {
 	subList5, ts5, pg5, err5 := suite.store.QuerySubs(suite.ctx, "argo_uuid", "uuid1", "", "", 2)
 
 	suite.Equal(int64(3), ts5)
-	suite.True(primitive.IsValidObjectID(pg5))
+	_, err = bson.ObjectIDFromHex(pg5)
+	suite.NoError(err)
 	suite.assertSubsEqual(eSubList5, subList5)
 
 	suite.Nil(err1)
@@ -1116,7 +1126,8 @@ func (suite *MongoStoreIntegrationTestSuite) TestPaginatedQueryUsers() {
 	suite.Equal(int64(9), ts1)
 
 	suite.assertUsersEqual([]QUser{suite.UserList[8], suite.UserList[7]}, qUsers2)
-	suite.True(primitive.IsValidObjectID(pg2))
+	_, err := bson.ObjectIDFromHex(pg2)
+	suite.NoError(err)
 	suite.Equal(int64(9), ts2)
 
 	suite.Equal(0, len(qUsers3))
@@ -1124,7 +1135,8 @@ func (suite *MongoStoreIntegrationTestSuite) TestPaginatedQueryUsers() {
 	suite.Equal(int64(0), ts3)
 
 	suite.assertUsersEqual([]QUser{suite.UserList[6], suite.UserList[5]}, qUsers4)
-	suite.True(primitive.IsValidObjectID(pg4))
+	_, err = bson.ObjectIDFromHex(pg4)
+	suite.NoError(err)
 	suite.Equal(int64(9), ts4)
 }
 
@@ -1418,7 +1430,7 @@ func TestMongoStoreIntegrationTestSuite(t *testing.T) {
 		panic("Could not start container for mongodb integration tests. " + err.Error())
 	}
 
-	p, _ := container.MappedPort(context.Background(), "27017/tcp")
+	p, _ := container.MappedPort(context.Background(), mongoDBPort)
 
 	mongoDBUri := fmt.Sprintf("localhost:%s", p.Port())
 	mongoDatabase := "argo_ams"
